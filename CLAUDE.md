@@ -7,6 +7,19 @@ futur passage au web. Propriétaire et décideur produit : **Quentin**.
 À lire avant toute tâche importante : `ETAT_DU_PROJET.md` (section 0 en
 premier), puis `CONFORMITE_FFTT.md` si la tâche touche une règle sportive.
 
+Le contexte détaillé (décisions de Quentin, champs du tournoi, historique des
+phases) est dans `docs/passation/` :
+- `REGLES_CREATION_TOURNOI.md` : chaque champ du tournoi, son niveau
+  d'exigence (homologation / publication / recommandé / optionnel) et les
+  décisions prises. **Référence pour tout ce qui touche la création d'un
+  tournoi.**
+- `PASSATION_CHOIX_ET_CLASSEUR.md` puis `PASSATION_IMPORT_ET_J-1.md` : dernier
+  état (2 novembre 2026) et phase suivante « J-1, tournoi prêt ».
+- `PASSATION_ONGLET_TOURNOIS.md`, `PASSATION_PHASE_INSCRIPTIONS.md` : phases
+  précédentes.
+- `CHARTE_GRAPHIQUE.md` : brief de la charte (détail opérationnel dans la skill
+  `charte-graphique`).
+
 ## Langue et style
 
 - Tout est en **français** : noms de classes, méthodes, variables, tests,
@@ -15,6 +28,13 @@ premier), puis `CONFORMITE_FFTT.md` si la tâche touche une règle sportive.
   `liste_d_attente_rien_a_payer_puis_a_regler_apres_repechage`.
 - Suivre le style du code voisin (builders pour les objets immuables,
   résultats détaillés `Resultat…` avec motif précis plutôt que des booléens).
+- **Jamais de `switch` sur une énumération** : javac génère une classe annexe
+  `X$1` qui a déjà cassé le build chez Quentin. Utiliser une chaîne de `if`
+  ou un `switch` sur `.name()`.
+- JavaFX CSS ne gère pas `:first-child` / `:last-child` : poser des classes.
+- Données de démo : quand elles changent, incrémenter
+  `ContexteApplication.VERSION_DEMO` (marqueur `.demo-brunoy-vN`) pour qu'elles
+  soient recréées au démarrage.
 
 ## Règle d'or : l'architecture
 
@@ -80,7 +100,11 @@ mvn -B test
    (ce qui est fait, tests ajoutés, nombre total de tests, questions ouvertes,
    ce qui reste à vérifier à l'écran).
 7. Mettre à jour `ETAT_DU_PROJET.md` (section 0) quand une fonctionnalité est
-   livrée.
+   livrée, et `docs/passation/REGLES_CREATION_TOURNOI.md` si un champ du
+   tournoi change.
+8. Indiquer dans la Pull Request comment tester chez Quentin :
+   `git pull`, puis `mvn clean javafx:run`, et quel écran ouvrir avec quel
+   compte de démo.
 
 ## Ce qu'il ne faut pas faire
 

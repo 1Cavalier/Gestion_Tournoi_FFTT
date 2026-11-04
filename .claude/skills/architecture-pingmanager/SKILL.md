@@ -41,9 +41,9 @@ Un champ traverse toujours les mêmes couches, dans cet ordre :
 1. `model` : champ + accesseurs (ou builder pour un objet immuable).
 2. `core.ServiceCompletudeTournoi` / `ServiceCycleTournoi` : son niveau
    d'exigence (homologation, publication, recommandé, optionnel). Les règles de
-   classement des champs sont décrites dans le fichier de passation
-   `REGLES_CREATION_TOURNOI.md` (projet claude.ai) ; en cas de doute, le noter
-   dans `QUESTIONS.md`.
+   classement des champs sont décrites dans
+   `docs/passation/REGLES_CREATION_TOURNOI.md` (à mettre à jour avec le
+   nouveau champ) ; en cas de doute, le noter dans `QUESTIONS.md`.
 3. `persistence` (mappers `TournoiMapper`, `ConfigMapper`…) : écriture **et**
    relecture des anciens fichiers sans ce champ (valeur par défaut).
 4. `core.reglement.GenerateurReglement` si le champ apparaît dans le règlement.
