@@ -41,11 +41,17 @@ com.pingmanager
 mvn test
 ```
 
-Le projet ne dépend, pour ses tests, que de JUnit 5 (récupéré par Maven).
-Aucune dépendance de production hors la bibliothèque standard — **y compris la
-persistance**, qui lit et écrit son propre JSON.
+Dépendances : **JavaFX** (interface), **PDFBox 2** (règlement et feuille
+d'engagement en PDF) et **JUnit 5** (tests), récupérées par Maven. Le cœur
+(`model`, `core`, `ordonnancement`), la persistance (JSON maison) et l'import
+de tableurs n'utilisent que la bibliothèque standard ; seule exception,
+`core.reglement.RenduPdfReglement` s'appuie sur PDFBox.
 
-**289 tests unitaires, 0 échec** au dernier build.
+**412 tests unitaires** au 2 novembre 2026 (détail dans `ETAT_DU_PROJET.md`).
+Lancer l'interface : `mvn javafx:run`.
+
+Les consignes pour les agents Claude (règles, skills, agents spécialisés) sont
+dans `CLAUDE.md` et le dossier `.claude/`.
 
 ---
 
