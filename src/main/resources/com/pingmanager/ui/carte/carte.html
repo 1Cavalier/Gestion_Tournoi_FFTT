@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>/*LEAFLET_CSS*/</style>
+<style>
+  html, body, #carte { margin: 0; padding: 0; width: 100%; height: 100%; }
+  body { font-family: "Segoe UI", Inter, system-ui, sans-serif; background: var(--fond); }
+  :root { --fond: #EEF3F8; --texte: #2F4558; --doux: #5C6E7D; --erreur: #C0453B; --surface: #FFFFFF; --bordure: #D4DEE7; }
+  body.sombre { --fond: #17242E; --texte: #E8EFF4; --doux: #A7B9C5; --erreur: #E0756B; --surface: #22333F; --bordure: #37505F; }
+  .leaflet-container { background: var(--fond); font: inherit; }
+  /* Thème sombre : le plan est inversé et adouci (pas de fond sombre gratuit à l'IGN). */
+  body.sombre .leaflet-tile-pane { -webkit-filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
+  .bulle { font-size: 12.5px; line-height: 1.35; color: var(--texte); }
+  .bulle b { font-size: 13px; }
+  .bulle .doux { color: var(--doux); }
+  .bulle .motif { color: var(--erreur); font-weight: 600; }
+  .leaflet-tooltip { background: var(--surface); border: 1px solid var(--bordure); color: var(--texte);
+    border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.18); padding: 6px 9px; }
+  .leaflet-tooltip-top:before { border-top-color: var(--surface); }
+  #horsligne { position: absolute; z-index: 1000; left: 56px; right: 10px; top: 10px; display: none;
+    background: var(--surface); color: var(--texte); border: 1px solid var(--bordure); border-radius: 8px;
+    padding: 8px 12px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+</style>
+</head>
+<body>
+<div id="carte"></div>
+<div id="horsligne">Fond de carte indisponible (pas de connexion) : les tournois restent placés et la liste reste utilisable.</div>
+<script>
+  // WebView JavaFX : ses transformations CSS 3D placent mal les tuiles (décalages, zooms
+  // mélangés, surtout avec la mise à l'échelle Windows 125-150 %). Leaflet passe en 2D.
+  window.L_DISABLE_3D = true;
+</script>
+<script>/*LEAFLET_JS*/</script>
+<script>
+  // Pont Java : window.java.ouvrir(id) (posé par CarteTournois une fois la page chargée).
+  var carte = L.map('carte', { zoomControl: true, attributionControl: true, preferCanvas: false,
+      zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false })
+      .setView([46.6, 2.4], 6);
+  var fond = null, couleurs = {}, marqueurs = {}, selection = null, erreursTuiles = 0, tuilesOk = 0;
+
+  // Fonds de carte sans clé : Plan IGN v2 (Géoplateforme, licence ouverte Etalab,
+  // usage commercial permis) ; repli automatique sur OpenStreetMap si l'IGN ne répond pas.
+  var FONDS = {
+    ign: { url: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0'
+              + '&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png'
+              + '&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+           options: { maxZoom: 19, attribution: '&copy; IGN — Géoplateforme' } },
+    osm: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+           options: { maxZoom: 19, attribution: '&copy; contributeurs OpenStreetMap' } }
+  };
+  var fondCourant = 'ign';
+
+  function poserFond(nom) {
+    if (fond) { carte.removeLayer(fond); }
+    fondCourant = nom;
+    erreursTuiles = 0; tuilesOk = 0;
+    var o = Object.assign({ updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 2, detectRetina: false },
+        FONDS[nom].options);
+    fond = L.tileLayer(FONDS[nom].url, o);
+    fond.on('tileerror', function () {
+      erreursTuiles++;
+      // L'IGN ne répond pas (aucune tuile reçue) : on essaie OpenStreetMap une fois.
+      if (fondCourant === 'ign' && tuilesOk === 0 && erreursTuiles >= 6) { poserFond('osm'); return; }
+      majHorsLigne();
+    });
+    fond.on('tileload', function () { tuilesOk++; majHorsLigne(); });
+    fond.addTo(carte);
+  }
+
+  function initialiser(sombre, c) {
+    couleurs = c;
+    document.body.className = sombre ? 'sombre' : '';
+    if (!fond) { poserFond('ign'); }
+  }
+
+  function majHorsLigne() {
+    document.getElementById('horsligne').style.display = (erreursTuiles > 0 && tuilesOk === 0) ? 'block' : 'none';
+  }
+
+  function style(m, choisi) {
+    var acces = m.acces;
+    return {
+      radius: choisi ? 11 : (m.enCours ? 9 : 8),
+      color: choisi ? couleurs.accent : (m.enCours ? couleurs.accent : couleurs.contour),
+      weight: choisi ? 4 : (m.enCours ? 3 : 2),
+      fillColor: acces ? couleurs.primaire : couleurs.grise,
+      fillOpacity: acces ? 0.95 : 0.6,
+      opacity: 1
+    };
+  }
+
+  function echapper(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function bulle(m) {
+    var h = '<div class="bulle"><b>' + echapper(m.nom) + '</b><br><span class="doux">' + echapper(m.sous) + '</span>';
+    if (m.approx) { h += '<br><span class="doux">Position approchée (département)</span>'; }
+    if (m.motif) { h += '<br><span class="motif">' + echapper(m.motif) + '</span>'; }
+    return h + '<br><span class="doux">Cliquer pour ouvrir la fiche</span></div>';
+  }
+
+  // donnees : [{id, lat, lon, nom, sous, acces, motif, approx, enCours}]
+  function majMarqueurs(donnees, ajuster) {
+    for (var k in marqueurs) { carte.removeLayer(marqueurs[k].couche); }
+    marqueurs = {};
+    var bornes = [];
+    // Les tournois accessibles par-dessus les grisés.
+    donnees.sort(function (a, b) { return (a.acces ? 1 : 0) - (b.acces ? 1 : 0); });
+    donnees.forEach(function (m) {
+      var c = L.circleMarker([m.lat, m.lon], style(m, m.id === selection));
+      c.bindTooltip(bulle(m), { direction: 'top', offset: [0, -8] });
+      c.on('click', function () { if (window.java) { window.java.ouvrir(m.id); } });
+      c.on('mouseover', function () { if (window.java) { window.java.survol(m.id); } });
+      c.addTo(carte);
+      marqueurs[m.id] = { couche: c, donnee: m };
+      bornes.push([m.lat, m.lon]);
+    });
+    if (ajuster && bornes.length > 0) {
+      carte.invalidateSize({ pan: false });
+      if (bornes.length === 1) { carte.setView(bornes[0], 11); }
+      else { carte.fitBounds(bornes, { padding: [36, 36], maxZoom: 11 }); }
+    }
+  }
+
+  function selectionner(id, centrer) {
+    var avant = selection;
+    selection = id;
+    if (avant && marqueurs[avant]) { marqueurs[avant].couche.setStyle(style(marqueurs[avant].donnee, false)); }
+    var m = marqueurs[id];
+    if (!m) { return; }
+    m.couche.setStyle(style(m.donnee, true));
+    m.couche.bringToFront();
+    if (centrer) { carte.panTo(m.couche.getLatLng()); }
+  }
+
+  // Recalcul différé : la WebView reçoit sa taille définitive après la mise en page JavaFX.
+  var minuterie = null;
+  function redimensionner() {
+    if (minuterie) { clearTimeout(minuterie); }
+    minuterie = setTimeout(function () { carte.invalidateSize({ pan: false }); }, 60);
+  }
+  window.addEventListener('resize', redimensionner);
+</script>
+</body>
+</html>

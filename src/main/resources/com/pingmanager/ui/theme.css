@@ -1,0 +1,1498 @@
+/*
+ * PingManager — thème unique (clair + sombre).
+ *
+ * Règle d'or : les règles n'utilisent QUE les tokens ci-dessous, jamais un hex
+ * brut. La bascule clair/sombre consiste à changer la classe du root
+ * (theme-clair / theme-sombre) — voir com.pingmanager.ui.ecran.Theme.
+ *
+ * Les tokens suivent CHARTE_GRAPHIQUE.md (§1). Quatre tokens techniques s'y
+ * ajoutent : -bordure-forte (survol des champs), -sur-primaire / -sur-attention
+ * (texte posé sur un fond primaire / ambre), -anneau* (halo de focus), et
+ * -entete-texte-doux. La police est posée par Theme (pile système).
+ */
+
+/* =====================================================================
+   1. Tokens
+   ===================================================================== */
+
+.root,
+.root.theme-clair {
+    -fond-app:          #F5F8FB;
+    -surface:           #FFFFFF;
+    -surface-2:         #EEF3F8;
+    -bordure:           #D4DEE7;
+    -bordure-forte:     #A9B9C7;
+    -texte:             #2F4558;
+    -texte-doux:        #5C6E7D;
+    -primaire:          #335F8A;
+    -primaire-fort:     #294E73;
+    -primaire-doux:     #E3EDF5;
+    -sur-primaire:      #FFFFFF;
+    -nav-actif-texte:   #294E73;
+    -accent:            #55D5E0;
+    -entete-fond:       #2F4558;
+    -entete-texte:      #F5F8FB;
+    -entete-texte-doux: #B7C6D3;
+    -attention:         #F6B12D;
+    -sur-attention:     #2B2108;
+    -succes:            #2E8B6F;
+    -erreur:            #C0453B;
+    -anneau:            rgba(51, 95, 138, 0.28);
+    -anneau-erreur:     rgba(192, 69, 59, 0.26);
+    -ombre:             rgba(23, 36, 46, 0.16);
+
+    /* Code couleur des dépendances (rond devant le libellé). */
+    -dep-homologation:  #335F8A;
+    -dep-publication:   #1C97A3;
+    -dep-recommande:    #8FB3D0;
+    -dep-optionnel:     #A9B9C7;
+}
+
+.root.theme-sombre {
+    -fond-app:          #17242E;
+    -surface:           #22333F;
+    -surface-2:         #2B3E4B;
+    -bordure:           #37505F;
+    -bordure-forte:     #50697A;
+    -texte:             #E8EFF4;
+    -texte-doux:        #A7B9C5;
+    -primaire:          #4C93C9;
+    -primaire-fort:     #63A8D8;
+    -primaire-doux:     #2C4A5F;
+    -sur-primaire:      #0E1A22;
+    -nav-actif-texte:   #E8EFF4;
+    -accent:            #55D5E0;
+    -entete-fond:       #111C24;
+    -entete-texte:      #E8EFF4;
+    -entete-texte-doux: #9DB0BE;
+    -attention:         #F6B12D;
+    -sur-attention:     #2B2108;
+    -succes:            #49B894;
+    -erreur:            #E0756B;
+    -anneau:            rgba(76, 147, 201, 0.38);
+    -anneau-erreur:     rgba(224, 117, 107, 0.32);
+    -ombre:             rgba(0, 0, 0, 0.45);
+
+    -dep-homologation:  #6F8FF0;
+    -dep-publication:   #55D5E0;
+    -dep-recommande:    #9CC0DC;
+    -dep-optionnel:     #6B8394;
+}
+
+/* =====================================================================
+   2. Base : on branche Modena sur nos tokens (popups, listes, sélection…)
+   ===================================================================== */
+
+.root {
+    -fx-font-size: 13px;
+    -fx-background-color: -fond-app;
+
+    -fx-base: -surface;
+    -fx-background: -fond-app;
+    -fx-control-inner-background: -surface;
+    -fx-control-inner-background-alt: -surface-2;
+    -fx-accent: -primaire;
+    -fx-default-button: -primaire;
+    -fx-focus-color: -primaire;
+    -fx-faint-focus-color: transparent;
+    -fx-selection-bar: -primaire;
+    -fx-selection-bar-non-focused: -primaire-doux;
+    -fx-selection-bar-text: -sur-primaire;
+    -fx-text-base-color: -texte;
+    -fx-text-background-color: -texte;
+    -fx-text-inner-color: -texte;
+    -fx-mark-color: -texte;
+    -fx-box-border: -bordure;
+    -fx-text-box-border: -bordure;
+    -fx-outer-border: -bordure;
+    -fx-shadow-highlight-color: transparent;
+}
+
+.label {
+    -fx-text-fill: -texte;
+}
+
+.separator:horizontal .line {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-border-insets: 0;
+}
+
+.separator:vertical .line {
+    -fx-border-color: transparent transparent transparent -bordure;
+    -fx-border-width: 0 0 0 1;
+}
+
+/* Défilement : transparent (on voit le fond de l'app), barres fines. */
+.scroll-pane,
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical {
+    -fx-pref-width: 12;
+}
+
+.scroll-bar:horizontal {
+    -fx-pref-height: 12;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: -bordure-forte;
+    -fx-background-insets: 3;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar > .thumb:hover,
+.scroll-bar > .thumb:pressed {
+    -fx-background-color: -texte-doux;
+}
+
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-padding: 0;
+}
+
+/* =====================================================================
+   3. Typographie
+   ===================================================================== */
+
+.titre {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.sous-titre,
+.carte-titre,
+.groupe-titre {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.groupe-titre {
+    -fx-font-size: 14px;
+}
+
+.gras {
+    -fx-font-weight: bold;
+}
+
+.texte {
+    -fx-font-size: 13px;
+}
+
+.discret {
+    -fx-text-fill: -texte-doux;
+}
+
+.aide {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 2px;
+}
+
+.libelle-champ {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+}
+
+/* Niveau d'exigence à côté d'un libellé ou d'un élément de complétude. */
+.mention-exigence {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 11.5px;
+}
+
+.puce                 { -fx-stroke: transparent; }
+.puce.etat-attention  { -fx-fill: -attention; }
+.puce.etat-recommande { -fx-fill: -primaire; }
+.puce.etat-optionnel  { -fx-fill: -bordure-forte; }
+.puce.etat-ok         { -fx-fill: -succes; }
+
+.entete-colonne {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+/* =====================================================================
+   4. Conteneurs
+   ===================================================================== */
+
+.page {
+    -fx-padding: 24 28 32 28;
+}
+
+.carte {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 18 20 20 20;
+}
+
+/* Ligne d'une liste dans une carte : simple filet au-dessus. */
+.ligne-liste {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 0 10 0;
+}
+
+/* Groupe de champs dans un formulaire : séparé du précédent par un filet. */
+.groupe-champs {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 18 0 0 0;
+}
+
+.groupe-champs.premier {
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* =====================================================================
+   5. Badges et états de complétude
+   ===================================================================== */
+
+.badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+    -fx-background-color: -bordure, -surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 6, 5;
+    -fx-padding: 2 8 2 8;
+}
+
+/* Pastilles d'état (badge coloré). */
+.badge.etat-attention {
+    -fx-text-fill: -sur-attention;
+    -fx-background-color: -attention;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+}
+
+.badge.etat-ok {
+    -fx-text-fill: -succes;
+    -fx-background-color: -succes, -surface;
+    -fx-background-insets: 0, 1;
+}
+
+.badge.etat-recommande {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-background-color: -primaire-doux;
+    -fx-background-insets: 0;
+}
+
+.badge.etat-optionnel {
+    -fx-font-weight: normal;
+}
+
+/* Symbole en tête de ligne (✓ ● ○). */
+.symbole-etat {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-min-width: 18px;
+    -fx-alignment: center;
+}
+
+.symbole-etat.etat-ok         { -fx-text-fill: -succes; }
+.symbole-etat.etat-attention  { -fx-text-fill: -attention; }
+.symbole-etat.etat-recommande { -fx-text-fill: -primaire; }
+.symbole-etat.etat-optionnel  { -fx-text-fill: -bordure-forte; }
+
+/* Libellé d'un élément de complétude : renseigné = adouci. */
+.item-renseigne {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Ligne de récapitulatif (homologation / publication). */
+.recap-ligne {
+    -fx-padding: 4 0 4 0;
+}
+
+/* Messages sous un formulaire. */
+.message-erreur {
+    -fx-text-fill: -erreur;
+    -fx-font-weight: bold;
+}
+
+.message-succes {
+    -fx-text-fill: -succes;
+    -fx-font-weight: bold;
+}
+
+/* =====================================================================
+   6. Boutons
+   ===================================================================== */
+
+.button {
+    -fx-text-fill: -texte;
+    -fx-font-weight: bold;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 7 14 7 14;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -bordure-forte, -surface-2;
+}
+
+.button:armed {
+    -fx-background-color: -bordure-forte, -primaire-doux;
+}
+
+.button:focused {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+.button:focused:hover {
+    -fx-background-color: -anneau, -primaire, -surface-2;
+}
+
+.button:disabled {
+    -fx-opacity: 0.45;
+}
+
+/* Primaire : l'action principale de l'écran (une seule si possible). */
+.button.bouton-primaire {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+}
+
+.button.bouton-primaire:hover {
+    -fx-background-color: -primaire-fort;
+}
+
+.button.bouton-primaire:armed {
+    -fx-background-color: -primaire-fort;
+    -fx-opacity: 0.92;
+}
+
+.button.bouton-primaire:focused {
+    -fx-background-color: -anneau, -primaire;
+    -fx-background-insets: -3, 0;
+    -fx-background-radius: 11, 8;
+}
+
+.button.bouton-primaire:focused:hover {
+    -fx-background-color: -anneau, -primaire-fort;
+}
+
+/* Lien : action discrète (retour, bascule). */
+.button.bouton-lien,
+.hyperlink {
+    -fx-text-fill: -primaire;
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2 0 2 0;
+    -fx-cursor: hand;
+    -fx-underline: false;
+}
+
+.button.bouton-lien:hover,
+.hyperlink:hover,
+.hyperlink:visited:hover {
+    -fx-text-fill: -primaire-fort;
+    -fx-underline: true;
+    -fx-background-color: transparent;
+}
+
+.hyperlink:visited {
+    -fx-text-fill: -primaire;
+}
+
+.button.bouton-lien:focused,
+.hyperlink:focused {
+    -fx-background-color: -anneau;
+    -fx-background-insets: -2 -4 -2 -4;
+    -fx-background-radius: 6;
+    -fx-border-color: transparent;
+}
+
+/* =====================================================================
+   7. Champs de saisie
+   ===================================================================== */
+
+.text-field,
+.password-field {
+    -fx-text-fill: -texte;
+    -fx-prompt-text-fill: -texte-doux;
+    -fx-highlight-fill: -primaire;
+    -fx-highlight-text-fill: -sur-primaire;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 7 10 7 10;
+}
+
+.text-field:hover {
+    -fx-background-color: -bordure-forte, -surface;
+}
+
+.text-field:focused {
+    -fx-prompt-text-fill: -texte-doux;
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+.text-field:disabled,
+.combo-box-base:disabled,
+.check-box:disabled {
+    -fx-opacity: 0.5;
+}
+
+.text-area {
+    -fx-text-fill: -texte;
+    -fx-prompt-text-fill: -texte-doux;
+    -fx-highlight-fill: -primaire;
+    -fx-highlight-text-fill: -sur-primaire;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 1;
+}
+
+.text-area > .scroll-pane > .viewport > .content {
+    -fx-background-color: transparent;
+    -fx-padding: 8 10 8 10;
+}
+
+.text-area:focused {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+/* Listes déroulantes. */
+.combo-box-base {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.combo-box-base:hover {
+    -fx-background-color: -bordure-forte, -surface;
+}
+
+.combo-box-base:focused,
+.combo-box-base:showing {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+.combo-box > .list-cell {
+    -fx-text-fill: -texte;
+    -fx-background-color: transparent;
+    -fx-padding: 7 4 7 10;
+}
+
+.combo-box-base > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 12 0 6;
+}
+
+.combo-box-base > .arrow-button > .arrow {
+    -fx-background-color: -texte-doux;
+    -fx-background-insets: 0;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, -ombre, 14, 0, 0, 4);
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-text-fill: -texte;
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10 6 10;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:hover {
+    -fx-background-color: -surface-2;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -primaire-doux;
+    -fx-text-fill: -nav-actif-texte;
+    -fx-font-weight: bold;
+}
+
+/* Cases à cocher. */
+.check-box {
+    -fx-text-fill: -texte;
+    -fx-label-padding: 0 0 0 8;
+    -fx-cursor: hand;
+}
+
+.check-box > .box {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 5, 4;
+    -fx-padding: 3;
+}
+
+.check-box:hover > .box {
+    -fx-background-color: -primaire, -surface;
+}
+
+.check-box:focused > .box {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 8, 5, 4;
+}
+
+.check-box:selected > .box,
+.check-box:selected:hover > .box {
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+}
+
+.check-box:selected:focused > .box {
+    -fx-background-color: -anneau, -primaire;
+    -fx-background-insets: -3, 0;
+    -fx-background-radius: 8, 5;
+}
+
+.check-box > .box > .mark {
+    -fx-background-color: transparent;
+    -fx-padding: 6 5 6 5;
+}
+
+.check-box:selected > .box > .mark {
+    -fx-background-color: -sur-primaire;
+}
+
+/* =====================================================================
+   8. Coquille : en-tête et navigation
+   ===================================================================== */
+
+/* Barre ardoise, soulignée d'un filet cyan (la ligne de bord de la table). */
+.entete {
+    -fx-background-color: -accent, -entete-fond;
+    -fx-background-insets: 0, 0 0 2 0;
+    -fx-padding: 10 20 12 20;
+}
+
+.entete .label {
+    -fx-text-fill: -entete-texte;
+}
+
+.entete-titre {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.entete .entete-utilisateur {
+    -fx-text-fill: -entete-texte-doux;
+}
+
+.button.bouton-entete {
+    -fx-text-fill: -entete-texte;
+    -fx-font-weight: normal;
+    -fx-background-color: rgba(255, 255, 255, 0.22), -entete-fond;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 5 12 5 12;
+}
+
+.button.bouton-entete:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.08);
+}
+
+.button.bouton-entete:focused {
+    -fx-background-color: -accent, -entete-fond;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+}
+
+.nav {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 0 0 0 1;
+    -fx-padding: 16 12 16 12;
+}
+
+.nav-groupe-titre {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 12 4 12;
+}
+
+.nav-separation {
+    -fx-padding: 8 0 8 0;
+}
+
+.button.nav-item {
+    -fx-text-fill: -texte;
+    -fx-font-weight: normal;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+}
+
+.button.nav-item:hover {
+    -fx-background-color: -surface-2;
+}
+
+.button.nav-item:focused {
+    -fx-background-color: -anneau, transparent;
+    -fx-background-insets: 0, 2;
+}
+
+/* Entrée active : fond teinté + barre cyan côté contenu. */
+.button.nav-item.nav-item-actif,
+.button.nav-item.nav-item-actif:hover {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-font-weight: bold;
+    -fx-background-color: -accent, -primaire-doux;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-background-radius: 8, 0 8 8 0;
+}
+
+.button.nav-item.nav-item-actif:focused {
+    -fx-background-color: -accent, -anneau;
+}
+
+/* =====================================================================
+   9. Écran de connexion
+   ===================================================================== */
+
+.connexion-vitrine {
+    -fx-background-color: -entete-fond;
+    -fx-padding: 40 40 40 44;
+}
+
+.connexion-vitrine .label {
+    -fx-text-fill: -entete-texte;
+}
+
+.connexion-marque {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+}
+
+.connexion-vitrine .connexion-accroche {
+    -fx-text-fill: -entete-texte-doux;
+    -fx-font-size: 14px;
+}
+
+/* Table vue de dessus : plateau bleu, lignes cyan, filet clair. */
+.table-plateau {
+    -fx-fill: -primaire;
+    -fx-stroke: -accent;
+    -fx-stroke-width: 3;
+    -fx-stroke-type: inside;
+}
+
+.table-ligne-centrale {
+    -fx-stroke: -accent;
+    -fx-stroke-width: 1.5;
+}
+
+.table-filet {
+    -fx-stroke: -entete-texte;
+    -fx-stroke-width: 3;
+    -fx-stroke-line-cap: butt;
+}
+
+.table-poteau {
+    -fx-fill: -entete-texte;
+}
+
+.connexion-zone {
+    -fx-padding: 32;
+}
+
+.connexion-carte {
+    -fx-padding: 28 28 24 28;
+}
+
+
+/* =====================================================================
+   10. Code couleur des champs (dépendance + état)
+   ---------------------------------------------------------------------
+   Le ROND devant le libellé dit de quoi dépend le champ :
+     bleu = homologation, cyan = publication, anneau bleu = recommandé,
+     gris = optionnel.
+   Le CADRE du champ dit son état, en direct :
+     vert = rempli, orange (ambre) = obligatoire et vide, gris = facultatif vide.
+   Placé en fin de feuille pour l'emporter sur les états génériques.
+   ===================================================================== */
+
+.puce-dependance {
+    -fx-stroke: transparent;
+}
+
+.puce-dependance.dep-homologation { -fx-fill: -dep-homologation; }
+.puce-dependance.dep-publication  { -fx-fill: -dep-publication; }
+/* Recommandé : anneau (forme différente, pour ne pas le confondre avec l'optionnel). */
+.puce-dependance.dep-recommande   { -fx-fill: transparent; -fx-stroke: -dep-homologation; -fx-stroke-width: 2; }
+.puce-dependance.dep-optionnel    { -fx-fill: -dep-optionnel; }
+
+/* Cadres d'état : champs texte et listes déroulantes. */
+.text-field.cadre-ok,
+.combo-box-base.cadre-ok {
+    -fx-background-color: -succes, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 8, 6;
+}
+
+.text-field.cadre-manquant,
+.combo-box-base.cadre-manquant {
+    -fx-background-color: -attention, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 8, 6;
+}
+
+.text-field.cadre-facultatif,
+.combo-box-base.cadre-facultatif {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+}
+
+/* Au focus : on garde la couleur d'état et on ajoute le halo. */
+.text-field.cadre-ok:focused,
+.combo-box-base.cadre-ok:focused,
+.combo-box-base.cadre-ok:showing {
+    -fx-background-color: -anneau, -succes, -surface;
+    -fx-background-insets: -3, 0, 2;
+    -fx-background-radius: 11, 8, 6;
+}
+
+.text-field.cadre-manquant:focused,
+.combo-box-base.cadre-manquant:focused,
+.combo-box-base.cadre-manquant:showing {
+    -fx-background-color: -anneau, -attention, -surface;
+    -fx-background-insets: -3, 0, 2;
+    -fx-background-radius: 11, 8, 6;
+}
+
+.text-field.cadre-facultatif:focused,
+.combo-box-base.cadre-facultatif:focused,
+.combo-box-base.cadre-facultatif:showing {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+/* Valeur issue de la base (lecture seule) : fond teinté, pas de curseur. */
+.text-field.lecture {
+    -fx-text-fill: -texte;
+    -fx-cursor: default;
+}
+
+.text-field.lecture.cadre-ok {
+    -fx-background-color: -succes, -surface-2;
+}
+
+/* Erreur de saisie : prime sur tout le reste. */
+.root .text-field.en-erreur,
+.root .combo-box-base.en-erreur {
+    -fx-background-color: -erreur, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 8, 6;
+}
+
+.root .text-field.en-erreur:focused,
+.root .combo-box-base.en-erreur:focused {
+    -fx-background-color: -anneau-erreur, -erreur, -surface;
+    -fx-background-insets: -3, 0, 2;
+    -fx-background-radius: 11, 8, 6;
+}
+
+/* Badge d'état dans la vue d'ensemble : même code que les cadres. */
+.badge.cadre-ok {
+    -fx-text-fill: -succes;
+    -fx-background-color: -succes, -surface;
+    -fx-background-insets: 0, 1.5;
+}
+
+.badge.cadre-manquant {
+    -fx-text-fill: -sur-attention;
+    -fx-background-color: -attention;
+    -fx-background-insets: 0;
+}
+
+.badge.cadre-facultatif {
+    -fx-font-weight: normal;
+}
+
+/* Légende du code couleur, en tête de formulaire et de vue d'ensemble. */
+.legende {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14 10 14;
+}
+
+.legende .label {
+    -fx-font-size: 12px;
+}
+
+.legende .legende-titre {
+    -fx-text-fill: -texte-doux;
+    -fx-font-weight: bold;
+}
+
+.echantillon {
+    -fx-min-width: 22px;
+    -fx-min-height: 14px;
+    -fx-max-width: 22px;
+    -fx-max-height: 14px;
+    -fx-background-radius: 4, 3;
+    -fx-background-insets: 0, 2;
+}
+
+.echantillon.cadre-ok         { -fx-background-color: -succes, -surface; }
+.echantillon.cadre-manquant   { -fx-background-color: -attention, -surface; }
+.echantillon.cadre-facultatif { -fx-background-color: -bordure-forte, -surface; -fx-background-insets: 0, 1.5; }
+
+/* Note sous un groupe (« par défaut… », échelon calculé). */
+.note-groupe {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+}
+
+.valeur-calculee {
+    -fx-font-weight: bold;
+}
+
+/* =====================================================================
+   11. Écran Tableaux : sélecteur de date, liste modifiable, radios, grille
+   ===================================================================== */
+
+/* Le champ texte interne d'un sélecteur de date ou d'une liste modifiable :
+   pas de second cadre, c'est le contrôle parent qui porte bordure et état. */
+.date-picker > .text-field,
+.combo-box-base:editable > .text-field {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 7 4 7 10;
+}
+
+.date-picker > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 12 0 6;
+}
+
+.date-picker > .arrow-button > .arrow {
+    -fx-background-color: -texte-doux;
+}
+
+.date-picker-popup {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-effect: dropshadow(gaussian, -ombre, 14, 0, 0, 4);
+}
+
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: transparent;
+}
+
+.date-picker-popup .spinner .label,
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: -texte;
+}
+
+.date-picker-popup .date-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -texte;
+}
+
+.date-picker-popup .date-cell:hover {
+    -fx-background-color: -surface-2;
+}
+
+.date-picker-popup .date-cell:disabled {
+    -fx-opacity: 0.35;
+}
+
+.date-picker-popup .selected {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+/* Boutons radio (catégorie de points). */
+.radio-button {
+    -fx-text-fill: -texte;
+    -fx-label-padding: 0 0 0 7;
+    -fx-cursor: hand;
+}
+
+.radio-button > .radio {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 1em;
+    -fx-padding: 4;
+}
+
+.radio-button:hover > .radio {
+    -fx-background-color: -primaire, -surface;
+}
+
+.radio-button:focused > .radio {
+    -fx-background-color: -anneau, -primaire, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+}
+
+.radio-button > .radio > .dot {
+    -fx-background-color: transparent;
+    -fx-background-radius: 1em;
+    -fx-padding: 3;
+}
+
+.radio-button:selected > .radio > .dot {
+    -fx-background-color: -primaire;
+}
+
+/* Grille récapitulative des tableaux. */
+.grille-tableaux .cellule-entete {
+    -fx-padding: 0 10 8 0;
+}
+
+.grille-tableaux .cellule {
+    -fx-padding: 8 10 8 0;
+}
+
+.grille-tableaux .filet-ligne {
+    -fx-background-color: -bordure;
+}
+
+.grille-vide {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 18 16 18 16;
+}
+
+.button.bouton-lien.lien-danger {
+    -fx-text-fill: -erreur;
+}
+
+.rappel-attention {
+    -fx-text-fill: -sur-attention;
+    -fx-background-color: -attention;
+    -fx-background-radius: 6;
+    -fx-padding: 8 12 8 12;
+}
+
+/* Liste dépliée sous un choix (ex. « Sélectionner des catégories »). */
+.liste-depliee {
+    -fx-border-color: transparent transparent transparent -bordure;
+    -fx-border-width: 0 0 0 2;
+    -fx-padding: 4 0 4 14;
+}
+
+/* =====================================================================
+   12. Écran sportif : encart de règles, résultats de recherche
+   ===================================================================== */
+
+.encart-regles {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 14;
+}
+
+.resultats-recherche {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 4 12 4 12;
+}
+
+.resultats-recherche .resultat {
+    -fx-padding: 8 0 8 0;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.groupe-titre-separe {
+    -fx-padding: 12 0 0 0;
+}
+
+/* =====================================================================
+   13. Règlement : aperçu dans l'application
+   ===================================================================== */
+
+.reglement {
+    -fx-padding: 8 12 8 12;
+}
+
+.regl-titre {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.regl-sous-titre {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 10 0;
+}
+
+.regl-article {
+    -fx-text-fill: -primaire;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 14 0 2 0;
+}
+
+.regl-texte {
+    -fx-fill: -texte;
+    -fx-font-size: 13.5px;
+}
+
+.regl-note {
+    -fx-fill: -texte-doux;
+    -fx-font-size: 12.5px;
+}
+
+.regl-paragraphe {
+    -fx-line-spacing: 3px;
+}
+
+.regl-trou {
+    -fx-text-fill: -sur-attention;
+    -fx-background-color: -attention;
+    -fx-background-radius: 3;
+    -fx-padding: 0 3 0 3;
+    -fx-font-size: 13px;
+}
+
+.regl-check {
+    -fx-border-color: -bordure;
+    -fx-border-width: 2;
+    -fx-border-style: segments(6, 4);
+    -fx-border-radius: 8;
+    -fx-padding: 12 16 14 16;
+}
+
+.regl-check .label {
+    -fx-wrap-text: true;
+}
+
+.vignette {
+    -fx-effect: dropshadow(gaussian, -ombre, 8, 0, 0, 2);
+}
+
+/* =====================================================================
+   14. Règles d'inscription, articles du règlement, paiement
+   ===================================================================== */
+
+/* Contrôle segmenté (choix exclusif en boutons accolés). */
+.segment {
+    -fx-spacing: 0;
+}
+
+.segment > .toggle-button {
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure-forte;
+    -fx-border-width: 1 0 1 1;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-text-fill: -texte;
+    -fx-font-size: 12.5px;
+    -fx-padding: 6 12 6 12;
+    -fx-cursor: hand;
+}
+
+.segment > .toggle-button.segment-premier {
+    -fx-background-radius: 6 0 0 6;
+    -fx-border-radius: 6 0 0 6;
+}
+
+.segment > .toggle-button.segment-dernier {
+    -fx-border-width: 1;
+    -fx-background-radius: 0 6 6 0;
+    -fx-border-radius: 0 6 6 0;
+}
+
+.segment > .toggle-button:hover {
+    -fx-background-color: -surface-2;
+}
+
+.segment > .toggle-button:selected {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+.segment > .toggle-button:focused {
+    -fx-effect: dropshadow(gaussian, -anneau, 4, 0.6, 0, 0);
+}
+
+/* Une ligne de règle (période de forfait, article ajouté). */
+.bloc-regle {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 14;
+    -fx-spacing: 8;
+}
+
+.etapes .label {
+    -fx-wrap-text: true;
+    -fx-text-fill: -texte;
+}
+
+.champ-court {
+    -fx-pref-width: 90px;
+    -fx-max-width: 90px;
+}
+
+.sous-titre-carte {
+    -fx-padding: 10 0 0 0;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* =====================================================================
+   Inscriptions : jauges, listes de joueurs, tuiles (vue club et fiche)
+   ===================================================================== */
+
+.progress-bar.jauge > .track {
+    -fx-background-color: -surface-2;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+}
+
+.progress-bar.jauge > .bar {
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+    -fx-padding: 4;
+}
+
+/* Tableau complet : ambre (attention, liste d'attente). */
+.progress-bar.jauge.jauge-complete > .bar {
+    -fx-background-color: -attention;
+}
+
+.jauge-texte {
+    -fx-font-size: 11.5px;
+}
+
+.tuile {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 12 16 12 16;
+}
+
+.tuile-chiffre {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.choix-tableau {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 10 12 10 12;
+    -fx-cursor: hand;
+}
+
+.choix-tableau:hover {
+    -fx-background-color: -bordure-forte, -surface-2;
+}
+
+.choix-tableau.choix-tableau-actif {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.list-view.liste-joueurs {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8;
+    -fx-padding: 1;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: -surface;
+    -fx-padding: 7 12 7 12;
+    -fx-border-color: transparent transparent -surface-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: -surface-2;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -primaire-doux;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell.ligne-separateur {
+    -fx-background-color: -surface-2;
+}
+
+.list-view.liste-joueurs > .virtual-flow > .clipped-container > .sheet > .list-cell.ligne-moi {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: transparent transparent transparent -accent;
+    -fx-border-width: 0 0 0 4;
+}
+
+.badge.puce-tableau {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-background-color: -primaire-doux;
+    -fx-background-insets: 0;
+}
+
+.badge.puce-attente {
+    -fx-text-fill: -sur-attention;
+    -fx-background-color: -attention;
+    -fx-background-insets: 0;
+}
+
+/* =====================================================================
+   Onglet Tournois : explorateur (filtres, liste, carte), fiche, assistant
+   ===================================================================== */
+
+.page-entete {
+    -fx-padding: 20 28 12 28;
+}
+
+.explorateur {
+    -fx-padding: 0 28 20 28;
+}
+
+.barre-filtres {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 12 14 12 14;
+}
+
+.cadre-carte {
+    -fx-background-color: -bordure, -surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 1;
+    -fx-min-height: 420px;
+}
+
+.menu-button.filtre-menu {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-text-fill: -texte;
+}
+
+.check-box.interrupteur {
+    -fx-font-weight: bold;
+}
+
+.list-view.liste-tournois {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 1;
+}
+
+.list-view.liste-tournois > .virtual-flow > .clipped-container > .sheet > .list-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.list-view.liste-tournois > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: -surface;
+    -fx-padding: 10 14 10 14;
+    -fx-border-color: transparent transparent -surface-2 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-view.liste-tournois > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: -surface-2;
+}
+
+.list-view.liste-tournois > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: transparent transparent -surface-2 -primaire;
+    -fx-border-width: 0 0 1 4;
+}
+
+/* Tournoi non accessible : reste visible, grisé ; le motif garde sa couleur. */
+.list-cell.tournoi-grise .gras,
+.list-cell.tournoi-grise .discret,
+.list-cell.tournoi-grise .badge {
+    -fx-opacity: 0.55;
+}
+
+.motif-refus {
+    -fx-text-fill: -erreur;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}
+
+.badge.badge-en-cours {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -dep-publication;
+    -fx-background-insets: 0;
+}
+
+.bandeau-refus {
+    -fx-text-fill: -erreur;
+    -fx-font-weight: bold;
+    -fx-background-color: -erreur, -surface;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 18;
+}
+
+.carte.carte-moi {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.intertitre-jour {
+    -fx-padding: 12 0 4 0;
+    -fx-text-fill: -primaire;
+}
+
+.tableau-grise .ligne-liste {
+    -fx-opacity: 0.55;
+}
+
+.tableau-grise .motif-refus {
+    -fx-padding: 0 0 8 0;
+    -fx-font-weight: normal;
+}
+
+.barre-inscription {
+    -fx-padding: 8 0 24 0;
+}
+
+.button.bouton-primaire.bouton-large {
+    -fx-font-size: 15px;
+    -fx-padding: 12 48 12 48;
+}
+
+/* Assistant d'inscription. */
+.fil-etapes .etape {
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 14;
+    -fx-font-size: 12.5px;
+}
+
+.fil-etapes .etape-courante {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+    -fx-font-weight: bold;
+}
+
+.fil-etapes .etape-faite {
+    -fx-text-fill: -succes;
+    -fx-font-weight: bold;
+}
+
+.fil-etapes .etape-a-venir {
+    -fx-text-fill: -texte-doux;
+}
+
+.statut-tableau {
+    -fx-font-size: 12px;
+}
+
+.statut-ok      { -fx-text-fill: -succes; -fx-font-weight: bold; }
+.statut-attente { -fx-text-fill: -texte; -fx-background-color: -attention; -fx-background-radius: 6;
+                  -fx-padding: 2 6 2 6; }
+.statut-refus   { -fx-text-fill: -erreur; -fx-font-weight: bold; }
+.statut-neutre  { -fx-text-fill: -texte-doux; }
+
+.root.theme-sombre .statut-attente { -fx-text-fill: -sur-attention; }
+
+.pied-assistant {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 12 16 12 16;
+}
+
+.rappel-regles {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+}
+
+.ligne-total {
+    -fx-padding: 12 0 0 0;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.montant {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.carte.carte-paiement {
+    -fx-background-color: -attention, -surface;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.titre-succes {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -succes;
+}
+
+.intertitre-groupe {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+    -fx-padding: 8 0 0 0;
+}
+
+/* Choix de la méthode de préparation (après création du brouillon). */
+.carte.carte-choix {
+    -fx-padding: 22 24 22 24;
+}
+
+.carte.carte-choix:hover {
+    -fx-background-color: -primaire, -surface;
+}
+
+.choix-titre {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}

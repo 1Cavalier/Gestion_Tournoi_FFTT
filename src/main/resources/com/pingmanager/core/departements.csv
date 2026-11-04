@@ -1,0 +1,104 @@
+# Départements français -> ligue régionale FFTT (une ligue par région administrative)
+# et point de repli pour la carte (préfecture, coordonnées approchées, WGS84).
+# code;nom;ligue;latitude;longitude;forme « de … »
+01;Ain;Auvergne-Rhône-Alpes;46.205;5.226;de l'Ain
+02;Aisne;Hauts-de-France;49.564;3.620;de l'Aisne
+03;Allier;Auvergne-Rhône-Alpes;46.566;3.333;de l'Allier
+04;Alpes-de-Haute-Provence;Provence-Alpes-Côte d'Azur;44.092;6.236;des Alpes-de-Haute-Provence
+05;Hautes-Alpes;Provence-Alpes-Côte d'Azur;44.559;6.079;des Hautes-Alpes
+06;Alpes-Maritimes;Provence-Alpes-Côte d'Azur;43.703;7.266;des Alpes-Maritimes
+07;Ardèche;Auvergne-Rhône-Alpes;44.735;4.599;de l'Ardèche
+08;Ardennes;Grand Est;49.762;4.726;des Ardennes
+09;Ariège;Occitanie;42.965;1.607;de l'Ariège
+10;Aube;Grand Est;48.297;4.074;de l'Aube
+11;Aude;Occitanie;43.213;2.353;de l'Aude
+12;Aveyron;Occitanie;44.350;2.575;de l'Aveyron
+13;Bouches-du-Rhône;Provence-Alpes-Côte d'Azur;43.296;5.370;des Bouches-du-Rhône
+14;Calvados;Normandie;49.183;-0.371;du Calvados
+15;Cantal;Auvergne-Rhône-Alpes;44.926;2.440;du Cantal
+16;Charente;Nouvelle-Aquitaine;45.649;0.156;de la Charente
+17;Charente-Maritime;Nouvelle-Aquitaine;46.160;-1.151;de la Charente-Maritime
+18;Cher;Centre-Val de Loire;47.081;2.399;du Cher
+19;Corrèze;Nouvelle-Aquitaine;45.267;1.772;de la Corrèze
+2A;Corse-du-Sud;Corse;41.919;8.739;de la Corse-du-Sud
+2B;Haute-Corse;Corse;42.697;9.451;de la Haute-Corse
+21;Côte-d'Or;Bourgogne-Franche-Comté;47.322;5.041;de la Côte-d'Or
+22;Côtes-d'Armor;Bretagne;48.514;-2.765;des Côtes-d'Armor
+23;Creuse;Nouvelle-Aquitaine;46.171;1.871;de la Creuse
+24;Dordogne;Nouvelle-Aquitaine;45.184;0.721;de la Dordogne
+25;Doubs;Bourgogne-Franche-Comté;47.238;6.024;du Doubs
+26;Drôme;Auvergne-Rhône-Alpes;44.933;4.892;de la Drôme
+27;Eure;Normandie;49.027;1.151;de l'Eure
+28;Eure-et-Loir;Centre-Val de Loire;48.446;1.489;de l'Eure-et-Loir
+29;Finistère;Bretagne;47.996;-4.102;du Finistère
+30;Gard;Occitanie;43.837;4.360;du Gard
+31;Haute-Garonne;Occitanie;43.605;1.444;de la Haute-Garonne
+32;Gers;Occitanie;43.646;0.586;du Gers
+33;Gironde;Nouvelle-Aquitaine;44.838;-0.579;de la Gironde
+34;Hérault;Occitanie;43.611;3.877;de l'Hérault
+35;Ille-et-Vilaine;Bretagne;48.117;-1.678;de l'Ille-et-Vilaine
+36;Indre;Centre-Val de Loire;46.811;1.687;de l'Indre
+37;Indre-et-Loire;Centre-Val de Loire;47.394;0.685;de l'Indre-et-Loire
+38;Isère;Auvergne-Rhône-Alpes;45.188;5.724;de l'Isère
+39;Jura;Bourgogne-Franche-Comté;46.675;5.555;du Jura
+40;Landes;Nouvelle-Aquitaine;43.890;-0.500;des Landes
+41;Loir-et-Cher;Centre-Val de Loire;47.586;1.336;du Loir-et-Cher
+42;Loire;Auvergne-Rhône-Alpes;45.440;4.387;de la Loire
+43;Haute-Loire;Auvergne-Rhône-Alpes;45.043;3.885;de la Haute-Loire
+44;Loire-Atlantique;Pays de la Loire;47.218;-1.554;de la Loire-Atlantique
+45;Loiret;Centre-Val de Loire;47.903;1.909;du Loiret
+46;Lot;Occitanie;44.448;1.441;du Lot
+47;Lot-et-Garonne;Nouvelle-Aquitaine;44.203;0.616;du Lot-et-Garonne
+48;Lozère;Occitanie;44.518;3.501;de la Lozère
+49;Maine-et-Loire;Pays de la Loire;47.478;-0.563;du Maine-et-Loire
+50;Manche;Normandie;49.116;-1.091;de la Manche
+51;Marne;Grand Est;48.957;4.363;de la Marne
+52;Haute-Marne;Grand Est;48.112;5.139;de la Haute-Marne
+53;Mayenne;Pays de la Loire;48.073;-0.770;de la Mayenne
+54;Meurthe-et-Moselle;Grand Est;48.692;6.184;de la Meurthe-et-Moselle
+55;Meuse;Grand Est;48.772;5.160;de la Meuse
+56;Morbihan;Bretagne;47.658;-2.760;du Morbihan
+57;Moselle;Grand Est;49.119;6.176;de la Moselle
+58;Nièvre;Bourgogne-Franche-Comté;46.990;3.159;de la Nièvre
+59;Nord;Hauts-de-France;50.629;3.057;du Nord
+60;Oise;Hauts-de-France;49.430;2.083;de l'Oise
+61;Orne;Normandie;48.432;0.091;de l'Orne
+62;Pas-de-Calais;Hauts-de-France;50.291;2.778;du Pas-de-Calais
+63;Puy-de-Dôme;Auvergne-Rhône-Alpes;45.778;3.087;du Puy-de-Dôme
+64;Pyrénées-Atlantiques;Nouvelle-Aquitaine;43.295;-0.371;des Pyrénées-Atlantiques
+65;Hautes-Pyrénées;Occitanie;43.233;0.078;des Hautes-Pyrénées
+66;Pyrénées-Orientales;Occitanie;42.699;2.895;des Pyrénées-Orientales
+67;Bas-Rhin;Grand Est;48.573;7.752;du Bas-Rhin
+68;Haut-Rhin;Grand Est;48.079;7.358;du Haut-Rhin
+69;Rhône;Auvergne-Rhône-Alpes;45.764;4.836;du Rhône
+70;Haute-Saône;Bourgogne-Franche-Comté;47.620;6.155;de la Haute-Saône
+71;Saône-et-Loire;Bourgogne-Franche-Comté;46.307;4.828;de la Saône-et-Loire
+72;Sarthe;Pays de la Loire;48.008;0.200;de la Sarthe
+73;Savoie;Auvergne-Rhône-Alpes;45.564;5.918;de la Savoie
+74;Haute-Savoie;Auvergne-Rhône-Alpes;45.899;6.129;de la Haute-Savoie
+75;Paris;Île-de-France;48.857;2.352;de Paris
+76;Seine-Maritime;Normandie;49.443;1.099;de la Seine-Maritime
+77;Seine-et-Marne;Île-de-France;48.539;2.660;de la Seine-et-Marne
+78;Yvelines;Île-de-France;48.801;2.130;des Yvelines
+79;Deux-Sèvres;Nouvelle-Aquitaine;46.324;-0.459;des Deux-Sèvres
+80;Somme;Hauts-de-France;49.894;2.296;de la Somme
+81;Tarn;Occitanie;43.929;2.148;du Tarn
+82;Tarn-et-Garonne;Occitanie;44.018;1.355;du Tarn-et-Garonne
+83;Var;Provence-Alpes-Côte d'Azur;43.124;5.928;du Var
+84;Vaucluse;Provence-Alpes-Côte d'Azur;43.949;4.806;du Vaucluse
+85;Vendée;Pays de la Loire;46.670;-1.426;de la Vendée
+86;Vienne;Nouvelle-Aquitaine;46.580;0.340;de la Vienne
+87;Haute-Vienne;Nouvelle-Aquitaine;45.834;1.261;de la Haute-Vienne
+88;Vosges;Grand Est;48.173;6.451;des Vosges
+89;Yonne;Bourgogne-Franche-Comté;47.798;3.567;de l'Yonne
+90;Territoire de Belfort;Bourgogne-Franche-Comté;47.640;6.863;du Territoire de Belfort
+91;Essonne;Île-de-France;48.629;2.441;de l'Essonne
+92;Hauts-de-Seine;Île-de-France;48.892;2.207;des Hauts-de-Seine
+93;Seine-Saint-Denis;Île-de-France;48.910;2.439;de la Seine-Saint-Denis
+94;Val-de-Marne;Île-de-France;48.790;2.455;du Val-de-Marne
+95;Val-d'Oise;Île-de-France;49.036;2.076;du Val-d'Oise
+971;Guadeloupe;Guadeloupe;15.996;-61.733;de la Guadeloupe
+972;Martinique;Martinique;14.616;-61.059;de la Martinique
+973;Guyane;Guyane;4.937;-52.326;de la Guyane
+974;La Réunion;La Réunion;-20.882;55.451;de La Réunion
+976;Mayotte;Mayotte;-12.781;45.228;de Mayotte
