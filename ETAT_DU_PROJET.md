@@ -24,8 +24,9 @@ Les sections suivantes datent du chat « persistance » ; depuis, ont été réa
 - **Suite du 2 novembre (après-midi)** : liste d'attente sans paiement dû (repêché → « à régler », ou réglé au pointage le jour J) ; carte sur le **Plan IGN v2** (sans clé) avec repli OpenStreetMap ; **import de joueurs** (Excel .xlsx, LibreOffice .ods, CSV, JSON ; Nom, Prénom, Points, Club obligatoires) pour un tournoi préparé hors de PingManager, avec création des tableaux ; horaires modifiables sur un tableau qui a des inscrits. Démo v12.
 - **Suite (13 h)** : après la création d'un brouillon, **choix imposé** entre préparation complète et import (`ModePreparation`, `EcranChoixPreparation`, `EcranTournoiImporte`) ; **classeur Excel modèle à deux feuilles** (Tableaux avec points imposés, Joueurs avec catégorie et tableaux en listes déroulantes) lu par l'import ; carte corrigée (Leaflet en 2D dans la WebView).
 - **412 tests verts.** Outils de compilation hors Maven dans `outils-dev/`.
+- **5 novembre 2026** : passage à Claude Code. Code sur GitHub (`1Cavalier/Gestion_Tournoi_FFTT`), consignes dans `CLAUDE.md` et `.claude/`, passations dans `docs/passation/`, règlements FFTT en texte dans `docs/reglements/`. Les livraisons se font par Pull Request (plus de zip).
 
-Détails : `claude/PASSATION_CHOIX_ET_CLASSEUR.md` (dernier lot), `claude/PASSATION_IMPORT_ET_J-1.md` (import et phase J-1), `claude/PASSATION_ONGLET_TOURNOIS.md` (état de fin de phase), `claude/REGLES_CREATION_TOURNOI.md`, `claude/PASSATION_PHASE_INSCRIPTIONS.md`.
+Détails : `docs/passation/PASSATION_CHOIX_ET_CLASSEUR.md` (dernier lot), `docs/passation/PASSATION_IMPORT_ET_J-1.md` (import et phase J-1), `docs/passation/PASSATION_ONGLET_TOURNOIS.md` (état de fin de phase), `docs/passation/REGLES_CREATION_TOURNOI.md`, `docs/passation/PASSATION_PHASE_INSCRIPTIONS.md`.
 **Phase suivante** : J-1, tournoi prêt (tableau de bord de la veille, listes de pointage, mise à jour des points, pointage et lancement à l'écran). Plus tard : paiement HelloAsso, désinscription par le joueur, écrans adaptés aux petites tailles.
 
 ---
