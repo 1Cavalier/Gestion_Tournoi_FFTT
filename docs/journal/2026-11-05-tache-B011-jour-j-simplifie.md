@@ -2,7 +2,7 @@
 
 - Branche : `tache/B011-jour-j-simplifie`
 - Agent : `developpeur-jour-j` (premier maillon de la chaîne)
-- Pull Request : (complété par l'intégrateur)
+- Pull Request : Fusion de origin/main (B027, docs seulement) sans conflit ; verifier-fusion.py : OK. 656 tests verts après fusion.
 - Statut : en cours de chaîne
 
 ## Pour Quentin
