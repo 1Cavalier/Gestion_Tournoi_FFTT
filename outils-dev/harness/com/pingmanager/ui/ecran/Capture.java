@@ -157,7 +157,7 @@ public class Capture extends Application {
         }, "02-accueil");
         etape(() -> coq[0].afficher("profil"), "03-profil");
         etape(() -> coq[0].afficher("gestion"), "04-gestion");
-        etape(() -> cliquer("Nouveau tournoi"), "05-nouveau");
+        etape(() -> cliquer("Créer un tournoi"), "05-nouveau");
         etape(() -> { cliquer("Annuler"); }, null);
         etape(() -> cliquer("Compléter"), "06-completion");
         etape(() -> cliquer("Modifier"), "07-formulaire");
@@ -355,7 +355,7 @@ public class Capture extends Application {
         etape(() -> defiler(1.0), "gestion-tournois-bas");
         etape(() -> {
             coq[0].afficher("gestion");
-            cliquer("Nouveau tournoi");
+            cliquer("Créer un tournoi");
         }, "nouveau-tournoi");
         etape(() -> {
             coq[0].afficher("gestion");

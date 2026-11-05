@@ -38,6 +38,7 @@ Ordre d'affichage du formulaire : Le tournoi → Club organisateur → Lieu → 
 
 **Dates du tournoi**
 - 🔴 Date de début / date de fin = premier et dernier jour **de l'ensemble du tournoi**, toutes journées comprises (pas une seule journée). Demandées dès la création, car elles figurent sur la demande d'homologation.
+- Saisie (B034, 5 novembre 2026) : sélecteur de date à icône calendrier, ou frappe jj/mm/aaaa ; date inexistante (31/02) refusée ; les jours avant le début sont grisés pour la fin.
 
 **Correspondant**
 - 🔴 Nom, prénom, email : par défaut l'**administrateur principal** du club. S'il n'a pas de compte, le responsable déclaré en base avec l'email officiel du club ; à défaut, le compte connecté. Peut être une personne tierce. Bouton « Reprendre l'administrateur principal ».

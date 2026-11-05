@@ -1,43 +1,23 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
-import com.pingmanager.model.Club;
-import com.pingmanager.model.NiveauTournoi;
-import com.pingmanager.model.StatutTournoi;
-import com.pingmanager.model.Tournoi;
-import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.ui.ContexteApplication;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 
 /**
  * Accueil de la gestion des tournois (réservé aux comptes rattachés à un club).
  *
- * <p>Trois temps : la liste des tournois (regroupés par statut du cycle de vie
- * <b>brouillon → homologué → publié</b>), un formulaire de création d'un
- * brouillon, et l'écran de complétion d'un tournoi. Tout passe par le
+ * <p>Trois temps : l'accueil ({@link AccueilGestionTournois} : tournoi actuel et
+ * frise des étapes <b>brouillon → homologué → publié</b>), un formulaire de
+ * création d'un brouillon, et l'écran de complétion d'un tournoi. Tout passe par le
  * {@link ContexteApplication} ; la présentation vient de {@code theme.css}.</p>
  */
 public final class PageGestionTournoi {
-
-    private static final DateTimeFormatter JOUR = DateTimeFormatter.ofPattern("d MMMM yyyy", java.util.Locale.FRENCH);
-    private static final DateTimeFormatter JOUR_COURT = DateTimeFormatter.ofPattern("d MMM", java.util.Locale.FRENCH);
-    private static final DateTimeFormatter SAISIE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ContexteApplication contexte;
     private final BorderPane racine = new BorderPane();
@@ -58,156 +38,17 @@ public final class PageGestionTournoi {
     }
 
     // ==================================================================
-    // Accueil : liste des tournois par statut
+    // Accueil : tournoi actuel et frise des étapes (B033)
     // ==================================================================
 
     private void afficherAccueil() {
-        List<Resume> tournois = chargerResumes();
-
-        Button nouveau = Ui.boutonPrimaire("Nouveau tournoi");
-        nouveau.setOnAction(e -> afficherFormulaire());
-
-        VBox titres = new VBox(4, Ui.titre("Gestion des tournois"), clubsGeres());
-        HBox barre = Ui.enteteAvecActions(titres, nouveau);
-
-        VBox contenu = Ui.page(1040, barre, tuiles(tournois));
-
-        contenu.getChildren().add(sectionEnCours(tournois));
-        contenu.getChildren().add(groupe("Publiés", StatutTournoi.PUBLIE, tournois,
-                "validés, inscriptions ouvertes, en attente du jour J"));
-        contenu.getChildren().add(groupe("Homologués", StatutTournoi.HOMOLOGUE, tournois,
-                "numéro FFTT reçu, prêts à être publiés"));
-        contenu.getChildren().add(groupe("Demandes d'homologation", StatutTournoi.DEMANDE_HOMOLOGATION, tournois,
-                "dossier complet, en attente du numéro d'homologation"));
-        contenu.getChildren().add(groupe("Brouillons", StatutTournoi.BROUILLON, tournois,
-                "en préparation, pas encore homologués"));
-        poser(contenu);
+        new AccueilGestionTournois(contexte, this::poser, clubsGeres(), this::afficherFormulaire,
+                this::afficherCompletion, this::afficherJourJ).afficher();
     }
 
-    /** Chiffres clés du club : publiés, en préparation, joueurs inscrits, prochain tournoi. */
-    private static Node tuiles(List<Resume> tournois) {
-        int publies = 0;
-        int preparation = 0;
-        int inscrits = 0;
-        Resume prochain = null;
-        LocalDate auj = LocalDate.now();
-        for (Resume r : tournois) {
-            if (r.statut == StatutTournoi.PUBLIE) {
-                publies++;
-                inscrits += r.participants;
-            } else if (r.statut != StatutTournoi.ANNULE) {
-                preparation++;
-            }
-            if (r.statut != StatutTournoi.ANNULE && r.debut != null && !r.debut.isBefore(auj)
-                    && (prochain == null || r.debut.isBefore(prochain.debut))) {
-                prochain = r;
-            }
-        }
-        VBox tPublies = Ui.tuileChiffre(String.valueOf(publies), publies > 1 ? "tournois publiés" : "tournoi publié");
-        tPublies.getStyleClass().add("tuile-cle-accent");
-        Node tProchain = prochain == null
-                ? Ui.tuileChiffre("—", "aucun tournoi à venir")
-                : Ui.tuileChiffre(prochain.debut.format(JOUR_COURT), "prochain : " + prochain.nom,
-                        Ui.pastille(StatutPastille.libelleTournoi(prochain.statut),
-                                StatutPastille.pourTournoi(prochain.statut)));
-        return Ui.rangeeTuiles(
-                tPublies,
-                Ui.tuileChiffre(String.valueOf(preparation), "en préparation (brouillons, homologation)"),
-                Ui.tuileChiffre(String.valueOf(inscrits), "joueurs engagés (tournois publiés, attente comprise)"),
-                tProchain);
-    }
-
-    private List<Resume> chargerResumes() {
-        List<Resume> resumes = new ArrayList<>();
-        for (ProjetTournoi projet : contexte.tournoisRecents()) {
-            try {
-                Tournoi t = contexte.chargerTournoi(projet.getFichier());
-                if (contexte.estTournoiDuCompte(t)) { // seulement les tournois des clubs du compte
-                    resumes.add(Resume.depuis(t, projet.getFichier()));
-                }
-            } catch (RuntimeException ignore) {
-                // Fichier déplacé, supprimé ou illisible : on ne l'affiche pas.
-            }
-        }
-        return resumes;
-    }
-
-    private Node sectionEnCours(List<Resume> tournois) {
-        // Priorité au tournoi dont le jour J a commencé (un tableau en pointage ou lancé),
-        // sinon le premier tournoi publié.
-        Resume enCours = tournois.stream()
-                .filter(r -> r.jourJEntame)
-                .findFirst()
-                .orElse(tournois.stream().filter(r -> r.statut == StatutTournoi.PUBLIE).findFirst().orElse(null));
-
-        if (enCours == null) {
-            return Ui.carte("Tournoi en cours",
-                    Ui.etatVide("Aucun tournoi en cours pour le moment. Les tournois publiés, "
-                            + "prêts pour le jour J, apparaîtront ici.", null));
-        }
-        Label nom = Ui.label(enCours.nom, "en-cours-nom");
-        Label meta = Ui.discret(enCours.descriptifLong);
-        Button suivre = Ui.boutonPrimaire("Suivre le tournoi");
-        suivre.setOnAction(e -> racine.setCenter(new EcranJourJ(contexte, enCours.fichier, this::afficherAccueil,
-                "← Gestion des tournois").build()));
-        Label etat = enCours.jourJEntame
-                ? Ui.pastille("Jour J commencé", StatutPastille.INFO)
-                : Ui.pastille(StatutPastille.libelleTournoi(enCours.statut), StatutPastille.pourTournoi(enCours.statut));
-        VBox infos = new VBox(6, Ui.ligne(10, nom, etat), meta);
-        HBox.setHgrow(infos, Priority.ALWAYS);
-        Label surtitre = Ui.label("TOURNOI EN COURS", "surtitre");
-        VBox carte = Ui.carte(surtitre, Ui.ligne(16, Ui.blocDate(enCours.debut), infos, suivre));
-        carte.getStyleClass().add("carte-en-cours");
-        return carte;
-    }
-
-    private Node groupe(String titre, StatutTournoi statut, List<Resume> tous, String aide) {
-        List<Resume> liste = new ArrayList<>();
-        for (Resume r : tous) {
-            if (r.statut == statut) {
-                liste.add(r);
-            }
-        }
-        VBox corps = new VBox(0);
-        if (liste.isEmpty()) {
-            corps.getChildren().add(Ui.etatVideCompact("Aucun pour l'instant."));
-        } else {
-            for (int i = 0; i < liste.size(); i++) {
-                HBox l = ligneTournoi(liste.get(i));
-                if (i == 0) {
-                    l.getStyleClass().add("ligne-element-premiere");
-                }
-                corps.getChildren().add(l);
-            }
-        }
-        HBox titreGroupe = Ui.ligne(10, Ui.titreCarte(titre),
-                Ui.pastille(String.valueOf(liste.size()), liste.isEmpty()
-                        ? StatutPastille.NEUTRE : StatutPastille.pourTournoi(statut)));
-        VBox entete = new VBox(2, titreGroupe, Ui.aide(capitaliser(aide)));
-        return Ui.carte(entete, corps);
-    }
-
-    private static String capitaliser(String s) {
-        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1) + ".";
-    }
-
-    private HBox ligneTournoi(Resume r) {
-        List<Node> droite = new ArrayList<>();
-        if (r.mode == com.pingmanager.model.ModePreparation.IMPORT) {
-            droite.add(Ui.pastille("Tournoi importé", StatutPastille.INFO));
-        } else if (r.mode == com.pingmanager.model.ModePreparation.A_CHOISIR) {
-            droite.add(Ui.pastille("Mode à choisir", StatutPastille.ATTENTION));
-        }
-        if (r.jourJEntame) {
-            droite.add(Ui.pastille("Jour J commencé", StatutPastille.INFO));
-        }
-
-        Button completer = Ui.boutonSecondaire(r.mode == com.pingmanager.model.ModePreparation.COMPLETE
-                ? "Compléter" : r.mode == com.pingmanager.model.ModePreparation.IMPORT ? "Ouvrir" : "Choisir le mode");
-        completer.setOnAction(e -> afficherCompletion(r.fichier));
-        droite.add(completer);
-
-        return Ui.ligneElement(Ui.blocDate(r.debut), r.nom, r.descriptifCourt, droite.toArray(new Node[0]));
+    private void afficherJourJ(Path fichier) {
+        racine.setCenter(new EcranJourJ(contexte, fichier, this::afficherAccueil,
+                PresentationGestionTournois.RETOUR).build());
     }
 
     // ==================================================================
@@ -215,142 +56,7 @@ public final class PageGestionTournoi {
     // ==================================================================
 
     private void afficherFormulaire() {
-        Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
-        List<Club> clubs = contexte.clubsGeres();
-        Club[] club = {clubs.isEmpty() ? null : clubs.get(0)};
-
-        // Club organisateur : repris de la base FFTT (choix si plusieurs clubs gérés).
-        TextField clubLecture = Ui.champLecture(libelleClub(club[0]));
-        ComboBox<Club> choixClub = new ComboBox<>();
-        choixClub.getItems().addAll(clubs);
-        choixClub.setConverter(new javafx.util.StringConverter<>() {
-            @Override
-            public String toString(Club c) {
-                return libelleClub(c);
-            }
-
-            @Override
-            public Club fromString(String s) {
-                return null;
-            }
-        });
-        choixClub.setValue(club[0]);
-
-        // Nom : libre, avec une proposition « Tournoi de/du… » tant qu'on n'y touche pas.
-        TextField nom = Ui.champ(null);
-        nom.setText(PropositionsTournoi.nomTournoi(club[0] == null ? null : club[0].getNom()));
-        boolean[] nomModifie = {false};
-        nom.setOnKeyTyped(e -> nomModifie[0] = true);
-        choixClub.valueProperty().addListener((o, a, n) -> {
-            club[0] = n;
-            if (!nomModifie[0]) {
-                nom.setText(PropositionsTournoi.nomTournoi(n == null ? null : n.getNom()));
-            }
-        });
-
-        ComboBox<NiveauTournoi> niveau = Ui.combo(NiveauTournoi.values(), null);
-
-        TextField debut = Ui.champ("jj/mm/aaaa");
-        TextField fin = Ui.champ("jj/mm/aaaa");
-
-        Label erreur = Ui.message();
-
-        Button creer = Ui.boutonPrimaire("Créer le brouillon");
-        creer.setDefaultButton(true);
-        creer.setOnAction(e -> {
-            cacher(erreur);
-            String n = texte(nom);
-            if (n.isBlank()) {
-                Ui.marquerErreur(nom);
-                montrerErreur(erreur, "Donnez un nom au tournoi.");
-                return;
-            }
-            if (club[0] == null) {
-                montrerErreur(erreur, "Aucun club rattaché à votre compte : rattachez-en un "
-                        + "depuis « Mon profil ».");
-                return;
-            }
-            LocalDate d = parse(debut);
-            if (d == null) {
-                Ui.marquerErreur(debut);
-                montrerErreur(erreur, "Indiquez la date de début (jj/mm/aaaa).");
-                return;
-            }
-            LocalDate f = fin.getText() == null || fin.getText().isBlank() ? d : parse(fin);
-            if (f == null) {
-                Ui.marquerErreur(fin);
-                montrerErreur(erreur, "La date de fin n'est pas valide (jj/mm/aaaa).");
-                return;
-            }
-            if (f.isBefore(d)) {
-                Ui.marquerErreur(fin);
-                montrerErreur(erreur, "La date de fin ne peut pas précéder la date de début.");
-                return;
-            }
-            Tournoi cree = construire(n, club[0], d, f, niveau.getValue());
-            cree.setModePreparation(com.pingmanager.model.ModePreparation.A_CHOISIR);
-            // Choix imposé juste après la création : préparation complète ou import.
-            afficherCompletion(contexte.creerBrouillon(cree));
-        });
-
-        Button annuler = Ui.boutonSecondaire("Annuler");
-        annuler.setCancelButton(true);
-        annuler.setOnAction(e -> afficherAccueil());
-
-        VBox blocDebut = Ui.champEtiquete("Date de début", debut, H);
-        // À la création, une date de fin vide = tournoi d'un jour : facultatif ici.
-        VBox blocFin = Ui.champEtiquete("Date de fin", fin, Niveau.OPTIONNEL);
-        HBox dates = new HBox(16, blocDebut, blocFin);
-        HBox.setHgrow(blocDebut, Priority.ALWAYS);
-        HBox.setHgrow(blocFin, Priority.ALWAYS);
-
-        Node champClub = clubs.size() > 1
-                ? Ui.champEtiquete("Club organisateur", choixClub, H)
-                : Ui.champEtiquete("Club organisateur", clubLecture, H);
-
-        VBox champs = new VBox(14,
-                champClub,
-                Ui.champEtiquete("Nom du tournoi", nom, H),
-                Ui.champEtiquete("Niveau du tournoi (catégorie)", niveau, H),
-                dates,
-                Ui.note("Du premier au dernier jour de l'ensemble du tournoi, toutes journées "
-                        + "comprises. Pour un tournoi d'un jour, laissez la date de fin vide."));
-
-        VBox contenu = Ui.page(640,
-                new VBox(6, Ui.titre("Nouveau tournoi"),
-                        Ui.discret("Juste l'essentiel pour démarrer. L'adresse du club et "
-                                + "l'administrateur principal sont repris par défaut ; vous "
-                                + "compléterez le reste ensuite.")),
-                Ui.legende(EnumSet.of(H, Niveau.OPTIONNEL)),
-                Ui.carteNue(champs),
-                erreur,
-                Ui.actions(creer, annuler));
-        poser(contenu);
-    }
-
-    private static String libelleClub(Club c) {
-        return c == null ? "" : c.getNom() + " (n° " + c.getNumero() + ")";
-    }
-
-    /**
-     * Brouillon avec les valeurs par défaut de la base : club et n° d'affiliation,
-     * adresse du club, et correspondant = administrateur principal. Tout reste
-     * modifiable ensuite dans la section « Général ».
-     */
-    private Tournoi construire(String nom, Club club, LocalDate debut, LocalDate fin, NiveauTournoi niveau) {
-        List<LocalDate> jours = new ArrayList<>();
-        for (LocalDate d = debut; !d.isAfter(fin); d = d.plusDays(1)) {
-            jours.add(d);
-        }
-        Tournoi tournoi = new Tournoi(nom.trim(), club.getNom(), jours);
-        tournoi.setNumeroAffiliationClub(club.getNumero());
-        tournoi.setNiveau(niveau);
-        tournoi.setPeriode(debut, fin);
-        tournoi.setAdresse(FormulairesSection.adresseGeocodee(FormulairesSection.adresse(
-                club.getAdresse1(), club.getCodePostal(), club.getVille()), null));
-        String[] cor = contexte.correspondantParDefaut(club.getNumero());
-        tournoi.setCorrespondant(cor[0], cor[1], cor[2], null, null);
-        return tournoi;
+        poser(new FormulaireNouveauTournoi(contexte, this::afficherCompletion, this::afficherAccueil).build());
     }
 
     // ==================================================================
@@ -388,68 +94,5 @@ public final class PageGestionTournoi {
             }
         }
         return Ui.discret(sb.toString());
-    }
-
-    // ==================================================================
-    // Utilitaires
-    // ==================================================================
-
-    private static String texte(TextField t) {
-        return t.getText() == null ? "" : t.getText().trim();
-    }
-
-    private static LocalDate parse(TextField champ) {
-        try {
-            return LocalDate.parse(texte(champ), SAISIE);
-        } catch (RuntimeException e) {
-            return null;
-        }
-    }
-
-    private static void montrerErreur(Label l, String m) {
-        Ui.erreur(l, m);
-    }
-
-    private static void cacher(Node n) {
-        Ui.cacher(n);
-    }
-
-    // ==================================================================
-    // Résumé léger d'un tournoi pour l'affichage
-    // ==================================================================
-
-    private record Resume(String nom, StatutTournoi statut, String descriptifCourt,
-                          String descriptifLong, Path fichier, com.pingmanager.model.ModePreparation mode,
-                          boolean jourJEntame, LocalDate debut, int participants) {
-
-        static Resume depuis(Tournoi t, Path fichier) {
-            String nom = (t.getNom() == null || t.getNom().isBlank()) ? "Sans titre" : t.getNom();
-            boolean entame = t.getStatut() != StatutTournoi.ANNULE && t.getTableaux().stream()
-                    .anyMatch(x -> x.getStatut() != com.pingmanager.model.StatutTableau.INSCRIPTION);
-            int participants = com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(t);
-            return new Resume(nom, t.getStatut(), court(t, participants), lng(t), fichier, t.getModePreparation(),
-                    entame, t.getDateDebut(), participants);
-        }
-
-        private static String court(Tournoi t, int participants) {
-            String date = t.getDateDebut() != null ? t.getDateDebut().format(JOUR) : "dates à définir";
-            int nb = t.getTableaux().size();
-            String s = date + " · " + nb + (nb > 1 ? " tableaux" : " tableau");
-            if (participants > 0) {
-                s += " · " + participants + (participants > 1 ? " joueurs" : " joueur");
-            }
-            return s;
-        }
-
-        private static String lng(Tournoi t) {
-            StringBuilder sb = new StringBuilder();
-            int nbJours = t.getJours().size();
-            sb.append("Jour 1 / ").append(Math.max(1, nbJours));
-            if (t.getDateDebut() != null) {
-                sb.append("  ·  ").append(t.getDateDebut().format(JOUR));
-            }
-            sb.append("  ·  ").append(t.getNombreDeTables()).append(" tables");
-            return sb.toString();
-        }
     }
 }
