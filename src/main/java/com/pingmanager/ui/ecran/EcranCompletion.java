@@ -282,8 +282,14 @@ final class EcranCompletion {
     private Node carteSection(int index, Section s) {
         VBox lignes = new VBox(7);
         int renseignes = 0;
+        // Tournoi publié : le règlement est figé, sa ligne laisse place à un lien de lecture.
+        boolean reglementFige = index == 3 && !tournoi.reglementModifiable();
         for (Item it : s.items()) {
-            lignes.getChildren().add(ligneItem(it));
+            if (reglementFige && it.libelle().startsWith("Règlement du tournoi")) {
+                lignes.getChildren().add(lienReglementFige());
+            } else {
+                lignes.getChildren().add(ligneItem(it));
+            }
             if (it.renseigne()) {
                 renseignes++;
             }
@@ -295,6 +301,14 @@ final class EcranCompletion {
         Label compte = Ui.discret(renseignes + " / " + s.items().size() + " renseignés");
         Node entete = Ui.enteteAvecActions(Ui.ligne(10, Ui.titreCarte(s.titre()), compte), modifier);
         return Ui.carte(entete, lignes);
+    }
+
+    /** Lien vers le règlement figé d'un tournoi publié (lecture seule, téléchargements). */
+    private Node lienReglementFige() {
+        Path dossier = fichier.toAbsolutePath().getParent();
+        Runnable enregistrer = () -> contexte.enregistrerTournoi(tournoi, fichier);
+        return VueReglementFige.lien(tournoi, dossier, enregistrer, () -> racine.setCenter(
+                VueReglementFige.page(tournoi, dossier, enregistrer, this::afficherApercu, "← Vue d'ensemble")));
     }
 
     /** Une ligne : rond de dépendance, libellé, et état à droite (même code que les cadres). */

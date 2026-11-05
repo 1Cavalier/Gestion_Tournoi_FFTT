@@ -32,4 +32,13 @@ Aucune pour l'instant.
 
 ## Passations
 
+- **developpeur (cœur + écran), 2026-11-05** : `DocumentReglement` déplacé dans `model` ; `Tournoi` garde
+  `reglementFige` / `feuilleEngagementFigee` (figées par `ServiceCycleTournoi.publier`), setters des options
+  et du fichier déposé refusés (`IllegalStateException`, `Tournoi.MOTIF_REGLEMENT_FIGE`) une fois publié ;
+  `core.reglement.ServiceReglementTournoi` (figer, reglement, feuilleEngagement, modifierOptions / deposer →
+  `ResultatModificationReglement`). JSON : champs facultatifs (`DocumentReglementMapper`), ancien fichier
+  publié figé à la relecture. Écran : `VueReglementFige` (lien compact + page en lecture seule), branchée dans
+  `EcranComplementaire`, `EcranCompletion` (ligne « Règlement » de la carte Complémentaire) et `FicheTournoi`.
+  Choix à valider : un tournoi publié puis **annulé** redevient modifiable (garde limitée à `PUBLIE`).
+
 ## Résultat

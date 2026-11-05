@@ -2442,3 +2442,15 @@
     -fx-background-color: -primaire;
     -fx-background-insets: 0;
 }
+
+/* ==================================================================
+   Règlement figé après publication (B010) : lien compact à la place
+   de la carte d'édition du règlement.
+   ================================================================== */
+.reglement-fige {
+    -fx-padding: 2 0 2 0;
+}
+
+.reglement-fige .bouton-lien {
+    -fx-padding: 0;
+}

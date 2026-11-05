@@ -7,13 +7,10 @@ import com.pingmanager.core.RemplissageTableaux;
 import com.pingmanager.core.ResultatInscriptionTournoi;
 import com.pingmanager.core.ServiceInscriptionEnLigne;
 import com.pingmanager.core.reglement.Formats;
-import com.pingmanager.core.reglement.GenerateurFeuilleEngagement;
 import com.pingmanager.core.reglement.GenerateurReglement;
 import com.pingmanager.core.reglement.LibellesTableau;
-import com.pingmanager.core.reglement.RenduPdfReglement;
 import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.FicheLicence;
-import com.pingmanager.model.OptionsReglement;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TarifInscription;
 import com.pingmanager.model.Tournoi;
@@ -33,7 +30,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -371,17 +367,11 @@ final class FicheTournoi {
         }
         try {
             Path cible = f.toPath();
-            OptionsReglement o = tournoi.getOptionsReglement();
-            if (reglement && o != null && o.getMode() == OptionsReglement.Mode.DEPOSE
-                    && tournoi.getReglementDocument() != null
-                    && Files.isRegularFile(Path.of(tournoi.getReglementDocument().getEmplacement()))) {
-                Files.copy(Path.of(tournoi.getReglementDocument().getEmplacement()), cible,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } else if (reglement) {
-                RenduPdfReglement.ecrire(new GenerateurReglement().generer(tournoi), cible);
+            // Tournoi publié : versions figées à la publication (VueReglementFige).
+            if (reglement) {
+                VueReglementFige.ecrireReglement(tournoi, cible);
             } else {
-                RenduPdfReglement.ecrire(new GenerateurFeuilleEngagement().generer(tournoi), cible,
-                        GenerateurFeuilleEngagement.FORMAT_TITRE);
+                VueReglementFige.ecrireFeuille(tournoi, cible);
             }
             Ui.succes(message, "Enregistré : " + cible.getFileName());
         } catch (Exception ex) {
