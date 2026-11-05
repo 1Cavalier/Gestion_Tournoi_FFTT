@@ -365,6 +365,10 @@ public final class TournoiMapper {
         o.set("configuration", ConfigMapper.ecrireConfiguration(tab.getConfiguration()));
         o.set("statut", ecrireEnum(tab.getStatut()));
         o.set("pointageCloture", tab.pointageEstCloture());
+        if (tab.getGrainePoules() != null) {
+            // Graine du tirage des poules (IX.109) ; absente des fichiers plus anciens.
+            o.set("grainePoules", String.valueOf(tab.getGrainePoules()));
+        }
         o.set("horaires", ConfigMapper.ecrireHoraires(tab.getHoraires()));
 
         Json inscrits = Json.tableau();
@@ -639,6 +643,7 @@ public final class TournoiMapper {
         e.type = o.getString("type", null);
         e.statut = lireEnum(o.get("statut"), StatutTableau.class);
         e.pointageCloture = o.getBoolean("pointageCloture", false);
+        e.grainePoules = lireGraine(o.getString("grainePoules", null));
         e.horaires = ConfigMapper.lireHoraires(o.get("horaires"));
 
         for (Json ref : o.get("inscrits").elements()) {
@@ -675,6 +680,18 @@ public final class TournoiMapper {
 
         tab.restaurerEtat(e);
         return tab;
+    }
+
+    /** Graine écrite en texte (un long ne tient pas toujours dans un nombre JSON exact). */
+    private static Long lireGraine(String texte) {
+        if (texte == null || texte.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(texte.trim());
+        } catch (NumberFormatException illisible) {
+            return null;
+        }
     }
 
     private static RegistreDisciplinaire lireDiscipline(Json o, ContexteSerialisation ctx) {

@@ -1596,3 +1596,151 @@
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
+
+/* =====================================================================
+   Jour J : liste des tableaux, pointage, tirage, poules
+   (tokens uniquement : valables en thème clair et sombre)
+   ===================================================================== */
+
+/* Étape d'un tableau (pastille). L'ambre reste réservé au « à faire ». */
+.badge.etape-inscription {
+    -fx-font-weight: normal;
+}
+
+.badge.etape-pointage {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-background-color: -primaire-doux;
+    -fx-background-insets: 0;
+}
+
+.badge.etape-pret {
+    -fx-text-fill: -primaire;
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1;
+}
+
+.badge.etape-poules {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+}
+
+.badge.etape-terminee {
+    -fx-text-fill: -succes;
+    -fx-background-color: -succes, -surface;
+    -fx-background-insets: 0, 1;
+}
+
+/* Confirmation en ligne d'une action qui ne se défait pas. */
+.encart-confirmation {
+    -fx-background-color: -primaire, -surface-2;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 18;
+}
+
+/* Information neutre (pas une alerte). */
+.encart-info {
+    -fx-text-fill: -texte;
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14 10 18;
+}
+
+.text-field.champ-recherche {
+    -fx-pref-width: 280px;
+}
+
+.ligne-colonnes {
+    -fx-padding: 0 8 6 8; /* mêmes marges latérales que les lignes, pour aligner les colonnes */
+}
+
+/* Pointage : une ligne par inscrit, filet au-dessus. */
+.ligne-pointage {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 8 8 8;
+}
+
+.ligne-pointage.ligne-pointee {
+    -fx-background-color: -surface-2;
+}
+
+.ligne-pointage.ligne-a-pointer {
+    -fx-border-color: -bordure transparent transparent -attention;
+    -fx-border-width: 1 0 0 4;
+}
+
+/* Tirage au sort : la graine se lit de loin. */
+.graine-tirage {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.text-field.champ-graine {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+/* Choix de la poule. */
+.button.choix-poule {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-text-fill: -texte;
+    -fx-padding: 6 12 6 12;
+}
+
+.button.choix-poule:hover {
+    -fx-background-color: -bordure-forte, -surface-2;
+}
+
+.button.choix-poule.choix-poule-terminee {
+    -fx-text-fill: -succes;
+}
+
+.button.choix-poule.choix-poule-actif,
+.button.choix-poule.choix-poule-actif:hover {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 1 1 3 1;
+    -fx-text-fill: -nav-actif-texte;
+    -fx-font-weight: bold;
+}
+
+/* Classement en direct : les places qualificatives ressortent. */
+.ligne-classement {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 6 8 6 8;
+}
+
+.ligne-classement.ligne-qualifiee {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -bordure transparent transparent -succes;
+    -fx-border-width: 1 0 0 4;
+}
+
+/* Parties de la poule. */
+.ligne-match {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 8 8 8;
+}
+
+.ligne-match.ligne-match-jouee .texte {
+    -fx-text-fill: -texte-doux;
+}
+
+.editeur-match {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 14;
+}
+
+.text-field.champ-manche {
+    -fx-pref-width: 70px;
+    -fx-max-width: 70px;
+    -fx-alignment: center;
+}

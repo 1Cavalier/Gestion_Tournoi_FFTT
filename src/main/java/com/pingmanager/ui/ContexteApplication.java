@@ -30,6 +30,7 @@ import com.pingmanager.persistence.DepotTournoi;
 import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
+import com.pingmanager.ui.infra.TournoiDemoJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
 import com.pingmanager.ui.infra.EmailConsole;
 import com.pingmanager.ui.infra.GenerateurCodeAleatoire;
@@ -183,6 +184,7 @@ public final class ContexteApplication {
         nettoyerTournoisBrunoy();
         rafraichirTournoiDemo();
         amorcerTournoiDemo();
+        amorcerTournoiJourJDemo();
         amorcerAutresTournoisDemo();
     }
 
@@ -200,8 +202,10 @@ public final class ContexteApplication {
      * fictifs ; cinq autres tournois publiés pour la carte de l'onglet Tournois.
      * v12 (02/11/2026, midi) : tableau D de Créteil complet avec liste d'attente (essai de
      * l'inscription en attente).
+     * v13 (05/11/2026) : tournoi de démonstration du jour J (Brunoy, 14 novembre 2026) avec
+     * un tableau en inscription, un en pointage, un lancé et un prêt pour le tirage.
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v12";
+    private static final String VERSION_DEMO = ".demo-brunoy-v13";
 
     private void rafraichirTournoiDemo() {
         Path marqueur = dossierDonnees.resolve("tournois").resolve(VERSION_DEMO);
@@ -211,6 +215,7 @@ public final class ContexteApplication {
         try {
             java.nio.file.Files.createDirectories(marqueur.getParent());
             java.nio.file.Files.deleteIfExists(fichierTournoiDemo()); // recréé juste après par amorcerTournoiDemo
+            java.nio.file.Files.deleteIfExists(fichierTournoiJourJDemo()); // idem (amorcerTournoiJourJDemo)
             for (String nom : NOMS_AUTRES_DEMOS) {
                 java.nio.file.Files.deleteIfExists(fichierAutreDemo(nom));
             }
@@ -344,6 +349,34 @@ public final class ContexteApplication {
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (java.io.IOException | RuntimeException e) {
             System.err.println("Brouillon de démo non créé : " + e.getMessage());
+        }
+    }
+
+    /** Fichier du tournoi de démonstration du jour J (club de Brunoy). */
+    public Path fichierTournoiJourJDemo() {
+        return dossierDonnees.resolve("tournois").resolve("Demo_Jour_J_Brunoy_2026-demo" + DepotTournoi.EXTENSION);
+    }
+
+    /**
+     * Crée une seule fois le tournoi de démonstration du jour J ({@link TournoiDemoJourJ}) et
+     * l'ajoute aux récents, pour qu'il apparaisse dans « Gestion des tournois » des comptes de
+     * Brunoy. S'il existe déjà (éventuellement pointé ou joué depuis), il n'est pas touché.
+     */
+    private void amorcerTournoiJourJDemo() {
+        Path cible = fichierTournoiJourJDemo();
+        boolean dejaListe = service.recents().stream()
+                .anyMatch(p -> p.getFichier().equals(cible.toAbsolutePath()));
+        if (Files.exists(cible) && dejaListe) {
+            return;
+        }
+        try {
+            Files.createDirectories(cible.getParent());
+            Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
+                    : TournoiDemoJourJ.construire(DonneesDemo.JOUEURS_FICTIFS);
+            service.nouveau(t, new RegistreDisciplinaire());
+            service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
+        } catch (IOException | RuntimeException e) {
+            System.err.println("Tournoi de démonstration du jour J non créé : " + e.getMessage());
         }
     }
 

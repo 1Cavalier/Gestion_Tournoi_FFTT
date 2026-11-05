@@ -252,7 +252,7 @@ public final class TournoisDemo {
 
     // ------------------------------------------------------------------
 
-    private static Tournoi base(String nom, String club, String numClub, NiveauTournoi niveau, List<LocalDate> jours,
+    static Tournoi base(String nom, String club, String numClub, NiveauTournoi niveau, List<LocalDate> jours,
                                 AdresseTournoi adresse, Coordonnees pos, String homologation) {
         Tournoi t = new Tournoi(nom, club, jours);
         t.setNumeroAffiliationClub(numClub);
@@ -272,7 +272,7 @@ public final class TournoisDemo {
         return t;
     }
 
-    private static void finaliser(Tournoi t, LocalDateTime ouverture, LocalDateTime cloture) {
+    static void finaliser(Tournoi t, LocalDateTime ouverture, LocalDateTime cloture) {
         t.setInfosReglement(InfosReglement.builder()
                 .ouvertureInscriptions(ouverture)
                 .clotureInscriptions(cloture)
@@ -282,11 +282,11 @@ public final class TournoisDemo {
         publier(t);
     }
 
-    private static ConfigurationTableau.Builder b() {
+    static ConfigurationTableau.Builder b() {
         return ConfigurationTableau.depuisFormat(RegistreFormats.formatParDefaut()).tailleMaxListeAttente(6);
     }
 
-    private static void ajouter(Tournoi t, String nom, LocalDate jour, int h, int min, int places,
+    static void ajouter(Tournoi t, String nom, LocalDate jour, int h, int min, int places,
                                 ConfigurationTableau.Builder b, double prix, GrilleRecompenses g) {
         Tableau tab = new Tableau(nom, b.placesMax(places).tarif(new TarifInscription(prix, prix + 2))
                 .recompenses(g).build());
@@ -296,7 +296,7 @@ public final class TournoisDemo {
         t.ajouterTableau(tab);
     }
 
-    private static GrilleRecompenses gr(int v, int f, int d) {
+    static GrilleRecompenses gr(int v, int f, int d) {
         return GrilleRecompenses.builder().place(1, Recompense.argent(v)).place(2, Recompense.argent(f))
                 .plage(3, 4, Recompense.argent(d)).build();
     }

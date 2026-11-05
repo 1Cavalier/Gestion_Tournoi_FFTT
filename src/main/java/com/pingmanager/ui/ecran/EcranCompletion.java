@@ -82,6 +82,10 @@ final class EcranCompletion {
 
         VBox contenu = Ui.page(780, new VBox(6, retour, ligneTitre), recap(), carteInscriptions(),
                 Ui.legende(presentes));
+        if (EcranJourJ.estPropose(tournoi)) {
+            contenu.getChildren().add(2, EcranJourJ.carteAcces(tournoi,
+                    () -> racine.setCenter(new EcranJourJ(contexte, fichier, this::afficherApercu).build())));
+        }
         if (supervision) {
             Label sup = new Label("Mode supervision : vous intervenez sur le tournoi du club "
                     + (tournoi.getClubOrganisateur() == null ? "" : tournoi.getClubOrganisateur())

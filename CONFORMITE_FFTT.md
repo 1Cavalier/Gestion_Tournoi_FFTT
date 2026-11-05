@@ -89,6 +89,20 @@ un tableau féminin.
 - **Lancement du tableau** (IX.109) : possible seulement une fois le pointage
   clôturé ; transforme les présents en poules via le moteur, avec tirage au sort
   reproductible (graine conservée pour rejouer ou vérifier le tirage public). ✅
+  Le texte d'IX.109 dit que le juge-arbitre est « responsable direct du tirage au
+  sort » ; il ne parle ni de tirage « public » ni de graine. Depuis le 5 novembre
+  2026, la graine est **conservée avec le tableau** (`Tableau.getGrainePoules`,
+  sauvegardée) et affichée à l'écran du jour J pour que le tirage soit
+  vérifiable ; voir `QUESTIONS.md`.
+- **Saisie des scores de poule** (`SaisieResultatMatch`, 5 novembre 2026) :
+  manche valide selon **2.11.1** (11 points, 2 points d'écart après 10-10) ;
+  partie au meilleur de 2n − 1 manches selon **2.12.1** (pas de manche après la
+  décision, pas de match non décidé) ; issue non normale (absence à l'appel,
+  abandon, refus de jouer, disqualification) : le fautif marque 0 point
+  (**I.303 a**). Résultats figés une fois la phase finale construite. ✅
+- **Suivi de poule** (`SuiviPoule`) : tour de chaque partie selon les tableaux
+  d'**I.301** (1 partie par tour en poule de 3, 2 en poule de 4 ou 5, 3 en poule
+  de 6) ; classement en direct I.303, qualifiés acquis seulement poule terminée. ✅
 - **Phase finale** (I.304/I.305) : une fois toutes les poules terminées,
   construction du tableau à élimination directe reliée au tableau ; second tirage
   public reproductible, distinct de celui des poules. ✅
@@ -114,7 +128,8 @@ fautif et déclare l'adversaire vainqueur. ✅
 | I.304 | Placement tableau, têtes de série tirées au sort | ✅ |
 | I.305 | Placement des qualifiés (2es demi opposé, 3es quart opposé) | ✅ |
 | IX.104 | Au moins un tableau féminin | ✅ |
-| IX.109 | Lancement, tirage au sort | ✅ |
+| IX.109 | Lancement, tirage au sort (graine conservée et affichée) | ✅ |
+| 2.11.1 / 2.12.1 | Score d'une manche, nombre de manches d'une partie (saisie des scores) | ✅ `SaisieResultatMatch` |
 | IX.111 | Inscription, classement, capacité, tarifs, récompenses | ✅ (déroulé) |
 | IX.111 | Métadonnées du règlement (responsable, salle, balles, dates, JA…) | ✅ (pré-tournoi) |
 | SPID | Champs de la demande d'homologation (correspondant, JA, type, dates, adresse, tableaux, documents PDF) | ✅ |
