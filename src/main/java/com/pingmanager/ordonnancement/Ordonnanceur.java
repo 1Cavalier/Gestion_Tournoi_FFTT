@@ -205,10 +205,11 @@ public final class Ordonnanceur {
 
         // 1) Avancement par vagues : POULE > 1er tour > tours suivants.
         //    On donne un bonus décroissant selon la phase.
-        double bonusPhase = switch (mo.getPhase()) {
-            case POULE -> 3.0;
-            case PREMIER_TOUR_TABLEAU -> 2.0;
-            case TOUR_SUIVANT_TABLEAU -> 1.0;
+        double bonusPhase = switch (mo.getPhase().name()) {
+            case "POULE" -> 3.0;
+            case "PREMIER_TOUR_TABLEAU" -> 2.0;
+            case "TOUR_SUIVANT_TABLEAU" -> 1.0;
+            default -> throw new IllegalStateException("Phase inconnue : " + mo.getPhase());
         };
         score += poids.getPoidsVague() * bonusPhase;
 
@@ -254,10 +255,11 @@ public final class Ordonnanceur {
     /** Explication lisible de la priorité d'un match (phase, attente, déblocage). */
     public String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant) {
         List<String> raisons = new ArrayList<>();
-        raisons.add(switch (mo.getPhase()) {
-            case POULE -> "poule";
-            case PREMIER_TOUR_TABLEAU -> "1er tour";
-            case TOUR_SUIVANT_TABLEAU -> "tour suivant";
+        raisons.add(switch (mo.getPhase().name()) {
+            case "POULE" -> "poule";
+            case "PREMIER_TOUR_TABLEAU" -> "1er tour";
+            case "TOUR_SUIVANT_TABLEAU" -> "tour suivant";
+            default -> throw new IllegalStateException("Phase inconnue : " + mo.getPhase());
         });
         if (mo.getPretDepuis() != null) {
             long min = Math.max(0, Duration.between(mo.getPretDepuis(), maintenant).toMinutes());

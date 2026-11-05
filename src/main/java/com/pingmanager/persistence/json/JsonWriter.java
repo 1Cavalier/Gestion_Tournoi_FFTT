@@ -27,13 +27,13 @@ public final class JsonWriter {
     }
 
     private static void ecrireValeur(StringBuilder sb, Json v, boolean indente, int niveau) {
-        switch (v.getType()) {
-            case OBJET -> ecrireObjet(sb, v.entrees(), indente, niveau);
-            case TABLEAU -> ecrireTableau(sb, v.elements(), indente, niveau);
-            case CHAINE -> ecrireChaine(sb, v.asString());
-            case NOMBRE -> sb.append(formaterNombre(v.asDouble()));
-            case BOOLEEN -> sb.append(v.asBoolean() ? "true" : "false");
-            case NUL -> sb.append("null");
+        switch (v.getType().name()) {
+            case "OBJET" -> ecrireObjet(sb, v.entrees(), indente, niveau);
+            case "TABLEAU" -> ecrireTableau(sb, v.elements(), indente, niveau);
+            case "CHAINE" -> ecrireChaine(sb, v.asString());
+            case "NOMBRE" -> sb.append(formaterNombre(v.asDouble()));
+            case "BOOLEEN" -> sb.append(v.asBoolean() ? "true" : "false");
+            case "NUL" -> sb.append("null");
         }
     }
 

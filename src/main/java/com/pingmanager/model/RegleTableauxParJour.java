@@ -116,14 +116,14 @@ public final class RegleTableauxParJour {
         }
         int max = maxTableauxParJour;
         if (joueur.getSexe() == Sexe.FEMME) {
-            switch (exceptionFeminine) {
-                case TABLEAU_SUPPLEMENTAIRE_SANS_CONDITION -> max += 1;
-                case TABLEAU_SUPPLEMENTAIRE_SI_TABLEAU_SPECIAL -> {
+            switch (exceptionFeminine.name()) {
+                case "TABLEAU_SUPPLEMENTAIRE_SANS_CONDITION" -> max += 1;
+                case "TABLEAU_SUPPLEMENTAIRE_SI_TABLEAU_SPECIAL" -> {
                     if (inscritTableauSpecial) {
                         max += 1;
                     }
                 }
-                case AUCUNE -> { /* pas de bonus */ }
+                case "AUCUNE" -> { /* pas de bonus */ }
             }
         }
         return max;
