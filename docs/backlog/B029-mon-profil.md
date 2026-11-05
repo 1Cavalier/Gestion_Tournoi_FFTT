@@ -4,10 +4,10 @@ titre: Mon profil : bloc personnel et licence, bloc club avec avertissement et d
 type: interface
 priorite: P1
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ui/ecran/PageCompte]
-branche:
+branche: tache/B029-mon-profil (2026-11-05)
 pr:
 ---
 
