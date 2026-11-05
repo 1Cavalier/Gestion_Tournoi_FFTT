@@ -4,10 +4,11 @@ titre: Nouveau tournoi : texte explicatif et sélecteur de dates
 type: interface
 priorite: P1
 taille: S
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ui/ecran (formulaire de création)]
-branche:
+branche: tache/B034-nouveau-tournoi
+date: 2026-11-05
 pr:
 ---
 
