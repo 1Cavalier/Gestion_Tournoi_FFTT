@@ -131,6 +131,32 @@ Format d'une entrée :
 - Choix provisoire de l'agent : A, le plus prudent.
 - Réponse de Quentin :
 
- ## Tranché
+### 2026-11-05 — Données de démo et supervision (sécurité S-01, S-02)
+- Contexte : `RAPPORT_SECURITE.md`. Le compte ultra admin, le compte réel de
+  Quentin et l'email de Serge BOULIER sont créés sur chaque poste.
+- Options : A) mode démo activé à la demande, identités fictives partout,
+  supervision retirée de la version de bureau ; B) mode démo, mais supervision
+  gardée avec un rôle stocké et un mot de passe choisi à l'installation.
+- Recommandation : A.
+- Réponse de Quentin :
+
+### 2026-11-05 — Preuve de possession d'une licence (sécurité S-05)
+- Contexte : n'importe quel compte peut se lier à n'importe quelle licence.
+- Options : A) code envoyé à l'email connu de la FFTT (dépend de l'API FFTT) ;
+  B) validation par le club du joueur ; C) A quand l'API sera disponible, B
+  en attendant.
+- Réponse de Quentin :
+
+### 2026-11-05 — Service d'envoi d'emails (sécurité S-03, S-16)
+- Contexte : nécessaire pour vérifier les emails et envoyer les codes.
+- Options : SMTP d'un compte dédié (Gmail, OVH…), service transactionnel
+  (Brevo, Mailjet…). Identifiants hors du dépôt dans tous les cas.
+- Réponse de Quentin :
+
+### 2026-11-05 — Veille des dépendances (sécurité S-11)
+- Options : A) Dependabot sur GitHub (aucune dépendance ajoutée au projet) ;
+  B) plugin Maven OWASP dependency-check.
+- Recommandation : A.
+- Réponse de Quentin :
 
 ## Tranché
