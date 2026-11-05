@@ -231,17 +231,14 @@ final class EcranJourJ {
     // ------------------------------------------------------------------
 
     private void afficherPointage(Tableau t) {
-        enConstruction(t);
+        racine.setCenter(new EcranPointageTableau(tournoi, t, this::enregistrer, this::afficherListe,
+                tab -> afficherPoules(tab, true)).build());
     }
 
     private void afficherPoules(Tableau t, boolean apresTirage) {
-        enConstruction(t);
-    }
-
-    private void enConstruction(Tableau t) {
         Button retour = Ui.boutonLien("← Jour J");
         retour.setOnAction(e -> afficherListe());
         racine.setCenter(Ui.defilant(Ui.page(860, retour, Ui.titre(t.getNom()),
-                Ui.encartInfo("Cet écran arrive dans l'étape suivante."))));
+                Ui.encartInfo("L'écran des poules arrive dans l'étape suivante."))));
     }
 }
