@@ -91,7 +91,7 @@ public final class PresentationAccueil {
                 "Voir la carte des tournois", TOURNOIS, false, List.of()));
         tous.add(carteAgenda(dates));
         tous.add(new Carte("Statistiques",
-                "Bientôt : vos rencontres recensées et vos statistiques de joueur (résultats, progression).",
+                "Vos rencontres recensées et vos statistiques de joueur (résultats, progression).",
                 "Voir les statistiques", STATS, true, List.of()));
 
         List<Carte> club = new ArrayList<>();
@@ -105,10 +105,10 @@ public final class PresentationAccueil {
                             + "puis menez le jour J.",
                     "Gérer les tournois", GESTION, false, List.of()));
             club.add(new Carte("Historique des tournois",
-                    "Bientôt : le bilan des tournois passés du club (joueurs, présents, recettes).",
+                    "Le bilan des tournois passés du club (joueurs, présents, recettes).",
                     "Voir l'historique", HISTORIQUE, true, List.of()));
             club.add(new Carte("Buvette",
-                    "Bientôt : stocks, prix et prévisionnel de la buvette pendant le tournoi.",
+                    "Stocks, prix et prévisionnel de la buvette pendant le tournoi.",
                     "Voir la buvette", BUVETTE, true, List.of()));
         }
         return new PresentationAccueil("Bonjour " + prenom, tous, club, intro);
@@ -135,7 +135,7 @@ public final class PresentationAccueil {
             champs.add(new Champ(capitaliser(DATE_COURTE.format(d.date())), texte(d.libelle())));
         }
         return new Carte("Agenda",
-                "Bientôt : ajoutez vos dates, retrouvez-y automatiquement les tournois où vous êtes inscrit "
+                "Ajoutez vos dates, retrouvez-y automatiquement les tournois où vous êtes inscrit "
                         + "et exportez-les vers votre agenda (Google Agenda…).",
                 "Ouvrir l'agenda", AGENDA, true, champs);
     }

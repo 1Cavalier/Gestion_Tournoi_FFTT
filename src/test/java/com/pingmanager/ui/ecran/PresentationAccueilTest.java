@@ -81,6 +81,19 @@ class PresentationAccueilTest {
     }
 
     @Test
+    void les_cartes_a_venir_ne_repetent_pas_bientot_que_la_pastille_affiche_deja() {
+        for (PresentationAccueil t : List.of(club(), joueur())) {
+            for (PresentationAccueil.Carte c : toutes(t)) {
+                if (!c.aVenir()) {
+                    continue;
+                }
+                assertFalse(c.explication().startsWith("Bientôt"), c.titre());
+                assertTrue(Character.isUpperCase(c.explication().charAt(0)), c.titre());
+            }
+        }
+    }
+
+    @Test
     void profil_montre_nom_prenom_points_et_sexe_de_la_licence() {
         PresentationAccueil.Carte profil = joueur().cartesPourTous().get(0);
         assertEquals(List.of(
