@@ -48,12 +48,20 @@ sombre**.
 | `-entete-texte` | texte de la barre du haut | `#0F1B3D` | `#E7ECF7` |
 | `-accent` | cyan, petits détails | `#22B8CF` | `#55D5E0` |
 | `-attention` | ambre : obligatoire manquant | `#F6B12D` | `#F6B12D` |
-| `-succes` | vert | `#1F9D6B` | `#3FC48E` |
-| `-erreur` | rouge | `#D2403A` | `#F07167` |
+| `-succes` | vert | `#157A52` | `#3FC48E` |
+| `-erreur` | rouge | `#C8372F` | `#F07167` |
 
-À ajouter, pour les pastilles de statut (fond doux + texte foncé) :
-`-succes-doux`, `-attention-doux`, `-erreur-doux`, `-info-doux` (bleu),
-`-neutre-doux` (gris), déclinés dans les deux thèmes.
+Vert et rouge du thème clair légèrement foncis par rapport à la cible
+(`#1F9D6B`, `#D2403A`) pour tenir 4,5:1 quand ils servent de texte.
+
+Pastilles de statut (fond doux + texte foncé), déclarées dans les deux
+thèmes : `-succes-doux` / `-succes-texte`, `-attention-doux` /
+`-attention-texte`, `-erreur-doux` / `-erreur-texte`, `-info-doux` /
+`-info-texte` (bleu), `-neutre-doux` / `-neutre-texte` (gris).
+Autres variables v2 : `-ombre-forte` (popups), `-avatar-1` à `-avatar-5` et
+`-sur-avatar` (avatars), `-vitrine-fond`, `-vitrine-texte`,
+`-vitrine-texte-doux`, `-vitrine-plateau`, `-vitrine-trait` (panneau de
+l'écran de connexion).
 
 Règles : le **blanc et le bleu dominent** ; une seule couleur d'action (le
 bleu roi) ; l'ambre reste réservé à « obligatoire manquant » ; vert, ambre,
@@ -72,16 +80,31 @@ Contraste du texte ≥ 4,5:1 sur son fond.
   (grand nombre en semi-gras 26-28, libellé dessous en `-texte-doux`, petite
   évolution ou pastille).
 
-## Composants (à fabriquer dans `Ui`)
+## Composants (dans `Ui`, livrés le 5 novembre 2026)
 
-- `Ui.tuileChiffre(valeur, libelle)` : tuile de chiffre clé.
-- `Ui.pastille(texte, Statut)` : pastille arrondie (rayon 999), statuts
-  `SUCCES`, `ATTENTION`, `ERREUR`, `INFO`, `NEUTRE` (pas de `switch` sur
-  l'énumération : chaînes de `if` ou `.name()`).
-- `Ui.avatar(prenom, nom)` : rond aux initiales, couleur tirée du nom parmi
-  une petite liste de bleus.
-- Lignes de liste : avatar + nom + club + points + pastilles, survol
-  `-surface-2`, sélection `-primaire-doux`.
+- `Ui.tuileChiffre(valeur, libelle[, complement])` et `Ui.rangeeTuiles(...)` :
+  tuiles de chiffres clés (classes `tuile-cle`, `tuile-cle-valeur`,
+  `tuile-cle-libelle` ; `tuile-cle-accent` = filet bleu à gauche). L'ancienne
+  `Ui.tuile` (classes `tuile`, `tuile-chiffre`) reste pour les écrans du jour J.
+- `Ui.pastille(texte, StatutPastille)` : pastille arrondie (rayon 999),
+  énumération `StatutPastille` (`SUCCES`, `ATTENTION`, `ERREUR`, `INFO`,
+  `NEUTRE`) qui porte sa classe CSS (`pastille-succes`…) ;
+  `StatutPastille.pourTournoi(StatutTournoi)` et `libelleTournoi(...)` par
+  chaînes de `if`. L'ancienne `Ui.pastille(texte, "etat-…")` reste valable ;
+  ses classes `etat-*` / `cadre-*` ont désormais l'allure des pastilles.
+- `Ui.avatar(prenom, nom)` / `Ui.avatarGrand(...)` : rond aux initiales
+  (classes `avatar`, `avatar-teinte-1…5`, `avatar-initiales`) ; logique pure
+  et testée dans `Avatars` (initiales, teinte stable).
+- `Ui.ligneElement(visuel, titre, detail, aDroite...)` et
+  `Ui.ligneJoueur(prenom, nom, club, points, pastilles...)` : lignes de liste
+  (classe `ligne-element`, survol `-surface-2`, `ligne-element-premiere` sans
+  filet, `ligne-element-choisie` = `-primaire-doux`).
+- `Ui.blocDate(date)` : petit bloc jour + mois (classe `bloc-date`).
+- `Ui.etatVide(texte, action)` / `Ui.etatVideCompact(texte)` : états vides.
+- `Ui.icone(trace, classe)` / `Ui.iconeCadree(...)` : icônes dessinées
+  (tracés 16 × 16 dans `Icones`, couleur par la classe `icone`).
+- `Ui.apparition(noeud)` : fondu + glissement de 8 px en 180 ms, appelé par
+  la `Coquille` et la page Gestion des tournois à chaque changement de page.
 - Onglets segmentés (déjà `Ui.segment`) au style v2.
 - Boutons : primaire plein bleu, secondaire blanc bordé, lien ; rayon 8 ;
   hauteur 36.
@@ -91,7 +114,7 @@ Contraste du texte ≥ 4,5:1 sur son fond.
 
 - Survol visible sur tout ce qui se clique ; curseur main.
 - Transitions courtes (150-200 ms) à l'ouverture d'une page ou d'un panneau
-  (`FadeTransition`), jamais plus.
+  (`Ui.apparition`), jamais plus.
 - Mises à jour **en direct** : un score saisi met à jour classement, arbre et
   tuiles sans recharger la page.
 - États vides soignés (« Aucun match en cours. Les tables libres s'afficheront
@@ -116,7 +139,11 @@ explique pourquoi et quoi faire.
 
 Les captures sont possibles en session cloud sous Xvfb avec
 `outils-dev/run.sh` (voir `outils-dev/LISEZMOI.md` ; JavaFX et PDFBox peuvent
-aussi venir du dépôt Maven local `~/.m2` après `mvn -B test`). Pour tout lot
+aussi venir du dépôt Maven local `~/.m2` après `mvn -B test`, par les
+variables `FX`, `PDF` et `ECRAN`). Le mode `v2` du harnais capture à 1440 px
+les écrans de référence (connexion, accueil, profil, gestion des tournois,
+nouveau tournoi, vue d'ensemble, jour J, page à venir, carte des tournois) ;
+références : `docs/captures/v2-avant/` et `docs/captures/v2-apres/`. Pour tout lot
 d'interface : produire des captures **avant / après**, en thème clair et
 sombre, dans `docs/captures/<lot>/` (PNG, largeur 1440), les regarder soi-même
 avec l'outil de lecture d'image, et les citer dans la Pull Request. Si les
