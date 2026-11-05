@@ -2622,3 +2622,29 @@
 .label.suivi-detail-score {
     -fx-font-size: 12px;
 }
+
+/* =====================================================================
+   Nouveau tournoi (B034) : texte explicatif, cartes v2, icône calendrier
+   ===================================================================== */
+
+/* Sélecteur de date : la flèche devient une icône calendrier (même tracé
+   que l'icône « Gestion des tournois » de la barre latérale). */
+.date-picker.selecteur-calendrier > .arrow-button {
+    -fx-cursor: hand;
+    -fx-padding: 0 12 0 8;
+}
+
+.date-picker.selecteur-calendrier > .arrow-button > .arrow {
+    -fx-shape: "M1.5 3 L14.5 3 L14.5 14.5 L1.5 14.5 Z M3 6.5 L3 13 L13 13 L13 6.5 Z M4.5 1 L6 1 L6 4.5 L4.5 4.5 Z M10 1 L11.5 1 L11.5 4.5 L10 4.5 Z";
+    -fx-scale-shape: true;
+    -fx-padding: 8;
+    -fx-background-color: -texte-doux;
+}
+
+.date-picker.selecteur-calendrier > .arrow-button:hover > .arrow {
+    -fx-background-color: -primaire;
+}
+
+.label.nouveau-tournoi-resume {
+    -fx-text-fill: -primaire;
+}

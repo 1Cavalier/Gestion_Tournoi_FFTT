@@ -18,14 +18,17 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 5. Texte explicatif (ces 
 
 ## Critères de fin
 
-- [ ] texte et sélecteur de dates
-- [ ] captures regardées
-- [ ] `mvn -B test` à 0 échec
+- [x] texte et sélecteur de dates
+- [x] captures regardées
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
 Voir le cahier des charges v0.
 
 ## Passations
+
+- developpeur-interface : formulaire extrait de `PageGestionTournoi` dans `FormulaireNouveauTournoi` (vue) + `PresentationNouveauTournoi` (texte explicatif, vérification, résumé de période, 12 tests) ; cartes v2 « Le tournoi » / « Dates », `DatePicker` à icône calendrier (classe `selecteur-calendrier`, jours avant le début grisés pour la fin), `Ui.champEtiquete(…, DatePicker, …)`.
+  Page suivante inchangée (`afficherCompletion`). Captures clair/sombre regardées : `docs/captures/B034/`. Reste au designer : hauteur du sélecteur de date (~2 px de moins que les champs texte), règles CSS en fin de `theme.css` (section B034).
 
 ## Résultat
