@@ -28,6 +28,8 @@ Quand un match est envoyé sur une table, l'ordinateur l'annonce : « *Prénom N
 
 ## Contraintes / décisions de Quentin
 
+Le choix « rien / SMS / appel vocal / les deux » au lancement d'un match est posé par B037 ; cette tâche branche l'option « appel vocal ».
+
 Seul Windows est testable chez Quentin ; la session cloud ne peut pas écouter : le dire dans le journal.
 
 ## Passations

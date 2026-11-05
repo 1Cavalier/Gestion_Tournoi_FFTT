@@ -5,7 +5,7 @@ type: charte
 priorite: P2
 taille: M
 statut: a-faire
-depend-de: [B005, B012, B013]
+depend-de: [B005, B012, B028, B029, B030, B031, B033]
 fichiers: [ui/ecran (écrans restants), theme.css]
 branche:
 pr:

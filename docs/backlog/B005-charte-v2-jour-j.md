@@ -5,7 +5,7 @@ type: charte
 priorite: P2
 taille: M
 statut: a-faire
-depend-de: [B011]
+depend-de: [B037, B039]
 fichiers: [ui/ecran/EcranJourJ, ui/ecran/EcranPointageTableau, ui/ecran/EcranPoulesTableau, ui/ecran/VuePhaseFinale, ui/ecran/EcranSalle, theme.css]
 branche:
 pr:
@@ -21,6 +21,8 @@ Après la refonte de l'écran principal du jour J (B011). Lot D de `docs/PLAN_IN
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
+
+Après le jour J v2 (B037) et les onglets (B039). Cahier des charges v0 : poules et arbres jugés « très propres » / « parfaits » par Quentin : ne pas les bouleverser.
 
 Aucune pour l'instant.
 

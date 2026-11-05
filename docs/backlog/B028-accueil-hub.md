@@ -1,0 +1,31 @@
+---
+id: B028
+titre: Accueil : point d'entrée qui explique chaque section
+type: interface
+priorite: P1
+taille: M
+statut: a-faire
+depend-de: []
+fichiers: [ui/ecran/PageAccueil, ui/ecran/Coquille]
+branche:
+pr:
+---
+
+## Ce qu'il faut faire
+
+Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 1. Refaire complètement l'accueil : cartes **Profil** (nom, prénom, points, sexe, phrase d'accès aux informations personnelles), **Tournois** (explication + accès à la carte des tournois), **Agenda** (prochaines dates ; carte « à venir » si B032 n'est pas encore fusionnée), **Statistiques** (carte « bientôt »). Puis une section **bien séparée** « Gestion de votre club », visible **seulement** pour un compte relié à un club : gestion des tournois, historique des tournois, buvette (à venir), autres (à venir). Chaque carte dit en une phrase à quoi sert la section et y mène.
+
+## Critères de fin
+
+- [ ] un compte joueur ne voit pas « Gestion de votre club », un compte de club la voit
+- [ ] chaque carte mène à sa section
+- [ ] captures clair et sombre regardées
+- [ ] `mvn -B test` à 0 échec
+
+## Contraintes / décisions de Quentin
+
+Voir le cahier des charges v0.
+
+## Passations
+
+## Résultat
