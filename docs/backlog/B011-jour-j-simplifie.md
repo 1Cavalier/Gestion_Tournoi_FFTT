@@ -34,4 +34,8 @@ Ne pas changer les règles de l'ordonnanceur (la tâche B025 s'en occupe).
 
 ## Passations
 
+- `developpeur-jour-j` (2026-11-05) : page Jour J = écran unique (matchs proposés à gauche avec « Table N » en un clic, bandeau « Où en sont les tableaux » avec jauge et accès au détail, tables, saisie du score à gauche, « Envoyer … à la table N » / Entrée après un score). Logique dans `PresentationAvancement` + `PresentationSalle` (13 tests, 656 verts via `outils-dev/tests.sh`). Ordonnanceur, JSON et démo inchangés.
+- Captures avant / après regardées (`docs/captures/jour-j-simplifie/`, mode `jourj` du harnais) ; 2 questions dans le journal (repos après un match, choix de la table).
+- À vérifier par le relecteur : `EcranSalle` (colonne passée à gauche, constructeur avec bandeau) et `EcranJourJ` (ancienne liste remplacée).
+
 ## Résultat
