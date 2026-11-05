@@ -142,7 +142,8 @@ final class MesTournois {
         String lieu = t.getAdresse() == null || t.getAdresse().getVille() == null ? "" : " · " + t.getAdresse().getVille();
         VBox texte = new VBox(4, Ui.gras(t.getNom()), Ui.discret(date + lieu), detail);
         HBox.setHgrow(texte, Priority.ALWAYS);
-        Button voir = Ui.boutonSecondaire("Voir la fiche");
+        Button voir = Ui.boutonSecondaire(
+                PresentationSuiviTournoi.afficherSuivi(t) ? "Suivre le tournoi" : "Voir la fiche");
         voir.setDisable(t.getStatut() != StatutTournoi.PUBLIE);
         voir.setOnAction(e -> ouvrirFiche.accept(tf.fichier().toString()));
         HBox h = Ui.ligne(14, texte, etat, voir);

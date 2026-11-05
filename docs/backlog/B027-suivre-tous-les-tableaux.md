@@ -4,11 +4,11 @@ titre: Suivre tous les tableaux d'un tournoi publié, même sans y être inscrit
 type: interface
 priorite: P1
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/FicheTournoi, ui/ecran/PageTournois, ui/ecran/MesTournois, nouvel écran ui/ecran (suivi public), core (vue publique en lecture)]
 branche: tache/B027-suivre-tableaux (prise le 2026-11-05)
-pr:
+pr: 24
 ---
 
 ## Ce qu'il faut faire
@@ -56,4 +56,16 @@ même logique de présentation.
 
 ## Passations
 
+- developpeur-interface (5 nov.) : cœur `core.SuiviTournoi` (bascule, ordre des tableaux, matchs en cours, prochaine partie, 6 tests) + `PresentationSuiviTournoi` (13 tests sur la démo du jour J) + `EcranSuiviTournoi` lecture seule (barre des tableaux, matchs en cours, podium, arbre, poules, Actualiser + relecture 30 s) ; bascule dans `FicheTournoi.build()` (bouton « Informations du tournoi » / « Suivre le tournoi en direct »), libellé « Suivre le tournoi » dans Mes tournois ; arbre en lecture seule extrait de `VuePhaseFinale` (`arbreLectureSeule`, `legendeArbre`, comportement inchangé) ; CSS section « Suivi d'un tournoi en cours (B027) ».
+- Captures clair/sombre regardées (`outils-dev/run.sh <dossier> [sombre] suivi`, nouveau mode du harnais). Non vu en capture : la carte « prochaine partie » (Quentin n'est pas inscrit à la démo du jour J), couverte par les tests. 662 tests, 0 échec (`outils-dev/tests.sh`, JavaFX 11 d'apt).
+- Question pour Quentin : la fiche bascule pour un tournoi PUBLIE dont un tableau est lancé, même si la date du tournoi n'est pas aujourd'hui (démo du 14 nov.) ; faut-il aussi exiger le jour J ?
+- designer-interface (5 nov.) : passe charte v2 sur `EcranSuiviTournoi` et sa section CSS : tokens tous déclarés dans les deux thèmes, aucun hexadécimal ni `setStyle`, contrastes ≥ 4,5:1 (vérifiés clair et sombre, 1440 px).
+- Seule correction : `.ligne-liste.suivi-ligne-en-cours` (fond arrondi 8, décollé du filet, retrait de 10 px : le texte touchait le bord bleu). 662 tests, 0 échec.
+- À reprendre plus tard (non bloquant, Java) : cartes de poule à largeur fixe 540 → largeurs inégales quand les badges « Place qualificative » s'ajoutent, et détail club long replié sur 2 lignes (« … · 1274 / pts »).
+- relecteur-code (5 nov.) : aucun bloquant.
+- relecteur-code, non bloquants : cinq classes de structure CSS sans règle (`suivi-page`, `suivi-barre-tableaux`, `suivi-poules`, `suivi-classement`, `suivi-poule`) ; rechargement du fichier à chaque affichage du suivi (voulu) ; minuteur des 30 s lié à `sceneProperty`.
+- Documentaliste (5 nov.) : journal `docs/journal/2026-11-05-tache-B027-suivre-tableaux.md` ; questions 1 (bascule hors jour J) et 2 (« Inscriptions ouvertes » affiché pendant le tournoi) à trancher par Quentin.
+
 ## Résultat
+
+Fait, PR #24 : suivi en lecture seule de tous les tableaux (voir journal). 675 tests, 0 échec.

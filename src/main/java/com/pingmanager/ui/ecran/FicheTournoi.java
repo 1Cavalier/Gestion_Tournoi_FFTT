@@ -63,8 +63,21 @@ final class FicheTournoi {
 
     Node build() {
         tournoi = contexte.chargerTournoi(fichier);
-        afficherFiche();
+        // B027 : dès le lancement du premier tableau, la fiche bascule en mode suivi.
+        if (PresentationSuiviTournoi.afficherSuivi(tournoi)) {
+            afficherSuivi();
+        } else {
+            afficherFiche();
+        }
         return racine;
+    }
+
+    /** Mode suivi (lecture seule) ; « Informations du tournoi » revient à la fiche complète. */
+    private void afficherSuivi() {
+        racine.setCenter(new EcranSuiviTournoi(contexte, fichier, onRetour, () -> {
+            tournoi = contexte.chargerTournoi(fichier);
+            afficherFiche();
+        }).build(tournoi));
     }
 
     private void afficherFiche() {
@@ -85,6 +98,14 @@ final class FicheTournoi {
         CalendrierTournoi.EtatInscriptions etat = CalendrierTournoi.etatInscriptions(tournoi, maintenant);
         badges.getChildren().add(Ui.pastille(CalendrierTournoi.texteInscriptions(tournoi, maintenant),
                 etat == CalendrierTournoi.EtatInscriptions.OUVERTES ? Ui.ETAT_OK : Ui.ETAT_OPTIONNEL));
+        if (PresentationSuiviTournoi.afficherSuivi(tournoi)) {
+            Button suivre = Ui.boutonSecondaire("Suivre le tournoi en direct");
+            suivre.setOnAction(e -> {
+                tournoi = contexte.chargerTournoi(fichier);
+                afficherSuivi();
+            });
+            badges.getChildren().add(suivre);
+        }
         Label club = Ui.discret("Organisé par " + tournoi.getClubOrganisateur()
                 + (tournoi.getNumeroAffiliationClub() == null ? "" : " (n° " + tournoi.getNumeroAffiliationClub() + ")"));
 

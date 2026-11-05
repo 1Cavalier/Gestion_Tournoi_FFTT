@@ -39,6 +39,7 @@ public class Capture extends Application {
     static boolean importer;
     static boolean choix;
     static boolean v2;
+    static boolean suivi;
     static boolean jourj;
     Scene scene;
     ContexteApplication ctx;
@@ -52,6 +53,7 @@ public class Capture extends Application {
         importer = java.util.Arrays.asList(a).contains("import");
         choix = java.util.Arrays.asList(a).contains("choix");
         v2 = java.util.Arrays.asList(a).contains("v2");
+        suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
         launch(a);
     }
@@ -126,6 +128,13 @@ public class Capture extends Application {
             stage.setWidth(1360);
             stage.setHeight(880);
             etapesImport(coq);
+            lancer(0);
+            return;
+        }
+        if (suivi) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesSuivi(coq);
             lancer(0);
             return;
         }
@@ -472,6 +481,28 @@ public class Capture extends Application {
             collect(scene.getRoot(), javafx.scene.control.ComboBox.class, cb::add);
             cb.get(0).setValue("Tri par club");
         }, "o19-par-joueur-club");
+    }
+
+    /** B027 : fiche du tournoi du jour J en mode suivi (lecture seule), navigation entre tableaux. */
+    void etapesSuivi(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("tournois");
+            PageTournois.derniere.ouvrirFicheParNom("Tournoi de démonstration du jour J");
+        }, "s01-suivi-tableau-f", 1200);
+        etape(() -> defiler(0.5), "s02-suivi-f-arbre");
+        etape(() -> defiler(1.0), "s03-suivi-f-poules");
+        etape(() -> {
+            List<javafx.scene.control.Button> onglets = new ArrayList<>();
+            collect(scene.getRoot(), javafx.scene.control.Button.class, b -> {
+                if (b.getStyleClass().contains("suivi-onglet")) onglets.add(b);
+            });
+            onglets.get(2).fire();
+        }, "s04-suivi-tableau-c");
+        etape(() -> defiler(1.0), "s05-suivi-c-poules");
+        etape(() -> cliquer("Informations du tournoi"), "s06-fiche-informations");
+        etape(() -> { coq[0].afficher("tournois"); cliquer("Mes tournois"); }, "s07-mes-tournois", 800);
     }
 
     /** Liste d'attente (Créteil D) puis import d'un fichier dans un tournoi préparé hors application. */
