@@ -195,6 +195,21 @@ final class DispositionArbre {
             }
         }
 
+        // Les traits parcourus sont dessinés en dernier : sur le segment commun à deux
+        // traits (avant la carte suivante), le chemin du joueur reste visible.
+        List<Trait> ordonnes = new ArrayList<>();
+        for (Trait t : traits) {
+            if (!t.parcouru()) {
+                ordonnes.add(t);
+            }
+        }
+        for (Trait t : traits) {
+            if (t.parcouru()) {
+                ordonnes.add(t);
+            }
+        }
+        traits = ordonnes;
+
         double largeur = xColonne(colonnes.size() - 1, p) + p.largeurCarte();
         double hauteur = p.hauteurTitre() + pasPremier * casesPremier;
 

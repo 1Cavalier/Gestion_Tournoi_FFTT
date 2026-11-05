@@ -133,6 +133,8 @@ class DispositionArbreTest {
                 List.of(new Manche(11, 3), new Manche(11, 3), new Manche(11, 3)));
         Disposition apres = DispositionArbre.calculer(elim, P);
         assertEquals(1, apres.traits().stream().filter(Trait::parcouru).count());
+        assertTrue(apres.traits().get(apres.traits().size() - 1).parcouru(),
+                "le trait parcouru est dessiné par-dessus les autres");
         assertEquals(EtatCarte.TERMINE, DispositionArbre.etat(apres.carteDu(quart).contenu()));
     }
 
