@@ -44,5 +44,7 @@ Aucune pour l'instant.
   `model/RegleOrModeleSansDependanceTest`) : immuabilité des copies, figé indépendant des données vivantes, copie JSON corrompue, règle d'or.
   Publié puis annulé : `reglementModifiable()` vrai, `estFige` faux, donc options/dépôt à nouveau acceptés et `reglement()` régénère en direct (copie ignorée mais conservée) : question pour Quentin.
   Mineur : `setFeuilleEngagement` (ancienne feuille papier) et `setInfosReglement` ne sont pas gardés.
+- **correcteur, 2026-11-05** : `DocumentReglementMapper.lire` attrape `JsonException` (seulement sur la copie figée) et rend `null`,
+  la copie est régénérée par `figerSiPublieSansCopie` ; les 3 tests rouges du vérificateur passent. Mineurs non traités.
 
 ## Résultat

@@ -7,6 +7,7 @@ import com.pingmanager.model.DocumentReglement.Grille;
 import com.pingmanager.model.DocumentReglement.Liste;
 import com.pingmanager.model.DocumentReglement.Paragraphe;
 import com.pingmanager.persistence.json.Json;
+import com.pingmanager.persistence.json.JsonException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,11 +68,23 @@ final class DocumentReglementMapper {
         return o;
     }
 
-    /** @return le document, ou {@code null} si le champ est absent (ancien fichier). */
+    /**
+     * @return le document, ou {@code null} si le champ est absent (ancien fichier)
+     *         ou illisible (mal typé) : la copie est alors régénérée par
+     *         {@code figerSiPublieSansCopie} au lieu de rendre tout le fichier illisible.
+     */
     static DocumentReglement lire(Json o) {
         if (o == null || o.estNul()) {
             return null;
         }
+        try {
+            return lireDocument(o);
+        } catch (JsonException e) {
+            return null;
+        }
+    }
+
+    private static DocumentReglement lireDocument(Json o) {
         List<Article> articles = new ArrayList<>();
         for (Json ja : elements(o.get("articles"))) {
             List<Bloc> blocs = new ArrayList<>();
