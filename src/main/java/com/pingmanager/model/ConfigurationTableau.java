@@ -230,11 +230,12 @@ public final class ConfigurationTableau {
 
     /** @return true si un total de points respecte la limite de classement du tableau. */
     public boolean pointsAutorises(int points) {
-        return switch (modeLimite) {
-            case TRANCHE -> (pointsMin <= 0 || points >= pointsMin)
+        return switch (modeLimite.name()) {
+            case "TRANCHE" -> (pointsMin <= 0 || points >= pointsMin)
                     && (pointsMax <= 0 || points <= pointsMax);
-            case POINT_MAX -> pointsMax <= 0 || points <= pointsMax;
-            case TOUTES_SERIES -> true;
+            case "POINT_MAX" -> pointsMax <= 0 || points <= pointsMax;
+            case "TOUTES_SERIES" -> true;
+            default -> throw new IllegalStateException("Mode de limite inconnu : " + modeLimite);
         };
     }
 

@@ -627,14 +627,15 @@ public final class TournoiMapper {
         if (exc == null) {
             return RegleTableauxParJour.quota(max);
         }
-        return switch (exc) {
-            case AUCUNE -> RegleTableauxParJour.quota(max);
-            case TABLEAU_SUPPLEMENTAIRE_SANS_CONDITION ->
+        return switch (exc.name()) {
+            case "AUCUNE" -> RegleTableauxParJour.quota(max);
+            case "TABLEAU_SUPPLEMENTAIRE_SANS_CONDITION" ->
                     RegleTableauxParJour.quotaAvecBonusFemininSansCondition(max);
-            case TABLEAU_SUPPLEMENTAIRE_SI_TABLEAU_SPECIAL -> {
+            case "TABLEAU_SUPPLEMENTAIRE_SI_TABLEAU_SPECIAL" -> {
                 Tableau special = parNom.get(o.getString("tableauSpecialNom", null));
                 yield RegleTableauxParJour.quotaAvecBonusFemininSiTableauSpecial(max, special);
             }
+            default -> throw new IllegalStateException("Exception féminine inconnue : " + exc);
         };
     }
 
