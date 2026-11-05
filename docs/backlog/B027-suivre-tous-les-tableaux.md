@@ -56,4 +56,8 @@ même logique de présentation.
 
 ## Passations
 
+- developpeur-interface (5 nov.) : cœur `core.SuiviTournoi` (bascule, ordre des tableaux, matchs en cours, prochaine partie, 6 tests) + `PresentationSuiviTournoi` (13 tests sur la démo du jour J) + `EcranSuiviTournoi` lecture seule (barre des tableaux, matchs en cours, podium, arbre, poules, Actualiser + relecture 30 s) ; bascule dans `FicheTournoi.build()` (bouton « Informations du tournoi » / « Suivre le tournoi en direct »), libellé « Suivre le tournoi » dans Mes tournois ; arbre en lecture seule extrait de `VuePhaseFinale` (`arbreLectureSeule`, `legendeArbre`, comportement inchangé) ; CSS section « Suivi d'un tournoi en cours (B027) ».
+- Captures clair/sombre regardées (`outils-dev/run.sh <dossier> [sombre] suivi`, nouveau mode du harnais). Non vu en capture : la carte « prochaine partie » (Quentin n'est pas inscrit à la démo du jour J), couverte par les tests. 662 tests, 0 échec (`outils-dev/tests.sh`, JavaFX 11 d'apt).
+- Question pour Quentin : la fiche bascule pour un tournoi PUBLIE dont un tableau est lancé, même si la date du tournoi n'est pas aujourd'hui (démo du 14 nov.) ; faut-il aussi exiger le jour J ?
+
 ## Résultat

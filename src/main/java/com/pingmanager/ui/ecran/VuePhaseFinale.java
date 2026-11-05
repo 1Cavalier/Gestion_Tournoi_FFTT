@@ -44,6 +44,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.function.Consumer;
 
 /**
  * Vue « Phase finale » d'un tableau, ouverte depuis la page Jour J : second
@@ -280,6 +281,39 @@ public final class VuePhaseFinale {
 
     /** L'arbre des rencontres, dessiné aux coordonnées de {@link DispositionArbre}. */
     private Node carteArbre(TableauElimination elim) {
+        ScrollPane defilement = dessinArbre(elim, selectionne, m -> {
+            selectionne = m;
+            rafraichir();
+        });
+        defilementArbre = defilement;
+
+        return Ui.carte("Arbre des rencontres",
+                Ui.aide("Cliquez sur un match à jouer (cadre bleu) pour saisir son score ; le vainqueur avance "
+                        + "aussitôt au tour suivant. Un joueur « Exempt » passe ce tour sans adversaire. "
+                        + "Glissez l'arbre ou utilisez les barres pour le parcourir."),
+                legende(), defilement);
+    }
+
+    /**
+     * Arbre des rencontres en <b>lecture seule</b> (suivi public du tournoi) :
+     * mêmes cartes, traits et numéros de table, sans clic ni saisie.
+     */
+    static ScrollPane arbreLectureSeule(TableauElimination elim) {
+        return dessinArbre(elim, null, null);
+    }
+
+    /** Légende des états des cartes de l'arbre. */
+    static Node legendeArbre() {
+        return legende();
+    }
+
+    /**
+     * Dessine l'arbre dans une zone défilante.
+     *
+     * @param selectionne match mis en évidence ({@code null} : aucun)
+     * @param surClic     action au clic sur un match saisissable ({@code null} : lecture seule)
+     */
+    private static ScrollPane dessinArbre(TableauElimination elim, Match selectionne, Consumer<Match> surClic) {
         Disposition d = DispositionArbre.calculer(elim);
         Pane dessin = new Pane();
         dessin.getStyleClass().add("arbre-dessin");
@@ -303,13 +337,13 @@ public final class VuePhaseFinale {
             dessin.getChildren().add(titreColonne(titre.libelle(), titre.x(), 0, titre.largeur()));
         }
         for (Carte c : d.cartes()) {
-            dessin.getChildren().add(carte(c));
+            dessin.getChildren().add(carte(c, selectionne, surClic));
         }
         if (d.petiteFinale() != null) {
             Carte pf = d.petiteFinale();
             dessin.getChildren().addAll(
                     titreColonne(DispositionArbre.TITRE_PETITE_FINALE, pf.x(), d.yTitrePetiteFinale(), pf.largeur()),
-                    carte(pf));
+                    carte(pf, selectionne, surClic));
         }
 
         ScrollPane defilement = new ScrollPane(dessin);
@@ -319,13 +353,7 @@ public final class VuePhaseFinale {
         defilement.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         defilement.setPrefViewportHeight(DispositionArbre.hauteurVisible(d, HAUTEUR_ARBRE_MAX));
         defilement.setPrefViewportWidth(d.largeur() + 16);
-        defilementArbre = defilement;
-
-        return Ui.carte("Arbre des rencontres",
-                Ui.aide("Cliquez sur un match à jouer (cadre bleu) pour saisir son score ; le vainqueur avance "
-                        + "aussitôt au tour suivant. Un joueur « Exempt » passe ce tour sans adversaire. "
-                        + "Glissez l'arbre ou utilisez les barres pour le parcourir."),
-                legende(), defilement);
+        return defilement;
     }
 
     private static Node legende() {
@@ -352,7 +380,7 @@ public final class VuePhaseFinale {
         return l;
     }
 
-    private Node carte(Carte c) {
+    private static Node carte(Carte c, Match selectionne, Consumer<Match> surClic) {
         CaseTableau contenu = c.contenu();
         EtatCarte etat = DispositionArbre.etat(contenu);
         Region noeud = contenu.type() == TypeCase.EXEMPT ? carteExempt(contenu.joueurExempte()) : carteMatch(c.match());
@@ -377,12 +405,9 @@ public final class VuePhaseFinale {
                 bulle.append("\n").append(detail);
             }
             Tooltip.install(noeud, new Tooltip(bulle.toString()));
-            if (PresentationPhaseFinale.estSaisissable(m)) {
+            if (surClic != null && PresentationPhaseFinale.estSaisissable(m)) {
                 noeud.setCursor(Cursor.HAND);
-                noeud.setOnMouseClicked(e -> {
-                    selectionne = m;
-                    rafraichir();
-                });
+                noeud.setOnMouseClicked(e -> surClic.accept(m));
             }
         } else {
             String detail = PresentationPhaseFinale.detailJoueur(contenu.joueurExempte());
@@ -392,7 +417,7 @@ public final class VuePhaseFinale {
         return noeud;
     }
 
-    private Region carteMatch(Match m) {
+    private static Region carteMatch(Match m) {
         VBox lignes = new VBox(2, ligneJoueur(m, true), ligneJoueur(m, false));
         lignes.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(lignes, Priority.ALWAYS);

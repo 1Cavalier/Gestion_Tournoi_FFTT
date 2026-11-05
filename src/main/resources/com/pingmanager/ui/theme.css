@@ -2454,3 +2454,98 @@
 .reglement-fige .bouton-lien {
     -fx-padding: 0;
 }
+
+/* ==================================================================
+   Suivi d'un tournoi en cours (B027) : fiche en mode suivi, lecture
+   seule (EcranSuiviTournoi). Tokens uniquement : clair et sombre.
+   ================================================================== */
+
+/* Barre des tableaux : un bouton par tableau, l'actif en bleu. */
+.button.suivi-onglet {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+    -fx-cursor: hand;
+}
+
+.button.suivi-onglet:hover {
+    -fx-background-color: -bordure-forte, -surface-2;
+}
+
+.button.suivi-onglet.suivi-onglet-actif {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+/* Étape d'un tableau : petit texte coloré sous son nom. */
+.label.suivi-etape {
+    -fx-font-size: 12px;
+    -fx-text-fill: -texte-doux;
+}
+
+.label.suivi-etape.suivi-etape-poules,
+.label.suivi-etape.suivi-etape-final {
+    -fx-text-fill: -info-texte;
+}
+
+.label.suivi-etape.suivi-etape-termine {
+    -fx-text-fill: -succes-texte;
+}
+
+.badge.suivi-mon-tableau {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+/* Prochaine partie du joueur connecté ; filet plus marqué s'il joue en ce moment. */
+.carte.suivi-prochaine-partie.suivi-en-cours {
+    -fx-border-color: -primaire;
+    -fx-border-width: 0 0 0 4;
+}
+
+.badge.suivi-table {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+/* Poules : classement en direct. */
+.label.suivi-rang {
+    -fx-font-weight: bold;
+    -fx-min-width: 30;
+}
+
+.label.suivi-rang.suivi-qualifie,
+.badge.suivi-qualifie {
+    -fx-text-fill: -succes-texte;
+}
+
+.badge.suivi-qualifie {
+    -fx-background-color: -succes-doux;
+}
+
+.label.suivi-rang.suivi-non-qualifie {
+    -fx-text-fill: -texte-doux;
+}
+
+.label.suivi-moi {
+    -fx-text-fill: -primaire;
+    -fx-underline: true;
+}
+
+/* Lignes de match (poules, matchs en cours). */
+.label.suivi-situation {
+    -fx-min-width: 110;
+}
+
+.label.suivi-vainqueur {
+    -fx-font-weight: bold;
+}
+
+.ligne-liste.suivi-ligne-en-cours {
+    -fx-background-color: -primaire-doux;
+}
+
+.label.suivi-detail-score {
+    -fx-font-size: 12px;
+}
