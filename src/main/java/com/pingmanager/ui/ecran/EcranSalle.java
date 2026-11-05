@@ -42,17 +42,22 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
- * Vue « Salle » du jour J : une carte par table (libre ou occupée, match en
- * cours, durée écoulée) et, à droite, les matchs prêts de tous les tableaux
- * triés par priorité, puis les matchs bloqués avec leur motif.
+ * Écran principal du juge-arbitre le jour J (B011) : à gauche les « Matchs
+ * proposés » de tous les tableaux triés par l'ordonnanceur, puis les matchs
+ * bloqués avec leur motif ; au centre le bandeau « Où en sont les tableaux »
+ * (fourni par {@link EcranJourJ}) et une carte par table (libre ou occupée,
+ * match en cours, durée écoulée).
  *
  * <p>Gestes du juge-arbitre, en peu de clics :</p>
  * <ul>
  *   <li>« Proposer » (Alt+P) remplit les tables libres selon l'ordonnanceur ;</li>
- *   <li>glisser un match prêt sur une table libre, ou « Envoyer à… » (bouton ou
- *       clic droit) puis la table ; « Envoyer le prochain » sur une table libre ;</li>
+ *   <li>« Table N » sur un match proposé l'envoie en un clic sur la première
+ *       table libre ; glisser un match sur une table libre, ou « Autre table… »
+ *       (bouton ou clic droit) ; « Envoyer le prochain » sur une table libre ;</li>
  *   <li>« Terminer » sur une table ouvre la saisie du score (composants des
  *       poules et du tableau final) ; à l'enregistrement la table se libère et
  *       tout se met à jour ;</li>
@@ -61,7 +66,10 @@ import java.util.Map;
  *
  * <p>Toute la logique est dans {@link ServiceSalle} (cœur) et
  * {@link PresentationSalle} ; chaque action réussie enregistre le tournoi
- * aussitôt. Les durées se rafraîchissent toutes les 20 secondes.</p>
+ * aussitôt. Après un score, « Envoyer … à la table N » (Entrée) enchaîne le
+ * match suivant sur la table libérée, sans changer de page. Le bandeau est
+ * reconstruit à chaque action : tout se met à jour en direct. Les durées se
+ * rafraîchissent toutes les 20 secondes.</p>
  */
 final class EcranSalle {
 
@@ -70,6 +78,9 @@ final class EcranSalle {
     private final Tournoi tournoi;
     private final Runnable enregistrer;
     private final Runnable onRetour;
+    private final String libelleRetour;
+    private final String titre;
+    private final Supplier<Node> bandeau;
     private final ServiceSalle salle;
     private final SaisieResultatMatch saisiePoule;
     private final ServicePhaseFinale servicePhaseFinale = new ServicePhaseFinale();
@@ -83,11 +94,25 @@ final class EcranSalle {
     private Match enSaisie;
     private String messageSucces;
     private String messageErreur;
+    /** Table libérée par le dernier score saisi : propose d'y enchaîner le match suivant. */
+    private int tableLiberee;
 
     EcranSalle(Tournoi tournoi, Runnable enregistrer, Runnable onRetour, Horloge horloge) {
+        this(tournoi, enregistrer, onRetour, "← Jour J", "Salle et tables", null, horloge);
+    }
+
+    /**
+     * @param bandeau bloc posé au-dessus des tables, reconstruit à chaque
+     *                rafraîchissement (bandeau d'avancement des tableaux), ou null
+     */
+    EcranSalle(Tournoi tournoi, Runnable enregistrer, Runnable onRetour, String libelleRetour, String titre,
+               Supplier<Node> bandeau, Horloge horloge) {
         this.tournoi = tournoi;
         this.enregistrer = enregistrer;
         this.onRetour = onRetour;
+        this.libelleRetour = libelleRetour;
+        this.titre = titre;
+        this.bandeau = bandeau;
         this.salle = new ServiceSalle(horloge);
         this.saisiePoule = new SaisieResultatMatch(horloge);
         this.defilement = Ui.defilant(new VBox());
@@ -114,14 +139,12 @@ final class EcranSalle {
         chronos.clear();
         bord = salle.tableauDeBord(tournoi);
 
-        Button retour = Ui.boutonLien("← Jour J");
+        Button retour = Ui.boutonLien(libelleRetour);
         retour.setOnAction(e -> {
             arreterMinuterie();
             onRetour.run();
         });
-        Label titre = Ui.titre("Salle et tables");
-        Label nom = Ui.discret(tournoi.getNom() == null ? "" : tournoi.getNom());
-        VBox contenu = Ui.page(Double.MAX_VALUE, new VBox(6, retour, titre, nom), tuiles(), barreActions());
+        VBox contenu = Ui.page(Double.MAX_VALUE, retour, entete());
 
         if (messageSucces != null || messageErreur != null) {
             Label message = Ui.message();
@@ -130,46 +153,79 @@ final class EcranSalle {
             } else {
                 Ui.succes(message, messageSucces);
             }
-            contenu.getChildren().add(message);
+            HBox ligneMessage = Ui.ligne(16, message);
+            Node suite = boutonSuite();
+            if (suite != null && messageErreur == null) {
+                ligneMessage.getChildren().add(suite);
+            }
+            contenu.getChildren().add(ligneMessage);
             messageSucces = null;
             messageErreur = null;
         }
+        tableLiberee = 0;
         if (ferme()) {
             contenu.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : la salle est fermée."));
         }
         if (!bord.getAnomalies().isEmpty()) {
             contenu.getChildren().add(carteAnomalies());
         }
-        contenu.getChildren().add(grilleTables());
+        if (bandeau != null) {
+            contenu.getChildren().add(bandeau.get());
+        }
+        Label intertitreTables = Ui.sousTitre("Tables");
+        intertitreTables.getStyleClass().add("jourj-intertitre");
+        contenu.getChildren().addAll(intertitreTables, grilleTables());
         defilement.setContent(contenu);
         javafx.application.Platform.runLater(() -> defilement.setVvalue(position));
-        racine.setRight(enSaisie == null ? colonneMatchs() : panneauSaisie(enSaisie));
+        racine.setLeft(enSaisie == null ? colonneMatchs() : panneauSaisie(enSaisie));
+        if (enSaisie == null) {
+            Ui.apparition(racine.getLeft());
+        }
     }
 
-    private Node tuiles() {
-        return new FlowPane(12, 12,
-                Ui.tuile(String.valueOf(bord.nombreTablesLibres()),
-                        bord.nombreTablesLibres() > 1 ? "tables libres" : "table libre"),
-                Ui.tuile(String.valueOf(bord.nombreTablesOccupees()),
-                        bord.nombreTablesOccupees() > 1 ? "matchs en cours" : "match en cours"),
-                Ui.tuile(String.valueOf(bord.getPrets().size()),
-                        bord.getPrets().size() > 1 ? "matchs prêts" : "match prêt"),
-                Ui.tuile(String.valueOf(bord.getBloques().size()),
-                        bord.getBloques().size() > 1 ? "matchs bloqués" : "match bloqué"));
-    }
+    /**
+     * En-tête compact : titre et nom du tournoi, chiffres de la salle sur une
+     * ligne, bouton « Proposer » à droite (Alt+P).
+     */
+    private Node entete() {
+        Label t = Ui.titre(titre);
+        Label nom = Ui.discret(tournoi.getNom() == null ? "" : tournoi.getNom());
+        Label chiffres = new Label(PresentationSalle.resumeLigne(bord));
+        chiffres.getStyleClass().add("jourj-chiffres");
+        VBox gauche = new VBox(4, t, nom, chiffres);
 
-    private Node barreActions() {
         Button proposer = Ui.boutonPrimaire("_Proposer");
         proposer.setMnemonicParsing(true);
         proposer.setDisable(ferme() || bord.getNombreDeTables() == 0);
-        proposer.setTooltip(new Tooltip("Alt+P"));
+        proposer.setTooltip(new Tooltip("Alt+P · remplit toutes les tables libres avec les matchs proposés, du plus "
+                + "prioritaire au moins prioritaire. Un joueur n'est jamais envoyé sur deux tables."));
         proposer.setOnAction(e -> proposer());
-        Label aide = Ui.aide("« Proposer » remplit les tables libres avec les matchs prêts, du plus prioritaire au "
-                + "moins prioritaire. Un joueur n'est jamais envoyé sur deux tables. Pour choisir vous-même, glissez "
-                + "un match prêt sur une table libre, ou utilisez « Envoyer à… ».");
-        aide.setMaxWidth(720);
-        HBox barre = Ui.ligne(16, proposer, aide);
-        return barre;
+        HBox entete = Ui.ligne(16, gauche, Ui.espace(), proposer);
+        entete.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+        return entete;
+    }
+
+    /**
+     * Après un score : « Envoyer A – B à la table N » pour enchaîner le match
+     * suivant sur la table libérée (touche Entrée), ou null s'il n'y a rien à
+     * enchaîner.
+     */
+    private Node boutonSuite() {
+        if (ferme()) {
+            return null;
+        }
+        Optional<MatchSalle> suite = PresentationSalle.suiteSurTable(bord, tableLiberee);
+        if (suite.isEmpty()) {
+            return null;
+        }
+        int table = tableLiberee;
+        Match m = suite.get().match();
+        Button envoyer = Ui.boutonPrimaire("Envoyer " + PresentationSalle.joueurs(m) + " à la table " + table);
+        envoyer.setDefaultButton(true);
+        envoyer.setTooltip(new Tooltip("Entrée · " + PresentationSalle.contexte(suite.get())));
+        envoyer.setOnAction(e -> affecter(m, table));
+        javafx.application.Platform.runLater(envoyer::requestFocus);
+        return envoyer;
     }
 
     // ==================================================================
@@ -202,7 +258,7 @@ final class EcranSalle {
         carte.setMaxWidth(220);
 
         if (c.estLibre()) {
-            carte.getChildren().add(Ui.aide("Glissez un match prêt ici."));
+            carte.getChildren().add(Ui.aide("Glissez un match proposé ici."));
             Button prochain = Ui.boutonSecondaire("Envoyer le prochain");
             if (bord.getPrets().isEmpty() || ferme()) {
                 prochain.setDisable(true);
@@ -313,11 +369,12 @@ final class EcranSalle {
             prets.getChildren().add(lignePret(liste.get(i), i));
         }
         if (liste.isEmpty()) {
-            prets.getChildren().add(Ui.discret("Aucun match prêt. Les matchs des poules lancées et du tableau final "
-                    + "apparaissent ici dès que leurs deux joueurs sont libres."));
+            prets.getChildren().add(Ui.etatVideCompact("Aucun match à proposer. Les parties des poules lancées et du "
+                    + "tableau final apparaissent ici dès que leurs deux joueurs sont libres."));
         }
-        VBox colonne = new VBox(16, Ui.carte(Ui.titreAvecCompteur("Matchs prêts", liste.size()),
-                Ui.aide("Du plus prioritaire au moins prioritaire. Glissez un match sur une table libre."), prets));
+        VBox colonne = new VBox(16, Ui.carte(Ui.titreAvecCompteur("Matchs proposés", liste.size()),
+                Ui.aide("Tous tableaux confondus, du plus prioritaire au moins prioritaire. « Table N » envoie le "
+                        + "match sur la première table libre ; vous pouvez aussi le glisser sur une table."), prets));
 
         if (!bord.getBloques().isEmpty()) {
             VBox bloques = new VBox(0);
@@ -333,11 +390,12 @@ final class EcranSalle {
                     + "final attend") + " le résultat du tour précédent."));
         }
         colonne.getStyleClass().add("salle-colonne");
-        colonne.setPrefWidth(380);
-        colonne.setMaxWidth(380);
+        colonne.setPrefWidth(360);
+        colonne.setMaxWidth(360);
         ScrollPane s = Ui.defilant(colonne);
         s.getStyleClass().add("salle-cote");
-        BorderPane.setMargin(s, new Insets(24, 24, 24, 0));
+        s.setMinWidth(380);
+        BorderPane.setMargin(s, new Insets(24, 0, 24, 24));
         return s;
     }
 
@@ -348,11 +406,19 @@ final class EcranSalle {
         if (!m.explication().isEmpty()) {
             infos.getChildren().add(Ui.aide("Priorité : " + m.explication()));
         }
-        MenuButton envoyer = new MenuButton("Envoyer à…");
+        Optional<Integer> libre = PresentationSalle.premiereTableLibre(bord);
+        Button direct = Ui.boutonPrimaire(libre.map(n -> "Table " + n).orElse("Aucune table libre"));
+        direct.getStyleClass().add("jourj-envoi-direct");
+        direct.setDisable(ferme() || libre.isEmpty());
+        libre.ifPresent(n -> {
+            direct.setTooltip(new Tooltip("Envoyer ce match à la table " + n + " (première table libre)"));
+            direct.setOnAction(e -> affecter(m.match(), n));
+        });
+        MenuButton envoyer = new MenuButton("Autre table…");
         envoyer.getStyleClass().add("salle-envoyer");
         envoyer.getItems().addAll(itemsEnvoi(m.match()));
         envoyer.setDisable(ferme() || bord.tablesLibres().isEmpty());
-        VBox ligne = new VBox(6, infos, envoyer);
+        VBox ligne = new VBox(6, infos, Ui.ligne(8, direct, envoyer));
         ligne.getStyleClass().add("salle-pret");
         ligne.setCursor(Cursor.OPEN_HAND);
 
@@ -430,14 +496,20 @@ final class EcranSalle {
         }
         ScrollPane s = Ui.defilant(editeur);
         s.getStyleClass().add("salle-cote");
-        BorderPane.setMargin(s, new Insets(24, 24, 24, 0));
+        s.setMinWidth(380);
+        BorderPane.setMargin(s, new Insets(24, 0, 24, 24));
         return s;
     }
 
     private void apresResultat(Match m) {
         ResultatAffectationTable r = salle.libererApresResultat(tournoi, m);
         enSaisie = null;
-        apresAction(r.estReussi(), PresentationSalle.message(r, bord.getNombreDeTables()));
+        boolean reussi = r.estReussi();
+        apresActionSansAffichage(reussi, PresentationSalle.message(r, bord.getNombreDeTables()));
+        if (reussi && messageErreur == null) {
+            tableLiberee = r.getNumeroTable();
+        }
+        afficher();
     }
 
     private Tableau tableauDePoule(Match m) {
@@ -485,6 +557,11 @@ final class EcranSalle {
 
     /** Enregistre aussitôt une action réussie, puis redessine toute la salle. */
     private void apresAction(boolean reussi, String texte) {
+        apresActionSansAffichage(reussi, texte);
+        afficher();
+    }
+
+    private void apresActionSansAffichage(boolean reussi, String texte) {
         if (reussi) {
             try {
                 enregistrer.run();
@@ -496,7 +573,6 @@ final class EcranSalle {
         } else {
             messageErreur = texte;
         }
-        afficher();
     }
 
     // ==================================================================

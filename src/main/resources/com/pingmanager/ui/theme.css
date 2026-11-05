@@ -2455,6 +2455,74 @@
     -fx-padding: 0;
 }
 
+/* =====================================================================
+   Jour J : écran principal du juge-arbitre (B011)
+   Bandeau « Où en sont les tableaux », chiffres de la salle, envoi en un
+   clic. Tokens uniquement : valables en thème clair et sombre.
+   ===================================================================== */
+
+.jourj-chiffres {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.jourj-intertitre {
+    -fx-padding: 4 0 0 0;
+}
+
+/* Bouton « Table N » d'un match proposé : compact, à côté de « Autre table… ». */
+.button.jourj-envoi-direct {
+    -fx-padding: 4 12 4 12;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+}
+
+/* Une ligne par tableau : filet au-dessus, survol, toute la ligne se clique. */
+.avancement-ligne {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 6 8 6;
+}
+
+.avancement-ligne.avancement-ligne-premiere {
+    -fx-border-color: transparent;
+}
+
+.avancement-ligne:hover {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+}
+
+.button.bouton-lien.avancement-nom {
+    -fx-alignment: center-left;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+    -fx-padding: 0;
+}
+
+.button.bouton-lien.avancement-nom:hover {
+    -fx-text-fill: -primaire;
+    -fx-underline: true;
+}
+
+.avancement-detail {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13px;
+}
+
+.avancement-jour {
+    -fx-font-weight: bold;
+    -fx-padding: 10 0 4 6;
+}
+
+.button.avancement-action {
+    -fx-padding: 4 12 4 12;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+}
+
 /* ==================================================================
    Suivi d'un tournoi en cours (B027) : fiche en mode suivi, lecture
    seule (EcranSuiviTournoi). Tokens uniquement : clair et sombre.

@@ -14,6 +14,7 @@ import com.pingmanager.ordonnancement.ResultatAffectationTable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Logique d'affichage de la salle (textes, durées, messages de refus), sans
@@ -105,8 +106,8 @@ final class PresentationSalle {
         }
         if (motif == ResultatAffectationTable.Motif.AFFECTATION_ANNULEE) {
             return table > 0
-                    ? "Affectation annulée : la table " + table + " est libre, le match revient dans les matchs prêts."
-                    : "Affectation annulée : le match revient dans les matchs prêts.";
+                    ? "Affectation annulée : la table " + table + " est libre, le match revient dans les matchs proposés."
+                    : "Affectation annulée : le match revient dans les matchs proposés.";
         }
         if (motif == ResultatAffectationTable.Motif.TABLE_LIBEREE) {
             return table > 0 ? "Résultat enregistré : la table " + table + " est libre." : "Résultat enregistré.";
@@ -227,5 +228,50 @@ final class PresentationSalle {
             }
         }
         return false;
+    }
+
+    /**
+     * Ligne de chiffres de l'écran principal du jour J : « 12 tables libres · 4 en
+     * cours · 1 match proposé · 4 bloqués ».
+     */
+    static String resumeLigne(TableauDeBordSalle bord) {
+        if (bord.getNombreDeTables() == 0) {
+            return "Nombre de tables non renseigné";
+        }
+        int libres = bord.nombreTablesLibres();
+        int occupees = bord.nombreTablesOccupees();
+        int prets = bord.getPrets().size();
+        int bloques = bord.getBloques().size();
+        StringBuilder sb = new StringBuilder();
+        sb.append(libres).append(libres > 1 ? " tables libres" : " table libre");
+        sb.append(" · ").append(occupees).append(" en cours");
+        sb.append(" · ").append(prets).append(prets > 1 ? " matchs proposés" : " match proposé");
+        if (bloques > 0) {
+            sb.append(" · ").append(bloques).append(bloques > 1 ? " bloqués" : " bloqué");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Après un score saisi, match proposé pour enchaîner sur la table qui vient
+     * de se libérer : le premier des matchs proposés (ordre de l'ordonnanceur),
+     * si la table est toujours libre et qu'un match attend.
+     *
+     * @param table numéro de la table libérée (0 ou moins : aucune)
+     */
+    static Optional<TableauDeBordSalle.MatchSalle> suiteSurTable(TableauDeBordSalle bord, int table) {
+        if (table <= 0 || bord.getPrets().isEmpty() || !bord.tablesLibres().contains(table)) {
+            return Optional.empty();
+        }
+        return Optional.of(bord.getPrets().get(0));
+    }
+
+    /**
+     * Table proposée pour l'envoi en un clic d'un match proposé : la plus petite
+     * table libre, ou vide si toutes sont occupées.
+     */
+    static Optional<Integer> premiereTableLibre(TableauDeBordSalle bord) {
+        List<Integer> libres = bord.tablesLibres();
+        return libres.isEmpty() ? Optional.empty() : Optional.of(libres.get(0));
     }
 }
