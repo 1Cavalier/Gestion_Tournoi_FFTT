@@ -4,11 +4,11 @@ titre: Accueil : point d'entrée qui explique chaque section
 type: interface
 priorite: P1
 taille: M
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/PageAccueil, ui/ecran/Coquille]
 branche: tache/B028-accueil-hub (2026-11-05)
-pr:
+pr: 34
 ---
 
 ## Ce qu'il faut faire
