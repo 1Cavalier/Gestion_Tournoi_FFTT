@@ -32,6 +32,12 @@ Même format que `QUESTIONS.md` (une entrée par question) ; « Aucune » sinon.
 Les lignes à reporter dans `ETAT_DU_PROJET.md` (section 0) : classes
 principales, changements du format de sauvegarde, démo.
 
+## Fusion
+
+Résultat de `python3 outils-dev/verifier-fusion.py` après la synchronisation
+avec `main`, et justification de chaque ligne de `main` volontairement
+remplacée (« OK, rien à signaler » sinon).
+
 ## Chiffres
 
 - Tests : <avant> → <après> (mesurés par `mvn -B test`)
