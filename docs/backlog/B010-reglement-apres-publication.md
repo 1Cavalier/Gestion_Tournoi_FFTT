@@ -40,5 +40,9 @@ Aucune pour l'instant.
   publié figé à la relecture. Écran : `VueReglementFige` (lien compact + page en lecture seule), branchée dans
   `EcranComplementaire`, `EcranCompletion` (ligne « Règlement » de la carte Complémentaire) et `FicheTournoi`.
   Choix à valider : un tournoi publié puis **annulé** redevient modifiable (garde limitée à `PUBLIE`).
+- **verificateur-modele, 2026-11-05** : 16 tests ajoutés (`ReglementFigeContournementTest`, `ReglementFigeCorrompuTest`,
+  `model/RegleOrModeleSansDependanceTest`) : immuabilité des copies, figé indépendant des données vivantes, copie JSON corrompue, règle d'or.
+  Publié puis annulé : `reglementModifiable()` vrai, `estFige` faux, donc options/dépôt à nouveau acceptés et `reglement()` régénère en direct (copie ignorée mais conservée) : question pour Quentin.
+  Mineur : `setFeuilleEngagement` (ancienne feuille papier) et `setInfosReglement` ne sont pas gardés.
 
 ## Résultat
