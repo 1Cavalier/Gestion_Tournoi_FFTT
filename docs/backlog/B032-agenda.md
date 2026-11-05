@@ -38,4 +38,8 @@ Voir le cahier des charges v0.
 - Fait : 12 tests dans `AgendaVerificationTest` (désinscription partielle/complète, attente, repêchage, doublons, .ics : pliage 2/3/4 octets, échappement, DTEND exclusif, DTSTAMP UTC) + 2 dans `AgendaRoundTripLimitesTest`. Total 735, 1 échec volontaire.
 - DÉFAUT BLOQUANT : `ServiceInscriptionEnLigne.desinscrire` avec un tableau en double dans la collection (`List.of(a, a)`) : attendu désinscription valide (ou refus propre), obtenu `NullPointerException: joueur` (second `tab.desinscrire(present(...))` après retrait). Test `desinscription_avec_tableau_en_double_ne_plante_pas` ; correction : dédoublonner `tableaux` (LinkedHashSet) avant la validation.
 
+**correcteur (2026-11-05)**
+- Corrigé : `desinscrire` dédoublonne `tableaux` (`LinkedHashSet`) avant validation ; cause : la 2e itération cherchait un joueur déjà retiré (`present` → null). `desinscription_avec_tableau_en_double_ne_plante_pas` vert.
+- Tests : 735, 0 échec.
+
 ## Résultat

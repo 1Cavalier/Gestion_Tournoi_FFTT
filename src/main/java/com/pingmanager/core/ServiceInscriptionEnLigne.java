@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 
@@ -143,6 +144,8 @@ public final class ServiceInscriptionEnLigne {
         if (tableaux == null || tableaux.isEmpty()) {
             return refusDesinscription("Choisissez au moins un tableau.");
         }
+        // Un tableau cité deux fois n'est désinscrit qu'une fois.
+        tableaux = new LinkedHashSet<>(tableaux);
         String licence = fiche.getNumeroLicence();
         for (Tableau tab : tableaux) {
             if (!t.getTableaux().contains(tab)) {
