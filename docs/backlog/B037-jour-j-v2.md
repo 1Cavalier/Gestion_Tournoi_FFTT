@@ -32,5 +32,8 @@ Voir le cahier des charges v0.
 - `developpeur-jour-j` (2026-11-05) : tout implémenté (cœur `ReglePrioriteSalle`, joueurs en attente, `AnnonceRencontre`, `ModeAnnonce` + JSON ; écran `EcranSalle`/`EcranJourJ` ; présentation testée). 675 → 703 tests verts.
 - Captures regardées (clair et sombre) : `docs/captures/jour-j-v2/apres/` ; démo sur un seul jour, « Jour suivant » non capturé. 4 questions dans le journal.
 - À relire : `EcranSalle` (gros fichier, flux « annonce » avant chaque lancement), `resumeLigne` devenue inutilisée par l'écran.
+- `verificateur-modele` (2026-11-05) : +5 tests (seuils 9:59/10/20, attente nulle/négative, annonce, JSON tous modes), 708 verts. Invariants et cas limites OK, aucun défaut bloquant.
+- Mineur : `modeAnnonce` de type non texte dans le JSON (nombre, booléen) lève `Json` au lieu de redemander ; rouge dès 10 min pour tout tour de 2 parties réelles ou moins (y compris 1er tour à byes).
+- Règle d'or : aucun import interdit ajouté.
 
 ## Résultat

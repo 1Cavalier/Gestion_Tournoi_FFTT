@@ -367,4 +367,24 @@ class RoundTripTournoiTest {
         Files.writeString(fichier, json.replace("\"SMS_ET_APPEL\"", "\"PIGEON_VOYAGEUR\""));
         assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
     }
+
+    /** Jour J (B037) : chaque mode survit, et une valeur illisible redemande au lieu de planter. */
+    @Test
+    void mode_d_annonce_tous_les_modes_et_valeurs_degenerees() throws Exception {
+        Path fichier = Files.createTempFile("mode_annonce_limites", DepotTournoi.EXTENSION);
+        for (com.pingmanager.model.ModeAnnonce mode : com.pingmanager.model.ModeAnnonce.values()) {
+            Tournoi t = construireTournoiComplet(null);
+            t.setModeAnnonce(mode);
+            DepotTournoi.sauvegarder(t, fichier);
+            assertEquals(mode, DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
+        }
+        Tournoi t = construireTournoiComplet(null);
+        t.setModeAnnonce(com.pingmanager.model.ModeAnnonce.SMS);
+        DepotTournoi.sauvegarder(t, fichier);
+        String json = Files.readString(fichier);
+        for (String valeur : new String[] {"null", "\"\"", "\"sms\""}) {
+            Files.writeString(fichier, json.replace("\"SMS\"", valeur));
+            assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce(), "valeur " + valeur);
+        }
+    }
 }
