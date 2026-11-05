@@ -1,6 +1,10 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
+import javafx.animation.TranslateTransition;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -14,12 +18,18 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.FillRule;
+import javafx.scene.shape.SVGPath;
+import javafx.util.Duration;
 
 import javafx.util.StringConverter;
 
 import java.lang.reflect.Method;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -137,6 +147,181 @@ final class Ui {
         return v;
     }
 
+    // ------------------------------------------------------------------
+    // Charte v2 : tuiles de chiffres, pastilles, avatars, lignes, dates
+    // ------------------------------------------------------------------
+
+    /** Tuile de chiffre clé (v2) : grand nombre semi-gras, libellé discret dessous. */
+    static VBox tuileChiffre(String valeur, String libelle) {
+        return tuileChiffre(valeur, libelle, null);
+    }
+
+    /** Tuile de chiffre clé avec un complément sous le libellé (pastille, évolution). */
+    static VBox tuileChiffre(String valeur, String libelle, Node complement) {
+        Label v = label(valeur, "tuile-cle-valeur");
+        Label l = label(libelle, "tuile-cle-libelle");
+        l.setWrapText(true);
+        VBox t = new VBox(4, v, l);
+        if (complement != null) {
+            VBox.setMargin(complement, new javafx.geometry.Insets(4, 0, 0, 0));
+            t.getChildren().add(complement);
+        }
+        t.getStyleClass().add("tuile-cle");
+        t.setMaxWidth(Double.MAX_VALUE);
+        return t;
+    }
+
+    /** Rangée de tuiles qui se partagent la largeur à parts égales. */
+    static HBox rangeeTuiles(Node... tuiles) {
+        HBox h = new HBox(16);
+        for (Node t : tuiles) {
+            HBox.setHgrow(t, Priority.ALWAYS);
+            if (t instanceof Region r) {
+                r.setPrefWidth(0);
+                r.setMinWidth(140);
+            }
+            h.getChildren().add(t);
+        }
+        h.getStyleClass().add("rangee-tuiles");
+        return h;
+    }
+
+    /** Pastille de statut (rayon 999, fond doux, texte foncé). */
+    static Label pastille(String texte, StatutPastille statut) {
+        Label l = badge(texte);
+        l.getStyleClass().addAll("pastille", statut.classeCss());
+        return l;
+    }
+
+    /** Avatar rond aux initiales, teinte tirée du nom (diamètre 32). */
+    static StackPane avatar(String prenom, String nom) {
+        Label initiales = label(Avatars.initiales(prenom, nom), "avatar-initiales");
+        StackPane p = new StackPane(initiales);
+        p.getStyleClass().addAll("avatar", "avatar-teinte-" + Avatars.teinte(prenom, nom));
+        p.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        p.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return p;
+    }
+
+    /** Grand avatar (diamètre 40), pour un en-tête de fiche. */
+    static StackPane avatarGrand(String prenom, String nom) {
+        StackPane p = avatar(prenom, nom);
+        p.getStyleClass().add("avatar-grand");
+        return p;
+    }
+
+    /**
+     * Ligne de liste v2 : un visuel (avatar, date…), un titre et un détail, puis
+     * des éléments alignés à droite (pastilles, points, actions). Survol
+     * {@code -surface-2}.
+     */
+    static HBox ligneElement(Node visuel, Node titre, String detail, Node... aDroite) {
+        VBox textes = new VBox(2, titre);
+        if (detail != null && !detail.isBlank()) {
+            Label d = label(detail, "ligne-element-detail");
+            textes.getChildren().add(d);
+        }
+        textes.setMinWidth(0);
+        HBox.setHgrow(textes, Priority.ALWAYS);
+        HBox h = new HBox(14);
+        if (visuel != null) {
+            h.getChildren().add(visuel);
+        }
+        h.getChildren().add(textes);
+        h.getChildren().addAll(aDroite);
+        h.setAlignment(Pos.CENTER_LEFT);
+        h.getStyleClass().add("ligne-element");
+        return h;
+    }
+
+    /** Variante avec un titre texte (semi-gras). */
+    static HBox ligneElement(Node visuel, String titre, String detail, Node... aDroite) {
+        Label t = label(titre, "ligne-element-titre");
+        return ligneElement(visuel, t, detail, aDroite);
+    }
+
+    /** Ligne de joueur : avatar, nom, club, points puis pastilles. */
+    static HBox ligneJoueur(String prenom, String nom, String club, Integer points, Node... pastilles) {
+        Node[] droite = new Node[pastilles.length + (points == null ? 0 : 1)];
+        int i = 0;
+        if (points != null) {
+            droite[i++] = label(points + " pts", "ligne-element-points");
+        }
+        for (Node p : pastilles) {
+            droite[i++] = p;
+        }
+        String nomComplet = ((prenom == null ? "" : prenom) + " " + (nom == null ? "" : nom)).trim();
+        return ligneElement(avatar(prenom, nom), nomComplet, club, droite);
+    }
+
+    private static final DateTimeFormatter MOIS_COURT = DateTimeFormatter.ofPattern("MMM", Locale.FRENCH);
+
+    /** Petit bloc date (jour en grand, mois abrégé dessous) ; « — / à fixer » si inconnue. */
+    static VBox blocDate(LocalDate date) {
+        String jour = date == null ? "—" : String.valueOf(date.getDayOfMonth());
+        String mois = date == null ? "À FIXER" : MOIS_COURT.format(date).replace(".", "").toUpperCase(Locale.FRENCH);
+        VBox v = new VBox(0, label(jour, "bloc-date-jour"), label(mois, "bloc-date-mois"));
+        v.setAlignment(Pos.CENTER);
+        v.getStyleClass().add("bloc-date");
+        v.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return v;
+    }
+
+    /** État vide compact (une ligne dans une carte de liste). */
+    static VBox etatVideCompact(String texte) {
+        VBox v = etatVide(texte, null);
+        v.getStyleClass().add("etat-vide-compact");
+        return v;
+    }
+
+    /** État vide soigné : une phrase qui dit ce qui apparaîtra, et une action facultative. */
+    static VBox etatVide(String texte, Node action) {
+        Label l = label(texte, "etat-vide-texte");
+        l.setWrapText(true);
+        VBox v = new VBox(10, l);
+        if (action != null) {
+            v.getChildren().add(action);
+        }
+        v.getStyleClass().add("etat-vide");
+        return v;
+    }
+
+    /** Icône simple dessinée (tracé SVG sur 16 × 16), couleur portée par une classe CSS. */
+    static SVGPath icone(String trace, String classe) {
+        SVGPath p = new SVGPath();
+        p.setContent(trace);
+        p.setFillRule(FillRule.EVEN_ODD);
+        p.getStyleClass().addAll("icone", classe);
+        return p;
+    }
+
+    /** Icône posée dans un carré fixe de 16 px : les libellés qui suivent restent alignés. */
+    static StackPane iconeCadree(String trace, String classe) {
+        StackPane p = new StackPane(icone(trace, classe));
+        p.setMinSize(16, 16);
+        p.setPrefSize(16, 16);
+        p.setMaxSize(16, 16);
+        return p;
+    }
+
+    /** Durée des transitions d'ouverture (charte : 150 à 200 ms, jamais plus). */
+    static final Duration DUREE_APPARITION = Duration.millis(180);
+
+    /** Apparition d'une page ou d'un panneau : fondu et léger glissement vers le haut. */
+    static void apparition(Node n) {
+        if (n == null) {
+            return;
+        }
+        FadeTransition fondu = new FadeTransition(DUREE_APPARITION, n);
+        fondu.setFromValue(0);
+        fondu.setToValue(1);
+        TranslateTransition glisse = new TranslateTransition(DUREE_APPARITION, n);
+        glisse.setFromY(8);
+        glisse.setToY(0);
+        glisse.setInterpolator(Interpolator.EASE_OUT);
+        new ParallelTransition(fondu, glisse).play();
+    }
+
     /**
      * Encart de confirmation en ligne, pour une action qui ne se défait pas
      * (clôture du pointage, tirage au sort) : une phrase qui dit ce qui va se
@@ -219,6 +404,7 @@ final class Ui {
     static Label badge(String s) {
         Label l = label(s, "badge");
         l.setMinWidth(Region.USE_PREF_SIZE);
+        l.setMaxWidth(Region.USE_PREF_SIZE); // une pastille ne s'étire jamais
         return l;
     }
 
@@ -395,7 +581,8 @@ final class Ui {
         montrer(l);
     }
 
-    private static Label label(String texte, String classe) {
+    /** Libellé portant une classe de style. */
+    static Label label(String texte, String classe) {
         Label l = new Label(texte);
         l.getStyleClass().add(classe);
         return l;
