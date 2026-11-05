@@ -102,7 +102,12 @@ mvn -B test
 7. Mettre à jour `ETAT_DU_PROJET.md` (section 0) quand une fonctionnalité est
    livrée, et `docs/passation/REGLES_CREATION_TOURNOI.md` si un champ du
    tournoi change.
-8. Indiquer dans la Pull Request comment tester chez Quentin :
+8. Avant d'ouvrir la Pull Request, mettre la branche à jour avec `main`. En
+   cas de conflit sur `QUESTIONS.md`, `ETAT_DU_PROJET.md` ou un `RAPPORT_*.md`,
+   **garder les deux versions** (les entrées des autres sessions ne doivent
+   jamais disparaître), puis vérifier avec `git diff origin/main` qu'aucune
+   ligne d'une autre session n'a été supprimée.
+9. Indiquer dans la Pull Request comment tester chez Quentin :
    `git pull`, puis `mvn clean javafx:run`, et quel écran ouvrir avec quel
    compte de démo.
 
