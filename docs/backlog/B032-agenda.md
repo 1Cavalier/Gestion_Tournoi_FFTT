@@ -4,7 +4,7 @@ titre: Agenda personnel, ajout automatique des tournois, export
 type: idee
 priorite: P1
 taille: M
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [model (agenda), core (agenda), persistence/DepotApplication]
 branche: tache/B032-agenda (2026-11-05)

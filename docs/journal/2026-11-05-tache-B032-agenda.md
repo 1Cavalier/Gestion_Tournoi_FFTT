@@ -69,8 +69,7 @@ Les écrans Accueil et Mes tournois, qui affichent cet agenda, viendront dans le
 
 ## Fusion
 
-À compléter par l'`integrateur` (résultat de `python3 outils-dev/verifier-fusion.py`
-après synchronisation avec `main`).
+Fusion de `origin/main` sans conflit ; `verifier-fusion.py` : OK. Tests après fusion : 788, 0 échec.
 
 ## Chiffres
 
