@@ -22,15 +22,15 @@ class OngletTournoisContexteTest {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
         List<ContexteApplication.TournoiFichier> tous = ctx.tousLesTournois();
-        assertEquals(6, tous.size());
+        assertEquals(7, tous.size(), "Brunoy, le jour J et 5 autres tournois publiés");
         assertTrue(tous.stream().allMatch(tf -> tf.tournoi().getStatut() == StatutTournoi.PUBLIE));
 
         // Joueur : inscrit au promotionnel de Rennes (réglé).
         List<ContexteApplication.TournoiFichier> joueur = ctx.mesTournoisJoueur(tous);
         assertEquals(1, joueur.size());
         assertTrue(joueur.get(0).tournoi().getNom().contains("Toussaint"));
-        // Club : le National B de Brunoy.
-        assertEquals(1, ctx.mesTournoisClub(tous).size());
+        // Club : le National B de Brunoy et le tournoi de démonstration du jour J.
+        assertEquals(2, ctx.mesTournoisClub(tous).size());
 
         // Brunoy rechargé depuis le disque : rempli par les joueurs fictifs.
         var brunoy = ctx.chargerTournoi(ctx.fichierTournoiDemo());

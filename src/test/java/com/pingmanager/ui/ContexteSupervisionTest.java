@@ -33,7 +33,7 @@ class ContexteSupervisionTest {
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, DonneesDemo.MDP_ULTRA_ADMIN).isPresent());
         assertTrue(ctx.estUltraAdmin());
         assertFalse(ctx.estOrganisateur(), "l'ultra admin n'est rattaché à aucun club");
-        assertEquals(7, ctx.fichiersTournois().size(), "Brunoy + 5 tournois publiés de démo + Paris 15");
+        assertEquals(8, ctx.fichiersTournois().size(), "Brunoy + jour J + 5 tournois publiés de démo + Paris 15");
 
         ctx.deconnecter();
         ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/");
@@ -64,6 +64,6 @@ class ContexteSupervisionTest {
         Tournoi nouveau = new Tournoi("Nouveau", "Brunoy", LocalDate.of(2027, 6, 5));
         ctx.creerBrouillon(nouveau);
         ContexteApplication ctx2 = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertEquals(7, ctx2.fichiersTournois().size());
+        assertEquals(8, ctx2.fichiersTournois().size(), "dont le tournoi de démonstration du jour J");
     }
 }
