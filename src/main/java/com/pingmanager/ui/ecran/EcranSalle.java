@@ -56,7 +56,7 @@ import java.util.Map;
  *   <li>« Terminer » sur une table ouvre la saisie du score (composants des
  *       poules et du tableau final) ; à l'enregistrement la table se libère et
  *       tout se met à jour ;</li>
- *   <li>« Annuler l'affectation » corrige une erreur d'envoi.</li>
+ *   <li>« Annuler » sur une table occupée corrige une erreur d'envoi.</li>
  * </ul>
  *
  * <p>Toute la logique est dans {@link ServiceSalle} (cœur) et
@@ -121,7 +121,7 @@ final class EcranSalle {
         });
         Label titre = Ui.titre("Salle et tables");
         Label nom = Ui.discret(tournoi.getNom() == null ? "" : tournoi.getNom());
-        VBox contenu = Ui.page(1200, new VBox(6, retour, titre, nom), tuiles(), barreActions());
+        VBox contenu = Ui.page(Double.MAX_VALUE, new VBox(6, retour, titre, nom), tuiles(), barreActions());
 
         if (messageSucces != null || messageErreur != null) {
             Label message = Ui.message();
@@ -183,6 +183,8 @@ final class EcranSalle {
         }
         FlowPane grille = new FlowPane(12, 12);
         grille.getStyleClass().add("salle-grille");
+        // Autant de colonnes que la largeur disponible le permet.
+        grille.prefWrapLengthProperty().bind(defilement.widthProperty().subtract(64));
         for (CarteTable c : bord.getTables()) {
             grille.getChildren().add(carteTable(c));
         }
@@ -195,9 +197,9 @@ final class EcranSalle {
         Label etat = Ui.pastille(PresentationSalle.etat(c), c.estLibre() ? Ui.ETAT_OK : Ui.ETAT_RECOMMANDE);
         VBox carte = new VBox(8, Ui.ligne(10, numero, Ui.espace(), etat));
         carte.getStyleClass().addAll("salle-table", c.estLibre() ? "salle-table-libre" : "salle-table-occupee");
-        carte.setPrefWidth(236);
-        carte.setMinWidth(236);
-        carte.setMaxWidth(236);
+        carte.setPrefWidth(220);
+        carte.setMinWidth(220);
+        carte.setMaxWidth(220);
 
         if (c.estLibre()) {
             carte.getChildren().add(Ui.aide("Glissez un match prêt ici."));
@@ -214,7 +216,8 @@ final class EcranSalle {
             accepterDepot(carte, c.numero());
         } else {
             MatchSalle m = c.match();
-            Label contexte = Ui.discret(PresentationSalle.contexte(m));
+            Label tableau = Ui.discret(m.tableau());
+            Label tour = Ui.discret(m.tour());
             Label a = joueur(PresentationSalle.nom(m.match().getJoueurA()));
             Label b = joueur(PresentationSalle.nom(m.match().getJoueurB()));
             Label duree = new Label();
@@ -231,11 +234,11 @@ final class EcranSalle {
                 enSaisie = m.match();
                 afficher();
             });
-            Button annuler = Ui.boutonLien("Annuler l'affectation");
+            Button annuler = Ui.boutonLien("Annuler");
             annuler.setTooltip(new Tooltip("Erreur d'envoi : la table redevient libre et le match revient dans "
                     + "les matchs prêts."));
             annuler.setOnAction(e -> annulerAffectation(m.match()));
-            carte.getChildren().addAll(contexte, a, b, duree, Ui.ligne(8, terminer, annuler));
+            carte.getChildren().addAll(new VBox(0, tableau, tour), a, b, duree, Ui.ligne(8, terminer, annuler));
         }
         return carte;
     }
