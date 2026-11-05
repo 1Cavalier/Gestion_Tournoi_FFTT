@@ -58,9 +58,13 @@ public final class PageAccueil {
         VBox contenu = Ui.page(1180, entete, grille(p.cartesPourTous()));
 
         if (p.sectionClubVisible()) {
-            Label titreClub = Ui.sousTitre(p.titreSectionClub());
-            VBox section = new VBox(16,
-                    new VBox(4, titreClub, Ui.discret(p.introSectionClub())),
+            Label titreClub = Ui.label(p.titreSectionClub(), "accueil-section-club-titre");
+            Label intro = Ui.label(p.introSectionClub(), "accueil-section-club-intro");
+            intro.setWrapText(true);
+            Node tuileClub = Ui.iconeTuile(Icones.GESTION, false);
+            tuileClub.getStyleClass().add("accueil-club-tuile");
+            VBox section = new VBox(18,
+                    Ui.ligne(12, tuileClub, new VBox(2, titreClub, intro)),
                     grille(p.cartesClub()),
                     Ui.aide(p.mentionAutresOutils()));
             section.getStyleClass().add("accueil-section-club");
@@ -110,10 +114,10 @@ public final class PageAccueil {
     }
 
     private VBox carte(PresentationAccueil.Carte c) {
+        Node tuile = Ui.iconeTuile(icone(c.destination()), c.aVenir());
         Node entete = c.aVenir()
-                ? Ui.ligne(10, Ui.iconeCadree(icone(c.destination()), "icone-raccourci"), Ui.titreCarte(c.titre()),
-                        Ui.espace(), Ui.pastille("Bientôt", StatutPastille.NEUTRE))
-                : Ui.ligne(10, Ui.iconeCadree(icone(c.destination()), "icone-raccourci"), Ui.titreCarte(c.titre()));
+                ? Ui.ligne(12, tuile, Ui.titreCarte(c.titre()), Ui.espace(), Ui.pastille("Bientôt", StatutPastille.NEUTRE))
+                : Ui.ligne(12, tuile, Ui.titreCarte(c.titre()));
 
         VBox corps = new VBox(10, Ui.texte(c.explication()));
         if (!c.champs().isEmpty()) {

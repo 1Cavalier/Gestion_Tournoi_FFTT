@@ -2663,9 +2663,51 @@
     -fx-min-height: 180px;
 }
 
-/* « Gestion de votre club » : bloc bien séparé, filet au-dessus. */
+/* Tuile d'icône des en-têtes de cartes : fond bleu doux, tracé bleu ;
+   grise pour une section « Bientôt ». (Composant commun Ui.iconeTuile.) */
+.icone-tuile {
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 10;
+}
+
+.icone-tuile .icone-tuile-trace {
+    -fx-fill: -primaire;
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+.icone-tuile.icone-tuile-neutre {
+    -fx-background-color: -neutre-doux;
+}
+
+.icone-tuile.icone-tuile-neutre .icone-tuile-trace {
+    -fx-fill: -neutre-texte;
+}
+
+/* « Gestion de votre club » : bandeau teinté bleu, bien distinct des cartes
+   personnelles ; les cartes blanches ressortent dessus. */
 .accueil-section-club {
-    -fx-padding: 24 0 0 0;
-    -fx-border-color: -bordure transparent transparent transparent;
-    -fx-border-width: 1 0 0 0;
+    -fx-background-color: -bordure, -primaire-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 16, 15;
+    -fx-padding: 24;
+}
+
+/* Tuile du titre de section : bleu plein, tracé clair. */
+.icone-tuile.accueil-club-tuile {
+    -fx-background-color: -primaire;
+}
+
+.accueil-section-club-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.accueil-section-club-intro {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13.5px;
+}
+
+.icone-tuile.accueil-club-tuile .icone-tuile-trace {
+    -fx-fill: -sur-primaire;
 }

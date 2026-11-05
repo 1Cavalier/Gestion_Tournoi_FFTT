@@ -39,6 +39,7 @@ public class Capture extends Application {
     static boolean importer;
     static boolean choix;
     static boolean v2;
+    static boolean accueil;
     static boolean suivi;
     static boolean jourj;
     Scene scene;
@@ -53,6 +54,7 @@ public class Capture extends Application {
         importer = java.util.Arrays.asList(a).contains("import");
         choix = java.util.Arrays.asList(a).contains("choix");
         v2 = java.util.Arrays.asList(a).contains("v2");
+        accueil = java.util.Arrays.asList(a).contains("accueil");
         suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
         launch(a);
@@ -107,6 +109,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (accueil) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesAccueil(coq);
             lancer(0);
             return;
         }
@@ -341,6 +350,29 @@ public class Capture extends Application {
             coq[0].afficher("supervision");
         }, "b11-supervision");
         etape(() -> cliquerN("Ouvrir", 2), "b12-supervision-ouvert");
+    }
+
+    /** Accueil (B028) : compte de club (Quentin) puis compte joueur sans accès club, 1440 px. */
+    void etapesAccueil(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-club");
+        etape(() -> defiler(1.0), "accueil-club-bas");
+        etape(() -> {
+            ctx.deconnecter();
+            com.pingmanager.model.FicheLicence f = com.pingmanager.ui.infra.DonneesDemo.JOUEURS_FICTIFS.get(0);
+            ctx.creerCompteEtConnecter("joueur.demo@exemple.fr", f.getNom(), f.getPrenom(), "Joueur123/");
+            ctx.lierLicence(f.getNumeroLicence());
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-joueur");
+        etape(() -> {
+            ctx.deconnecter();
+            ctx.creerCompteEtConnecter("sans.licence@exemple.fr", "DURAND", "Paul", "Joueur123/");
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-sans-licence");
     }
 
     /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
@@ -713,7 +745,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : (v2 ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

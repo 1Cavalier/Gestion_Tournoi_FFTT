@@ -29,5 +29,8 @@ Voir le cahier des charges v0.
 ## Passations
 
 - developpeur-interface (2026-11-05) : accueil refait (PageAccueil mince + PresentationAccueil testée, 9 tests). Cartes Profil, Tournois, Agenda (« Bientôt », 3 prochaines dates des tournois du joueur), Statistiques (« Bientôt ») ; section « Gestion de votre club » (gestion, historique, buvette, mention « autres ») seulement si le compte a un accès club. Coquille : entrée « Agenda » provisoire (PagePlaceholder) pour que la carte mène quelque part ; B032 la remplacera. Icones.AGENDA ajouté ; CSS en fin de theme.css (section B028). Captures clair/sombre non faites (pas d'affichage en session cloud).
+- designer-interface (2026-11-05) : charte v2 appliquée — composant commun `Ui.iconeTuile` (tuile d'icône 36 px bleu doux, grise si « Bientôt ») sur toutes les cartes ; section « Gestion de votre club » en bandeau bleu doux encadré avec titre 18 px et tuile bleu plein ; uniquement des variables de thème (section B028 de theme.css). Logique inchangée, 696 tests verts.
+- Captures avant/après clair et sombre (compte club, compte joueur licencié, compte sans licence) dans `docs/captures/B028/avant|apres/`, regardées ; harnais : `outils-dev/run.sh <dossier> accueil [sombre]`.
+- À voir : les textes des cartes « Bientôt » commencent aussi par « Bientôt : » (doublon avec la pastille, texte de PresentationAccueil testé, laissé tel quel) ; la carte Agenda de Quentin n'affiche aucune date (aucun tournoi où il est inscrit dans le harnais).
 
 ## Résultat
