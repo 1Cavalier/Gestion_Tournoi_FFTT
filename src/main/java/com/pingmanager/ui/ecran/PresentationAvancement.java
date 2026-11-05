@@ -90,6 +90,49 @@ final class PresentationAvancement {
         return res;
     }
 
+    /**
+     * Journée montrée à l'ouverture (B037 : « garder la vue du jour ») : celle
+     * d'aujourd'hui ; sinon la prochaine journée à venir ; sinon la dernière
+     * journée datée (tournoi passé). Les tableaux sans horaire ne sont montrés
+     * par défaut que s'il n'y a rien d'autre.
+     *
+     * @return l'indice dans {@code journees}, 0 si la liste est vide
+     */
+    static int indexJourParDefaut(List<Journee> journees, LocalDate aujourdhui) {
+        int derniereDatee = -1;
+        for (int i = 0; i < journees.size(); i++) {
+            LocalDate j = journees.get(i).jour();
+            if (j == null) {
+                continue;
+            }
+            if (!j.isBefore(aujourdhui)) {
+                return i; // aujourd'hui, ou la prochaine journée (ordre chronologique)
+            }
+            derniereDatee = i;
+        }
+        return Math.max(0, derniereDatee);
+    }
+
+    /** Indice borné à la liste (navigation « jour précédent / suivant »). */
+    static int borner(int index, List<Journee> journees) {
+        return Math.max(0, Math.min(index, journees.size() - 1));
+    }
+
+    /** Titre de la journée montrée : « Aujourd'hui · Samedi 14 novembre 2026 ». */
+    static String titreJour(Journee j, LocalDate aujourdhui) {
+        String jour = PresentationJourJ.jour(j.jour());
+        if (j.jour() == null) {
+            return jour;
+        }
+        if (j.jour().equals(aujourdhui)) {
+            return "Aujourd'hui · " + jour;
+        }
+        if (j.jour().equals(aujourdhui.plusDays(1))) {
+            return "Demain · " + jour;
+        }
+        return jour;
+    }
+
     /** Intertitre de journée, seulement si le tournoi s'étale sur plusieurs jours. */
     static boolean afficherJours(List<Journee> journees) {
         return journees.size() > 1;

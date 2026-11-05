@@ -1,9 +1,13 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.AnnonceRencontre;
+import com.pingmanager.core.NiveauPriorite;
 import com.pingmanager.core.ResultatPropositionSalle;
 import com.pingmanager.core.TableauDeBordSalle;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
+import com.pingmanager.model.ModeAnnonce;
+import com.pingmanager.model.Poule;
 import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.StatutTournoi;
@@ -11,9 +15,11 @@ import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.ResultatAffectationTable;
 
+import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -273,5 +279,224 @@ final class PresentationSalle {
     static Optional<Integer> premiereTableLibre(TableauDeBordSalle bord) {
         List<Integer> libres = bord.tablesLibres();
         return libres.isEmpty() ? Optional.empty() : Optional.of(libres.get(0));
+    }
+
+    // ==================================================================
+    // Jour J v2 (B037)
+    // ==================================================================
+
+    /** Classe de style d'un niveau de priorité : rouge, orange ou vert. */
+    static String classePriorite(NiveauPriorite n) {
+        if (n == NiveauPriorite.URGENT) {
+            return "priorite-urgent";
+        }
+        if (n == NiveauPriorite.IMPORTANT) {
+            return "priorite-important";
+        }
+        return "priorite-normal";
+    }
+
+    /** Pastille d'un niveau de priorité (charte v2) : erreur, attention, succès. */
+    static StatutPastille pastillePriorite(NiveauPriorite n) {
+        if (n == NiveauPriorite.URGENT) {
+            return StatutPastille.ERREUR;
+        }
+        if (n == NiveauPriorite.IMPORTANT) {
+            return StatutPastille.ATTENTION;
+        }
+        return StatutPastille.SUCCES;
+    }
+
+    /** Info-bulle de la couleur : « Urgent : attend depuis 25 min ». */
+    static String detailPriorite(TableauDeBordSalle.MatchSalle m) {
+        String motif = m.motifNiveau();
+        return m.niveau().getLibelle() + (motif.isEmpty() ? " : peut attendre" : " : " + motif);
+    }
+
+    /**
+     * Ligne de chiffres de l'écran principal (B037) : « 12 tables libres · 4 en
+     * cours · 1 match proposé · 3 joueurs en attente ».
+     */
+    static String resumeSalle(TableauDeBordSalle bord) {
+        if (bord.getNombreDeTables() == 0) {
+            return "Nombre de tables non renseigné";
+        }
+        int libres = bord.nombreTablesLibres();
+        int prets = bord.getPrets().size();
+        int attente = bord.getJoueursEnAttente().size();
+        return libres + (libres > 1 ? " tables libres" : " table libre")
+                + " · " + bord.nombreTablesOccupees() + " en cours"
+                + " · " + prets + (prets > 1 ? " matchs proposés" : " match proposé")
+                + " · " + attente + (attente > 1 ? " joueurs en attente" : " joueur en attente");
+    }
+
+    /** Chrono d'un joueur en attente : « 12 min », ou « pas commencé » s'il est inconnu. */
+    static String chrono(TableauDeBordSalle.JoueurEnAttente j) {
+        return j.attente() == null ? "pas commencé" : duree(j.attente());
+    }
+
+    /** Le chrono d'attente d'un joueur est-il long (rouge) ? Même seuil que les matchs. */
+    static boolean attenteLongue(TableauDeBordSalle.JoueurEnAttente j) {
+        return j.attente() != null
+                && j.attente().compareTo(com.pingmanager.core.ReglePrioriteSalle.ATTENTE_LONGUE) >= 0;
+    }
+
+    /**
+     * Motif court sous le nom d'un joueur en attente : « Peut jouer », « Attend
+     * Léa DURAND (table 4) », « Attend son adversaire ».
+     */
+    static String motifCourt(TableauDeBordSalle.JoueurEnAttente j) {
+        if (j.peutJouer()) {
+            return "Peut jouer : match prêt";
+        }
+        for (TableauDeBordSalle.Engagement e : j.engagements()) {
+            if (e.raison() == TableauDeBordSalle.RaisonAttente.ADVERSAIRE_EN_JEU) {
+                return "Attend " + nom(e.adversaire())
+                        + (e.tableAdversaire() == null ? "" : " (table " + e.tableAdversaire() + ")");
+            }
+        }
+        return "Attend son adversaire (tour précédent)";
+    }
+
+    /**
+     * Pourquoi un joueur ne joue pas, une phrase par match à jouer :
+     * « C – Toutes séries · Poule B · tour 2 : contre Léa DURAND, qui joue à la table 4. »
+     */
+    static List<String> pourquoi(TableauDeBordSalle.JoueurEnAttente j, TableauDeBordSalle bord) {
+        List<String> res = new ArrayList<>();
+        boolean tableLibre = bord.nombreTablesLibres() > 0;
+        for (TableauDeBordSalle.Engagement e : j.engagements()) {
+            String debut = contexte(e.match()) + " : ";
+            if (e.raison() == TableauDeBordSalle.RaisonAttente.ADVERSAIRE_EN_JEU) {
+                res.add(debut + "contre " + nom(e.adversaire()) + ", qui joue "
+                        + (e.tableAdversaire() == null ? "déjà" : "à la table " + e.tableAdversaire())
+                        + ". Un joueur ne peut pas être sur deux tables.");
+            } else if (e.raison() == TableauDeBordSalle.RaisonAttente.ADVERSAIRE_INCONNU) {
+                res.add(debut + "son adversaire n'est pas encore connu : le tour précédent n'est pas joué.");
+            } else if (tableLibre) {
+                res.add(debut + "contre " + nom(e.adversaire()) + ", match prêt : envoyez-le sur une table.");
+            } else {
+                res.add(debut + "contre " + nom(e.adversaire()) + ", match prêt : toutes les tables sont occupées.");
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Une ligne d'un groupe (poule ou tour) pour situer un joueur : les deux noms,
+     * lequel est surligné, et l'état du match (« Table 4 », « Joué », « À jouer »).
+     */
+    record LigneGroupe(String joueurA, String joueurB, boolean surligneA, boolean surligneB, String etat) {
+        boolean concerne() {
+            return surligneA || surligneB;
+        }
+    }
+
+    /** Lignes du groupe d'un engagement, le joueur surligné partout où il apparaît. */
+    static List<LigneGroupe> lignesGroupe(TableauDeBordSalle.Engagement e, Joueur joueur) {
+        List<LigneGroupe> res = new ArrayList<>();
+        String licence = joueur.getNumeroLicence();
+        for (Match m : e.matchsDuGroupe()) {
+            if (m.estBye()) {
+                continue;
+            }
+            boolean a = m.getJoueurA() != null && licence.equals(m.getJoueurA().getNumeroLicence());
+            boolean b = m.getJoueurB() != null && licence.equals(m.getJoueurB().getNumeroLicence());
+            res.add(new LigneGroupe(nom(m.getJoueurA()), nom(m.getJoueurB()), a, b, etatMatch(m)));
+        }
+        return res;
+    }
+
+    /** « Table 4 », « Joué », « À jouer ». */
+    static String etatMatch(Match m) {
+        if (m.getStatut() == StatutMatch.EN_COURS) {
+            return m.getNumeroTable() == null ? "En cours" : "Table " + m.getNumeroTable();
+        }
+        if (m.getStatut() == StatutMatch.TERMINE) {
+            return "Joué";
+        }
+        return "À jouer";
+    }
+
+    /** Un match qu'on peut choisir dans « Lancer un match », et pourquoi il est refusé (vide sinon). */
+    record Lancable(TableauDeBordSalle.MatchSalle match, String refus) {
+        boolean possible() {
+            return refus.isEmpty();
+        }
+    }
+
+    /**
+     * Matchs proposés au bouton « Lancer un match » : tous les matchs à jouer dont
+     * les deux joueurs sont connus (prêts puis bloqués, avec leur motif), filtrés
+     * par nom de joueur ou de tableau (sans accents ni majuscules).
+     */
+    static List<Lancable> lancables(TableauDeBordSalle bord, String recherche) {
+        String filtre = normaliser(recherche);
+        List<Lancable> res = new ArrayList<>();
+        for (TableauDeBordSalle.MatchSalle m : bord.getPrets()) {
+            if (correspond(m, filtre)) {
+                res.add(new Lancable(m, ""));
+            }
+        }
+        for (TableauDeBordSalle.MatchBloque b : bord.getBloques()) {
+            if (correspond(b.match(), filtre)) {
+                res.add(new Lancable(b.match(), motifBlocage(b)));
+            }
+        }
+        return res;
+    }
+
+    private static boolean correspond(TableauDeBordSalle.MatchSalle m, String filtre) {
+        if (filtre.isEmpty()) {
+            return true;
+        }
+        return normaliser(joueurs(m.match()) + " " + contexte(m)).contains(filtre);
+    }
+
+    static String normaliser(String s) {
+        if (s == null) {
+            return "";
+        }
+        return Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT).trim();
+    }
+
+    /**
+     * Libellé du gros bouton d'une table : « Terminer la poule » quand ce match
+     * est la dernière partie à jouer de sa poule, sinon « Terminer la rencontre ».
+     */
+    static String libelleTerminer(Tournoi tournoi, Match m) {
+        for (Tableau t : tournoi.getTableaux()) {
+            for (Poule p : t.getPoules()) {
+                if (p.getMatchs().contains(m)) {
+                    boolean derniere = p.getMatchs().stream()
+                            .allMatch(x -> x == m || x.estBye() || x.getStatut() == StatutMatch.TERMINE);
+                    return derniere ? "Terminer la poule" : "Terminer la rencontre";
+                }
+            }
+        }
+        return "Terminer la rencontre";
+    }
+
+    /** Phrase de la confirmation d'« Annuler » sur une table. */
+    static String confirmationAnnulation(int table) {
+        return "Annuler ce lancement ? La table " + table + " redevient libre et le match revient dans les "
+                + "matchs proposés. Le score n'est pas touché.";
+    }
+
+    /** Libellé du choix d'annonce mémorisé : « Annonce : SMS », ou « Annonce : à demander ». */
+    static String libelleAnnonce(ModeAnnonce mode) {
+        return "Annonce : " + (mode == null ? "à demander" : mode.getLibelle());
+    }
+
+    /**
+     * Annonce affichée à l'écran tant que les envois réels n'existent pas :
+     * « SMS et appel vocal (envoi automatique à venir) · Table 4 : … ».
+     */
+    static String texteAnnonce(AnnonceRencontre a) {
+        String mode = a.aEnvoyer()
+                ? a.mode().getLibelle() + " (envoi automatique à venir : annoncez au micro)"
+                : "À annoncer au micro";
+        return mode + " · " + a.texte();
     }
 }
