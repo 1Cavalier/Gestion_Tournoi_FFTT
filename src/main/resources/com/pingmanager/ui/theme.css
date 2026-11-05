@@ -1744,3 +1744,99 @@
     -fx-max-width: 70px;
     -fx-alignment: center;
 }
+
+/* =====================================================================
+   Jour J : salle et tables (EcranSalle)
+   (tokens uniquement : valables en thème clair et sombre)
+   ===================================================================== */
+
+.scroll-pane.salle-cote,
+.scroll-pane.salle-cote > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Carte d'une table : le numéro se lit de loin. */
+.salle-table {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+    -fx-padding: 12 14 14 14;
+}
+
+.salle-table.salle-table-occupee {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 5;
+}
+
+.salle-table.salle-table-libre {
+    -fx-background-color: -bordure, -surface-2;
+}
+
+/* Table libre survolée pendant un glisser-déposer : prête à recevoir le match. */
+.salle-table.salle-table-survol {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.salle-numero {
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.salle-table-libre .salle-numero {
+    -fx-text-fill: -texte-doux;
+}
+
+.salle-joueur {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.salle-duree {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.salle-duree.salle-duree-longue {
+    -fx-text-fill: -erreur;
+    -fx-font-weight: bold;
+}
+
+/* Colonne des matchs prêts et bloqués. */
+.salle-pret {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 6 10 6;
+}
+
+.salle-pret:hover {
+    -fx-background-color: -surface-2;
+}
+
+.salle-pret.salle-bloque,
+.salle-pret.salle-bloque:hover {
+    -fx-background-color: transparent;
+}
+
+.salle-pret.salle-bloque .texte {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Poules : partie en cours sur une table. */
+.ligne-match.ligne-match-en-cours {
+    -fx-background-color: -primaire-doux;
+}
+
+/* Tableau final : case d'un match en cours sur une table. */
+.pf-case.pf-en-cours {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.badge.pf-table {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+}

@@ -273,7 +273,10 @@ final class EcranPoulesTableau {
         Label nom = Ui.texte(affiche);
         Joueur vainqueur = m.getStatut() == StatutMatch.TERMINE ? m.getVainqueur() : null;
         Label resultat = Ui.gras(PresentationJourJ.resultat(m));
-        VBox centre = new VBox(2, nom);
+        // Match en cours dans la salle : son numéro de table se lit de loin.
+        String table = PresentationSalle.libelleTable(m);
+        VBox centre = new VBox(2, table.isEmpty() ? nom
+                : Ui.ligne(8, nom, Ui.pastille(table + " · en cours", Ui.ETAT_RECOMMANDE)));
         if (!resultat.getText().isEmpty()) {
             centre.getChildren().add(resultat);
             if (vainqueur != null && !m.estBye()) {
@@ -298,6 +301,8 @@ final class EcranPoulesTableau {
         bloc.getStyleClass().add("ligne-match");
         if (m.getStatut() == StatutMatch.TERMINE) {
             bloc.getStyleClass().add("ligne-match-jouee");
+        } else if (!table.isEmpty()) {
+            bloc.getStyleClass().add("ligne-match-en-cours");
         }
         if (enEdition == m && modifiable()) {
             bloc.getChildren().add(editeur(m));

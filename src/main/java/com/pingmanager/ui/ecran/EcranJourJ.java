@@ -1,5 +1,8 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.Horloge;
+import com.pingmanager.core.ServiceSalle;
+import com.pingmanager.core.TableauDeBordSalle;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
@@ -29,7 +32,8 @@ import java.util.Map;
  *   <li>ouvrir le pointage (tableau par tableau) ;</li>
  *   <li>pointer, clôturer, puis lancer le tirage au sort
  *       ({@link EcranPointageTableau}) ;</li>
- *   <li>suivre les poules et saisir les scores ({@link EcranPoulesTableau}).</li>
+ *   <li>suivre les poules et saisir les scores ({@link EcranPoulesTableau}) ;</li>
+ *   <li>affecter les matchs aux tables de la salle ({@link EcranSalle}).</li>
  * </ul>
  *
  * <p>Le tournoi est relu depuis son fichier à chaque retour sur la liste ; chaque
@@ -122,6 +126,9 @@ final class EcranJourJ {
         if (tournoi.getStatut() == StatutTournoi.ANNULE) {
             contenu.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : le pointage et les tirages sont fermés."));
         }
+        if (PresentationSalle.salleOuverte(tournoi)) {
+            contenu.getChildren().add(carteSalle());
+        }
         if (tournoi.getTableaux().isEmpty()) {
             contenu.getChildren().add(Ui.carte("Tableaux",
                     Ui.discret("Aucun tableau dans ce tournoi. Créez-les dans « Tableaux et inscriptions ».")));
@@ -137,6 +144,20 @@ final class EcranJourJ {
             contenu.getChildren().add(new VBox(4, intertitre, Ui.carteNue(lignes)));
         }
         racine.setCenter(Ui.defilant(contenu));
+    }
+
+    /**
+     * Accès à la salle (affectation des tables), dès qu'un tableau est lancé :
+     * résumé en direct et bouton d'ouverture.
+     */
+    private Node carteSalle() {
+        TableauDeBordSalle bord = new ServiceSalle(Horloge.systeme()).tableauDeBord(tournoi);
+        Button ouvrir = Ui.boutonPrimaire("Ouvrir la salle");
+        ouvrir.setOnAction(e -> afficherSalle());
+        return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Salle et tables"), ouvrir),
+                Ui.discret(PresentationSalle.resume(bord)),
+                Ui.aide("Grille des tables, matchs prêts de tous les tableaux par ordre de priorité, envoi sur une "
+                        + "table (bouton « Proposer » ou glisser-déposer) et saisie du score à la fin du match."));
     }
 
     /** Chiffres clés : tableaux en pointage, lancés, terminés. */
@@ -233,6 +254,10 @@ final class EcranJourJ {
     private void afficherPointage(Tableau t) {
         racine.setCenter(new EcranPointageTableau(tournoi, t, this::enregistrer, this::afficherListe,
                 tab -> afficherPoules(tab, true)).build());
+    }
+
+    private void afficherSalle() {
+        racine.setCenter(new EcranSalle(tournoi, this::enregistrer, this::afficherListe, Horloge.systeme()).build());
     }
 
     private void afficherPoules(Tableau t, boolean apresTirage) {

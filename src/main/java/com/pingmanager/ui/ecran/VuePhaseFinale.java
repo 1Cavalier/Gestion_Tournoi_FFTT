@@ -301,8 +301,19 @@ public final class VuePhaseFinale {
     }
 
     private Node caseMatch(Match m) {
-        VBox v = new VBox(2, ligneJoueur(m, true), ligneJoueur(m, false));
+        HBox ligneA = ligneJoueur(m, true);
+        // Match en cours dans la salle : numéro de table sur la case.
+        String table = PresentationSalle.libelleTable(m);
+        if (!table.isEmpty()) {
+            Label badge = Ui.badge(table);
+            badge.getStyleClass().add("pf-table");
+            ligneA.getChildren().add(1, badge);
+        }
+        VBox v = new VBox(2, ligneA, ligneJoueur(m, false));
         v.getStyleClass().add("pf-case");
+        if (!table.isEmpty()) {
+            v.getStyleClass().add("pf-en-cours");
+        }
         v.setAlignment(Pos.CENTER_LEFT);
         if (m.getStatut() == StatutMatch.TERMINE) {
             v.getStyleClass().add("pf-termine");
@@ -317,6 +328,7 @@ public final class VuePhaseFinale {
         dimensionner(v);
 
         StringBuilder bulle = new StringBuilder(PresentationPhaseFinale.etatMatch(m))
+                .append(table.isEmpty() ? "" : " · " + table)
                 .append(" · ").append(PresentationPhaseFinale.formatMatch(m));
         String detail = PresentationPhaseFinale.detailScore(m);
         if (!detail.isEmpty()) {
@@ -334,7 +346,7 @@ public final class VuePhaseFinale {
         return v;
     }
 
-    private static Node ligneJoueur(Match m, boolean joueurA) {
+    private static HBox ligneJoueur(Match m, boolean joueurA) {
         Joueur j = joueurA ? m.getJoueurA() : m.getJoueurB();
         Label nom = new Label(PresentationPhaseFinale.nomJoueur(j));
         nom.getStyleClass().add("pf-nom");
