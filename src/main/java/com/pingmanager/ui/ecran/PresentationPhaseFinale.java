@@ -420,13 +420,36 @@ final class PresentationPhaseFinale {
         }
     }
 
-    /** Texte affiché sous le tableau construit. */
+    /** Texte affiché sous le tableau construit (graine conservée avec le tableau, IX.109). */
     static String texteGraine(Long graine) {
         if (graine == null) {
-            return "Graine du tirage : non conservée (le tableau a été tiré lors d'une session précédente).";
+            return "Graine du tirage : non conservée (tableau tiré avec une version qui ne l'enregistrait pas).";
         }
         return "Graine du tirage : " + graine
                 + ". Notez-la : la même graine refait exactement le même tirage (vérification du tirage public).";
+    }
+
+    // ------------------------------------------------------------------
+    // Petite finale (option du tableau)
+    // ------------------------------------------------------------------
+
+    /** Rappel affiché avant le tirage : la 3e place se jouera-t-elle ? */
+    static String textePetiteFinaleAvantTirage(boolean prevue) {
+        return prevue
+                ? "Petite finale prévue : les deux perdants des demi-finales joueront la 3e place."
+                : "Pas de petite finale dans ce tableau : les deux perdants des demi-finales seront 3es ex aequo.";
+    }
+
+    /**
+     * Note affichée sur le tableau construit quand la petite finale était prévue
+     * mais n'a pas pu être ajoutée (moins de deux demi-finales) ; sinon vide.
+     */
+    static String notePetiteFinale(boolean prevue, TableauElimination elimination) {
+        if (prevue && matchPetiteFinale(elimination) == null) {
+            return "Petite finale prévue, mais le tableau final n'a pas deux demi-finales : "
+                    + "pas de match pour la 3e place.";
+        }
+        return "";
     }
 
     // ------------------------------------------------------------------
