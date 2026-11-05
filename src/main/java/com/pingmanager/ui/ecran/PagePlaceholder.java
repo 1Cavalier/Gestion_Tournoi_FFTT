@@ -13,9 +13,9 @@ public final class PagePlaceholder {
     }
 
     public static Parent page(String titre, String message) {
-        VBox boite = Ui.page(620,
-                Ui.ligne(12, Ui.titre(titre), Ui.badge("À venir")),
-                Ui.texte(message));
+        VBox boite = Ui.page(720,
+                Ui.ligne(12, Ui.titre(titre), Ui.pastille("Bientôt", StatutPastille.INFO)),
+                Ui.carteNue(Ui.etatVide(message, null)));
         return Ui.defilant(boite);
     }
 }
