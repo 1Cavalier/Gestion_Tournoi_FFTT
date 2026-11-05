@@ -34,4 +34,8 @@ Voir le cahier des charges v0.
 - Pour la suite : aucun écran n'appelle encore `desinscrire` ni `ExportIcs` (tâches Accueil / Mes tournois). Le modèle `Tournoi` n'a pas d'identifiant stable : clé d'agenda = n° d'homologation, sinon nom|1er jour|club (renommer un tournoi non homologué crée une nouvelle entrée).
 - Questions pour Quentin : (1) un tournoi en **liste d'attente seulement** reste-t-il dans l'agenda ? (choix prudent : oui, avec la mention « Liste d'attente ») ; (2) jusqu'à quand un joueur peut-il se **désinscrire en ligne** (choix : tant que le tableau est en phase d'inscription, sans date limite ni remboursement) ? (3) une date de tournoi peut-elle être retirée à la main de l'agenda (choix : non, elle suit l'inscription) ?
 
+**verificateur-modele (2026-11-05)**
+- Fait : 12 tests dans `AgendaVerificationTest` (désinscription partielle/complète, attente, repêchage, doublons, .ics : pliage 2/3/4 octets, échappement, DTEND exclusif, DTSTAMP UTC) + 2 dans `AgendaRoundTripLimitesTest`. Total 735, 1 échec volontaire.
+- DÉFAUT BLOQUANT : `ServiceInscriptionEnLigne.desinscrire` avec un tableau en double dans la collection (`List.of(a, a)`) : attendu désinscription valide (ou refus propre), obtenu `NullPointerException: joueur` (second `tab.desinscrire(present(...))` après retrait). Test `desinscription_avec_tableau_en_double_ne_plante_pas` ; correction : dédoublonner `tableaux` (LinkedHashSet) avant la validation.
+
 ## Résultat
