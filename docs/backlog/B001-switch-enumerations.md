@@ -4,10 +4,10 @@ titre: Remplacer les switch sur énumération
 type: bug
 priorite: P1
 taille: S
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [model/ConfigurationTableau, model/RegleTableauxParJour, ordonnancement/Ordonnanceur, persistence/json/JsonWriter, persistence/TournoiMapper]
-branche:
+branche: tache/B001-switch-enumerations (prise le 2026-11-05)
 pr:
 ---
 
