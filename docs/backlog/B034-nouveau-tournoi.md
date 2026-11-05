@@ -30,5 +30,8 @@ Voir le cahier des charges v0.
 
 - developpeur-interface : formulaire extrait de `PageGestionTournoi` dans `FormulaireNouveauTournoi` (vue) + `PresentationNouveauTournoi` (texte explicatif, vérification, résumé de période, 12 tests) ; cartes v2 « Le tournoi » / « Dates », `DatePicker` à icône calendrier (classe `selecteur-calendrier`, jours avant le début grisés pour la fin), `Ui.champEtiquete(…, DatePicker, …)`.
   Page suivante inchangée (`afficherCompletion`). Captures clair/sombre regardées : `docs/captures/B034/`. Reste au designer : hauteur du sélecteur de date (~2 px de moins que les champs texte), règles CSS en fin de `theme.css` (section B034).
+- designer-interface : charte v2 vérifiée clair/sombre (aucune couleur en dur, rien dans le Java) ; sélecteur de date aligné sur les champs texte (34 px, marge 8/12, règle `.selecteur-calendrier > .text-field` dans la section B034).
+  Captures `docs/captures/B034/design/avant|apres/nouveau-tournoi-{clair,sombre}.png`, regardées et mesurées.
+  Tracé de l'icône calendrier laissé recopié dans `theme.css` (le CSS ne peut pas lire `Icones.GESTION`) ; popup du calendrier et état focus non capturés.
 
 ## Résultat

@@ -2629,6 +2629,12 @@
 
 /* Sélecteur de date : la flèche devient une icône calendrier (même tracé
    que l'icône « Gestion des tournois » de la barre latérale). */
+/* Champ interne : même marge que les champs texte (8 haut/bas, 12 à gauche)
+   pour que le sélecteur ait exactement leur hauteur et leur alignement. */
+.date-picker.selecteur-calendrier > .text-field {
+    -fx-padding: 8 4 8 12;
+}
+
 .date-picker.selecteur-calendrier > .arrow-button {
     -fx-cursor: hand;
     -fx-padding: 0 12 0 8;
