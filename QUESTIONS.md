@@ -88,7 +88,9 @@ Format d'une entrée :
   tableau, à afficher dans le règlement).
 - Choix provisoire de l'agent : A (affiché « 3e ex aequo », avec une note).
   Si une petite finale existe, son vainqueur est seul 3e et son perdant 4e.
-- Réponse de Quentin :
+- Réponse de Quentin (5 novembre) : **prévoir la petite finale** → option C,
+  réglable par tableau. Sans petite finale, garder A (3es ex aequo) en
+  attendant une décision contraire.
 
 ### 2026-11-05 — Graine du tirage du tableau final non enregistrée
 - Contexte : `ServicePhaseFinale.construire` renvoie la graine du second
