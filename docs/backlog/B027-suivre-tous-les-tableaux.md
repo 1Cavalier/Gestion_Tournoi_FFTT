@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [ui/ecran/FicheTournoi, ui/ecran/PageTournois, ui/ecran/MesTournois, nouvel écran ui/ecran (suivi public), core (vue publique en lecture)]
 branche: tache/B027-suivre-tableaux (prise le 2026-11-05)
-pr: PR_NUM
+pr: 24
 ---
 
 ## Ce qu'il faut faire
@@ -67,3 +67,5 @@ même logique de présentation.
 - Documentaliste (5 nov.) : journal `docs/journal/2026-11-05-tache-B027-suivre-tableaux.md` ; questions 1 (bascule hors jour J) et 2 (« Inscriptions ouvertes » affiché pendant le tournoi) à trancher par Quentin.
 
 ## Résultat
+
+Fait, PR #24 : suivi en lecture seule de tous les tableaux (voir journal). 675 tests, 0 échec.
