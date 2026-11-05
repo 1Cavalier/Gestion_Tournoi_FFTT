@@ -4,7 +4,7 @@ titre: Rendu graphique v2 : onglet Tournois et inscriptions
 type: charte
 priorite: P2
 taille: M
-statut: a-faire
+statut: remplacee
 depend-de: []
 fichiers: [ui/ecran/PageTournois, ui/ecran/FicheTournoi, ui/ecran/AssistantInscription, ui/ecran/MesTournois, ui/ecran/VueInscriptionsClub, ui/ecran/BlocsInscriptions, ui/ecran/EcranImportJoueurs, theme.css]
 branche:
@@ -21,6 +21,8 @@ Rendu v2 de l'onglet Tournois (liste, filtres, carte, fiche), de l'assistant d'i
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
+
+**Remplacée** le 5 novembre (21 h) par B030 (carte des tournois) et B031 (mes tournois), d'après le cahier des charges v0. La vue Inscriptions du club et l'import passeront au rendu v2 avec B014.
 
 Aucune pour l'instant.
 

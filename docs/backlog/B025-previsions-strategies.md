@@ -28,6 +28,8 @@ pr:
 
 ## Contraintes / décisions de Quentin
 
+Précisions du cahier des charges v0 (section 6), **très important** : le club choisit **une stratégie principale**, chacune **expliquée en clair** : (1) avancer au maximum les tableaux commencés tôt pour libérer de la place ; (2) tout faire avancer petit à petit ; (3) faire attendre le moins possible les joueurs, quitte à ralentir l'avancement général. Le choix se fait dans la deuxième version de l'écran du tournoi (B035) et règle les couleurs de priorité des matchs proposés (B037).
+
 Aucune pour l'instant.
 
 ## Passations

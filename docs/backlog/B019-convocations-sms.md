@@ -30,6 +30,8 @@ Le club peut prévenir par **message écrit (SMS, jamais d'appel)** :
 
 ## Contraintes / décisions de Quentin
 
+Le choix « rien / SMS / appel vocal / les deux » au lancement d'un match est posé par B037 ; cette tâche branche l'option « SMS » (message seulement, jamais d'appel).
+
 Aucune pour l'instant.
 
 ## Passations

@@ -18,6 +18,7 @@ jamais le même fichier, donc pas de conflit.
 | `bloquee` | attend une décision ou une autre tâche (raison indiquée) |
 | `a-relire` | Pull Request ouverte, attend Quentin (raison indiquée) |
 | `fait` | fusionnée (numéro de PR indiqué) |
+| `remplacee` | remplacée par d'autres tâches (indiquées) |
 
 ## Types et chaîne d'agents
 

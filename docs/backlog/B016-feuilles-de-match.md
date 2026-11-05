@@ -27,6 +27,8 @@ Couleur du tableau reprise si B015 est faite.
 
 ## Contraintes / décisions de Quentin
 
+Format provisoire (cahier des charges v0, section 9) : **feuille de match** et **feuille de rencontre** ; nom, prénom, club, points de chaque joueur face à son adversaire ; tableau 3 × 5 : manches 1 à 5 en en-tête, autres cases vides. Le format officiel sera fourni plus tard par Quentin.
+
 Aucune pour l'instant.
 
 ## Passations

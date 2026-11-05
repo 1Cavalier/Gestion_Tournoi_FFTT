@@ -29,6 +29,8 @@ Pour les noms mal prononcés par la synthèse vocale :
 
 ## Contraintes / décisions de Quentin
 
+La partie « Appel micro : prononciation phonétique » du profil est mise en place par B029 ; cette tâche fournit la saisie, le registre et l'écoute.
+
 Aucune pour l'instant.
 
 ## Passations

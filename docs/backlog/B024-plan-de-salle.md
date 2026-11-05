@@ -5,7 +5,7 @@ type: idee
 priorite: P2
 taille: L
 statut: a-faire
-depend-de: [B011]
+depend-de: [B011, B035]
 fichiers: [model (salle, plan), ordonnancement/Ordonnanceur, core/ServiceSalle, persistence, ui/ecran/EcranSalle (nouvel éditeur de plan)]
 branche:
 pr:
@@ -29,6 +29,8 @@ Le club organise l'espace comme il veut :
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
+
+Précisions du cahier des charges v0 (section 6) : plan sur une **grille** (table = 2 × 2 cases, allée = 1 × 1), plusieurs salles, **repères** (table d'arbitrage, entrée / sortie, WC…), **mini-carte** pour plusieurs salles ou étages. Accessible depuis la deuxième version de l'écran du tournoi (après homologation, B035) ; affiché dans l'onglet « Salle » du jour J (B037).
 
 Aucune pour l'instant.
 
