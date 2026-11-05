@@ -4,10 +4,10 @@ titre: Saisie du score en grille et cartons
 type: jour-j
 priorite: P1
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: [B037]
 fichiers: [ui/ecran/EditeurScorePhaseFinale, ui/ecran (saisie des poules), core/GestionCartonsMatch]
-branche:
+branche: tache/B038-saisie-score-grille (prise le 2026-11-05)
 pr:
 ---
 
