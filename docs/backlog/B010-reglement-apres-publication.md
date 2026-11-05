@@ -4,11 +4,11 @@ titre: Règlement en lecture seule après publication
 type: idee
 priorite: P1
 taille: S
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/EcranComplementaire, ui/ecran/EcranCompletion, core/ServiceCycleTournoi]
 branche: tache/B010-reglement-apres-publication (prise le 2026-11-05)
-pr:
+pr: 19
 ---
 
 ## Ce qu'il faut faire
