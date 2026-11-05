@@ -4,6 +4,7 @@ import com.pingmanager.core.RegistreDisciplinaire;
 import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.Carton;
 import com.pingmanager.model.CouleurCarton;
+import com.pingmanager.model.ModeAnnonce;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.EchelonHomologation;
 import com.pingmanager.model.NiveauTournoi;
@@ -185,6 +186,10 @@ public final class TournoiMapper {
         t.getLotsTables().forEach(l -> lots.add(ConfigMapper.ecrireLotTables(l)));
         o.set("lotsTables", lots);
         o.set("tablesEchauffement", t.getTablesEchauffement());
+        // Jour J (B037) : annonce des rencontres mémorisée ; absent des anciens fichiers.
+        if (t.getModeAnnonce() != null) {
+            o.set("modeAnnonce", ecrireEnum(t.getModeAnnonce()));
+        }
 
         // Tableaux.
         Json tableaux = Json.tableau();
@@ -498,6 +503,19 @@ public final class TournoiMapper {
         return new DocumentCharge(tournoi, discipline);
     }
 
+    /** Mode d'annonce relu ; absent, nul, non textuel ou inconnu (fichier plus récent) : demander à chaque lancement. */
+    private static ModeAnnonce lireModeAnnonce(Json j) {
+        if (j == null || j.getType() != Json.Type.CHAINE) {
+            return null;
+        }
+        for (ModeAnnonce m : ModeAnnonce.values()) {
+            if (m.name().equals(j.asString())) {
+                return m;
+            }
+        }
+        return null;
+    }
+
     private static Tournoi lireTournoi(Json o, ContexteSerialisation ctx) {
         List<LocalDate> jours = new ArrayList<>();
         for (Json j : o.get("jours").elements()) {
@@ -565,6 +583,7 @@ public final class TournoiMapper {
             }
         }
         t.setTablesEchauffement(Math.max(0, o.getInt("tablesEchauffement", 0)));
+        t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
             for (Json l : o.get("lotsTables").elements()) {

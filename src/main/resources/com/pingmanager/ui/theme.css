@@ -2623,6 +2623,108 @@
     -fx-font-size: 12px;
 }
 
+/* ==================================================================
+   Jour J v2 (B037) : priorités en couleur, joueurs en attente et
+   « pourquoi », gros bouton « Terminer », « Annuler » rouge, annonce.
+   Tokens uniquement : valables en thème clair et sombre.
+   ================================================================== */
+
+/* Match proposé : filet de couleur à gauche selon la priorité. */
+.salle-pret.priorite-urgent,
+.salle-pret.priorite-important,
+.salle-pret.priorite-normal {
+    -fx-border-width: 1 0 0 5;
+    -fx-padding: 10 6 10 10;
+}
+
+.salle-pret.priorite-urgent {
+    -fx-border-color: -bordure transparent transparent -erreur;
+}
+
+.salle-pret.priorite-important {
+    -fx-border-color: -bordure transparent transparent -attention;
+}
+
+.salle-pret.priorite-normal {
+    -fx-border-color: -bordure transparent transparent -succes;
+}
+
+/* Joueurs en attente : chrono lisible de loin, rouge au-delà de 20 min. */
+.jourj-joueur-attente {
+    -fx-alignment: center-left;
+}
+
+.jourj-chrono {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.jourj-chrono.jourj-chrono-long {
+    -fx-text-fill: -erreur;
+}
+
+/* « Pourquoi » : poule ou tour du joueur, son nom surligné. */
+.jourj-pourquoi {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 0 4 0;
+}
+
+.jourj-groupe {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
+}
+
+.jourj-groupe-titre {
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4 0;
+}
+
+.jourj-groupe-ligne {
+    -fx-padding: 2 0 2 0;
+}
+
+.label.jourj-surligne {
+    -fx-background-color: -attention;
+    -fx-text-fill: -sur-attention;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 0 4 0 4;
+}
+
+/* Table occupée : gros bouton « Terminer la rencontre / la poule ». */
+.button.bouton-primaire.jourj-terminer {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
+}
+
+.button.bouton-lien.jourj-annuler {
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+}
+
+.button.bouton-secondaire.jourj-danger {
+    -fx-text-fill: -erreur;
+}
+
+/* Annonce de la rencontre, affichée à l'écran (lue au micro). */
+.jourj-annonce {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 18;
+}
+
+.label.jourj-annonce-texte {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
 /* =====================================================================
    Nouveau tournoi (B034) : texte explicatif, cartes v2, icône calendrier
    ===================================================================== */
