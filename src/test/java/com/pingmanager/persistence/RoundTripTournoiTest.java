@@ -346,4 +346,45 @@ class RoundTripTournoiTest {
         assertEquals(StatutTableau.PHASE_FINALE, relu.getStatut());
         assertEquals(Long.valueOf(1L), relu.getGrainePoules());
     }
+
+    /** Jour J (B037) : la façon d'annoncer les rencontres est mémorisée avec le tournoi. */
+    @Test
+    void mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("mode_annonce", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        assertFalse(Files.readString(fichier).contains("modeAnnonce"), "rien d'écrit sans choix mémorisé");
+        assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
+
+        original.setModeAnnonce(com.pingmanager.model.ModeAnnonce.SMS_ET_APPEL);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+        assertTrue(json.contains("\"modeAnnonce\""));
+        assertEquals(com.pingmanager.model.ModeAnnonce.SMS_ET_APPEL,
+                DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
+
+        // Valeur inconnue (fichier d'une version plus récente) : on redemandera.
+        Files.writeString(fichier, json.replace("\"SMS_ET_APPEL\"", "\"PIGEON_VOYAGEUR\""));
+        assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
+    }
+
+    /** Jour J (B037) : chaque mode survit, et une valeur illisible redemande au lieu de planter. */
+    @Test
+    void mode_d_annonce_tous_les_modes_et_valeurs_degenerees() throws Exception {
+        Path fichier = Files.createTempFile("mode_annonce_limites", DepotTournoi.EXTENSION);
+        for (com.pingmanager.model.ModeAnnonce mode : com.pingmanager.model.ModeAnnonce.values()) {
+            Tournoi t = construireTournoiComplet(null);
+            t.setModeAnnonce(mode);
+            DepotTournoi.sauvegarder(t, fichier);
+            assertEquals(mode, DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
+        }
+        Tournoi t = construireTournoiComplet(null);
+        t.setModeAnnonce(com.pingmanager.model.ModeAnnonce.SMS);
+        DepotTournoi.sauvegarder(t, fichier);
+        String json = Files.readString(fichier);
+        for (String valeur : new String[] {"null", "\"\"", "\"sms\"", "3", "true", "{}", "[]"}) {
+            Files.writeString(fichier, json.replace("\"SMS\"", valeur));
+            assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce(), "valeur " + valeur);
+        }
+    }
 }

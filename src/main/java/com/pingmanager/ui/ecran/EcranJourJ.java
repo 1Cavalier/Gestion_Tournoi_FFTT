@@ -47,6 +47,8 @@ final class EcranJourJ {
     private final Runnable onRetour;
     private final String libelleRetour;
     private Tournoi tournoi;
+    /** Journée montrée dans le bandeau (indice), ou null : la journée du jour. */
+    private Integer jourAffiche;
 
     private final BorderPane racine = new BorderPane();
 
@@ -119,8 +121,25 @@ final class EcranJourJ {
     private void afficherListe() {
         tournoi = contexte.chargerTournoi(fichier);
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
-                this::bandeauTableaux, Horloge.systeme());
+                this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau);
         racine.setCenter(principal.build());
+    }
+
+    /** Ouvre les poules ou l'arbre d'un tableau désigné par son nom (depuis « pourquoi »). */
+    private void ouvrirTableau(String nom) {
+        for (PresentationAvancement.Journee j : PresentationAvancement.journees(tournoi)) {
+            for (PresentationAvancement.Ligne l : j.lignes()) {
+                if (l.tableau().getNom().equals(nom)) {
+                    if (l.vue() == PresentationAvancement.Detail.POULES) {
+                        afficherPoules(l.tableau(), false);
+                    } else {
+                        afficherTableauFinal(l.tableau());
+                    }
+                    return;
+                }
+            }
+        }
+        afficherListe();
     }
 
     /**
@@ -136,24 +155,46 @@ final class EcranJourJ {
         }
         List<PresentationAvancement.Journee> journees = PresentationAvancement.journees(tournoi);
         boolean jours = PresentationAvancement.afficherJours(journees);
+        java.time.LocalDate aujourdhui = java.time.LocalDate.now();
+        // B037 : la journée du jour par défaut, « jour suivant » pour voir la suite.
+        int index = jourAffiche == null
+                ? PresentationAvancement.indexJourParDefaut(journees, aujourdhui)
+                : PresentationAvancement.borner(jourAffiche, journees);
         boolean premiere = true;
-        for (PresentationAvancement.Journee j : journees) {
-            if (jours) {
-                Label intertitre = Ui.discret(PresentationJourJ.jour(j.jour()));
-                intertitre.getStyleClass().add("avancement-jour");
-                lignes.getChildren().add(intertitre);
+        for (int i = 0; i < journees.size(); i++) {
+            if (jours && i != index) {
+                continue;
             }
-            for (PresentationAvancement.Ligne l : j.lignes()) {
+            for (PresentationAvancement.Ligne l : journees.get(i).lignes()) {
                 lignes.getChildren().add(ligneAvancement(l, premiere));
                 premiere = false;
             }
         }
-        VBox carte = Ui.carte(Ui.titreCarte("Où en sont les tableaux"), lignes);
+        Node entete = Ui.titreCarte("Où en sont les tableaux");
+        if (jours) {
+            Label jour = Ui.discret(PresentationAvancement.titreJour(journees.get(index), aujourdhui));
+            jour.getStyleClass().add("avancement-jour");
+            Button precedent = Ui.boutonSecondaire("← Jour précédent");
+            precedent.setDisable(index == 0);
+            precedent.setOnAction(e -> changerJour(index - 1));
+            Button suivant = Ui.boutonSecondaire("Jour suivant →");
+            suivant.setDisable(index >= journees.size() - 1);
+            suivant.setOnAction(e -> changerJour(index + 1));
+            precedent.getStyleClass().add("avancement-action");
+            suivant.getStyleClass().add("avancement-action");
+            entete = Ui.ligne(10, Ui.titreCarte("Où en sont les tableaux"), jour, Ui.espace(), precedent, suivant);
+        }
+        VBox carte = Ui.carte(entete, lignes);
         carte.getStyleClass().add("avancement");
         if (tournoi.getStatut() == StatutTournoi.ANNULE) {
             carte.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : le pointage et les tirages sont fermés."));
         }
         return carte;
+    }
+
+    private void changerJour(int index) {
+        jourAffiche = index;
+        afficherListe();
     }
 
     /** Une ligne du bandeau : nom, étape, avancement, jauge, bouton de détail. */

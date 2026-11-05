@@ -2623,6 +2623,108 @@
     -fx-font-size: 12px;
 }
 
+/* ==================================================================
+   Jour J v2 (B037) : priorités en couleur, joueurs en attente et
+   « pourquoi », gros bouton « Terminer », « Annuler » rouge, annonce.
+   Tokens uniquement : valables en thème clair et sombre.
+   ================================================================== */
+
+/* Match proposé : filet de couleur à gauche selon la priorité. */
+.salle-pret.priorite-urgent,
+.salle-pret.priorite-important,
+.salle-pret.priorite-normal {
+    -fx-border-width: 1 0 0 5;
+    -fx-padding: 10 6 10 10;
+}
+
+.salle-pret.priorite-urgent {
+    -fx-border-color: -bordure transparent transparent -erreur;
+}
+
+.salle-pret.priorite-important {
+    -fx-border-color: -bordure transparent transparent -attention;
+}
+
+.salle-pret.priorite-normal {
+    -fx-border-color: -bordure transparent transparent -succes;
+}
+
+/* Joueurs en attente : chrono lisible de loin, rouge au-delà de 20 min. */
+.jourj-joueur-attente {
+    -fx-alignment: center-left;
+}
+
+.jourj-chrono {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.jourj-chrono.jourj-chrono-long {
+    -fx-text-fill: -erreur;
+}
+
+/* « Pourquoi » : poule ou tour du joueur, son nom surligné. */
+.jourj-pourquoi {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 0 4 0;
+}
+
+.jourj-groupe {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
+}
+
+.jourj-groupe-titre {
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4 0;
+}
+
+.jourj-groupe-ligne {
+    -fx-padding: 2 0 2 0;
+}
+
+.label.jourj-surligne {
+    -fx-background-color: -attention;
+    -fx-text-fill: -sur-attention;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 0 4 0 4;
+}
+
+/* Table occupée : gros bouton « Terminer la rencontre / la poule ». */
+.button.bouton-primaire.jourj-terminer {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
+}
+
+.button.bouton-lien.jourj-annuler {
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+}
+
+.button.bouton-secondaire.jourj-danger {
+    -fx-text-fill: -erreur;
+}
+
+/* Annonce de la rencontre, affichée à l'écran (lue au micro). */
+.jourj-annonce {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 18;
+}
+
+.label.jourj-annonce-texte {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
 /* =====================================================================
    Nouveau tournoi (B034) : texte explicatif, cartes v2, icône calendrier
    ===================================================================== */
@@ -2653,4 +2755,170 @@
 
 .label.nouveau-tournoi-resume {
     -fx-text-fill: -primaire;
+}
+
+/* =====================================================================
+   Accueil « home » (B028) : cartes de section, section club séparée
+   ===================================================================== */
+
+.carte.accueil-carte {
+    -fx-min-height: 180px;
+}
+
+/* Tuile d'icône des en-têtes de cartes : fond bleu doux, tracé bleu ;
+   grise pour une section « Bientôt ». (Composant commun Ui.iconeTuile.) */
+.icone-tuile {
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 10;
+}
+
+.icone-tuile .icone-tuile-trace {
+    -fx-fill: -primaire;
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+.icone-tuile.icone-tuile-neutre {
+    -fx-background-color: -neutre-doux;
+}
+
+.icone-tuile.icone-tuile-neutre .icone-tuile-trace {
+    -fx-fill: -neutre-texte;
+}
+
+/* « Gestion de votre club » : bandeau teinté bleu, bien distinct des cartes
+   personnelles ; les cartes blanches ressortent dessus. */
+.accueil-section-club {
+    -fx-background-color: -bordure, -primaire-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 16, 15;
+    -fx-padding: 24;
+}
+
+/* Tuile du titre de section : bleu plein, tracé clair. */
+.icone-tuile.accueil-club-tuile {
+    -fx-background-color: -primaire;
+}
+
+.accueil-section-club-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.accueil-section-club-intro {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13.5px;
+}
+
+.icone-tuile.accueil-club-tuile .icone-tuile-trace {
+    -fx-fill: -sur-primaire;
+
+   Gestion des tournois (B033) : gros bouton de création, frise verticale
+   ===================================================================== */
+
+.button.bouton-primaire.bouton-creer-tournoi {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 14 28 14 28;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, -ombre-forte, 14, 0.2, 0, 3);
+}
+
+.bloc-creer-tournoi {
+    -fx-alignment: center-right;
+}
+
+.frise-etape {
+    -fx-padding: 0;
+}
+
+.frise-repere {
+    -fx-alignment: top-center;
+    -fx-min-width: 40;
+    -fx-pref-width: 40;
+    -fx-padding: 2 0 0 0;
+}
+
+/* Pastille numérotée : pleine et cerclée d'un halo pour une étape qui contient
+   des tournois, simple cercle au trait pour une étape vide. */
+.label.frise-numero {
+    -fx-min-width: 32;
+    -fx-min-height: 32;
+    -fx-pref-width: 32;
+    -fx-pref-height: 32;
+    -fx-alignment: center;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.frise-etape-active .label.frise-numero {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+    -fx-border-color: -anneau;
+    -fx-border-width: 4;
+    -fx-border-insets: -4;
+    -fx-border-radius: 20;
+}
+
+.frise-etape-vide .label.frise-numero {
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure-forte;
+    -fx-border-width: 2;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Trait vertical qui relie les pastilles d'une étape à la suivante. */
+.frise-trait {
+    -fx-min-width: 2;
+    -fx-max-width: 2;
+    -fx-min-height: 12;
+    -fx-background-color: -bordure-forte;
+    -fx-background-radius: 1;
+}
+
+.frise-etape-derniere .frise-trait {
+    -fx-background-color: transparent;
+}
+
+.frise-contenu {
+    -fx-padding: 4 0 26 0;
+}
+
+.frise-etape-vide .frise-contenu {
+    -fx-padding: 4 0 18 0;
+}
+
+.label.frise-etape-titre {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.frise-etape-vide .label.frise-etape-titre {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Tournois d'une étape : regroupés dans un cadre léger. */
+.frise-liste {
+    -fx-padding: 4 0 0 0;
+}
+
+.frise-etape-active .frise-liste {
+    -fx-background-color: -surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 10;
+    -fx-padding: 2 6 2 6;
+}
+
+.label.frise-vide {
+    -fx-font-size: 13px;
+    -fx-font-style: italic;
+    -fx-text-fill: -texte-doux;
+}
+
+.ligne-element.ligne-tournoi-cliquable {
+    -fx-cursor: hand;
 }

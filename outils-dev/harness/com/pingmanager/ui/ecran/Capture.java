@@ -39,6 +39,7 @@ public class Capture extends Application {
     static boolean importer;
     static boolean choix;
     static boolean v2;
+    static boolean accueil;
     static boolean suivi;
     static boolean jourj;
     Scene scene;
@@ -53,6 +54,7 @@ public class Capture extends Application {
         importer = java.util.Arrays.asList(a).contains("import");
         choix = java.util.Arrays.asList(a).contains("choix");
         v2 = java.util.Arrays.asList(a).contains("v2");
+        accueil = java.util.Arrays.asList(a).contains("accueil");
         suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
         launch(a);
@@ -110,6 +112,13 @@ public class Capture extends Application {
             lancer(0);
             return;
         }
+        if (accueil) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesAccueil(coq);
+            lancer(0);
+            return;
+        }
         if (v2) {
             stage.setWidth(1440);
             stage.setHeight(900);
@@ -157,7 +166,7 @@ public class Capture extends Application {
         }, "02-accueil");
         etape(() -> coq[0].afficher("profil"), "03-profil");
         etape(() -> coq[0].afficher("gestion"), "04-gestion");
-        etape(() -> cliquer("Nouveau tournoi"), "05-nouveau");
+        etape(() -> cliquer("Créer un tournoi"), "05-nouveau");
         etape(() -> { cliquer("Annuler"); }, null);
         etape(() -> cliquer("Compléter"), "06-completion");
         etape(() -> cliquer("Modifier"), "07-formulaire");
@@ -343,6 +352,29 @@ public class Capture extends Application {
         etape(() -> cliquerN("Ouvrir", 2), "b12-supervision-ouvert");
     }
 
+    /** Accueil (B028) : compte de club (Quentin) puis compte joueur sans accès club, 1440 px. */
+    void etapesAccueil(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-club");
+        etape(() -> defiler(1.0), "accueil-club-bas");
+        etape(() -> {
+            ctx.deconnecter();
+            com.pingmanager.model.FicheLicence f = com.pingmanager.ui.infra.DonneesDemo.JOUEURS_FICTIFS.get(0);
+            ctx.creerCompteEtConnecter("joueur.demo@exemple.fr", f.getNom(), f.getPrenom(), "Joueur123/");
+            ctx.lierLicence(f.getNumeroLicence());
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-joueur");
+        etape(() -> {
+            ctx.deconnecter();
+            ctx.creerCompteEtConnecter("sans.licence@exemple.fr", "DURAND", "Paul", "Joueur123/");
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil-sans-licence");
+    }
+
     /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
     void etapesV2(Coquille[] coq) {
         etape(() -> scene.setRoot(new EcranConnexion(ctx, () -> { }).build()), "connexion");
@@ -355,7 +387,7 @@ public class Capture extends Application {
         etape(() -> defiler(1.0), "gestion-tournois-bas");
         etape(() -> {
             coq[0].afficher("gestion");
-            cliquer("Nouveau tournoi");
+            cliquer("Créer un tournoi");
         }, "nouveau-tournoi");
         etape(() -> {
             coq[0].afficher("gestion");
@@ -382,6 +414,19 @@ public class Capture extends Application {
             cliquer("Suivre le tournoi");
         }, "j01-jour-j");
         etape(() -> defiler(1.0), "j01b-jour-j-bas");
+        // B037 : annonce, joueurs en attente, lancer un match, annuler, jour suivant.
+        etape(() -> { defiler(0); cliquerDebut("Table "); }, "j10-annonce-question");
+        etape(() -> cliquerSiPresent("SMS"), "j11-annonce-affichee");
+        etape(() -> clicStyle("jourj-joueur-attente", 0), "j12-joueur-pourquoi");
+        etape(() -> clicStyle("jourj-joueur-attente", 0), null);
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); clicStyle("jourj-joueur-attente", 3); },
+                "j12b-joueur-pourquoi-autre");
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); cliquerDebut("_Lancer un match"); }, "j13-lancer-un-match");
+        etape(() -> saisir("Nom d'un joueur ou d'un tableau", "open du"), "j13b-lancer-recherche");
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); cliquerDebut("Annuler"); }, null);
+        etape(() -> defiler(0.6), "j14-annuler-confirmation");
+        etape(() -> { cliquerSiPresent("Non"); cliquerSiPresent("Jour suivant →"); }, "j15-jour-suivant");
+        etape(() -> cliquerSiPresent("← Jour précédent"), null);
         etape(() -> { defiler(0); cliquerSiPresent("Ouvrir la salle"); cliquerDebut("Table "); }, "j02-apres-envoi");
         etape(() -> cliquerSiPresent("Terminer"), "j03-saisie-score");
         etape(() -> {
@@ -398,6 +443,21 @@ public class Capture extends Application {
         etape(() -> cliquerDebut("Envoyer "), "j05-match-suivant");
         etape(() -> cliquerSiPresent("C – Toutes séries"), "j06-detail-poules");
         etape(() -> { cliquerSiPresent("← Jour J"); cliquerSiPresent("F – Open du matin"); }, "j07-detail-arbre");
+    }
+
+    /** Déclenche le clic du n-ième nœud portant la classe de style donnée (lignes cliquables). */
+    void clicStyle(String classe, int rang) {
+        List<javafx.scene.Node> ns = new ArrayList<>();
+        collect(scene.getRoot(), javafx.scene.Node.class, n -> {
+            if (n.getStyleClass().contains(classe) && n.getOnMouseClicked() != null) {
+                ns.add(n);
+            }
+        });
+        if (ns.size() <= rang) {
+            System.out.println("(aucun nœud : " + classe + " #" + rang + ")");
+        } else {
+            ns.get(rang).getOnMouseClicked().handle(null);
+        }
     }
 
     /** Clique le premier bouton dont le texte commence par {@code debut} (s'il existe). */
@@ -713,7 +773,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : (v2 ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
