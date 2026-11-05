@@ -28,4 +28,6 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- developpeur-interface (2026-11-05) : accueil refait (PageAccueil mince + PresentationAccueil testée, 9 tests). Cartes Profil, Tournois, Agenda (« Bientôt », 3 prochaines dates des tournois du joueur), Statistiques (« Bientôt ») ; section « Gestion de votre club » (gestion, historique, buvette, mention « autres ») seulement si le compte a un accès club. Coquille : entrée « Agenda » provisoire (PagePlaceholder) pour que la carte mène quelque part ; B032 la remplacera. Icones.AGENDA ajouté ; CSS en fin de theme.css (section B028). Captures clair/sombre non faites (pas d'affichage en session cloud).
+
 ## Résultat
