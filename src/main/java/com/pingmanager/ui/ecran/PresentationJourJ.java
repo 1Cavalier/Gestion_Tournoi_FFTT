@@ -106,6 +106,53 @@ final class PresentationJourJ {
         return "etape-inscription";
     }
 
+    /**
+     * Libellé du bouton principal d'un tableau sur la page Jour J : l'action
+     * suivante du juge-arbitre.
+     */
+    static String libelleAction(Etape e) {
+        if (e == Etape.INSCRIPTION) {
+            return "Ouvrir le pointage";
+        }
+        if (e == Etape.POINTAGE_OUVERT) {
+            return "Pointer";
+        }
+        if (e == Etape.POINTAGE_CLOTURE) {
+            return "Lancer le tirage";
+        }
+        if (e == Etape.POULES_TERMINEES) {
+            return "Construire le tableau final";
+        }
+        if (e == Etape.PHASE_FINALE) {
+            return "Tableau final";
+        }
+        return "Poules";
+    }
+
+    /** « Tableau de 16 · 7 / 16 matchs joués · petite finale », ou « Tableau final terminé ». */
+    static String resumeTableauFinal(Tableau t) {
+        if (!t.aPhaseFinale()) {
+            return resumePoules(t);
+        }
+        com.pingmanager.model.TableauElimination elim = t.getPhaseFinale();
+        int total = 0;
+        int joues = 0;
+        for (com.pingmanager.model.Tour tour : elim.getTours()) {
+            for (Match m : tour.getMatchs()) {
+                total++;
+                if (m.getStatut() == StatutMatch.TERMINE) {
+                    joues++;
+                }
+            }
+        }
+        boolean pf = com.pingmanager.core.ServicePhaseFinale.petiteFinale(elim) != null;
+        if (com.pingmanager.core.ServicePhaseFinale.estTerminee(elim)) {
+            return "Tableau final terminé · " + joues + (joues > 1 ? " matchs joués" : " match joué");
+        }
+        return "Tableau de " + elim.getCadre() + " · " + joues + " / " + total
+                + (total > 1 ? " matchs joués" : " match joué") + (pf ? " · petite finale" : "");
+    }
+
     // ------------------------------------------------------------------
     // Liste des tableaux par jour
     // ------------------------------------------------------------------

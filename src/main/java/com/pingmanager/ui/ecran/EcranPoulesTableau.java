@@ -1,9 +1,7 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.ResultatSaisieMatch;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.SuiviPoule;
-import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.LigneClassement;
 import com.pingmanager.model.Manche;
@@ -18,19 +16,15 @@ import com.pingmanager.model.format.FormatTournoi;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.util.StringConverter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,7 +34,7 @@ import java.util.List;
  * direct (I.303) avec les places qualificatives.
  *
  * <p>La phase finale n'est pas traitée ici : une fois toutes les poules jouées,
- * l'écran l'indique simplement.</p>
+ * l'écran propose de construire le tableau final ({@link VuePhaseFinale}).</p>
  */
 final class EcranPoulesTableau {
 
@@ -48,6 +42,8 @@ final class EcranPoulesTableau {
     private final Tableau tableau;
     private final Runnable enregistrer;
     private final Runnable onRetour;
+    /** Ouvre le tableau final (second tirage, arbre) ; {@code null} si indisponible. */
+    private final Runnable onTableauFinal;
 
     private final SaisieResultatMatch saisie = new SaisieResultatMatch();
     private final SuiviPoule suivi = new SuiviPoule();
@@ -62,6 +58,12 @@ final class EcranPoulesTableau {
 
     EcranPoulesTableau(Tournoi tournoi, Tableau tableau, Runnable enregistrer, Runnable onRetour,
                        boolean apresTirage) {
+        this(tournoi, tableau, enregistrer, onRetour, apresTirage, null);
+    }
+
+    EcranPoulesTableau(Tournoi tournoi, Tableau tableau, Runnable enregistrer, Runnable onRetour,
+                       boolean apresTirage, Runnable onTableauFinal) {
+        this.onTableauFinal = onTableauFinal;
         this.tournoi = tournoi;
         this.tableau = tableau;
         this.enregistrer = enregistrer;
@@ -124,14 +126,29 @@ final class EcranPoulesTableau {
             return;
         }
         if (tableau.getStatut() == StatutTableau.PHASE_FINALE) {
-            contenu.getChildren().add(Ui.encartInfo("La phase finale est construite : les résultats de poule sont figés."));
+            contenu.getChildren().add(encartTableauFinal(
+                    "Le tableau final est construit : les résultats de poule sont figés.", "Voir le tableau final"));
         } else if (tableau.poulesTerminees()) {
-            contenu.getChildren().add(Ui.encartInfo("Toutes les poules sont terminées : les qualifiés sont connus. "
-                    + "La construction du tableau final (phase finale) n'est pas encore disponible dans cet écran."));
+            contenu.getChildren().add(encartTableauFinal("Toutes les poules sont terminées : les qualifiés sont "
+                    + "connus. Construisez le tableau final (second tirage au sort).", "Construire le tableau final"));
         }
         contenu.getChildren().addAll(selecteurPoules(), cartePoule(tableau.getPoules().get(pouleChoisie)));
         defilement.setContent(contenu);
         Platform.runLater(() -> defilement.setVvalue(position));
+    }
+
+    /** Encart menant au tableau final, mis à jour dès que la dernière partie de poule est saisie. */
+    private Node encartTableauFinal(String texte, String action) {
+        Label info = Ui.encartInfo(texte);
+        if (onTableauFinal == null) {
+            return info;
+        }
+        Button ouvrir = Ui.boutonPrimaire(action);
+        ouvrir.setOnAction(e -> onTableauFinal.run());
+        HBox h = Ui.ligne(12, info, ouvrir);
+        HBox.setHgrow(info, Priority.ALWAYS);
+        info.setMaxWidth(Double.MAX_VALUE);
+        return h;
     }
 
     // ------------------------------------------------------------------
@@ -279,7 +296,10 @@ final class EcranPoulesTableau {
         Label nom = Ui.texte(affiche);
         Joueur vainqueur = m.getStatut() == StatutMatch.TERMINE ? m.getVainqueur() : null;
         Label resultat = Ui.gras(PresentationJourJ.resultat(m));
-        VBox centre = new VBox(2, nom);
+        // Match en cours dans la salle : son numéro de table se lit de loin.
+        String table = PresentationSalle.libelleTable(m);
+        VBox centre = new VBox(2, table.isEmpty() ? nom
+                : Ui.ligne(8, nom, Ui.pastille(table + " · en cours", Ui.ETAT_RECOMMANDE)));
         if (!resultat.getText().isEmpty()) {
             centre.getChildren().add(resultat);
             if (vainqueur != null && !m.estBye()) {
@@ -304,6 +324,8 @@ final class EcranPoulesTableau {
         bloc.getStyleClass().add("ligne-match");
         if (m.getStatut() == StatutMatch.TERMINE) {
             bloc.getStyleClass().add("ligne-match-jouee");
+        } else if (!table.isEmpty()) {
+            bloc.getStyleClass().add("ligne-match-en-cours");
         }
         if (enEdition == m && modifiable()) {
             bloc.getChildren().add(editeur(m));
@@ -312,135 +334,23 @@ final class EcranPoulesTableau {
     }
 
     // ------------------------------------------------------------------
-    // Saisie d'un match
+    // Saisie d'un match (composant partagé avec la salle : EditeurScorePoule)
     // ------------------------------------------------------------------
 
     private Node editeur(Match m) {
-        int nbManches = 2 * m.getNombreManchesGagnantes() - 1;
-        List<TextField> champs = new ArrayList<>();
-        HBox ligneChamps = Ui.ligne(8);
-        Label score = Ui.gras("");
-        Label erreur = Ui.message();
-        for (int i = 0; i < nbManches; i++) {
-            TextField c = Ui.champ(String.valueOf(i + 1));
-            c.getStyleClass().add("champ-manche");
-            c.setPrefColumnCount(4);
-            if (i < m.getManches().size() && m.getIssue() == IssueMatch.NORMALE) {
-                c.setText(com.pingmanager.core.NotationManche.ecrire(m.getManches().get(i)));
-            }
-            champs.add(c);
-            ligneChamps.getChildren().add(c);
-        }
-        Runnable majScore = () -> {
-            PresentationJourJ.LectureManches l = PresentationJourJ.lireManches(textes(champs));
-            for (int i = 0; i < champs.size(); i++) {
-                champs.get(i).getStyleClass().remove(Ui.EN_ERREUR);
-            }
-            if (l.premiereIllisible() > 0) {
-                Ui.marquerErreur(champs.get(l.premiereIllisible() - 1));
-            }
-            if (l.premiereInvalide() > 0) {
-                Ui.marquerErreur(champs.get(l.premiereInvalide() - 1));
-            }
-            score.setText(l.manches().isEmpty() ? "" : "Manches : " + PresentationJourJ.manchesGagnees(l.manches()));
-        };
-        champs.forEach(c -> c.textProperty().addListener((o, a, n) -> majScore.run()));
-        ligneChamps.getChildren().add(score);
-        majScore.run();
-
-        Button valider = Ui.boutonPrimaire("Enregistrer le score");
-        valider.setOnAction(e -> {
-            PresentationJourJ.LectureManches l = PresentationJourJ.lireManches(textes(champs));
-            if (l.premiereIllisible() > 0) {
-                Ui.erreur(erreur, "Manche " + l.premiereIllisible() + " illisible : tapez par exemple 11-9, ou 9 "
-                        + "(-9 si le second joueur gagne la manche).");
-                return;
-            }
-            enregistrerResultat(m, saisie.enregistrerScore(tableau, m, l.manches()), erreur);
-        });
-        champs.forEach(c -> c.setOnAction(e -> valider.fire()));
-        Button annuler = Ui.boutonSecondaire("Annuler");
-        annuler.setOnAction(e -> {
+        return EditeurScorePoule.creer(tableau, m, saisie, () -> {
             enEdition = null;
             afficher();
-        });
-
-        // Issue non normale (I.303 a).
-        ComboBox<IssueMatch> issue = new ComboBox<>();
-        issue.getItems().addAll(PresentationJourJ.ISSUES_NON_NORMALES);
-        issue.setConverter(convertisseur(PresentationJourJ::libelleIssue));
-        issue.setPromptText("Issue…");
-        ComboBox<Joueur> fautif = new ComboBox<>();
-        fautif.getItems().addAll(m.getJoueurA(), m.getJoueurB());
-        fautif.setConverter(convertisseur(Joueur::getNomComplet));
-        fautif.setPromptText("Joueur concerné…");
-        if (m.getIssue() != IssueMatch.NORMALE && m.getStatut() == StatutMatch.TERMINE) {
-            issue.setValue(m.getIssue());
-            fautif.setValue(m.getJoueurFautif());
-        }
-        Button declarer = Ui.boutonSecondaire("Enregistrer l'issue");
-        declarer.setOnAction(e -> {
-            // Le cœur refuse une issue absente (NORMALE) ou un joueur non choisi, avec le motif précis.
-            IssueMatch choisie = issue.getValue() == null ? IssueMatch.NORMALE : issue.getValue();
-            enregistrerResultat(m, saisie.enregistrerIssue(tableau, m, choisie, fautif.getValue()), erreur);
-        });
-
-        VBox editeur = new VBox(10,
-                Ui.libelleChamp("Score, manche par manche"),
-                ligneChamps,
-                Ui.aide("Tapez 11-9, ou seulement les points du perdant : 9 si " + m.getJoueurA().getNomComplet()
-                        + " gagne la manche, -9 si c'est " + m.getJoueurB().getNomComplet()
-                        + ". Une manche se gagne à 11, avec 2 points d'écart après 10-10 (2.11.1)."),
-                Ui.actions(valider, annuler),
-                Ui.libelleChamp("Ou issue non normale"),
-                Ui.ligne(8, issue, fautif, declarer),
-                Ui.aide("Forfait, abandon, refus de jouer ou disqualification : le joueur concerné marque 0 point "
-                        + "au classement de la poule et son adversaire gagne le match (I.303 a)."));
-        if (m.getStatut() == StatutMatch.TERMINE) {
-            Button effacer = Ui.boutonLien("Effacer le résultat");
-            effacer.getStyleClass().add("lien-danger");
-            effacer.setOnAction(e -> enregistrerResultat(m, saisie.effacer(tableau, m), erreur));
-            editeur.getChildren().add(Ui.actions(effacer));
-        }
-        editeur.getChildren().add(erreur);
-        editeur.getStyleClass().add("editeur-match");
-        Platform.runLater(() -> champs.get(0).requestFocus());
-        return editeur;
+        }, this::apresSaisie);
     }
 
-    private void enregistrerResultat(Match m, ResultatSaisieMatch r, Label erreur) {
-        if (!r.estEnregistre()) {
-            Ui.erreur(erreur, PresentationJourJ.motifSaisie(r));
-            return;
-        }
+    private void apresSaisie(Match m) {
         enregistrer.run();
         enEdition = null;
         messageSucces = m.getStatut() == StatutMatch.TERMINE
                 ? "Résultat enregistré : " + PresentationJourJ.resultat(m) + "."
                 : "Résultat effacé : le match est de nouveau à jouer.";
         afficher();
-    }
-
-    private static List<String> textes(List<TextField> champs) {
-        List<String> t = new ArrayList<>();
-        for (TextField c : champs) {
-            t.add(c.getText());
-        }
-        return t;
-    }
-
-    private static <T> StringConverter<T> convertisseur(java.util.function.Function<T, String> f) {
-        return new StringConverter<>() {
-            @Override
-            public String toString(T t) {
-                return t == null ? "" : f.apply(t);
-            }
-
-            @Override
-            public T fromString(String s) {
-                return null;
-            }
-        };
     }
 
     private static <R extends Region> R largeur(R r, double l) {

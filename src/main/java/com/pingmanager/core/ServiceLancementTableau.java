@@ -181,7 +181,9 @@ public final class ServiceLancementTableau {
      * pour rejouer/vérifier le tirage public.</p>
      *
      * <p>Réutilise le moteur : extraction des qualifiés, placement, best-of et
-     * petite finale sont appliqués par {@link MoteurTournoi#construireTableau}.</p>
+     * petite finale (selon l'option du tableau) sont appliqués par
+     * {@link MoteurTournoi#construireTableau}. La graine est conservée dans le
+     * tableau ({@link Tableau#getGraineTableauFinal()}).</p>
      *
      * @param tableau le tableau dont on monte la phase finale
      * @param graine  graine du tirage du tableau à élimination (reproductible)
@@ -208,9 +210,13 @@ public final class ServiceLancementTableau {
                     "Le tableau n'a pas de format défini : impossible de construire la phase finale.");
         }
 
-        TableauElimination elimination =
-                moteur.construireTableau(tableau.getPoules(), format, graine);
+        // Petite finale : option du tableau (clause d'organisateur, QUESTIONS.md du
+        // 5 novembre 2026), le chapitre IX ne l'imposant pas.
+        TableauElimination elimination = moteur.construireTableau(tableau.getPoules(), format, graine,
+                tableau.getConfiguration().avecPetiteFinale());
         tableau.definirPhaseFinale(elimination);
+        // IX.109 : graine du second tirage conservée avec le tableau, comme celle des poules.
+        tableau.definirGraineTableauFinal(graine);
         return elimination;
     }
 }

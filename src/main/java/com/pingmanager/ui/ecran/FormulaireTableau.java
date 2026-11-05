@@ -93,6 +93,7 @@ final class FormulaireTableau {
     private final VBox lignesRecompenses = new VBox(8);
     private final List<LigneRecompense> recompenses = new ArrayList<>();
     private ComboBox<FormatTournoi> format;
+    private final CheckBox petiteFinale = new CheckBox("Petite finale (match pour la 3e place)");
 
     private static final String SEXE_MIXTE = "Mixte (ouvert à tous)";
     private static final String SEXE_HOMMES = "Hommes uniquement";
@@ -568,9 +569,18 @@ final class FormulaireTableau {
             }
         });
         format.setValue(cfg != null && cfg.getFormat() != null ? cfg.getFormat() : RegistreFormats.formatParDefaut());
+        // Clause d'organisateur, réglée par tableau (le chapitre IX ne l'impose pas).
+        petiteFinale.setSelected(cfg != null ? cfg.avecPetiteFinale() : format.getValue().avecPetiteFinale());
+        boolean figee = existant != null && existant.aPhaseFinale();
+        petiteFinale.setDisable(figee);
         return new VBox(8,
                 Ui.champEtiquete("Format de compétition", format, P),
-                Ui.note("D'autres formats viendront ensuite (poules de 4, consolante…)."));
+                Ui.note("D'autres formats viendront ensuite (poules de 4, consolante…)."),
+                petiteFinale,
+                Ui.note(figee
+                        ? "Le tableau final est déjà tiré : la petite finale ne peut plus être ajoutée ni retirée."
+                        : "Sans petite finale, les deux perdants des demi-finales sont classés 3es ex aequo. "
+                                + "Le choix est écrit dans le règlement du tournoi."));
     }
 
     // ------------------------------------------------------------------
@@ -593,7 +603,7 @@ final class FormulaireTableau {
 
         // --- Format, places ---
         FormatTournoi f = format.getValue() != null ? format.getValue() : RegistreFormats.formatParDefaut();
-        ConfigurationTableau.Builder b = ConfigurationTableau.depuisFormat(f);
+        ConfigurationTableau.Builder b = ConfigurationTableau.depuisFormat(f).petiteFinale(petiteFinale.isSelected());
         Integer cap = lire(capacite, () -> Saisie.lireEntier(capacite.getText(), "Capacité"));
         Integer att = lire(attente, () -> Saisie.lireEntier(attente.getText(), "Liste d'attente"));
         b.placesMax(cap == null ? 0 : cap).tailleMaxListeAttente(att == null ? 0 : att);

@@ -76,6 +76,14 @@ public final class Tableau {
      */
     private Long grainePoules;
 
+    /**
+     * Graine du second tirage au sort (placement des qualifiés dans le tableau
+     * final, I.304 / I.305), conservée à la construction de la phase finale pour
+     * pouvoir rejouer et vérifier ce tirage (IX.109). {@code null} tant que le
+     * tableau final n'est pas tiré, ou pour un fichier plus ancien.
+     */
+    private Long graineTableauFinal;
+
     public Tableau(String nom, ConfigurationTableau configuration) {
         this.nom = Objects.requireNonNull(nom, "nom");
         this.configuration = Objects.requireNonNull(configuration, "configuration");
@@ -221,6 +229,23 @@ public final class Tableau {
      */
     public void definirGrainePoules(long graine) {
         this.grainePoules = graine;
+    }
+
+    /**
+     * @return la graine du tirage du tableau final, ou {@code null} si le tableau
+     *         final n'est pas encore tiré (ou s'il l'a été par une version qui ne la
+     *         conservait pas)
+     */
+    public Long getGraineTableauFinal() {
+        return graineTableauFinal;
+    }
+
+    /**
+     * Conserve la graine du tirage du tableau final. Réservé au service de
+     * lancement, qui l'enregistre au moment de la construction de la phase finale.
+     */
+    public void definirGraineTableauFinal(long graine) {
+        this.graineTableauFinal = graine;
     }
 
     /** @return true si le tableau a été lancé (tirage fait, poules générées). */
@@ -439,6 +464,7 @@ public final class Tableau {
         this.statut = Objects.requireNonNull(e.statut, "statut");
         this.pointageCloture = e.pointageCloture;
         this.grainePoules = e.grainePoules;
+        this.graineTableauFinal = e.graineTableauFinal;
     }
 
     /**
@@ -460,6 +486,8 @@ public final class Tableau {
         public boolean pointageCloture;
         /** Graine du tirage des poules ; {@code null} pour un fichier ancien ou un tableau non lancé. */
         public Long grainePoules;
+        /** Graine du tirage du tableau final ; {@code null} pour un fichier ancien ou un tableau final non tiré. */
+        public Long graineTableauFinal;
     }
 
     @Override

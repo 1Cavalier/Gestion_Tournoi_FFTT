@@ -166,10 +166,15 @@ final class SessionMapper {
                 mo.setPretDepuis(lireDateHeure(jm.get("pretDepuis")));
                 ord.ajouterMatch(mo);
 
-                // Reconstruire l'occupation des tables depuis les matchs en cours.
+                // Reconstruire l'occupation des tables depuis les matchs en cours. Un
+                // match « en cours » sur une table inexistante ou déjà prise (fichier
+                // incohérent) n'empêche pas la reprise : il reste en cours, sans
+                // occuper de table, et la salle le signale comme anomalie.
+                Integer table = match.getNumeroTable();
                 if (match.getStatut() == com.pingmanager.model.StatutMatch.EN_COURS
-                        && match.getNumeroTable() != null) {
-                    ord.restaurerOccupation(match.getNumeroTable(), mo);
+                        && table != null && table >= 1 && table <= tables
+                        && ord.matchSurTable(table) == null) {
+                    ord.restaurerOccupation(table, mo);
                 }
             }
         }

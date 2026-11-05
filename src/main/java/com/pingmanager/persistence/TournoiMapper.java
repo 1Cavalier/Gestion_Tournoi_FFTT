@@ -369,6 +369,10 @@ public final class TournoiMapper {
             // Graine du tirage des poules (IX.109) ; absente des fichiers plus anciens.
             o.set("grainePoules", String.valueOf(tab.getGrainePoules()));
         }
+        if (tab.getGraineTableauFinal() != null) {
+            // Graine du tirage du tableau final (IX.109) ; absente des fichiers plus anciens.
+            o.set("graineTableauFinal", String.valueOf(tab.getGraineTableauFinal()));
+        }
         o.set("horaires", ConfigMapper.ecrireHoraires(tab.getHoraires()));
 
         Json inscrits = Json.tableau();
@@ -644,6 +648,7 @@ public final class TournoiMapper {
         e.statut = lireEnum(o.get("statut"), StatutTableau.class);
         e.pointageCloture = o.getBoolean("pointageCloture", false);
         e.grainePoules = lireGraine(o.getString("grainePoules", null));
+        e.graineTableauFinal = lireGraine(o.getString("graineTableauFinal", null));
         e.horaires = ConfigMapper.lireHoraires(o.get("horaires"));
 
         for (Json ref : o.get("inscrits").elements()) {
