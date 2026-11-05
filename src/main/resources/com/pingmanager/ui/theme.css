@@ -1553,7 +1553,7 @@
 }
 
 .ligne-colonnes {
-    -fx-padding: 0 0 6 0;
+    -fx-padding: 0 8 6 8; /* mêmes marges latérales que les lignes, pour aligner les colonnes */
 }
 
 /* Pointage : une ligne par inscrit, filet au-dessus. */
