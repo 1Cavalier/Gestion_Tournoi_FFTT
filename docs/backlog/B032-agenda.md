@@ -42,4 +42,9 @@ Voir le cahier des charges v0.
 - Corrigé : `desinscrire` dédoublonne `tableaux` (`LinkedHashSet`) avant validation ; cause : la 2e itération cherchait un joueur déjà retiré (`present` → null). `desinscription_avec_tableau_en_double_ne_plante_pas` vert.
 - Tests : 735, 0 échec.
 
+**relecteur-code (2026-11-05)**
+- Liaisons OK : règle d'or respectée (aucun import ui/persistence/javafx dans model/core, pas de switch ni TODO), `agendas` écrit et relu (facultatif, anciens fichiers relus), `inscrireEnLigne` appelle `sauvegarder()` après alimentation de l'agenda, aucune classe CSS ni couleur.
+- Remarques mineures : `desinscrire`, `ExportIcs` et `PresentationAgenda` n'ont pas encore d'appelant hors tests (prévu : Accueil / Mes tournois) ; le futur écran devra sauvegarder le tournoi ET `sauvegarder()` après `desinscrire`.
+- Aucun défaut bloquant.
+
 ## Résultat
