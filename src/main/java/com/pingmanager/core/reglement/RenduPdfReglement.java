@@ -1,10 +1,12 @@
 package com.pingmanager.core.reglement;
 
-import com.pingmanager.core.reglement.DocumentReglement.Article;
-import com.pingmanager.core.reglement.DocumentReglement.Bloc;
-import com.pingmanager.core.reglement.DocumentReglement.Grille;
-import com.pingmanager.core.reglement.DocumentReglement.Liste;
-import com.pingmanager.core.reglement.DocumentReglement.Paragraphe;
+import com.pingmanager.model.DocumentReglement;
+
+import com.pingmanager.model.DocumentReglement.Article;
+import com.pingmanager.model.DocumentReglement.Bloc;
+import com.pingmanager.model.DocumentReglement.Grille;
+import com.pingmanager.model.DocumentReglement.Liste;
+import com.pingmanager.model.DocumentReglement.Paragraphe;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.PDPage;

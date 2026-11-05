@@ -1,7 +1,7 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
-import com.pingmanager.core.reglement.DocumentReglement;
+import com.pingmanager.model.DocumentReglement;
 import com.pingmanager.core.reglement.GenerateurReglement;
 import com.pingmanager.core.reglement.GenerateurFeuilleEngagement;
 import com.pingmanager.core.reglement.RenduPdfReglement;

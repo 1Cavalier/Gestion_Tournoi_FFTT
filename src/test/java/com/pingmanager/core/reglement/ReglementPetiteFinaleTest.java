@@ -1,5 +1,7 @@
 package com.pingmanager.core.reglement;
 
+import com.pingmanager.model.DocumentReglement;
+
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.FormatPhaseFinale;
 import com.pingmanager.model.Tableau;

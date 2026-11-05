@@ -1,4 +1,4 @@
-package com.pingmanager.core.reglement;
+package com.pingmanager.model;
 
 import java.util.List;
 import java.util.regex.Pattern;

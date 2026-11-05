@@ -1,5 +1,7 @@
 package com.pingmanager.core.reglement;
 
+import com.pingmanager.model.DocumentReglement;
+
 import com.pingmanager.model.AdresseTournoi;
 import com.pingmanager.model.AffectationArbitre;
 import com.pingmanager.model.AffectationJugeArbitre;

@@ -2,7 +2,7 @@ package com.pingmanager.ui.infra;
 
 import com.pingmanager.core.RegistreDisciplinaire;
 import com.pingmanager.core.ServiceCycleTournoi;
-import com.pingmanager.core.reglement.DocumentReglement;
+import com.pingmanager.model.DocumentReglement;
 import com.pingmanager.core.reglement.GenerateurReglement;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.Tableau;

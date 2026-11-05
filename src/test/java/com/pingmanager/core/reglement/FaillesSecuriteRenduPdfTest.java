@@ -1,5 +1,7 @@
 package com.pingmanager.core.reglement;
 
+import com.pingmanager.model.DocumentReglement;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
