@@ -289,4 +289,61 @@ class RoundTripTournoiTest {
         assertEquals(StatutTableau.PHASE_FINALE, tab.getStatut());
         assertEquals(4, tab.getPoules().size());
     }
+
+    /** Graine du tableau final et petite finale du tableau : écrites puis relues à l'identique. */
+    @Test
+    void graine_du_tableau_final_et_petite_finale_relues() throws Exception {
+        Tournoi t = new Tournoi("Open PF", "PingClub", LocalDate.of(2026, 3, 14));
+        Tableau tab = new Tableau("Tableau PF", ConfigurationTableau.depuisFormat(format)
+                .placesMax(20).petiteFinale(true).build());
+        t.ajouterTableau(tab);
+        tab.ouvrirPointage();
+        for (int i = 1; i <= 12; i++) {
+            Joueur joueur = j("P" + i, 700 + i * 15);
+            tab.inscrire(joueur);
+            tab.pointer(joueur);
+        }
+        new ServicePointage(t).cloturerPointage(tab);
+        new ServiceLancementTableau(t).lancer(tab, 11L);
+        for (Poule p : tab.getPoules()) {
+            for (Match m : p.getMatchs()) {
+                m.definirScore(List.of(new Manche(11, 5), new Manche(11, 7), new Manche(11, 9)));
+            }
+        }
+        new ServiceLancementTableau(t).construirePhaseFinale(tab, 912345678901L);
+
+        Path fichier = Files.createTempFile("graine_tableau_final", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, fichier);
+        Tableau relu = DepotTournoi.charger(fichier).getTournoi().getTableaux().get(0);
+
+        assertEquals(Long.valueOf(912345678901L), relu.getGraineTableauFinal());
+        assertEquals(Long.valueOf(11L), relu.getGrainePoules());
+        assertTrue(relu.getConfiguration().avecPetiteFinale());
+        assertNotNull(com.pingmanager.core.ServicePhaseFinale.petiteFinale(relu.getPhaseFinale()),
+                "le tour de petite finale est relu");
+    }
+
+    /** Un fichier écrit avant la graine du tableau final et la petite finale se relit sans elles. */
+    @Test
+    void ancien_fichier_sans_graine_du_tableau_final_ni_petite_finale_relu() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Tableau tab = original.getTableaux().get(0);
+        assertEquals(Long.valueOf(2L), tab.getGraineTableauFinal(), "graine conservée à la construction");
+        Path fichier = Files.createTempFile("ancien_sans_graine_finale", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+        assertTrue(json.contains("\"graineTableauFinal\""), "la graine du tableau final est écrite");
+        assertTrue(json.contains("\"petiteFinale\""), "l'option petite finale est écrite");
+        String ancien = json.replaceAll("\"graineTableauFinal\"\\s*:\\s*\"[^\"]*\"\\s*,?", "")
+                .replaceAll("\"petiteFinale\"\\s*:\\s*(true|false)\\s*,?", "");
+        assertFalse(ancien.contains("graineTableauFinal"));
+        assertFalse(ancien.contains("\"petiteFinale\""));
+        Files.writeString(fichier, ancien);
+
+        Tableau relu = DepotTournoi.charger(fichier).getTournoi().getTableaux().get(0);
+        assertNull(relu.getGraineTableauFinal());
+        assertFalse(relu.getConfiguration().avecPetiteFinale(), "ancien fichier : pas de petite finale");
+        assertEquals(StatutTableau.PHASE_FINALE, relu.getStatut());
+        assertEquals(Long.valueOf(1L), relu.getGrainePoules());
+    }
 }
