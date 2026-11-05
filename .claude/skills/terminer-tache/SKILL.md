@@ -116,8 +116,10 @@ Sinon :
 4. Réponse 405 ou 409 (main a bougé, ou conflit) : retourne à l'étape 2.
    Au bout de 3 tentatives, laisse la PR ouverte « [À relire] » et explique
    pourquoi dans le journal.
-5. Supprime la branche distante :
-   `gh api -X DELETE repos/$DEPOT/git/refs/heads/$BRANCHE`.
+5. Branche distante : ne la supprime pas toi-même (les sessions n'en ont pas
+   le droit : refus 403). GitHub la supprime après la fusion si le réglage
+   « Automatically delete head branches » est activé ; sinon elle reste,
+   sans gêne pour le circuit.
 
 ## 7. Décrire ce qui a été fait
 
