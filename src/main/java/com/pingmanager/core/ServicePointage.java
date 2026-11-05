@@ -77,6 +77,31 @@ public final class ServicePointage {
     }
 
     /**
+     * Annule le paiement d'un joueur sur un tableau (correction d'une erreur de
+     * saisie au pointage, par exemple une case cochée par mégarde).
+     */
+    public void annulerPaiement(Tableau tableau, Joueur joueur) {
+        exigerTableauDuTournoi(tableau);
+        tableau.annulerPaiement(joueur);
+    }
+
+    /**
+     * Inscrits qui n'ont pas (encore) pointé sur ce tableau. Après la clôture, ce
+     * sont les repêchés « à pointer » : le juge-arbitre doit les confirmer
+     * ({@link #confirmerRepeche}) ou les retirer ({@link #retirerRepeche}).
+     */
+    public static List<Joueur> nonPointes(Tableau tableau) {
+        Objects.requireNonNull(tableau, "tableau");
+        List<Joueur> res = new ArrayList<>();
+        for (Joueur j : tableau.getInscrits()) {
+            if (!tableau.aPointe(j)) {
+                res.add(j);
+            }
+        }
+        return res;
+    }
+
+    /**
      * Clôture le pointage d'un tableau : libère les places des inscrits non
      * pointés et repêche la liste d'attente pour combler.
      *

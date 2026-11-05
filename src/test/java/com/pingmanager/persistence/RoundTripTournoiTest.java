@@ -218,4 +218,75 @@ class RoundTripTournoiTest {
         assertEquals(Files.readString(f1), Files.readString(f2),
                 "recharger puis re-sauvegarder doit produire un fichier identique");
     }
+
+    /** Jour J : pointage en cours, tableau lancé avec sa graine, scores et forfait relus à l'identique. */
+    @Test
+    void etat_du_jour_j_preserve_graine_pointage_et_issues() throws Exception {
+        Tournoi t = new Tournoi("Open du jour J", "PingClub", LocalDate.of(2026, 11, 14));
+        Tableau enPointage = new Tableau("B", ConfigurationTableau.depuisFormat(format).placesMax(3)
+                .tailleMaxListeAttente(2).build());
+        Tableau lance = new Tableau("C", ConfigurationTableau.depuisFormat(format).placesMax(0).build());
+        t.ajouterTableau(enPointage);
+        t.ajouterTableau(lance);
+        for (int i = 1; i <= 5; i++) {
+            enPointage.inscrire(j("B" + i, 900 + i)); // 3 inscrits, 2 en attente
+        }
+        enPointage.ouvrirPointage();
+        enPointage.pointer(j("B1", 0));
+        enPointage.marquerPaye(j("B2", 0)); // payé en ligne, pas encore pointé
+
+        lance.ouvrirPointage();
+        for (int i = 1; i <= 6; i++) {
+            Joueur joueur = j("C" + i, 1200 + i);
+            lance.inscrire(joueur);
+            lance.pointer(joueur);
+        }
+        new ServicePointage(t).cloturerPointage(lance);
+        new ServiceLancementTableau(t).lancer(lance, 987654321987L);
+        Match joue = lance.getPoules().get(0).getMatchs().get(0);
+        joue.definirScore(List.of(new Manche(11, 9), new Manche(12, 14), new Manche(11, 4), new Manche(11, 7)));
+        Match forfait = lance.getPoules().get(0).getMatchs().get(1);
+        forfait.declarerIssue(com.pingmanager.model.IssueMatch.FORFAIT, forfait.getJoueurB());
+
+        Path fichier = Files.createTempFile("jour_j", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, fichier);
+        Tournoi t2 = DepotTournoi.charger(fichier).getTournoi();
+
+        Tableau b2 = t2.getTableaux().get(0);
+        assertEquals(StatutTableau.POINTAGE, b2.getStatut());
+        assertFalse(b2.pointageEstCloture());
+        assertTrue(b2.aPointe(j("B1", 0)));
+        assertTrue(b2.aPaye(j("B2", 0)));
+        assertFalse(b2.aPointe(j("B2", 0)));
+        assertEquals(List.of(j("B4", 0), j("B5", 0)), b2.getFileAttente());
+        assertNull(b2.getGrainePoules());
+
+        Tableau c2 = t2.getTableaux().get(1);
+        assertEquals(StatutTableau.LANCE, c2.getStatut());
+        assertEquals(Long.valueOf(987654321987L), c2.getGrainePoules());
+        Match joue2 = c2.getPoules().get(0).getMatchs().get(0);
+        assertEquals(4, joue2.getManches().size());
+        assertEquals(new Manche(12, 14), joue2.getManches().get(1));
+        assertEquals(joue.getVainqueur(), joue2.getVainqueur());
+        Match forfait2 = c2.getPoules().get(0).getMatchs().get(1);
+        assertEquals(com.pingmanager.model.IssueMatch.FORFAIT, forfait2.getIssue());
+        assertEquals(forfait.getJoueurB(), forfait2.getJoueurFautif());
+        assertEquals(StatutMatch.A_JOUER, c2.getPoules().get(0).getMatchs().get(2).getStatut());
+    }
+
+    /** Un fichier écrit avant l'ajout de la graine se relit : la graine est simplement inconnue. */
+    @Test
+    void ancien_fichier_sans_graine_relu() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("ancien_sans_graine", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+        assertTrue(json.contains("\"grainePoules\""), "la graine est écrite");
+        Files.writeString(fichier, json.replaceAll("\"grainePoules\"\\s*:\\s*\"[^\"]*\"\\s*,?", ""));
+
+        Tableau tab = DepotTournoi.charger(fichier).getTournoi().getTableaux().get(0);
+        assertNull(tab.getGrainePoules());
+        assertEquals(StatutTableau.PHASE_FINALE, tab.getStatut());
+        assertEquals(4, tab.getPoules().size());
+    }
 }

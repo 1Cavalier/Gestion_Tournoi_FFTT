@@ -69,6 +69,13 @@ public final class Tableau {
      */
     private boolean pointageCloture = false;
 
+    /**
+     * Graine du tirage au sort des poules, conservée au lancement pour pouvoir
+     * rejouer et vérifier le tirage (IX.109 : le juge-arbitre est responsable du
+     * tirage au sort). {@code null} tant que le tableau n'est pas lancé.
+     */
+    private Long grainePoules;
+
     public Tableau(String nom, ConfigurationTableau configuration) {
         this.nom = Objects.requireNonNull(nom, "nom");
         this.configuration = Objects.requireNonNull(configuration, "configuration");
@@ -199,6 +206,23 @@ public final class Tableau {
         this.statut = StatutTableau.POINTAGE;
     }
 
+    /**
+     * @return la graine du tirage au sort des poules, ou {@code null} si le tableau
+     *         n'a pas encore été lancé (ou s'il provient d'un fichier qui ne la
+     *         conservait pas)
+     */
+    public Long getGrainePoules() {
+        return grainePoules;
+    }
+
+    /**
+     * Conserve la graine du tirage au sort des poules. Réservé au service de
+     * lancement, qui l'enregistre au moment du tirage.
+     */
+    public void definirGrainePoules(long graine) {
+        this.grainePoules = graine;
+    }
+
     /** @return true si le tableau a été lancé (tirage fait, poules générées). */
     public boolean estLance() {
         return statut == StatutTableau.LANCE;
@@ -287,6 +311,14 @@ public final class Tableau {
      */
     public void marquerPaye(Joueur joueur) {
         etatInscrit(joueur).paye = true;
+    }
+
+    /**
+     * Annule le paiement d'un joueur sur ce tableau (correction d'une erreur de
+     * saisie au pointage). Réservé aux inscrits, comme {@link #marquerPaye}.
+     */
+    public void annulerPaiement(Joueur joueur) {
+        etatInscrit(joueur).paye = false;
     }
 
     /**
@@ -406,6 +438,7 @@ public final class Tableau {
         this.type = e.type;
         this.statut = Objects.requireNonNull(e.statut, "statut");
         this.pointageCloture = e.pointageCloture;
+        this.grainePoules = e.grainePoules;
     }
 
     /**
@@ -425,6 +458,8 @@ public final class Tableau {
         public String type;
         public StatutTableau statut = StatutTableau.INSCRIPTION;
         public boolean pointageCloture;
+        /** Graine du tirage des poules ; {@code null} pour un fichier ancien ou un tableau non lancé. */
+        public Long grainePoules;
     }
 
     @Override

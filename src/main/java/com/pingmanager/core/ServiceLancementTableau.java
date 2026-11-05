@@ -117,9 +117,49 @@ public final class ServiceLancementTableau {
         List<Poule> poules = moteur.preparerPoules(presents, format, graine);
 
         tableau.definirPoules(poules);
+        // IX.109 : le juge-arbitre est responsable du tirage au sort ; la graine est
+        // conservée avec le tableau pour pouvoir rejouer et vérifier ce tirage.
+        tableau.definirGrainePoules(graine);
         tableau.marquerLance();
 
         return new ResultatLancement(poules, graine, presents.size());
+    }
+
+    /**
+     * Vérifie, sans rien modifier, si un tableau peut être lancé maintenant, et
+     * sinon pourquoi. Applique les mêmes contrôles que {@link #lancer(Tableau, long)}
+     * (dans le même ordre), sans lever d'exception : destiné à l'écran, qui
+     * explique le refus et désactive le bouton.
+     *
+     * <p>Signale en plus, sans bloquer, les inscrits qui n'ont pas pointé (repêchés
+     * « à pointer » après la clôture) : {@link #lancer} les prendrait comme
+     * présents.</p>
+     */
+    public ResultatVerificationLancement verifierLancement(Tableau tableau) {
+        Objects.requireNonNull(tableau, "tableau");
+        List<Joueur> nonPointes = ServicePointage.nonPointes(tableau);
+        FormatTournoi format = tableau.getConfiguration().getFormat();
+        int presents = tableau.getInscrits().size();
+        int minimum = format == null ? 0 : format.taillePouleSouhaitee();
+        ResultatVerificationLancement.Motif motif;
+        if (tournoi != null && !tournoi.getTableaux().contains(tableau)) {
+            motif = ResultatVerificationLancement.Motif.HORS_TOURNOI;
+        } else if (tournoi != null && !politiqueOuverture.autorise(tournoi.getStatut())) {
+            motif = ResultatVerificationLancement.Motif.TOURNOI_FERME;
+        } else if (tableau.getStatut() != StatutTableau.POINTAGE) {
+            motif = tableau.getStatut() == StatutTableau.INSCRIPTION
+                    ? ResultatVerificationLancement.Motif.POINTAGE_NON_OUVERT
+                    : ResultatVerificationLancement.Motif.DEJA_LANCE;
+        } else if (!tableau.pointageEstCloture()) {
+            motif = ResultatVerificationLancement.Motif.POINTAGE_NON_CLOTURE;
+        } else if (format == null) {
+            motif = ResultatVerificationLancement.Motif.SANS_FORMAT;
+        } else if (presents < minimum) {
+            motif = ResultatVerificationLancement.Motif.PAS_ASSEZ_DE_PRESENTS;
+        } else {
+            motif = ResultatVerificationLancement.Motif.PRET;
+        }
+        return new ResultatVerificationLancement(motif, presents, minimum, nonPointes);
     }
 
     /**

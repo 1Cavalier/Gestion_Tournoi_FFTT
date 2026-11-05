@@ -96,6 +96,25 @@ public final class Match {
     }
 
     /**
+     * Efface le résultat du match (correction d'une saisie erronée) : plus de
+     * manches, issue normale, pas de fautif, et le match redevient à jouer.
+     * Les pénalités et horodatages de lancement ne sont pas touchés ; l'heure de
+     * fin est effacée.
+     *
+     * @throws IllegalStateException sur un bye (son résultat est automatique)
+     */
+    public void effacerResultat() {
+        if (estBye()) {
+            throw new IllegalStateException("Le résultat d'un bye ne peut pas être effacé.");
+        }
+        manches.clear();
+        issue = IssueMatch.NORMALE;
+        joueurFautif = null;
+        statut = StatutMatch.A_JOUER;
+        instantFin = null;
+    }
+
+    /**
      * Déclare une issue non normale (forfait, abandon, refus, disqualification)
      * en désignant le joueur fautif. Le vainqueur est automatiquement l'autre
      * joueur ; le fautif marquera 0 point au classement de poule (I.303).
