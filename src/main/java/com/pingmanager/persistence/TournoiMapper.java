@@ -170,6 +170,17 @@ public final class TournoiMapper {
         o.set("conditionsMaintien", ecrireMaintien(t.getConditionsMaintien()));
         o.set("politiqueForfaits", ecrireForfaits(t.getPolitiqueForfaits()));
         o.set("paiement", ecrirePaiement(t.getPaiement()));
+        // Refus d'homologation (facultatif : absent tant qu'il n'y en a pas eu).
+        if (!t.getRefusHomologation().isEmpty()) {
+            Json refus = Json.tableau();
+            for (com.pingmanager.model.RefusHomologation r : t.getRefusHomologation()) {
+                Json jr = Json.objet();
+                jr.set("date", r.date().toString());
+                jr.set("motif", r.motif());
+                refus.add(jr);
+            }
+            o.set("refusHomologation", refus);
+        }
         o.set("infosReglement", ConfigMapper.ecrireInfosReglement(t.getInfosReglement()));
 
         // Juges-arbitres.
@@ -556,6 +567,7 @@ public final class TournoiMapper {
         t.setConditionsMaintien(lireMaintien(o.get("conditionsMaintien")));
         t.setPolitiqueForfaits(lireForfaits(o.get("politiqueForfaits")));
         t.setPaiement(lirePaiement(o.get("paiement")));
+        lireRefusHomologation(t, o.get("refusHomologation"));
         t.setInfosReglement(ConfigMapper.lireInfosReglement(o.get("infosReglement")));
 
         // Juges-arbitres.
@@ -616,6 +628,25 @@ public final class TournoiMapper {
             new com.pingmanager.core.reglement.ServiceReglementTournoi().figer(t);
         } catch (RuntimeException generationImpossible) {
             // Données incomplètes d'un ancien fichier : copie créée plus tard.
+        }
+    }
+
+    /**
+     * Refus d'homologation : absents des anciens fichiers ; une entrée illisible
+     * (date ou motif manquant) est ignorée sans bloquer la relecture.
+     */
+    private static void lireRefusHomologation(Tournoi t, Json refus) {
+        if (refus == null || refus.estNul()) {
+            return;
+        }
+        for (Json jr : refus.elements()) {
+            try {
+                t.enregistrerRefusHomologation(new com.pingmanager.model.RefusHomologation(
+                        java.time.Instant.parse(jr.getString("date", "")),
+                        jr.getString("motif", "")));
+            } catch (RuntimeException illisible) {
+                // entrée incomplète ou corrompue : ignorée
+            }
         }
     }
 
