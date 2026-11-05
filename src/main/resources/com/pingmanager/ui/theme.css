@@ -1452,6 +1452,106 @@
     -fx-padding: 8 12 8 12;
 }
 
+/* Phase finale (VuePhaseFinale) : tableau à élimination et saisie du score.
+   Uniquement des tokens : rendu correct en clair comme en sombre. */
+.pf-arbre {
+    -fx-padding: 4 4 12 4;
+}
+
+.scroll-pane.pf-defilement,
+.scroll-pane.pf-defilement > .viewport,
+.scroll-pane.pf-cote,
+.scroll-pane.pf-cote > .viewport {
+    -fx-background-color: transparent;
+}
+
+.pf-titre-colonne {
+    -fx-text-fill: -primaire;
+}
+
+.pf-case {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 6 10 6 10;
+}
+
+.pf-case.pf-a-jouer {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.pf-case.pf-a-jouer:hover {
+    -fx-background-color: -primaire, -primaire-doux;
+}
+
+.pf-case.pf-termine {
+    -fx-background-color: -bordure, -surface-2;
+}
+
+.pf-case.pf-selectionne {
+    -fx-background-color: -accent, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.pf-case.pf-exempt {
+    -fx-background-color: -fond-app;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-color: -bordure-forte;
+    -fx-border-style: segments(4, 3);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.pf-nom {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -texte;
+}
+
+.pf-inconnu,
+.pf-case.pf-attente .pf-nom {
+    -fx-text-fill: -texte-doux;
+}
+
+.pf-inconnu {
+    -fx-font-style: italic;
+}
+
+.pf-manches {
+    -fx-font-weight: bold;
+    -fx-min-width: 16px;
+    -fx-alignment: center-right;
+    -fx-text-fill: -texte-doux;
+}
+
+.pf-vainqueur .pf-nom,
+.pf-vainqueur .pf-manches {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.pf-aide-case {
+    -fx-font-size: 11px;
+    -fx-text-fill: -texte-doux;
+}
+
+.pf-ligne-podium {
+    -fx-padding: 8 0 8 0;
+}
+
+.badge.pf-place {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-background-color: -primaire-doux;
+    -fx-background-insets: 0;
+    -fx-min-width: 88px;
+    -fx-alignment: center;
+}
+
+.text-field.pf-champ-points {
+    -fx-alignment: center;
+}
+
 .ligne-total {
     -fx-padding: 12 0 0 0;
     -fx-border-color: -bordure transparent transparent transparent;
