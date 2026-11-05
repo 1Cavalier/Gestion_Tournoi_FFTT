@@ -39,6 +39,7 @@ public class Capture extends Application {
     static boolean importer;
     static boolean choix;
     static boolean v2;
+    static boolean jourj;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -51,6 +52,7 @@ public class Capture extends Application {
         importer = java.util.Arrays.asList(a).contains("import");
         choix = java.util.Arrays.asList(a).contains("choix");
         v2 = java.util.Arrays.asList(a).contains("v2");
+        jourj = java.util.Arrays.asList(a).contains("jourj");
         launch(a);
     }
 
@@ -99,6 +101,13 @@ public class Capture extends Application {
         stage.show();
 
         Coquille[] coq = new Coquille[1];
+        if (jourj) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
         if (v2) {
             stage.setWidth(1440);
             stage.setHeight(900);
@@ -349,6 +358,61 @@ public class Capture extends Application {
         }, "jour-j");
         etape(() -> coq[0].afficher("stats"), "page-a-venir");
         etape(() -> coq[0].afficher("tournois"), "tournois-carte", 2500);
+    }
+
+    /**
+     * Jour J du tournoi de démonstration (B011) : écran principal du juge-arbitre,
+     * envoi d'un match, saisie du score, détail d'un tableau. Les boutons absents
+     * (capture « avant ») sont ignorés.
+     */
+    void etapesJourJ(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("gestion");
+            cliquer("Suivre le tournoi");
+        }, "j01-jour-j");
+        etape(() -> defiler(1.0), "j01b-jour-j-bas");
+        etape(() -> { defiler(0); cliquerSiPresent("Ouvrir la salle"); cliquerDebut("Table "); }, "j02-apres-envoi");
+        etape(() -> cliquerSiPresent("Terminer"), "j03-saisie-score");
+        etape(() -> {
+            try {
+                saisir("1", "11-7");
+                saisir("2", "9-11");
+                saisir("3", "11-4");
+                saisir("4", "11-8");
+                cliquerSiPresent("Enregistrer le score");
+            } catch (IllegalStateException autreEditeur) {
+                System.out.println("(saisie non faite : " + autreEditeur.getMessage() + ")");
+            }
+        }, "j04-apres-score");
+        etape(() -> cliquerDebut("Envoyer "), "j05-match-suivant");
+        etape(() -> cliquerSiPresent("C – Toutes séries"), "j06-detail-poules");
+        etape(() -> { cliquerSiPresent("← Jour J"); cliquerSiPresent("F – Open du matin"); }, "j07-detail-arbre");
+    }
+
+    /** Clique le premier bouton dont le texte commence par {@code debut} (s'il existe). */
+    void cliquerDebut(String debut) {
+        List<ButtonBase> bs = new ArrayList<>();
+        collect(scene.getRoot(), ButtonBase.class, b -> {
+            String t = ((Labeled) b).getText();
+            if (t != null && t.startsWith(debut) && !b.isDisabled()) {
+                bs.add(b);
+            }
+        });
+        if (bs.isEmpty()) {
+            System.out.println("(aucun bouton : " + debut + "…)");
+        } else {
+            bs.get(0).fire();
+        }
+    }
+
+    void cliquerSiPresent(String texte) {
+        try {
+            cliquer(texte);
+        } catch (IllegalStateException absent) {
+            System.out.println("(bouton absent : " + texte + ")");
+        }
     }
 
     /** Onglet Tournois (carte, filtres, fiche, inscription, Mes tournois) puis vue Inscriptions du club. */

@@ -154,4 +154,111 @@ class PresentationSalleTest {
         lance.changerStatut(com.pingmanager.model.StatutTournoi.ANNULE);
         assertFalse(PresentationSalle.salleOuverte(lance));
     }
+
+    // ------------------------------------------------------------------
+    // Écran principal du jour J (B011)
+    // ------------------------------------------------------------------
+
+    @Test
+    void ligne_de_chiffres_de_l_ecran_principal() {
+        Tournoi t = tournoi(4);
+        assertEquals("4 tables libres · 0 en cours · 6 matchs proposés",
+                PresentationSalle.resumeLigne(salle.tableauDeBord(t)));
+        salle.proposer(t);
+        String apres = PresentationSalle.resumeLigne(salle.tableauDeBord(t));
+        assertTrue(apres.startsWith("2 tables libres · 2 en cours · "), apres);
+        assertTrue(apres.contains(" bloqués"), "les joueurs en jeu bloquent leurs autres parties : " + apres);
+        assertEquals("Nombre de tables non renseigné", PresentationSalle.resumeLigne(salle.tableauDeBord(tournoi(0))));
+    }
+
+    @Test
+    void envoi_en_un_clic_sur_la_premiere_table_libre() {
+        Tournoi t = tournoi(3);
+        TableauDeBordSalle bord = salle.tableauDeBord(t);
+        assertEquals(1, PresentationSalle.premiereTableLibre(bord).orElseThrow());
+        Match premier = bord.getPrets().get(0).match();
+        salle.affecter(t, premier, 1);
+        assertEquals(2, PresentationSalle.premiereTableLibre(salle.tableauDeBord(t)).orElseThrow());
+        Tournoi une = tournoi(1);
+        salle.proposer(une);
+        assertTrue(PresentationSalle.premiereTableLibre(salle.tableauDeBord(une)).isEmpty());
+    }
+
+    /**
+     * Le geste répété du juge-arbitre sans changer de page : envoyer un match,
+     * saisir le score (la table se libère), enchaîner le match suivant sur la
+     * même table ; puis corriger le score sans que la salle ne bouge.
+     */
+    @Test
+    void envoyer_saisir_le_score_puis_enchainer_le_match_suivant_sur_la_table_liberee() {
+        Tournoi t = tournoi(1);
+        Tableau tab = t.getTableaux().get(0);
+        com.pingmanager.core.SaisieResultatMatch saisie =
+                new com.pingmanager.core.SaisieResultatMatch(() -> Instant.parse("2026-11-14T10:20:00Z"));
+
+        salle.proposer(t);
+        TableauDeBordSalle bord = salle.tableauDeBord(t);
+        Match enJeu = bord.getTables().get(0).match().match();
+        assertTrue(PresentationSalle.suiteSurTable(bord, 1).isEmpty(), "table occupée : rien à enchaîner");
+
+        List<com.pingmanager.model.Manche> score = new java.util.ArrayList<>();
+        for (int i = 0; i < enJeu.getNombreManchesGagnantes(); i++) {
+            score.add(new com.pingmanager.model.Manche(11, 7));
+        }
+        assertTrue(saisie.enregistrerScore(tab, enJeu, score).estEnregistre());
+        ResultatAffectationTable liberee = salle.libererApresResultat(t, enJeu);
+        assertEquals(1, liberee.getNumeroTable());
+
+        bord = salle.tableauDeBord(t);
+        TableauDeBordSalle.MatchSalle suite = PresentationSalle.suiteSurTable(bord, 1).orElseThrow();
+        assertSame(bord.getPrets().get(0), suite, "ordre de l'ordonnanceur respecté");
+        assertTrue(salle.affecter(t, suite.match(), 1).estReussi());
+        assertTrue(PresentationSalle.suiteSurTable(salle.tableauDeBord(t), 1).isEmpty());
+        assertTrue(PresentationSalle.suiteSurTable(salle.tableauDeBord(t), 0).isEmpty(), "aucune table libérée");
+
+        // Correction du premier score : la partie reste jouée, la salle est inchangée.
+        List<com.pingmanager.model.Manche> corrige = new java.util.ArrayList<>();
+        for (int i = 0; i < enJeu.getNombreManchesGagnantes(); i++) {
+            corrige.add(new com.pingmanager.model.Manche(7, 11));
+        }
+        assertTrue(saisie.enregistrerScore(tab, enJeu, corrige).estEnregistre());
+        assertEquals(enJeu.getJoueurB(), enJeu.getVainqueur());
+        assertEquals(1, salle.tableauDeBord(t).nombreTablesOccupees());
+    }
+
+    @Test
+    void joueur_engage_sur_deux_tableaux_jamais_propose_pendant_qu_il_joue() {
+        // 3.3.1.2.2 / règle de la salle : un joueur n'est jamais sur deux tables.
+        Tournoi t = new Tournoi("Open", "Club", LocalDate.of(2026, 11, 14));
+        t.setNombreDeTables(2);
+        Joueur commun = j("L1", "Prénom1", "NOM1");
+        for (String nom : List.of("A", "B")) {
+            Tableau tab = new Tableau(nom, ConfigurationTableau.depuisFormat(RegistreFormats.formatParDefaut()).build());
+            t.ajouterTableau(tab);
+            tab.ouvrirPointage();
+            tab.inscrire(commun);
+            tab.pointer(commun);
+            for (int i = 2; i <= 3; i++) {
+                Joueur autre = j(nom + i, "Prénom" + nom + i, "NOM" + nom + i);
+                tab.inscrire(autre);
+                tab.pointer(autre);
+            }
+            new ServicePointage(t).cloturerPointage(tab);
+            new ServiceLancementTableau(t).lancer(tab, 1L);
+        }
+        Match avecCommun = null;
+        for (TableauDeBordSalle.MatchSalle m : salle.tableauDeBord(t).getPrets()) {
+            if (m.match().getJoueurA().equals(commun) || m.match().getJoueurB().equals(commun)) {
+                avecCommun = m.match();
+                break;
+            }
+        }
+        assertNotNull(avecCommun);
+        assertTrue(salle.affecter(t, avecCommun, 1).estReussi());
+        TableauDeBordSalle bord = salle.tableauDeBord(t);
+        TableauDeBordSalle.MatchSalle suite = PresentationSalle.suiteSurTable(bord, 2).orElseThrow();
+        assertNotEquals(commun, suite.match().getJoueurA());
+        assertNotEquals(commun, suite.match().getJoueurB());
+        assertEquals(2, PresentationSalle.premiereTableLibre(bord).orElseThrow());
+    }
 }
