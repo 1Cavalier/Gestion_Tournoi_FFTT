@@ -28,4 +28,10 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+**developpeur (2026-11-05)**
+- Fait : modèle `AgendaCompte`, `EvenementAgenda` (builder, UID stable), `OrigineEvenement` ; cœur `ServiceAgenda` (dates personnelles avec motifs `ResultatAgenda`, `synchroniserTournoi` : tournoi présent tant que la licence est inscrite ou en attente sur un tableau, retiré sinon), `ExportIcs` (CRLF, échappement 3.3.11, pliage 75 octets UTF-8, UID, DTSTAMP UTC par `Horloge`, journée entière en `VALUE=DATE`) ; `ServiceInscriptionEnLigne.inscrire(…, agenda)` et nouvelle `desinscrire(…)` (tout ou rien, refusée hors phase INSCRIPTION, repêchage par `Tableau.desinscrire`) ; persistance `DepotApplication.agendaDe` + champ JSON facultatif `agendas` ; `ContexteApplication.inscrireEnLigne` alimente l'agenda du compte connecté ; `ui.ecran.PresentationAgenda` (sans JavaFX).
+- Tests : 28 nouveaux (`ServiceAgendaTest` 11, `ExportIcsTest` 7, `AgendaCompteTest` 4, `AgendaRoundTripTest` 3, `PresentationAgendaTest` 3) ; 715 au total, 0 échec.
+- Pour la suite : aucun écran n'appelle encore `desinscrire` ni `ExportIcs` (tâches Accueil / Mes tournois). Le modèle `Tournoi` n'a pas d'identifiant stable : clé d'agenda = n° d'homologation, sinon nom|1er jour|club (renommer un tournoi non homologué crée une nouvelle entrée).
+- Questions pour Quentin : (1) un tournoi en **liste d'attente seulement** reste-t-il dans l'agenda ? (choix prudent : oui, avec la mention « Liste d'attente ») ; (2) jusqu'à quand un joueur peut-il se **désinscrire en ligne** (choix : tant que le tableau est en phase d'inscription, sans date limite ni remboursement) ? (3) une date de tournoi peut-elle être retirée à la main de l'agenda (choix : non, elle suit l'inscription) ?
+
 ## Résultat
