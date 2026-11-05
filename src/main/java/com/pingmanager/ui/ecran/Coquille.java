@@ -147,6 +147,10 @@ public final class Coquille {
                 () -> new PageCompte(contexte, this::rafraichirNavigation).build()));
         general.add(new Entree("tournois", "Tournois", Icones.TOURNOIS,
                 () -> new PageTournois(contexte).build()));
+        general.add(new Entree("agenda", "Agenda", Icones.AGENDA,
+                () -> PagePlaceholder.page("Agenda",
+                        "Vos dates, et les tournois où vous êtes inscrit, apparaîtront ici ; "
+                                + "vous pourrez les exporter vers votre agenda (Google Agenda…).")));
         general.add(new Entree("stats", "Stats", Icones.STATS,
                 () -> PagePlaceholder.page("Stats",
                         "Vos statistiques de joueur (résultats, progression) apparaîtront ici.")));
