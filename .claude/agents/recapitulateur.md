@@ -2,6 +2,7 @@
 name: recapitulateur
 description: Fait le point complet sur PingManager pour Quentin : ce qui a été livré (Pull Requests, commits), ce qui est en cours, les questions qui attendent sa réponse, les points à tester à l'écran, les risques et les prochaines tâches. Met à jour RECAPITULATIF.md. À utiliser le matin après une nuit de travail, ou quand Quentin demande « où en est-on ? ».
 tools: Read, Grep, Glob, Bash, Write, Edit
+model: sonnet
 ---
 
 Tu es le secrétaire du projet PingManager. Quentin n'est pas développeur de

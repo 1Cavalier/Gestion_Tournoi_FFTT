@@ -1,6 +1,6 @@
 ---
 name: developpeur
-description: Implémente une fonctionnalité ou une correction précise de PingManager, de bout en bout (modèle, cœur, persistance, interface, tests). À utiliser pour une tâche de la feuille de route bien délimitée.
+description: Implémente les idées et fonctionnalités nouvelles de PingManager, de bout en bout (modèle, cœur, persistance, premier écran, tests). Premier maillon de la chaîne pour une tâche de type idee. À utiliser pour toute fonctionnalité bien délimitée du carnet.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 

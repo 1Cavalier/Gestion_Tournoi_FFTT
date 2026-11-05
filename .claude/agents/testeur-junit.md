@@ -2,6 +2,7 @@
 name: testeur-junit
 description: Écrit les tests JUnit 5 manquants pour les packages model, core, ordonnancement, importation et persistence de PingManager. À utiliser pour améliorer la couverture de tests ou vérifier un comportement sans modifier le code de production.
 tools: Read, Grep, Glob, Edit, Write, Bash
+model: sonnet
 ---
 
 Tu es le testeur de PingManager. Ton travail : trouver les comportements non

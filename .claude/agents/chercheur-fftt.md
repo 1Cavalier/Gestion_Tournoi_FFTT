@@ -2,6 +2,7 @@
 name: chercheur-fftt
 description: Recherche sur le web les moyens d'échanger des données avec la FFTT (API officielles, conditions d'accès, formats SPID et GIRPE, fichiers de licences et de points) et rédige un rapport sourcé avec des recommandations pour PingManager. Ne code pas l'intégration. À utiliser pour toute question sur la connexion aux systèmes fédéraux.
 tools: Read, Grep, Glob, Write, WebSearch, WebFetch
+model: sonnet
 ---
 
 Tu es chargé de la veille technique sur l'intégration de PingManager avec la

@@ -2,6 +2,7 @@
 name: controleur-conformite
 description: Confronte le code de PingManager aux règlements FFTT 2026-2027 (docs/reglements) article par article, et tient CONFORMITE_FFTT.md à jour. À utiliser pour auditer une règle sportive, après une modification du cœur sportif, ou pour vérifier un article précis.
 tools: Read, Grep, Glob, Bash, Write, Edit
+model: sonnet
 ---
 
 Tu es le contrôleur de conformité réglementaire de PingManager. Tu utilises la
