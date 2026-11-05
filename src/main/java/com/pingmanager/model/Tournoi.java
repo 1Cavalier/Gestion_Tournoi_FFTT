@@ -120,6 +120,14 @@ public final class Tournoi {
     private DocumentReference feuilleEngagement;    // ancienne feuille d'engagement papier (relue, plus proposée)
     private DocumentReference imagePromotionnelle;  // affiche / visuel du tournoi (facultatif)
     private OptionsReglement optionsReglement = OptionsReglement.parDefaut();
+    /**
+     * Copies figées à la publication : le règlement généré (absent pour un
+     * règlement déposé, déjà figé par nature) et la feuille d'engagement. Après
+     * publication, un horaire ou une dotation modifiés ne changent plus ces
+     * documents.
+     */
+    private DocumentReglement reglementFige;
+    private DocumentReglement feuilleEngagementFigee;
     private PhasePoints phasePoints;
     /** Mode de préparation (complète ou import), choisi après la création du brouillon. */
     private ModePreparation modePreparation = ModePreparation.COMPLETE;
@@ -556,7 +564,12 @@ public final class Tournoi {
         return optionsReglement;
     }
 
+    /**
+     * @throws IllegalStateException si le tournoi est publié : son règlement est
+     *         figé (passer par le service du règlement pour un refus motivé)
+     */
     public void setOptionsReglement(OptionsReglement options) {
+        exigerReglementModifiable();
         this.optionsReglement = options == null ? OptionsReglement.parDefaut() : options;
     }
 
@@ -612,8 +625,64 @@ public final class Tournoi {
         return reglementDocument;
     }
 
+    /**
+     * @throws IllegalStateException si le tournoi est publié : le fichier déposé
+     *         ne peut plus être remplacé ni retiré
+     */
     public void setReglementDocument(DocumentReference reglementDocument) {
+        exigerReglementModifiable();
         this.reglementDocument = reglementDocument;
+    }
+
+    /** Message du refus de toute modification du règlement d'un tournoi publié. */
+    public static final String MOTIF_REGLEMENT_FIGE =
+            "Le tournoi est publié : son règlement et sa feuille d'engagement sont figés "
+                    + "et ne peuvent plus être modifiés.";
+
+    /** @return vrai si le règlement (options, fichier déposé) peut encore être modifié. */
+    public boolean reglementModifiable() {
+        return statut != StatutTournoi.PUBLIE;
+    }
+
+    private void exigerReglementModifiable() {
+        if (!reglementModifiable()) {
+            throw new IllegalStateException(MOTIF_REGLEMENT_FIGE);
+        }
+    }
+
+    /** @return le règlement généré figé à la publication, ou {@code null}. */
+    public DocumentReglement getReglementFige() {
+        return reglementFige;
+    }
+
+    /**
+     * Enregistre la copie figée du règlement généré.
+     *
+     * @throws IllegalStateException si le tournoi est publié et a déjà une copie :
+     *         elle ne se remplace pas
+     */
+    public void setReglementFige(DocumentReglement document) {
+        if (!reglementModifiable() && reglementFige != null) {
+            throw new IllegalStateException(MOTIF_REGLEMENT_FIGE);
+        }
+        this.reglementFige = document;
+    }
+
+    /** @return la feuille d'engagement figée à la publication, ou {@code null}. */
+    public DocumentReglement getFeuilleEngagementFigee() {
+        return feuilleEngagementFigee;
+    }
+
+    /**
+     * Enregistre la copie figée de la feuille d'engagement.
+     *
+     * @throws IllegalStateException si le tournoi est publié et a déjà une copie
+     */
+    public void setFeuilleEngagementFigee(DocumentReglement document) {
+        if (!reglementModifiable() && feuilleEngagementFigee != null) {
+            throw new IllegalStateException(MOTIF_REGLEMENT_FIGE);
+        }
+        this.feuilleEngagementFigee = document;
     }
 
     public DocumentReference getFeuilleEngagement() {

@@ -157,6 +157,13 @@ public final class TournoiMapper {
         o.set("feuilleEngagement", ConfigMapper.ecrireDocument(t.getFeuilleEngagement()));
         o.set("imagePromotionnelle", ConfigMapper.ecrireDocument(t.getImagePromotionnelle()));
         o.set("optionsReglement", ecrireOptions(t.getOptionsReglement()));
+        // Copies figées à la publication (facultatives : absentes avant publication).
+        if (t.getReglementFige() != null) {
+            o.set("reglementFige", DocumentReglementMapper.ecrire(t.getReglementFige()));
+        }
+        if (t.getFeuilleEngagementFigee() != null) {
+            o.set("feuilleEngagementFigee", DocumentReglementMapper.ecrire(t.getFeuilleEngagementFigee()));
+        }
         o.set("phasePoints", ecrireEnum(t.getPhasePoints()));
         o.set("modePreparation", ecrireEnum(t.getModePreparation()));
         o.set("quotasTableaux", ecrireQuotas(t.getQuotasTableaux()));
@@ -539,6 +546,8 @@ public final class TournoiMapper {
         t.setFeuilleEngagement(ConfigMapper.lireDocument(o.get("feuilleEngagement")));
         t.setImagePromotionnelle(ConfigMapper.lireDocument(o.get("imagePromotionnelle")));
         t.setOptionsReglement(lireOptions(o.get("optionsReglement")));
+        t.setReglementFige(DocumentReglementMapper.lire(o.get("reglementFige")));
+        t.setFeuilleEngagementFigee(DocumentReglementMapper.lire(o.get("feuilleEngagementFigee")));
         t.setPhasePoints(lireEnum(o.get("phasePoints"), com.pingmanager.model.PhasePoints.class));
         com.pingmanager.model.ModePreparation mode = lireEnum(o.get("modePreparation"),
                 com.pingmanager.model.ModePreparation.class);
@@ -588,7 +597,26 @@ public final class TournoiMapper {
 
         // Statut : appliqué en dernier via transitions successives depuis BROUILLON.
         restaurerStatut(t, lireEnum(o.get("statut"), StatutTournoi.class));
+        figerSiPublieSansCopie(t);
         return t;
+    }
+
+    /**
+     * Tournoi publié enregistré avant les copies figées : le règlement et la
+     * feuille d'engagement sont générés à la relecture et gardés (ils seront
+     * écrits au prochain enregistrement). Un échec de génération n'empêche pas
+     * la relecture : le service du règlement réessaiera à la première demande.
+     */
+    private static void figerSiPublieSansCopie(Tournoi t) {
+        if (t.getStatut() != StatutTournoi.PUBLIE
+                || (t.getReglementFige() != null && t.getFeuilleEngagementFigee() != null)) {
+            return;
+        }
+        try {
+            new com.pingmanager.core.reglement.ServiceReglementTournoi().figer(t);
+        } catch (RuntimeException generationImpossible) {
+            // Données incomplètes d'un ancien fichier : copie créée plus tard.
+        }
     }
 
     private static void restaurerStatut(Tournoi t, StatutTournoi cible) {

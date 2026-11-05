@@ -1,10 +1,11 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
-import com.pingmanager.core.reglement.DocumentReglement;
+import com.pingmanager.model.DocumentReglement;
 import com.pingmanager.core.reglement.GenerateurReglement;
 import com.pingmanager.core.reglement.GenerateurFeuilleEngagement;
 import com.pingmanager.core.reglement.RenduPdfReglement;
+import com.pingmanager.core.reglement.ServiceReglementTournoi;
 import com.pingmanager.model.ArticleOptionnel;
 import com.pingmanager.model.CategorieAge;
 import com.pingmanager.model.Paiement;
@@ -65,6 +66,7 @@ final class EcranComplementaire {
     private final Runnable retour;
     private final BorderPane racine = new BorderPane();
     private final GenerateurReglement generateur = new GenerateurReglement();
+    private final ServiceReglementTournoi reglements = new ServiceReglementTournoi();
 
     // Règlement
     private final ToggleGroup mode = new ToggleGroup();
@@ -129,7 +131,7 @@ final class EcranComplementaire {
 
         VBox page = Ui.page(820, enTete,
                 Ui.legende(EnumSet.of(Niveau.OBLIGATOIRE_PUBLICATION, Niveau.RECOMMANDE, Niveau.OPTIONNEL)),
-                carteReglement(message), carteImage(), carteConditions(), carteSite(), cartePaiement(),
+                reglementOuLien(message), carteImage(), carteConditions(), carteSite(), cartePaiement(),
                 message, Ui.actions(valider));
         racine.setCenter(Ui.defilant(page));
         majEtatReglement();
@@ -138,6 +140,18 @@ final class EcranComplementaire {
     // ==================================================================
     // Règlement
     // ==================================================================
+
+    /**
+     * Avant publication : la carte d'édition du règlement. Après : le règlement
+     * est figé, il ne reste qu'un lien vers la version publiée (lecture seule).
+     */
+    private Node reglementOuLien(Label message) {
+        if (tournoi.reglementModifiable()) {
+            return carteReglement(message);
+        }
+        return VueReglementFige.lien(tournoi, dossier, enregistrer, () -> racine.setCenter(
+                VueReglementFige.page(tournoi, dossier, enregistrer, this::afficher, "← Complémentaire")));
+    }
 
     private Node carteReglement(Label message) {
         OptionsReglement o = tournoi.getOptionsReglement();
@@ -401,6 +415,9 @@ final class EcranComplementaire {
 
     /** « Prêt » ou « N éléments à compléter », calculé avec les options en cours de saisie. */
     private void majEtatReglement() {
+        if (!tournoi.reglementModifiable()) {
+            return; // règlement figé : pas de carte d'édition
+        }
         etatReglement.getStyleClass().removeAll("message-succes", "rappel-attention");
         OptionsReglement o;
         try {
@@ -421,7 +438,7 @@ final class EcranComplementaire {
     }
 
     private void afficherApercu() {
-        DocumentReglement d = generateur.generer(tournoi);
+        DocumentReglement d = reglements.reglement(tournoi);
         Button btnRetour = Ui.boutonLien("← Complémentaire");
         btnRetour.setOnAction(e -> afficher());
         Label message = Ui.message();
@@ -467,12 +484,12 @@ final class EcranComplementaire {
 
     /** Écrit le règlement généré au format PDF (utilisé aussi hors dialogue). */
     void ecrirePdf(Path cible) throws IOException {
-        RenduPdfReglement.ecrire(generateur.generer(tournoi), cible);
+        RenduPdfReglement.ecrire(reglements.reglement(tournoi), cible);
     }
 
     /** Écrit la feuille d'engagement remplie au format PDF (utilisé aussi hors dialogue). */
     void ecrireFeuilleEngagement(Path cible) throws IOException {
-        RenduPdfReglement.ecrire(new GenerateurFeuilleEngagement().generer(tournoi), cible,
+        RenduPdfReglement.ecrire(reglements.feuilleEngagement(tournoi), cible,
                 GenerateurFeuilleEngagement.FORMAT_TITRE);
     }
 
@@ -647,15 +664,18 @@ final class EcranComplementaire {
 
     /** Applique le formulaire au tournoi (sans enregistrer). */
     private void appliquer() {
-        OptionsReglement o = lireOptions();
         Paiement paiement = lirePaiement();
-        if (modeDepose.isSelected() && cheminReglement == null) {
-            throw new IllegalArgumentException("Règlement déposé : choisissez le fichier PDF du règlement.");
+        // Tournoi publié : règlement figé, le formulaire du règlement n'est pas affiché.
+        if (tournoi.reglementModifiable()) {
+            OptionsReglement o = lireOptions();
+            if (modeDepose.isSelected() && cheminReglement == null) {
+                throw new IllegalArgumentException("Règlement déposé : choisissez le fichier PDF du règlement.");
+            }
+            reglements.modifierOptions(tournoi, o);
+            reglements.deposer(tournoi, cheminReglement == null ? null
+                    : new DocumentReference("Règlement", cheminReglement));
         }
-        tournoi.setOptionsReglement(o);
         tournoi.setPaiement(paiement);
-        tournoi.setReglementDocument(cheminReglement == null ? null
-                : new DocumentReference("Règlement", cheminReglement));
         tournoi.setImagePromotionnelle(cheminImage == null ? null
                 : new DocumentReference("Image promotionnelle", cheminImage));
         tournoi.setAccepteLicencePromotionnelle(licencePromo.isSelected());

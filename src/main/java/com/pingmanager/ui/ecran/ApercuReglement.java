@@ -1,11 +1,11 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.reglement.DocumentReglement;
-import com.pingmanager.core.reglement.DocumentReglement.Article;
-import com.pingmanager.core.reglement.DocumentReglement.Bloc;
-import com.pingmanager.core.reglement.DocumentReglement.Grille;
-import com.pingmanager.core.reglement.DocumentReglement.Liste;
-import com.pingmanager.core.reglement.DocumentReglement.Paragraphe;
+import com.pingmanager.model.DocumentReglement;
+import com.pingmanager.model.DocumentReglement.Article;
+import com.pingmanager.model.DocumentReglement.Bloc;
+import com.pingmanager.model.DocumentReglement.Grille;
+import com.pingmanager.model.DocumentReglement.Liste;
+import com.pingmanager.model.DocumentReglement.Paragraphe;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;

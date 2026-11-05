@@ -1,5 +1,6 @@
 package com.pingmanager.core;
 
+import com.pingmanager.core.reglement.ServiceReglementTournoi;
 import com.pingmanager.model.GradeJugeArbitre;
 import com.pingmanager.model.GrilleRecompenses;
 import com.pingmanager.model.InfosReglement;
@@ -137,7 +138,8 @@ public final class ServiceCycleTournoi {
     }
 
     /**
-     * Publie un tournoi homologué : ouvre les inscriptions.
+     * Publie un tournoi homologué : ouvre les inscriptions et fige le règlement
+     * généré et la feuille d'engagement ({@link ServiceReglementTournoi#figer}).
      *
      * @param tournoi le tournoi à publier (doit être en HOMOLOGUE)
      * @return {@link ResultatTransition#effectuee()} en cas de succès, sinon le
@@ -157,6 +159,9 @@ public final class ServiceCycleTournoi {
         // La dotation globale est calculée automatiquement à partir des tableaux.
         tournoi.setDotationGlobale(calculerDotationGlobale(tournoi));
 
+        // Le règlement publié et la feuille d'engagement sont figés : un horaire ou
+        // une dotation modifiés ensuite ne les changent plus.
+        new ServiceReglementTournoi().figer(tournoi);
         tournoi.changerStatut(StatutTournoi.PUBLIE);
         return ResultatTransition.effectuee();
     }

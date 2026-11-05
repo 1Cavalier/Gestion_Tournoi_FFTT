@@ -120,6 +120,7 @@ L'écran est en deux parties (16 octobre 2026).
 
 **Règlement du tournoi** (🟠, exigé pour publier)
 - Deux modes : **généré** à partir des informations saisies (proposé par défaut), ou **déposé** par le club (fichier PDF).
+- Après publication, règlement et feuille d'engagement sont **figés** (non modifiables, même si un horaire change ensuite) ; ils restent accessibles par un lien « Règlement » (aperçu et PDF).
 - Règlement généré, adaptatif (`core.reglement.GenerateurReglement`), articles numérotés selon les données :
   Organisation · Homologation · Participants (public IX.102, licence promotionnelle IX.101, saison, **phase des points**) · Tableaux (+ clause d'annulation sous N inscrits à la date choisie) · Nombre de tableaux par joueur (identique ou par jour) · Déroulement · Inscriptions (site, dates, liste d'attente, sur place, **paiement HelloAsso**) · Droits d'engagement (+ **remboursement selon les trois moments du forfait**) · Dotations (+ réduction selon remplissage ou absents, IX.108) · Pointage · Juge-arbitrage (IX.109) · Matériel (3.2.1.1) · Tenue et comportement · Résultats (IX.107) · Responsabilité · **articles ajoutés** · Acceptation · Contact.
 - **Articles ajoutés** (`ArticleOptionnel`, menu « Ajouter un article », chacun une seule fois sauf l'article libre, « Retirer » sur chaque bloc) :
