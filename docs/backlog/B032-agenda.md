@@ -17,10 +17,10 @@ Section 1 et 3 du cahier des charges. Cœur et persistance de l'**agenda du comp
 
 ## Critères de fin
 
-- [ ] ajout et retrait automatiques testés
-- [ ] fichier .ics valide (testé : en-têtes, échappement, fin de ligne CRLF)
-- [ ] persistance rétrocompatible
-- [ ] `mvn -B test` à 0 échec
+- [x] ajout et retrait automatiques testés
+- [x] fichier .ics valide (testé : en-têtes, échappement, fin de ligne CRLF)
+- [x] persistance rétrocompatible
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -48,3 +48,9 @@ Voir le cahier des charges v0.
 - Aucun défaut bloquant.
 
 ## Résultat
+
+Fait, en attente de fusion (étape `integrateur`) : agenda du compte (dates
+personnelles, ajout et retrait automatiques à l'inscription et à la désinscription
+complète, export `.ics`), persistance facultative. Pas d'écran dans cette tâche.
+Trois questions pour Quentin dans le journal `docs/journal/2026-11-05-tache-B032-agenda.md`
+(liste d'attente, délai de désinscription, retrait manuel). 735 tests, 0 échec.
