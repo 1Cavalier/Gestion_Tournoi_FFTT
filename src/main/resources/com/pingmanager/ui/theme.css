@@ -1,90 +1,147 @@
 /*
- * PingManager — thème unique (clair + sombre).
+ * PingManager — thème unique (clair + sombre), charte v2 « blanc et bleu ».
  *
- * Règle d'or : les règles n'utilisent QUE les tokens ci-dessous, jamais un hex
- * brut. La bascule clair/sombre consiste à changer la classe du root
+ * Règle d'or : les règles n'utilisent QUE les variables ci-dessous, jamais un
+ * hex brut. La bascule clair/sombre consiste à changer la classe du root
  * (theme-clair / theme-sombre) — voir com.pingmanager.ui.ecran.Theme.
  *
- * Les tokens suivent CHARTE_GRAPHIQUE.md (§1). Quatre tokens techniques s'y
- * ajoutent : -bordure-forte (survol des champs), -sur-primaire / -sur-attention
- * (texte posé sur un fond primaire / ambre), -anneau* (halo de focus), et
- * -entete-texte-doux. La police est posée par Theme (pile système).
+ * Référence : skill .claude/skills/charte-graphique. Les noms historiques des
+ * variables (-primaire, -surface…) sont conservés : tous les écrans en
+ * héritent. Toute nouvelle variable est déclarée dans LES DEUX thèmes, avec un
+ * contraste du texte d'au moins 4,5:1 sur son fond.
+ *
+ * Une section par domaine, avec un titre en commentaire, pour que plusieurs
+ * sessions puissent travailler en parallèle sans se gêner.
  */
 
 /* =====================================================================
-   1. Tokens
+   1. Variables (palette v2)
    ===================================================================== */
 
 .root,
 .root.theme-clair {
-    -fond-app:          #F5F8FB;
+    -fond-app:          #F5F7FB;
     -surface:           #FFFFFF;
-    -surface-2:         #EEF3F8;
-    -bordure:           #D4DEE7;
-    -bordure-forte:     #A9B9C7;
-    -texte:             #2F4558;
-    -texte-doux:        #5C6E7D;
-    -primaire:          #335F8A;
-    -primaire-fort:     #294E73;
-    -primaire-doux:     #E3EDF5;
+    -surface-2:         #EEF2FB;
+    -bordure:           #DCE3F0;
+    -bordure-forte:     #B8C4DC;
+    -texte:             #0F1B3D;
+    -texte-doux:        #5B6785;
+    -primaire:          #1D3FCF;
+    -primaire-fort:     #1632A8;
+    -primaire-doux:     #E8EDFD;
     -sur-primaire:      #FFFFFF;
-    -nav-actif-texte:   #294E73;
-    -accent:            #55D5E0;
-    -entete-fond:       #2F4558;
-    -entete-texte:      #F5F8FB;
-    -entete-texte-doux: #B7C6D3;
+    -nav-actif-texte:   #1632A8;
+    -accent:            #22B8CF;
+    -entete-fond:       #FFFFFF;
+    -entete-texte:      #0F1B3D;
+    -entete-texte-doux: #5B6785;
     -attention:         #F6B12D;
     -sur-attention:     #2B2108;
-    -succes:            #2E8B6F;
-    -erreur:            #C0453B;
-    -anneau:            rgba(51, 95, 138, 0.28);
-    -anneau-erreur:     rgba(192, 69, 59, 0.26);
-    -ombre:             rgba(23, 36, 46, 0.16);
+    /* Vert et rouge un peu plus foncés que la cible pour tenir 4,5:1 en texte. */
+    -succes:            #157A52;
+    -erreur:            #C8372F;
+    -anneau:            rgba(29, 63, 207, 0.22);
+    -anneau-erreur:     rgba(200, 55, 47, 0.24);
+    -ombre:             rgba(15, 27, 61, 0.10);
+    -ombre-forte:       rgba(15, 27, 61, 0.18);
+
+    /* Pastilles de statut : fond doux + texte foncé. */
+    -succes-doux:       #E3F5EC;
+    -succes-texte:      #12714B;
+    -attention-doux:    #FDF1D8;
+    -attention-texte:   #7A4D00;
+    -erreur-doux:       #FCE7E5;
+    -erreur-texte:      #A4271F;
+    -info-doux:         #E8EDFD;
+    -info-texte:        #1632A8;
+    -neutre-doux:       #EEF1F6;
+    -neutre-texte:      #4A5570;
+
+    /* Avatars à initiales : petite gamme de bleus (texte -sur-avatar). */
+    -avatar-1:          #1D3FCF;
+    -avatar-2:          #2F5BD8;
+    -avatar-3:          #0E6FA8;
+    -avatar-4:          #3B4FB8;
+    -avatar-5:          #155E9C;
+    -sur-avatar:        #FFFFFF;
+
+    /* Panneau de marque de l'écran de connexion. */
+    -vitrine-fond:      #1D3FCF;
+    -vitrine-texte:     #FFFFFF;
+    -vitrine-texte-doux:#D5DDFB;
+    -vitrine-plateau:   #2F56E0;
+    -vitrine-trait:     #FFFFFF;
 
     /* Code couleur des dépendances (rond devant le libellé). */
-    -dep-homologation:  #335F8A;
-    -dep-publication:   #1C97A3;
-    -dep-recommande:    #8FB3D0;
-    -dep-optionnel:     #A9B9C7;
+    -dep-homologation:  #1D3FCF;
+    -dep-publication:   #1597AB;
+    -dep-recommande:    #8FA3E0;
+    -dep-optionnel:     #B8C4DC;
 }
 
 .root.theme-sombre {
-    -fond-app:          #17242E;
-    -surface:           #22333F;
-    -surface-2:         #2B3E4B;
-    -bordure:           #37505F;
-    -bordure-forte:     #50697A;
-    -texte:             #E8EFF4;
-    -texte-doux:        #A7B9C5;
-    -primaire:          #4C93C9;
-    -primaire-fort:     #63A8D8;
-    -primaire-doux:     #2C4A5F;
-    -sur-primaire:      #0E1A22;
-    -nav-actif-texte:   #E8EFF4;
+    -fond-app:          #0E1424;
+    -surface:           #161E33;
+    -surface-2:         #1E2843;
+    -bordure:           #2A3656;
+    -bordure-forte:     #3B4A70;
+    -texte:             #E7ECF7;
+    -texte-doux:        #9AA6C3;
+    -primaire:          #6B88FF;
+    -primaire-fort:     #8BA2FF;
+    -primaire-doux:     #1E2B57;
+    -sur-primaire:      #0B1020;
+    -nav-actif-texte:   #AFC0FF;
     -accent:            #55D5E0;
-    -entete-fond:       #111C24;
-    -entete-texte:      #E8EFF4;
-    -entete-texte-doux: #9DB0BE;
+    -entete-fond:       #121A2E;
+    -entete-texte:      #E7ECF7;
+    -entete-texte-doux: #9AA6C3;
     -attention:         #F6B12D;
     -sur-attention:     #2B2108;
-    -succes:            #49B894;
-    -erreur:            #E0756B;
-    -anneau:            rgba(76, 147, 201, 0.38);
-    -anneau-erreur:     rgba(224, 117, 107, 0.32);
-    -ombre:             rgba(0, 0, 0, 0.45);
+    -succes:            #3FC48E;
+    -erreur:            #F07167;
+    -anneau:            rgba(107, 136, 255, 0.34);
+    -anneau-erreur:     rgba(240, 113, 103, 0.32);
+    -ombre:             rgba(0, 0, 0, 0.35);
+    -ombre-forte:       rgba(0, 0, 0, 0.50);
 
-    -dep-homologation:  #6F8FF0;
+    -succes-doux:       #12352A;
+    -succes-texte:      #7FE0B5;
+    -attention-doux:    #3A2C0E;
+    -attention-texte:   #F8CB73;
+    -erreur-doux:       #3D1A1C;
+    -erreur-texte:      #FFA59D;
+    -info-doux:         #1E2B57;
+    -info-texte:        #AFC0FF;
+    -neutre-doux:       #262F47;
+    -neutre-texte:      #C3CBDD;
+
+    -avatar-1:          #5B7BFF;
+    -avatar-2:          #6FA8FF;
+    -avatar-3:          #55C2E0;
+    -avatar-4:          #8C9CFF;
+    -avatar-5:          #7FB4F0;
+    -sur-avatar:        #0B1020;
+
+    -vitrine-fond:      #14204A;
+    -vitrine-texte:     #E7ECF7;
+    -vitrine-texte-doux:#AFC0FF;
+    -vitrine-plateau:   #1D3FCF;
+    -vitrine-trait:     #E7ECF7;
+
+    -dep-homologation:  #6B88FF;
     -dep-publication:   #55D5E0;
-    -dep-recommande:    #9CC0DC;
-    -dep-optionnel:     #6B8394;
+    -dep-recommande:    #8FA3E0;
+    -dep-optionnel:     #56648A;
 }
 
 /* =====================================================================
-   2. Base : on branche Modena sur nos tokens (popups, listes, sélection…)
+   2. Base : on branche Modena sur nos variables (popups, listes, sélection…)
    ===================================================================== */
 
 .root {
-    -fx-font-size: 13px;
+    -fx-font-size: 13.5px;
     -fx-background-color: -fond-app;
 
     -fx-base: -surface;
@@ -121,6 +178,16 @@
 .separator:vertical .line {
     -fx-border-color: transparent transparent transparent -bordure;
     -fx-border-width: 0 0 0 1;
+}
+
+/* Infobulles : sombres et arrondies dans les deux thèmes. */
+.tooltip {
+    -fx-background-color: -texte;
+    -fx-text-fill: -surface;
+    -fx-background-radius: 6;
+    -fx-font-size: 12px;
+    -fx-padding: 6 10 6 10;
+    -fx-effect: dropshadow(gaussian, -ombre-forte, 10, 0, 0, 3);
 }
 
 /* Défilement : transparent (on voit le fond de l'app), barres fines. */
@@ -172,12 +239,98 @@
     -fx-padding: 0;
 }
 
+/* Listes génériques (ListView) : surface, survol et sélection douce. */
+.list-view {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 1;
+}
+
+.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: -surface;
+    -fx-text-fill: -texte;
+    -fx-padding: 8 12 8 12;
+}
+
+.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background-color: -surface-2;
+}
+
+.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -primaire-doux;
+    -fx-text-fill: -nav-actif-texte;
+}
+
+/* Onglets (TabPane) : soulignement bleu de l'onglet actif. */
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: -bordure, -fond-app;
+    -fx-background-insets: 0, 0 0 1 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-text-fill: -texte-doux;
+    -fx-font-weight: bold;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover > .tab-container > .tab-label {
+    -fx-text-fill: -texte;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -primaire, -fond-app;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: -primaire;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+/* Menus contextuels et déroulants. */
+.context-menu {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, -ombre-forte, 14, 0, 0, 4);
+}
+
+.menu-item {
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+}
+
+.menu-item > .label {
+    -fx-text-fill: -texte;
+}
+
+.menu-item:focused,
+.menu-item:hover {
+    -fx-background-color: -primaire-doux;
+}
+
+.menu-item:focused > .label,
+.menu-item:hover > .label {
+    -fx-text-fill: -nav-actif-texte;
+}
+
 /* =====================================================================
    3. Typographie
    ===================================================================== */
 
 .titre {
-    -fx-font-size: 20px;
+    -fx-font-size: 22px;
     -fx-font-weight: bold;
 }
 
@@ -197,7 +350,7 @@
 }
 
 .texte {
-    -fx-font-size: 13px;
+    -fx-font-size: 13.5px;
 }
 
 .discret {
@@ -212,6 +365,13 @@
 
 .libelle-champ {
     -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+}
+
+/* Petit titre en capitales espacées (rubriques, intertitres). */
+.surtitre {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
@@ -238,21 +398,23 @@
    ===================================================================== */
 
 .page {
-    -fx-padding: 24 28 32 28;
+    -fx-padding: 24 32 32 32;
 }
 
+/* Carte : surface blanche, rayon 12, bordure 1 px, ombre très légère. */
 .carte {
     -fx-background-color: -bordure, -surface;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 10, 9;
-    -fx-padding: 18 20 20 20;
+    -fx-background-radius: 12, 11;
+    -fx-padding: 20 22 20 22;
+    -fx-effect: dropshadow(gaussian, -ombre, 6, 0, 0, 1);
 }
 
 /* Ligne d'une liste dans une carte : simple filet au-dessus. */
 .ligne-liste {
     -fx-border-color: -bordure transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
-    -fx-padding: 10 0 10 0;
+    -fx-padding: 12 0 12 0;
 }
 
 /* Groupe de champs dans un formulaire : séparé du précédent par un filet. */
@@ -268,42 +430,46 @@
 }
 
 /* =====================================================================
-   5. Badges et états de complétude
+   5. Badges, pastilles et états de complétude
    ===================================================================== */
 
+/* Badge neutre (compteur, petite étiquette). */
 .badge {
-    -fx-font-size: 11px;
+    -fx-font-size: 11.5px;
     -fx-font-weight: bold;
-    -fx-text-fill: -texte-doux;
-    -fx-background-color: -bordure, -surface-2;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 6, 5;
-    -fx-padding: 2 8 2 8;
+    -fx-text-fill: -neutre-texte;
+    -fx-background-color: -neutre-doux;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999;
+    -fx-padding: 2 9 2 9;
 }
 
-/* Pastilles d'état (badge coloré). */
+/* États de complétude, présentés en pastilles (fond doux + texte foncé). */
 .badge.etat-attention {
-    -fx-text-fill: -sur-attention;
-    -fx-background-color: -attention;
-    -fx-background-insets: 0;
-    -fx-background-radius: 6;
+    -fx-text-fill: -attention-texte;
+    -fx-background-color: -attention-doux;
 }
 
 .badge.etat-ok {
-    -fx-text-fill: -succes;
-    -fx-background-color: -succes, -surface;
-    -fx-background-insets: 0, 1;
+    -fx-text-fill: -succes-texte;
+    -fx-background-color: -succes-doux;
 }
 
 .badge.etat-recommande {
-    -fx-text-fill: -nav-actif-texte;
-    -fx-background-color: -primaire-doux;
-    -fx-background-insets: 0;
+    -fx-text-fill: -info-texte;
+    -fx-background-color: -info-doux;
 }
 
 .badge.etat-optionnel {
     -fx-font-weight: normal;
 }
+
+/* Pastilles de statut (Ui.pastille(texte, StatutPastille)). */
+.badge.pastille-succes   { -fx-text-fill: -succes-texte;    -fx-background-color: -succes-doux; }
+.badge.pastille-attention{ -fx-text-fill: -attention-texte; -fx-background-color: -attention-doux; }
+.badge.pastille-erreur   { -fx-text-fill: -erreur-texte;    -fx-background-color: -erreur-doux; }
+.badge.pastille-info     { -fx-text-fill: -info-texte;      -fx-background-color: -info-doux; }
+.badge.pastille-neutre   { -fx-text-fill: -neutre-texte;    -fx-background-color: -neutre-doux; }
 
 /* Symbole en tête de ligne (✓ ● ○). */
 .symbole-etat {
@@ -340,25 +506,28 @@
 }
 
 /* =====================================================================
-   6. Boutons
+   6. Boutons (rayon 8, hauteur 36)
    ===================================================================== */
 
+/* Secondaire par défaut : blanc bordé. */
 .button {
     -fx-text-fill: -texte;
     -fx-font-weight: bold;
-    -fx-background-color: -bordure, -surface;
+    -fx-background-color: -bordure-forte, -surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
-    -fx-padding: 7 14 7 14;
+    -fx-padding: 9 16 9 16;
+    -fx-min-height: 36px;
     -fx-cursor: hand;
 }
 
 .button:hover {
-    -fx-background-color: -bordure-forte, -surface-2;
+    -fx-text-fill: -primaire;
+    -fx-background-color: -primaire, -primaire-doux;
 }
 
 .button:armed {
-    -fx-background-color: -bordure-forte, -primaire-doux;
+    -fx-background-color: -primaire-fort, -primaire-doux;
 }
 
 .button:focused {
@@ -368,7 +537,7 @@
 }
 
 .button:focused:hover {
-    -fx-background-color: -anneau, -primaire, -surface-2;
+    -fx-background-color: -anneau, -primaire, -primaire-doux;
 }
 
 .button:disabled {
@@ -381,9 +550,11 @@
     -fx-background-color: -primaire;
     -fx-background-insets: 0;
     -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, -anneau, 6, 0, 0, 2);
 }
 
 .button.bouton-primaire:hover {
+    -fx-text-fill: -sur-primaire;
     -fx-background-color: -primaire-fort;
 }
 
@@ -410,8 +581,10 @@
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 2 0 2 0;
+    -fx-min-height: 0;
     -fx-cursor: hand;
     -fx-underline: false;
+    -fx-effect: null;
 }
 
 .button.bouton-lien:hover,
@@ -434,8 +607,23 @@
     -fx-border-color: transparent;
 }
 
+/* Boutons à bascule hors segment (rares) : même allure que le secondaire. */
+.toggle-button {
+    -fx-text-fill: -texte;
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-cursor: hand;
+}
+
+.toggle-button:selected {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+}
+
 /* =====================================================================
-   7. Champs de saisie
+   7. Champs de saisie (hauteur 36, rayon 8, halo bleu au focus)
    ===================================================================== */
 
 .text-field,
@@ -444,14 +632,14 @@
     -fx-prompt-text-fill: -texte-doux;
     -fx-highlight-fill: -primaire;
     -fx-highlight-text-fill: -sur-primaire;
-    -fx-background-color: -bordure, -surface;
+    -fx-background-color: -bordure-forte, -surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
-    -fx-padding: 7 10 7 10;
+    -fx-padding: 8 12 8 12;
 }
 
 .text-field:hover {
-    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-color: -primaire, -surface;
 }
 
 .text-field:focused {
@@ -472,7 +660,7 @@
     -fx-prompt-text-fill: -texte-doux;
     -fx-highlight-fill: -primaire;
     -fx-highlight-text-fill: -sur-primaire;
-    -fx-background-color: -bordure, -surface;
+    -fx-background-color: -bordure-forte, -surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
     -fx-padding: 1;
@@ -491,7 +679,7 @@
 
 /* Listes déroulantes. */
 .combo-box-base {
-    -fx-background-color: -bordure, -surface;
+    -fx-background-color: -bordure-forte, -surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
     -fx-padding: 0;
@@ -499,7 +687,7 @@
 }
 
 .combo-box-base:hover {
-    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-color: -primaire, -surface;
 }
 
 .combo-box-base:focused,
@@ -512,7 +700,7 @@
 .combo-box > .list-cell {
     -fx-text-fill: -texte;
     -fx-background-color: transparent;
-    -fx-padding: 7 4 7 10;
+    -fx-padding: 8 4 8 12;
 }
 
 .combo-box-base > .arrow-button {
@@ -530,14 +718,14 @@
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
     -fx-padding: 4;
-    -fx-effect: dropshadow(gaussian, -ombre, 14, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, -ombre-forte, 14, 0, 0, 4);
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
     -fx-text-fill: -texte;
     -fx-background-color: transparent;
     -fx-background-radius: 6;
-    -fx-padding: 6 10 6 10;
+    -fx-padding: 7 10 7 10;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:hover {
@@ -597,63 +785,92 @@
 }
 
 /* =====================================================================
-   8. Coquille : en-tête et navigation
+   8. Coquille : barre du haut et barre latérale (blanches)
    ===================================================================== */
 
-/* Barre ardoise, soulignée d'un filet cyan (la ligne de bord de la table). */
+/* Barre du haut blanche, simple filet en bas. */
 .entete {
-    -fx-background-color: -accent, -entete-fond;
-    -fx-background-insets: 0, 0 0 2 0;
-    -fx-padding: 10 20 12 20;
+    -fx-background-color: -bordure, -entete-fond;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-padding: 10 20 11 20;
+    -fx-min-height: 60px;
 }
 
 .entete .label {
     -fx-text-fill: -entete-texte;
 }
 
+/* Marque : petit carré bleu arrondi avec une balle, puis le nom. */
+.marque-carre {
+    -fx-fill: -primaire;
+}
+
+.marque-balle {
+    -fx-fill: -sur-primaire;
+}
+
 .entete-titre {
-    -fx-font-size: 17px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.entete-separateur {
+    -fx-background-color: -bordure;
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-max-width: 1px;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.entete .entete-page {
+    -fx-text-fill: -entete-texte-doux;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
 
 .entete .entete-utilisateur {
-    -fx-text-fill: -entete-texte-doux;
+    -fx-text-fill: -entete-texte;
+    -fx-font-weight: bold;
 }
 
 .button.bouton-entete {
     -fx-text-fill: -entete-texte;
     -fx-font-weight: normal;
-    -fx-background-color: rgba(255, 255, 255, 0.22), -entete-fond;
+    -fx-background-color: -bordure, -entete-fond;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
-    -fx-padding: 5 12 5 12;
+    -fx-padding: 6 12 6 12;
+    -fx-min-height: 32px;
 }
 
 .button.bouton-entete:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.08);
+    -fx-text-fill: -primaire;
+    -fx-background-color: -primaire, -primaire-doux;
 }
 
 .button.bouton-entete:focused {
-    -fx-background-color: -accent, -entete-fond;
-    -fx-background-insets: 0, 1.5;
-    -fx-background-radius: 8, 6.5;
+    -fx-background-color: -anneau, -primaire, -entete-fond;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
 }
 
+/* Barre latérale blanche à gauche, filet à droite. */
 .nav {
     -fx-background-color: -bordure, -surface;
-    -fx-background-insets: 0, 0 0 0 1;
-    -fx-padding: 16 12 16 12;
+    -fx-background-insets: 0, 0 1 0 0;
+    -fx-padding: 20 12 16 12;
 }
 
 .nav-groupe-titre {
     -fx-text-fill: -texte-doux;
-    -fx-font-size: 12px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-padding: 4 12 4 12;
+    -fx-padding: 4 12 6 12;
 }
 
 .nav-separation {
-    -fx-padding: 8 0 8 0;
+    -fx-padding: 10 0 10 0;
 }
 
 .button.nav-item {
@@ -662,10 +879,14 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 8;
-    -fx-padding: 8 12 8 12;
+    -fx-padding: 9 12 9 12;
+    -fx-min-height: 38px;
+    -fx-graphic-text-gap: 12px;
+    -fx-effect: null;
 }
 
 .button.nav-item:hover {
+    -fx-text-fill: -texte;
     -fx-background-color: -surface-2;
 }
 
@@ -674,64 +895,101 @@
     -fx-background-insets: 0, 2;
 }
 
-/* Entrée active : fond teinté + barre cyan côté contenu. */
+.nav-icone {
+    -fx-fill: -texte-doux;
+}
+
+.button.nav-item:hover .nav-icone {
+    -fx-fill: -texte;
+}
+
+/* Entrée active : fond bleu doux, texte et barre verticale bleus. */
 .button.nav-item.nav-item-actif,
 .button.nav-item.nav-item-actif:hover {
     -fx-text-fill: -nav-actif-texte;
     -fx-font-weight: bold;
-    -fx-background-color: -accent, -primaire-doux;
+    -fx-background-color: -primaire, -primaire-doux;
     -fx-background-insets: 0, 0 0 0 3;
     -fx-background-radius: 8, 0 8 8 0;
 }
 
+.button.nav-item.nav-item-actif .nav-icone {
+    -fx-fill: -primaire;
+}
+
 .button.nav-item.nav-item-actif:focused {
-    -fx-background-color: -accent, -anneau;
+    -fx-background-color: -primaire, -anneau;
 }
 
 /* =====================================================================
    9. Écran de connexion
    ===================================================================== */
 
+/* Panneau de marque bleu roi à gauche. */
 .connexion-vitrine {
-    -fx-background-color: -entete-fond;
-    -fx-padding: 40 40 40 44;
+    -fx-background-color: -vitrine-fond;
+    -fx-padding: 48 44 40 48;
 }
 
 .connexion-vitrine .label {
-    -fx-text-fill: -entete-texte;
+    -fx-text-fill: -vitrine-texte;
 }
 
 .connexion-marque {
-    -fx-font-size: 26px;
+    -fx-font-size: 28px;
     -fx-font-weight: bold;
 }
 
 .connexion-vitrine .connexion-accroche {
-    -fx-text-fill: -entete-texte-doux;
-    -fx-font-size: 14px;
+    -fx-text-fill: -vitrine-texte-doux;
+    -fx-font-size: 15px;
+    -fx-line-spacing: 3px;
 }
 
-/* Table vue de dessus : plateau bleu, lignes cyan, filet clair. */
+.connexion-vitrine .connexion-point {
+    -fx-text-fill: -vitrine-texte;
+    -fx-font-size: 13.5px;
+}
+
+.connexion-vitrine .connexion-pied {
+    -fx-text-fill: -vitrine-texte-doux;
+    -fx-font-size: 12px;
+}
+
+.connexion-puce {
+    -fx-fill: -accent;
+}
+
+.connexion-vitrine .marque-carre {
+    -fx-fill: -vitrine-texte;
+}
+
+.connexion-vitrine .marque-balle {
+    -fx-fill: -vitrine-fond;
+}
+
+/* Table vue de dessus : plateau bleu, lignes et filet clairs. */
 .table-plateau {
-    -fx-fill: -primaire;
-    -fx-stroke: -accent;
+    -fx-fill: -vitrine-plateau;
+    -fx-stroke: -vitrine-trait;
     -fx-stroke-width: 3;
     -fx-stroke-type: inside;
 }
 
 .table-ligne-centrale {
-    -fx-stroke: -accent;
+    -fx-stroke: -vitrine-trait;
     -fx-stroke-width: 1.5;
+    -fx-opacity: 0.7;
 }
 
 .table-filet {
-    -fx-stroke: -entete-texte;
+    -fx-stroke: -accent;
     -fx-stroke-width: 3;
     -fx-stroke-line-cap: butt;
 }
 
 .table-poteau {
-    -fx-fill: -entete-texte;
+    -fx-fill: -accent;
 }
 
 .connexion-zone {
@@ -739,9 +997,13 @@
 }
 
 .connexion-carte {
-    -fx-padding: 28 28 24 28;
+    -fx-padding: 32 32 28 32;
 }
 
+.connexion-titre {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
 
 /* =====================================================================
    10. Code couleur des champs (dépendance + état)
@@ -838,15 +1100,13 @@
 
 /* Badge d'état dans la vue d'ensemble : même code que les cadres. */
 .badge.cadre-ok {
-    -fx-text-fill: -succes;
-    -fx-background-color: -succes, -surface;
-    -fx-background-insets: 0, 1.5;
+    -fx-text-fill: -succes-texte;
+    -fx-background-color: -succes-doux;
 }
 
 .badge.cadre-manquant {
-    -fx-text-fill: -sur-attention;
-    -fx-background-color: -attention;
-    -fx-background-insets: 0;
+    -fx-text-fill: -attention-texte;
+    -fx-background-color: -attention-doux;
 }
 
 .badge.cadre-facultatif {
@@ -1124,24 +1384,27 @@
     -fx-border-width: 1 0 1 1;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
-    -fx-text-fill: -texte;
+    -fx-background-insets: 0;
+    -fx-text-fill: -texte-doux;
     -fx-font-size: 12.5px;
-    -fx-padding: 6 12 6 12;
+    -fx-font-weight: bold;
+    -fx-padding: 7 14 7 14;
     -fx-cursor: hand;
 }
 
 .segment > .toggle-button.segment-premier {
-    -fx-background-radius: 6 0 0 6;
-    -fx-border-radius: 6 0 0 6;
+    -fx-background-radius: 8 0 0 8;
+    -fx-border-radius: 8 0 0 8;
 }
 
 .segment > .toggle-button.segment-dernier {
     -fx-border-width: 1;
-    -fx-background-radius: 0 6 6 0;
-    -fx-border-radius: 0 6 6 0;
+    -fx-background-radius: 0 8 8 0;
+    -fx-border-radius: 0 8 8 0;
 }
 
 .segment > .toggle-button:hover {
+    -fx-text-fill: -texte;
     -fx-background-color: -surface-2;
 }
 
@@ -1185,14 +1448,14 @@
 .progress-bar.jauge > .track {
     -fx-background-color: -surface-2;
     -fx-background-insets: 0;
-    -fx-background-radius: 5;
+    -fx-background-radius: 999;
 }
 
 .progress-bar.jauge > .bar {
     -fx-background-color: -primaire;
     -fx-background-insets: 0;
-    -fx-background-radius: 5;
-    -fx-padding: 4;
+    -fx-background-radius: 999;
+    -fx-padding: 3;
 }
 
 /* Tableau complet : ambre (attention, liste d'attente). */
@@ -1207,12 +1470,13 @@
 .tuile {
     -fx-background-color: -bordure, -surface;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 10, 9;
-    -fx-padding: 12 16 12 16;
+    -fx-background-radius: 12, 11;
+    -fx-padding: 14 18 14 18;
+    -fx-effect: dropshadow(gaussian, -ombre, 6, 0, 0, 1);
 }
 
 .tuile-chiffre {
-    -fx-font-size: 20px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
@@ -1746,97 +2010,179 @@
 }
 
 /* =====================================================================
-   Jour J : salle et tables (EcranSalle)
-   (tokens uniquement : valables en thème clair et sombre)
+   Charte v2 : composants communs (Ui.tuileChiffre, pastille, avatar,
+   ligneElement, blocDate, etatVide, icone)
    ===================================================================== */
 
-.scroll-pane.salle-cote,
-.scroll-pane.salle-cote > .viewport {
-    -fx-background-color: transparent;
-}
-
-/* Carte d'une table : le numéro se lit de loin. */
-.salle-table {
+/* Tuile de chiffre clé. */
+.tuile-cle {
     -fx-background-color: -bordure, -surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 12, 11;
-    -fx-padding: 12 14 14 14;
+    -fx-padding: 16 20 16 20;
+    -fx-effect: dropshadow(gaussian, -ombre, 6, 0, 0, 1);
 }
 
-.salle-table.salle-table-occupee {
-    -fx-background-color: -primaire, -surface;
-    -fx-background-insets: 0, 1 1 1 5;
-}
-
-.salle-table.salle-table-libre {
-    -fx-background-color: -bordure, -surface-2;
-}
-
-/* Table libre survolée pendant un glisser-déposer : prête à recevoir le match. */
-.salle-table.salle-table-survol {
-    -fx-background-color: -primaire, -primaire-doux;
-    -fx-background-insets: 0, 2;
-}
-
-.salle-numero {
-    -fx-font-size: 34px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -primaire;
-}
-
-.salle-table-libre .salle-numero {
-    -fx-text-fill: -texte-doux;
-}
-
-.salle-joueur {
-    -fx-font-size: 15px;
+.tuile-cle-valeur {
+    -fx-font-size: 27px;
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
 
-.salle-duree {
-    -fx-font-size: 13px;
+.tuile-cle-libelle {
+    -fx-font-size: 12.5px;
     -fx-text-fill: -texte-doux;
 }
 
-.salle-duree.salle-duree-longue {
-    -fx-text-fill: -erreur;
+/* Tuile mise en avant : filet bleu à gauche. */
+.tuile-cle.tuile-cle-accent {
+    -fx-background-color: -primaire, -bordure, -surface;
+    -fx-background-insets: 0, 0 0 0 3, 1 1 1 4;
+    -fx-background-radius: 12, 0 12 12 0, 0 11 11 0;
+}
+
+.tuile-cle.tuile-cle-accent .tuile-cle-valeur {
+    -fx-text-fill: -primaire;
+}
+
+/* Avatar rond aux initiales. */
+.avatar {
+    -fx-min-width: 32px;
+    -fx-pref-width: 32px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-background-radius: 999;
+    -fx-background-color: -avatar-1;
+}
+
+.avatar.avatar-grand {
+    -fx-min-width: 40px;
+    -fx-pref-width: 40px;
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
+}
+
+.avatar.avatar-teinte-1 { -fx-background-color: -avatar-1; }
+.avatar.avatar-teinte-2 { -fx-background-color: -avatar-2; }
+.avatar.avatar-teinte-3 { -fx-background-color: -avatar-3; }
+.avatar.avatar-teinte-4 { -fx-background-color: -avatar-4; }
+.avatar.avatar-teinte-5 { -fx-background-color: -avatar-5; }
+
+.avatar .avatar-initiales {
+    -fx-text-fill: -sur-avatar;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
 }
 
-/* Colonne des matchs prêts et bloqués. */
-.salle-pret {
-    -fx-border-color: -bordure transparent transparent transparent;
-    -fx-border-width: 1 0 0 0;
-    -fx-padding: 10 6 10 6;
+.avatar.avatar-grand .avatar-initiales {
+    -fx-font-size: 14px;
 }
 
-.salle-pret:hover {
+/* Ligne de liste v2 (avatar ou date + textes + éléments à droite). */
+.ligne-element {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 10 12 10;
+}
+
+.ligne-element:hover {
     -fx-background-color: -surface-2;
 }
 
-.salle-pret.salle-bloque,
-.salle-pret.salle-bloque:hover {
-    -fx-background-color: transparent;
+.ligne-element.ligne-element-premiere {
+    -fx-border-color: transparent;
 }
 
-.salle-pret.salle-bloque .texte {
-    -fx-text-fill: -texte-doux;
-}
-
-/* Poules : partie en cours sur une table. */
-.ligne-match.ligne-match-en-cours {
+.ligne-element.ligne-element-choisie {
     -fx-background-color: -primaire-doux;
 }
 
-/* Tableau final : case d'un match en cours sur une table. */
-.pf-case.pf-en-cours {
-    -fx-background-color: -primaire, -primaire-doux;
-    -fx-background-insets: 0, 1 1 1 4;
+.ligne-element-titre {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
 }
 
-.badge.pf-table {
-    -fx-text-fill: -sur-primaire;
-    -fx-background-color: -primaire;
-    -fx-background-insets: 0;
+.ligne-element-detail {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -texte-doux;
+}
+
+.ligne-element-points {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Bloc date (jour + mois). */
+.bloc-date {
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 10;
+    -fx-min-width: 48px;
+    -fx-pref-width: 48px;
+    -fx-padding: 6 0 6 0;
+}
+
+.bloc-date .bloc-date-jour {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+.bloc-date .bloc-date-mois {
+    -fx-text-fill: -nav-actif-texte;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+}
+
+/* État vide : zone teintée, phrase qui explique ce qui apparaîtra. */
+.etat-vide {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 10;
+    -fx-padding: 18 20 18 20;
+}
+
+.etat-vide .etat-vide-texte {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Icônes dessinées. */
+.icone {
+    -fx-fill: -texte-doux;
+}
+
+/* =====================================================================
+   Charte v2 : accueil, gestion des tournois
+   ===================================================================== */
+
+.page-chapeau {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 14px;
+}
+
+/* Tournoi en cours : carte avec filet bleu et fond bleu très doux. */
+.carte.carte-en-cours {
+    -fx-background-color: -primaire, -bordure, -surface;
+    -fx-background-insets: 0, 0 0 0 4, 1 1 1 5;
+    -fx-background-radius: 12, 0 12 12 0, 0 11 11 0;
+}
+
+.carte-en-cours .en-cours-nom {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+/* Raccourcis de l'accueil : boutons pleine largeur alignés à gauche. */
+.button.raccourci {
+    -fx-alignment: center-left;
+    -fx-graphic-text-gap: 12px;
+}
+
+.button.raccourci .icone {
+    -fx-fill: -primaire;
+}
+
+.etat-vide.etat-vide-compact {
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 8;
 }

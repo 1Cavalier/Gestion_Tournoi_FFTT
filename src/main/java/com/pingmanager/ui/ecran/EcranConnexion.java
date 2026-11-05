@@ -21,9 +21,9 @@ import javafx.scene.shape.Rectangle;
 /**
  * Écran d'entrée : se connecter, ou créer un compte (email + mot de passe).
  *
- * <p>À gauche, un panneau ardoise avec la marque et une table vue de dessus
- * (plateau bleu, lignes cyan : la palette de la charte vient de là). À droite,
- * un seul formulaire, avec une bascule entre les deux modes. En cas de
+ * <p>À gauche, un panneau bleu roi avec la marque, trois points forts et une
+ * table vue de dessus (charte v2). À droite, sur le fond clair, une carte
+ * blanche avec un seul formulaire et une bascule entre les deux modes. En cas de
  * succès, le callback {@code onConnexionReussie} est déclenché : l'application
  * affiche alors l'accueil.</p>
  */
@@ -44,6 +44,7 @@ public final class EcranConnexion {
     private Node blocIdentite;
 
     private final Label titre = new Label("Connexion");
+    private final Label chapeau = new Label();
     private final Label erreur = Ui.message();
     private final Button bouton = Ui.boutonPrimaire("Se connecter");
     private final Hyperlink bascule = new Hyperlink("Pas encore de compte ? Créer un compte");
@@ -54,7 +55,9 @@ public final class EcranConnexion {
     }
 
     public Parent build() {
-        titre.getStyleClass().add("sous-titre");
+        titre.getStyleClass().add("connexion-titre");
+        chapeau.getStyleClass().add("discret");
+        chapeau.setWrapText(true);
 
         bouton.setDefaultButton(true);
         bouton.setMaxWidth(Double.MAX_VALUE);
@@ -77,9 +80,10 @@ public final class EcranConnexion {
                 bouton);
         formulaire.setFillWidth(true);
 
-        VBox carte = new VBox(18, titre, formulaire, bascule);
+        VBox enteteCarte = new VBox(6, titre, chapeau);
+        VBox carte = new VBox(22, enteteCarte, formulaire, bascule);
         carte.getStyleClass().addAll("carte", "connexion-carte");
-        carte.setMaxWidth(380);
+        carte.setMaxWidth(420);
         carte.setMaxHeight(Region.USE_PREF_SIZE);
 
         appliquerMode(); // configure la visibilité initiale (mode connexion)
@@ -91,22 +95,44 @@ public final class EcranConnexion {
         return new HBox(vitrine(), zone);
     }
 
-    /** Panneau de marque : nom, accroche, et la table vue de dessus. */
+    /** Panneau de marque : nom, accroche, points forts et la table vue de dessus. */
     private static Node vitrine() {
         Label marque = new Label("PingManager");
         marque.getStyleClass().add("connexion-marque");
+        HBox ligneMarque = new HBox(12, Coquille.marque(), marque);
+        ligneMarque.setAlignment(Pos.CENTER_LEFT);
+
         Label accroche = new Label("Préparer, homologuer et faire vivre\nvos tournois de tennis de table.");
         accroche.getStyleClass().add("connexion-accroche");
         accroche.setWrapText(true);
 
+        VBox points = new VBox(10,
+                point("Création et homologation du tournoi"),
+                point("Inscriptions en ligne et listes d'attente"),
+                point("Pointage, poules et tableaux le jour J"));
+        VBox.setMargin(points, new javafx.geometry.Insets(18, 0, 0, 0));
+
         StackPane table = new StackPane(dessinTable());
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        VBox v = new VBox(10, marque, accroche, table);
+        Label pied = new Label("Tournois individuels homologués FFTT");
+        pied.getStyleClass().add("connexion-pied");
+
+        VBox v = new VBox(12, ligneMarque, accroche, points, table, pied);
         v.getStyleClass().add("connexion-vitrine");
-        v.setPrefWidth(380);
-        v.setMinWidth(320);
+        v.setPrefWidth(440);
+        v.setMinWidth(340);
         return v;
+    }
+
+    private static Node point(String texte) {
+        javafx.scene.shape.Circle puce = new javafx.scene.shape.Circle(3.5);
+        puce.getStyleClass().add("connexion-puce");
+        Label l = new Label(texte);
+        l.getStyleClass().add("connexion-point");
+        HBox h = new HBox(10, puce, l);
+        h.setAlignment(Pos.CENTER_LEFT);
+        return h;
     }
 
     /**
@@ -155,6 +181,9 @@ public final class EcranConnexion {
         }
 
         titre.setText(creation ? "Créer un compte" : "Connexion");
+        chapeau.setText(creation
+                ? "Quelques informations pour commencer. Vous lierez votre licence ensuite."
+                : "Accédez à vos tournois et à ceux de votre club.");
         bouton.setText(creation ? "Créer mon compte" : "Se connecter");
         bascule.setText(creation
                 ? "Déjà un compte ? Se connecter"

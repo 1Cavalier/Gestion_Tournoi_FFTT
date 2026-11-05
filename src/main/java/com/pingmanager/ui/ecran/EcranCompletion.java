@@ -165,13 +165,16 @@ final class EcranCompletion {
                 ? Ui.pastille("Complet", Ui.ETAT_OK)
                 : Ui.pastille(manquants + (manquants > 1 ? " manquants" : " manquant"),
                         Ui.ETAT_ATTENTION);
-        pastille.setMinWidth(92);
+        // Colonne de largeur fixe : la pastille garde sa taille, les textes restent alignés.
+        HBox colonne = new HBox(pastille);
+        colonne.setMinWidth(92);
+        colonne.setPrefWidth(92);
         String phrase = manquants == 0 ? siComplet
                 : (manquants > 1 ? manquants + " éléments obligatoires " : "1 élément obligatoire ")
                         + siManquant;
         VBox textes = new VBox(2, Ui.gras(etape), Ui.discret(phrase));
         HBox.setHgrow(textes, Priority.ALWAYS);
-        HBox l = Ui.ligne(14, pastille, textes);
+        HBox l = Ui.ligne(14, colonne, textes);
         l.getStyleClass().add("recap-ligne");
         return l;
     }

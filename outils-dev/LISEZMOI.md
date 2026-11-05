@@ -10,3 +10,7 @@ Maven Central est inaccessible dans la session : on compile avec `javac` et les 
 - `./run.sh <dossier> onglet` : captures de l'onglet Tournois (carte, filtres, fiche, inscription, Mes tournois) et de la vue Inscriptions du club.
 
 Ces fichiers ne font pas partie de l'application (non compilés par Maven).
+- `./run.sh <dossier> v2 [sombre]` : écrans de référence de la charte v2 à 1440 px (fichiers `<écran>-clair.png` / `<écran>-sombre.png`).
+- Jars du dépôt Maven local (après `mvn -B test`) : `FX`, `PDF` et `ECRAN` se passent par variables d'environnement, par exemple
+  `FX=$(ls ~/.m2/repository/org/openjfx/javafx-{base,controls,graphics,web,media}/21.0.5/*-linux.jar | paste -sd:)`,
+  `PDF=…/pdfbox-2.0.29.jar:…/fontbox-2.0.29.jar:…/commons-logging-1.2.jar`, `ECRAN=1600x1000x24` (écran Xvfb plus large que la fenêtre de 1440).

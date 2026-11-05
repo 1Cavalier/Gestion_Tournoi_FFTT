@@ -38,6 +38,7 @@ public class Capture extends Application {
     static boolean onglet;
     static boolean importer;
     static boolean choix;
+    static boolean v2;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -49,6 +50,7 @@ public class Capture extends Application {
         onglet = java.util.Arrays.asList(a).contains("onglet");
         importer = java.util.Arrays.asList(a).contains("import");
         choix = java.util.Arrays.asList(a).contains("choix");
+        v2 = java.util.Arrays.asList(a).contains("v2");
         launch(a);
     }
 
@@ -97,6 +99,13 @@ public class Capture extends Application {
         stage.show();
 
         Coquille[] coq = new Coquille[1];
+        if (v2) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesV2(coq);
+            lancer(0);
+            return;
+        }
         if (choix) {
             stage.setWidth(1360);
             stage.setHeight(880);
@@ -314,6 +323,32 @@ public class Capture extends Application {
             coq[0].afficher("supervision");
         }, "b11-supervision");
         etape(() -> cliquerN("Ouvrir", 2), "b12-supervision-ouvert");
+    }
+
+    /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
+    void etapesV2(Coquille[] coq) {
+        etape(() -> scene.setRoot(new EcranConnexion(ctx, () -> { }).build()), "connexion");
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+        }, "accueil");
+        etape(() -> coq[0].afficher("profil"), "profil");
+        etape(() -> coq[0].afficher("gestion"), "gestion-tournois");
+        etape(() -> defiler(1.0), "gestion-tournois-bas");
+        etape(() -> {
+            coq[0].afficher("gestion");
+            cliquer("Nouveau tournoi");
+        }, "nouveau-tournoi");
+        etape(() -> {
+            coq[0].afficher("gestion");
+            cliquer("Compléter");
+        }, "vue-ensemble-tournoi");
+        etape(() -> {
+            coq[0].afficher("gestion");
+            cliquer("Suivre le tournoi");
+        }, "jour-j");
+        etape(() -> coq[0].afficher("stats"), "page-a-venir");
+        etape(() -> coq[0].afficher("tournois"), "tournois-carte", 2500);
     }
 
     /** Onglet Tournois (carte, filtres, fiche, inscription, Mes tournois) puis vue Inscriptions du club. */
@@ -583,7 +618,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : "") + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : (v2 ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
