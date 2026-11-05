@@ -48,3 +48,10 @@ Aucune pour l'instant.
   la copie est régénérée par `figerSiPublieSansCopie` ; les 3 tests rouges du vérificateur passent. Mineurs non traités.
 
 ## Résultat
+
+- Fait : après publication, règlement et feuille d'engagement figés (copies dans le JSON du tournoi, rétrocompatible), modification refusée par le cœur (`IllegalStateException`, `Tournoi.MOTIF_REGLEMENT_FIGE`) ; à l'écran, lien « Règlement » (aperçu en lecture et PDF) à la place de la grande carte (`VueReglementFige`). Avant publication, inchangé.
+- Critères : refus par le cœur testé (`ReglementFigeContournementTest`, `ServiceReglementTournoiTest`) ; copie figée toujours rendue après publication (`ServiceReglementTournoiTest`, côté cœur ; l'écran reste à voir) ; `mvn -B test` vert (643 tests, GitHub Actions).
+- Non vérifié : la vue allégée n'a pas pu être vue à l'écran en session cloud (captures avant / après à faire par Quentin).
+- Question ouverte : tournoi publié puis annulé, redevient modifiable (voir journal).
+- Suites : repérage fragile de la ligne « Règlement » dans `EcranCompletion`, classe CSS `page-reglement-fige` non définie, `setFeuilleEngagement` / `setInfosReglement` non gardés après publication.
+- Journal : `docs/journal/2026-11-05-tache-B010-reglement-apres-publication.md`.
