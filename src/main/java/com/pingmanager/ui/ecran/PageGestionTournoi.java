@@ -97,9 +97,12 @@ public final class PageGestionTournoi {
     }
 
     private Node sectionEnCours(List<Resume> tournois) {
+        // Priorité au tournoi dont le jour J a commencé (un tableau en pointage ou lancé),
+        // sinon le premier tournoi publié.
         Resume enCours = tournois.stream()
-                .filter(r -> r.statut == StatutTournoi.PUBLIE)
-                .findFirst().orElse(null);
+                .filter(r -> r.jourJEntame)
+                .findFirst()
+                .orElse(tournois.stream().filter(r -> r.statut == StatutTournoi.PUBLIE).findFirst().orElse(null));
 
         if (enCours == null) {
             return Ui.carte("Tournoi en cours",
@@ -109,7 +112,8 @@ public final class PageGestionTournoi {
         Label nom = Ui.gras(enCours.nom);
         Label meta = Ui.discret(enCours.descriptifLong);
         Button suivre = Ui.boutonPrimaire("Suivre le tournoi");
-        suivre.setDisable(true); // branché à l'étape « déroulé »
+        suivre.setOnAction(e -> racine.setCenter(new EcranJourJ(contexte, enCours.fichier, this::afficherAccueil,
+                "← Gestion des tournois").build()));
         VBox infos = new VBox(4, nom, meta);
         HBox.setHgrow(infos, Priority.ALWAYS);
         return Ui.carte("Tournoi en cours", Ui.ligne(16, infos, suivre));
@@ -362,11 +366,14 @@ public final class PageGestionTournoi {
     // ==================================================================
 
     private record Resume(String nom, StatutTournoi statut, String descriptifCourt,
-                          String descriptifLong, Path fichier, com.pingmanager.model.ModePreparation mode) {
+                          String descriptifLong, Path fichier, com.pingmanager.model.ModePreparation mode,
+                          boolean jourJEntame) {
 
         static Resume depuis(Tournoi t, Path fichier) {
             String nom = (t.getNom() == null || t.getNom().isBlank()) ? "Sans titre" : t.getNom();
-            return new Resume(nom, t.getStatut(), court(t), lng(t), fichier, t.getModePreparation());
+            boolean entame = t.getStatut() != StatutTournoi.ANNULE && t.getTableaux().stream()
+                    .anyMatch(x -> x.getStatut() != com.pingmanager.model.StatutTableau.INSCRIPTION);
+            return new Resume(nom, t.getStatut(), court(t), lng(t), fichier, t.getModePreparation(), entame);
         }
 
         private static String court(Tournoi t) {

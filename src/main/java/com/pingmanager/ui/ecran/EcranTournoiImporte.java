@@ -53,6 +53,11 @@ final class EcranTournoiImporte {
                         Ui.discret("Préparé hors de PingManager : importez les tableaux et les joueurs, vérifiez, "
                                 + "puis gérez le tournoi en salle comme les autres.")),
                 carteEtapes(), carteInformations(), carteImport(), carteTableaux(), carteChangerMode());
+        if (EcranJourJ.estPropose(tournoi)) {
+            page.getChildren().add(2, EcranJourJ.carteAcces(tournoi,
+                    () -> racine.setCenter(new EcranJourJ(contexte, fichier, this::afficher,
+                            "← Tournoi importé").build())));
+        }
         racine.setCenter(Ui.defilant(page));
     }
 

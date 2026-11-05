@@ -129,6 +129,36 @@ final class Ui {
         return h;
     }
 
+    /** Tuile de chiffre clé : grand nombre, libellé discret dessous. */
+    static VBox tuile(String chiffre, String libelle) {
+        VBox v = new VBox(2, label(chiffre, "tuile-chiffre"), label(libelle, "discret"));
+        v.getStyleClass().add("tuile");
+        v.setMinWidth(Region.USE_PREF_SIZE);
+        return v;
+    }
+
+    /**
+     * Encart de confirmation en ligne, pour une action qui ne se défait pas
+     * (clôture du pointage, tirage au sort) : une phrase qui dit ce qui va se
+     * passer, puis le bouton qui confirme et celui qui renonce.
+     */
+    static VBox encartConfirmation(String texte, Button confirmer, Button renoncer) {
+        Label l = new Label(texte);
+        l.setWrapText(true);
+        l.getStyleClass().add("texte");
+        VBox v = new VBox(10, l, actions(confirmer, renoncer));
+        v.getStyleClass().add("encart-confirmation");
+        return v;
+    }
+
+    /** Encart d'information (fond doux, filet primaire à gauche), sans couleur d'alerte. */
+    static Label encartInfo(String texte) {
+        Label l = label(texte, "encart-info");
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
+        return l;
+    }
+
     /** Région extensible qui pousse la suite d'une HBox vers la droite. */
     static Region espace() {
         Region r = new Region();
@@ -173,6 +203,11 @@ final class Ui {
         Label l = label(s, "aide");
         l.setWrapText(true);
         return l;
+    }
+
+    /** Libellé de champ seul (même style que dans {@link #champEtiquete}). */
+    static Label libelleChamp(String s) {
+        return label(s, "libelle-champ");
     }
 
     /** En-tête de colonne d'un petit tableau. */
