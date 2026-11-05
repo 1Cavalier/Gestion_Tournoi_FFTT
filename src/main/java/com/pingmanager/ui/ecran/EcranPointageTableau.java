@@ -418,8 +418,68 @@ final class EcranPointageTableau {
     // ------------------------------------------------------------------
 
     private Node carteTirage() {
-        // Tirage au sort : étape suivante.
-        return new VBox();
+        if (tableau.getStatut() == StatutTableau.INSCRIPTION) {
+            return new VBox();
+        }
+        if (tableau.getStatut() != StatutTableau.POINTAGE) {
+            Button voir = Ui.boutonPrimaire("Voir les poules");
+            voir.setOnAction(e -> versPoules.accept(tableau));
+            Long graine = tableau.getGrainePoules();
+            return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Tirage au sort des poules"), voir),
+                    Ui.discret(graine == null ? "Tirage effectué (graine non conservée dans ce fichier)."
+                            : "Tirage effectué avec la graine " + graine + "."));
+        }
+        ResultatVerificationLancement verif = lancement.verifierLancement(tableau);
+        VBox corps = new VBox(10);
+        Label etat = Ui.discret(PresentationJourJ.motifLancement(verif));
+        corps.getChildren().add(etat);
+        if (!tableau.pointageEstCloture()) {
+            return Ui.carte("Tirage au sort des poules", corps);
+        }
+
+        TextField graine = Ui.champ("Graine du tirage");
+        graine.setText(graineProposee);
+        graine.getStyleClass().add("champ-graine");
+        graine.setMaxWidth(180);
+        Button lancer = Ui.boutonPrimaire("Lancer le tirage au sort…");
+        lancer.setDisable(ferme() || !PresentationJourJ.tiragePossible(verif));
+        Label erreur = Ui.message();
+        lancer.setOnAction(e -> {
+            Optional<Long> g = PresentationJourJ.lireGraine(graine.getText());
+            if (g.isEmpty()) {
+                Ui.marquerErreur(graine);
+                Ui.erreur(erreur, "La graine doit être un nombre entier positif (par exemple " + graineProposee + ").");
+                return;
+            }
+            Ui.cacher(erreur);
+            if (dejaUneConfirmation(corps)) {
+                return;
+            }
+            Button confirmer = Ui.boutonPrimaire("Faire le tirage");
+            Button renoncer = Ui.boutonSecondaire("Annuler");
+            VBox encart = Ui.encartConfirmation("Le tirage au sort des poules du tableau « " + tableau.getNom()
+                    + " » sera fait avec la graine " + g.get() + ", sur " + verif.getPresents()
+                    + " présents. Il ne pourra pas être refait.", confirmer, renoncer);
+            confirmer.setOnAction(ev -> {
+                try {
+                    lancement.lancer(tableau, g.get());
+                    enregistrer.run();
+                    versPoules.accept(tableau);
+                } catch (IllegalStateException | IllegalArgumentException refus) {
+                    Ui.erreur(erreur, refus.getMessage());
+                }
+            });
+            renoncer.setOnAction(ev -> corps.getChildren().remove(encart));
+            corps.getChildren().add(encart);
+        });
+        VBox blocGraine = Ui.champEtiquete("Graine du tirage", graine);
+        corps.getChildren().addAll(
+                Ui.aide("IX.109 : le juge-arbitre est responsable du tirage au sort. Annoncez cette graine avant de "
+                        + "lancer : avec la même graine et les mêmes présents, PingManager refait exactement le même "
+                        + "tirage, ce qui permet à chacun de le vérifier. Vous pouvez en saisir une autre "
+                        + "(par exemple tirée au sort devant les joueurs)."),
+                blocGraine, Ui.actions(lancer), erreur);
+        return Ui.carte("Tirage au sort des poules", corps);
     }
 
     // ------------------------------------------------------------------
