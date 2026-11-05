@@ -239,7 +239,7 @@ public final class ServiceSalle {
                         PhaseMatch phase = k == 0 ? PhaseMatch.PREMIER_TOUR_TABLEAU : PhaseMatch.TOUR_SUIVANT_TABLEAU;
                         // Demi-finales, finale, petite finale : tours d'au plus deux parties réelles.
                         long reels = tour.getMatchs().stream().filter(m -> !m.estBye()).count();
-                        String importance = reels <= 2 ? tour.getNom() : null;
+                        String importance = reels <= 2 ? "match important : " + tour.getNom() : null;
                         for (Match m : tour.getMatchs()) {
                             ajouter(m, t, tour.getNom(), phase, tour.getNom(), tour.getMatchs(), importance);
                         }

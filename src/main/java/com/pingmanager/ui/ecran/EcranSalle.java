@@ -251,7 +251,8 @@ final class EcranSalle {
         Label nom = Ui.discret(tournoi.getNom() == null ? "" : tournoi.getNom());
         Label chiffres = new Label(PresentationSalle.resumeSalle(bord));
         chiffres.getStyleClass().add("jourj-chiffres");
-        VBox gauche = new VBox(4, t, nom, chiffres);
+        chiffres.setWrapText(true);
+        VBox gauche = new VBox(4, t, nom);
 
         Button proposer = Ui.boutonPrimaire("_Proposer");
         proposer.setMnemonicParsing(true);
@@ -274,6 +275,7 @@ final class EcranSalle {
 
         MenuButton annonce = new MenuButton(PresentationSalle.libelleAnnonce(tournoi.getModeAnnonce()));
         annonce.getStyleClass().add("jourj-annonce-choix");
+        annonce.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         annonce.setTooltip(new Tooltip("Comment annoncer une rencontre envoyée sur une table. Choix mémorisé pour "
                 + "ce tournoi, modifiable ici à tout moment."));
         for (ModeAnnonce m : ModeAnnonce.values()) {
@@ -286,9 +288,9 @@ final class EcranSalle {
         annonce.getItems().addAll(new SeparatorMenuItem(), demander);
 
         HBox actions = Ui.ligne(10, annonce, lancer, proposer);
-        HBox entete = Ui.ligne(16, gauche, Ui.espace(), actions);
-        entete.setAlignment(javafx.geometry.Pos.TOP_LEFT);
-        return entete;
+        HBox haut = Ui.ligne(16, gauche, Ui.espace(), actions);
+        haut.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+        return new VBox(6, haut, chiffres);
     }
 
     /**
@@ -632,19 +634,33 @@ final class EcranSalle {
                 chrono);
         List<String> phrases = PresentationSalle.pourquoi(j, bord);
         Optional<Integer> libre = PresentationSalle.premiereTableLibre(bord);
+        // Une phrase par match, puis la poule (ou le tour) une seule fois, nom surligné.
+        Map<String, VBox> blocs = new java.util.LinkedHashMap<>();
+        Map<String, Engagement> premiers = new java.util.HashMap<>();
         for (int i = 0; i < j.engagements().size(); i++) {
             Engagement e = j.engagements().get(i);
+            String cle = e.match().tableau() + " | " + e.groupe();
+            premiers.putIfAbsent(cle, e);
+            VBox bloc = blocs.computeIfAbsent(cle, k -> {
+                VBox v = new VBox(8);
+                v.getStyleClass().add("jourj-pourquoi");
+                return v;
+            });
             Label phrase = Ui.texte(phrases.get(i));
             phrase.setWrapText(true);
-            VBox bloc = new VBox(8, phrase, groupe(e, j));
-            bloc.getStyleClass().add("jourj-pourquoi");
-            HBox actions = Ui.ligne(8);
+            bloc.getChildren().add(phrase);
             if (e.raison() == TableauDeBordSalle.RaisonAttente.PRET && libre.isPresent() && !ferme()) {
                 int table = libre.get();
                 Button envoyer = Ui.boutonPrimaire("Envoyer à la table " + table);
                 envoyer.setOnAction(x -> affecter(e.match().match(), table));
-                actions.getChildren().add(envoyer);
+                bloc.getChildren().add(envoyer);
             }
+        }
+        for (Map.Entry<String, VBox> entree : blocs.entrySet()) {
+            VBox bloc = entree.getValue();
+            Engagement e = premiers.get(entree.getKey());
+            bloc.getChildren().add(groupe(e, j));
+            HBox actions = Ui.ligne(8);
             if (ouvrirTableau != null) {
                 Button voir = Ui.boutonSecondaire("Voir le tableau");
                 voir.setTooltip(new Tooltip("Ouvrir les poules ou l'arbre de « " + e.match().tableau() + " »"));

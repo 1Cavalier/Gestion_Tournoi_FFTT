@@ -17,10 +17,10 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 7. Sur l'écran du jour J
 
 ## Critères de fin
 
-- [ ] priorités et attente calculées et testées
-- [ ] jour suivant, lancer, terminer, annuler avec confirmation
-- [ ] choix d'annonce mémorisé
-- [ ] captures regardées
+- [x] priorités et attente calculées et testées
+- [x] jour suivant, lancer, terminer, annuler avec confirmation
+- [x] choix d'annonce mémorisé
+- [x] captures regardées
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
@@ -28,5 +28,9 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 7. Sur l'écran du jour J
 Voir le cahier des charges v0.
 
 ## Passations
+
+- `developpeur-jour-j` (2026-11-05) : tout implémenté (cœur `ReglePrioriteSalle`, joueurs en attente, `AnnonceRencontre`, `ModeAnnonce` + JSON ; écran `EcranSalle`/`EcranJourJ` ; présentation testée). 675 → 703 tests verts.
+- Captures regardées (clair et sombre) : `docs/captures/jour-j-v2/apres/` ; démo sur un seul jour, « Jour suivant » non capturé. 4 questions dans le journal.
+- À relire : `EcranSalle` (gros fichier, flux « annonce » avant chaque lancement), `resumeLigne` devenue inutilisée par l'écran.
 
 ## Résultat

@@ -382,6 +382,19 @@ public class Capture extends Application {
             cliquer("Suivre le tournoi");
         }, "j01-jour-j");
         etape(() -> defiler(1.0), "j01b-jour-j-bas");
+        // B037 : annonce, joueurs en attente, lancer un match, annuler, jour suivant.
+        etape(() -> { defiler(0); cliquerDebut("Table "); }, "j10-annonce-question");
+        etape(() -> cliquerSiPresent("SMS"), "j11-annonce-affichee");
+        etape(() -> clicStyle("jourj-joueur-attente", 0), "j12-joueur-pourquoi");
+        etape(() -> clicStyle("jourj-joueur-attente", 0), null);
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); clicStyle("jourj-joueur-attente", 3); },
+                "j12b-joueur-pourquoi-autre");
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); cliquerDebut("_Lancer un match"); }, "j13-lancer-un-match");
+        etape(() -> saisir("Nom d'un joueur ou d'un tableau", "open du"), "j13b-lancer-recherche");
+        etape(() -> { cliquerSiPresent("← Matchs proposés"); cliquerDebut("Annuler"); }, null);
+        etape(() -> defiler(0.6), "j14-annuler-confirmation");
+        etape(() -> { cliquerSiPresent("Non"); cliquerSiPresent("Jour suivant →"); }, "j15-jour-suivant");
+        etape(() -> cliquerSiPresent("← Jour précédent"), null);
         etape(() -> { defiler(0); cliquerSiPresent("Ouvrir la salle"); cliquerDebut("Table "); }, "j02-apres-envoi");
         etape(() -> cliquerSiPresent("Terminer"), "j03-saisie-score");
         etape(() -> {
@@ -398,6 +411,21 @@ public class Capture extends Application {
         etape(() -> cliquerDebut("Envoyer "), "j05-match-suivant");
         etape(() -> cliquerSiPresent("C – Toutes séries"), "j06-detail-poules");
         etape(() -> { cliquerSiPresent("← Jour J"); cliquerSiPresent("F – Open du matin"); }, "j07-detail-arbre");
+    }
+
+    /** Déclenche le clic du n-ième nœud portant la classe de style donnée (lignes cliquables). */
+    void clicStyle(String classe, int rang) {
+        List<javafx.scene.Node> ns = new ArrayList<>();
+        collect(scene.getRoot(), javafx.scene.Node.class, n -> {
+            if (n.getStyleClass().contains(classe) && n.getOnMouseClicked() != null) {
+                ns.add(n);
+            }
+        });
+        if (ns.size() <= rang) {
+            System.out.println("(aucun nœud : " + classe + " #" + rang + ")");
+        } else {
+            ns.get(rang).getOnMouseClicked().handle(null);
+        }
     }
 
     /** Clique le premier bouton dont le texte commence par {@code debut} (s'il existe). */
