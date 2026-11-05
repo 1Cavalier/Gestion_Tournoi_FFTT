@@ -4,10 +4,10 @@ titre: Suivre tous les tableaux d'un tournoi publié, même sans y être inscrit
 type: interface
 priorite: P1
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ui/ecran/FicheTournoi, ui/ecran/PageTournois, ui/ecran/MesTournois, nouvel écran ui/ecran (suivi public), core (vue publique en lecture)]
-branche:
+branche: tache/B027-suivre-tableaux (prise le 2026-11-05)
 pr:
 ---
 
