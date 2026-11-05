@@ -352,6 +352,22 @@ final class Ui {
         return v;
     }
 
+    /**
+     * Encart d'alerte bien visible (fond et filet d'attention) : un titre en
+     * gras puis le texte, à placer <b>avant</b> une action engageante.
+     */
+    static VBox encartAlerte(String titre, String texte) {
+        Label t = label(titre, "encart-alerte-titre");
+        t.setWrapText(true);
+        Label l = label(texte, "encart-alerte-texte");
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
+        VBox v = new VBox(6, t, l);
+        v.getStyleClass().add("encart-alerte");
+        v.setMaxWidth(Double.MAX_VALUE);
+        return v;
+    }
+
     /** Encart d'information (fond doux, filet primaire à gauche), sans couleur d'alerte. */
     static Label encartInfo(String texte) {
         Label l = label(texte, "encart-info");

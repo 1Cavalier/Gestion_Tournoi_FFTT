@@ -5,42 +5,51 @@ import com.pingmanager.core.ResultatLiaisonClub;
 import com.pingmanager.model.AccesClub;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteUtilisateur;
-import com.pingmanager.model.FicheLicence;
+import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.ContexteApplication;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
- * Page « Compte » : identité, liaison à la licence FFTT, et liaison à un ou
- * plusieurs clubs en tant qu'organisateur.
+ * Page « Mon profil » (cahier des charges v0, section 2). Vue mince : le
+ * contenu (libellés, ordre, droits, contrôle de la confirmation) vient de
+ * {@link PresentationProfil}.
+ *
+ * <p>En haut, pour tous : identité et licence FFTT côte à côte, puis les
+ * sections « Tournoi » et « Appel micro ». En bas, bien séparé : le bloc
+ * « Club » (avertissement et confirmation avant liaison, tableau des droits
+ * de chaque club relié, équipe de gestion).</p>
  */
 public final class PageCompte {
 
-    private static final DateTimeFormatter DATE_FR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
     private final ContexteApplication contexte;
     private final Runnable onHabilitationsChangees;
+    private final Consumer<String> naviguer;
 
     private DemandeVerification demandeEnCours;
     private String numeroClubEnCours;
 
     private final VBox boiteLicence = new VBox(10);
-    private final VBox boiteAcces = new VBox(8);
+    private final VBox boiteAcces = new VBox(16);
     private final TextField champNumeroClub = champ("numéro de club", 200);
+    private final CheckBox caseConfirmation = new CheckBox(PresentationProfil.CONFIRMATION);
+    private final Button boutonEnvoyer = Ui.boutonPrimaire("Envoyer le code");
     private final Label messageClub = message();
     private final VBox zoneCode = new VBox(8);
     private final TextField champCode = champ("code reçu", 140);
@@ -50,27 +59,65 @@ public final class PageCompte {
     private boolean demoOuvert = false;
 
     public PageCompte(ContexteApplication contexte, Runnable onHabilitationsChangees) {
+        this(contexte, onHabilitationsChangees, null);
+    }
+
+    /** @param naviguer ouvre une rubrique de la coquille par sa clé (peut être {@code null}) */
+    public PageCompte(ContexteApplication contexte, Runnable onHabilitationsChangees,
+                      Consumer<String> naviguer) {
         this.contexte = contexte;
         this.onHabilitationsChangees = onHabilitationsChangees;
+        this.naviguer = naviguer;
     }
 
     public Parent build() {
         CompteUtilisateur compte = contexte.compteConnecte();
 
-        VBox carteIdentite = carte("Identité",
-                etiquetteValeur("Nom", compte.getNomComplet()),
-                etiquetteValeur("Email", compte.getEmail()));
-
+        // Bloc du haut : identité | licence, puis Tournoi | Appel micro.
+        VBox carteIdentite = Ui.carte(PresentationProfil.TITRE_IDENTITE,
+                grilleChamps(PresentationProfil.identite(
+                        compte.getNom(), compte.getPrenom(), compte.getEmail(), null)));
         remplirLicence();
-        VBox carteLicence = carte("Licence FFTT", boiteLicence);
+        VBox carteLicence = Ui.carte(PresentationProfil.TITRE_LICENCE, boiteLicence);
 
-        VBox carteClubs = carte("Clubs", construireCorpsClub());
+        VBox blocPersonnel = new VBox(20,
+                deuxColonnes(carteIdentite, carteLicence),
+                deuxColonnes(construireCarteTournoi(), construireCarteAppel()));
+        blocPersonnel.getStyleClass().add("profil-bloc-personnel");
 
-        VBox contenu = Ui.page(680, titre("Mon compte"), carteIdentite, carteLicence, carteClubs);
-        if (contexte.estOrganisateur()) {
-            contenu.getChildren().add(construireCarteEquipe());
-        }
+        VBox contenu = Ui.page(1080, titre(PresentationProfil.TITRE), blocPersonnel, construireBlocClub());
         return Ui.defilant(contenu);
+    }
+
+    /** Deux cartes côte à côte, de même largeur et de même hauteur. */
+    private static GridPane deuxColonnes(VBox gauche, VBox droite) {
+        GridPane g = new GridPane();
+        g.setHgap(20);
+        for (int i = 0; i < 2; i++) {
+            ColumnConstraints c = new ColumnConstraints();
+            c.setPercentWidth(50);
+            g.getColumnConstraints().add(c);
+        }
+        gauche.setMaxHeight(Double.MAX_VALUE);
+        droite.setMaxHeight(Double.MAX_VALUE);
+        GridPane.setVgrow(gauche, Priority.ALWAYS);
+        GridPane.setVgrow(droite, Priority.ALWAYS);
+        g.add(gauche, 0, 0);
+        g.add(droite, 1, 0);
+        return g;
+    }
+
+    private static GridPane grilleChamps(List<PresentationProfil.Champ> champs) {
+        GridPane g = new GridPane();
+        g.setHgap(24);
+        g.setVgap(8);
+        for (int i = 0; i < champs.size(); i++) {
+            g.add(discret(champs.get(i).libelle()), 0, i);
+            Label v = new Label(champs.get(i).valeur());
+            v.setWrapText(true);
+            g.add(v, 1, i);
+        }
+        return g;
     }
 
     // Licence ---------------------------------------------------------------
@@ -80,49 +127,8 @@ public final class PageCompte {
         CompteUtilisateur compte = contexte.compteConnecte();
 
         if (compte.aLicenceLiee()) {
-            GridPane fiche = new GridPane();
-            fiche.setHgap(24);
-            fiche.setVgap(8);
-            int r = 0;
-            ligneFiche(fiche, r++, "Licence", compte.getLicenceLiee());
-            Optional<FicheLicence> f = contexte.ficheLicenceLiee();
-            if (f.isPresent()) {
-                FicheLicence fl = f.get();
-                ligneFiche(fiche, r++, "Titulaire", fl.getNomComplet());
-                if (fl.getDateNaissance() != null) {
-                    ligneFiche(fiche, r++, "Naissance", fl.getDateNaissance().format(DATE_FR));
-                }
-                if (fl.getNationalite() != null) {
-                    ligneFiche(fiche, r++, "Nationalité", fl.getNationalite());
-                }
-                if (fl.getNomClub() != null) {
-                    ligneFiche(fiche, r++, "Club", fl.getNomClub());
-                }
-                if (fl.getSaison() != null) {
-                    ligneFiche(fiche, r++, "Saison", fl.getSaison());
-                }
-                if (fl.getCategorie() != null) {
-                    ligneFiche(fiche, r++, "Catégorie", fl.getCategorie());
-                }
-                if (fl.getClassement() != null) {
-                    ligneFiche(fiche, r++, "Classement", fl.getClassement());
-                }
-                ligneFiche(fiche, r++, "Points (début de phase)", String.valueOf(fl.getPoints()));
-                if (fl.getPointsMensuels() > 0) {
-                    ligneFiche(fiche, r++, "Points (mensuel)", String.valueOf(fl.getPointsMensuels()));
-                }
-                if (fl.getTypeLicence() != null) {
-                    ligneFiche(fiche, r++, "Type de licence", fl.getTypeLicence());
-                }
-                if (fl.getStatut() != null) {
-                    ligneFiche(fiche, r++, "Statut", fl.getStatut());
-                }
-                String officiel = qualifications(fl);
-                if (officiel != null) {
-                    ligneFiche(fiche, r++, "Officiel", officiel);
-                }
-            }
-            boiteLicence.getChildren().add(fiche);
+            boiteLicence.getChildren().add(grilleChamps(
+                    PresentationProfil.licence(compte.getLicenceLiee(), contexte.ficheLicenceLiee())));
             return;
         }
 
@@ -148,13 +154,46 @@ public final class PageCompte {
                 msg);
     }
 
+    // Tournoi et appel micro -----------------------------------------------
+
+    private VBox construireCarteTournoi() {
+        List<ContexteApplication.TournoiFichier> miens =
+                contexte.mesTournoisJoueur(contexte.tousLesTournois());
+        VBox corps = new VBox(8, Ui.texte(PresentationProfil.resumeTournois(
+                contexte.compteConnecte().aLicenceLiee(), miens.size())));
+        for (ContexteApplication.TournoiFichier tf : miens) {
+            Tournoi t = tf.tournoi();
+            corps.getChildren().add(gras(t.getNom()));
+        }
+        if (naviguer != null) {
+            Button voir = Ui.boutonSecondaire("Voir les tournois");
+            voir.setOnAction(e -> naviguer.accept(PresentationAccueil.TOURNOIS));
+            corps.getChildren().add(Ui.actions(voir));
+        }
+        return Ui.carte(PresentationProfil.TITRE_TOURNOI, corps);
+    }
+
+    /** Appel micro : pas encore de saisie (B018), d'où la mention « à venir ». */
+    private static VBox construireCarteAppel() {
+        Node entete = Ui.ligne(12, Ui.titreCarte(PresentationProfil.TITRE_APPEL), Ui.espace(),
+                Ui.pastille("Bientôt", StatutPastille.NEUTRE));
+        return Ui.carte(entete,
+                grilleChamps(List.of(new PresentationProfil.Champ("Prononciation",
+                        PresentationProfil.prononciation(null)))),
+                aide(PresentationProfil.APPEL_A_VENIR));
+    }
+
     // Clubs -----------------------------------------------------------------
 
-    private VBox construireCorpsClub() {
+    private VBox construireBlocClub() {
         remplirAcces();
 
-        Button envoyer = Ui.boutonPrimaire("Envoyer le code");
-        envoyer.setOnAction(e -> envoyerCode());
+        boutonEnvoyer.setOnAction(e -> envoyerCode());
+        caseConfirmation.getStyleClass().add("profil-confirmation-liaison");
+        caseConfirmation.setWrapText(true);
+        caseConfirmation.setMaxWidth(Double.MAX_VALUE);
+        caseConfirmation.selectedProperty().addListener((o, a, n) -> majEnvoiPossible());
+        majEnvoiPossible();
 
         Button valider = Ui.boutonPrimaire("Valider le code");
         valider.setOnAction(e -> validerCode());
@@ -176,48 +215,80 @@ public final class PageCompte {
         boiteDemo.getChildren().setAll(toggleDemo, panneauDemo);
         cacher(boiteDemo);                   // rien tant qu'aucun code n'est envoyé
 
-        return new VBox(12,
-                boiteAcces,
-                new Separator(),
-                Ui.sousTitre("Rattacher un club (gestion uniquement)"),
-                aide("Cette étape ne concerne que les personnes qui auront des droits "
-                        + "d'administration pour gérer les tournois d'un club. Si ce n'est pas "
-                        + "votre cas, inutile de rattacher un club : cela n'empêche en rien de "
-                        + "vous inscrire à des tournois ni d'accéder aux informations. Pour la "
-                        + "gestion, un code de vérification est envoyé à l'adresse officielle du "
-                        + "club, ce qui confirme que vous y avez accès."),
-                ligne(champNumeroClub, envoyer),
+        VBox carteLiaison = Ui.carte("Relier mon compte à un club",
+                Ui.encartAlerte(PresentationProfil.TITRE_AVERTISSEMENT, PresentationProfil.AVERTISSEMENT),
+                caseConfirmation,
+                ligne(champNumeroClub, boutonEnvoyer),
                 messageClub,
                 zoneCode,
                 boiteDemo);
+
+        Node tuile = Ui.iconeTuile(Icones.GESTION, false);
+        tuile.getStyleClass().add("profil-club-tuile");
+        Label titreClub = Ui.label(PresentationProfil.TITRE_CLUB, "profil-bloc-club-titre");
+        Label intro = Ui.label(PresentationProfil.INTRO_CLUB, "profil-bloc-club-intro");
+        intro.setWrapText(true);
+
+        VBox bloc = new VBox(16, Ui.ligne(12, tuile, titreClub), intro, boiteAcces, carteLiaison);
+        bloc.getStyleClass().add("profil-bloc-club");
+        return bloc;
     }
 
+    /** Le bouton d'envoi ne s'active qu'après confirmation explicite de l'avertissement. */
+    private void majEnvoiPossible() {
+        boutonEnvoyer.setDisable(!caseConfirmation.isSelected());
+    }
+
+    /** Clubs reliés : pour chacun, niveau, tableau des droits, équipe et dissociation. */
     private void remplirAcces() {
         boiteAcces.getChildren().clear();
         List<AccesClub> acces = contexte.accesCourants();
-        if (acces.isEmpty()) {
-            boiteAcces.getChildren().add(aide("Aucun club rattaché pour l'instant."));
+        if (!PresentationProfil.afficheTableauDroits(acces)) {
+            boiteAcces.getChildren().add(aide("Votre compte n'est relié à aucun club."));
             return;
         }
-        for (AccesClub a : acces) {
-            String nomClub = contexte.clubParNumero(a.getNumeroClub())
-                    .map(Club::getNom).orElse("Club " + a.getNumeroClub());
-
-            VBox identiteClub = new VBox(1, gras(nomClub), discret("N° " + a.getNumeroClub()));
-            HBox ligne = Ui.ligne(10, identiteClub, Ui.espace(),
-                    badge(a.getNiveau().getLibelle()), actionDissociation(a));
-            boiteAcces.getChildren().add(ligne);
+        for (PresentationProfil.ClubRelie c : PresentationProfil.clubsRelies(acces,
+                num -> contexte.clubParNumero(num).map(Club::getNom).orElse(null))) {
+            VBox identiteClub = new VBox(1, gras(c.nom()), discret("N° " + c.numero()));
+            HBox entete = Ui.ligne(10, identiteClub, Ui.espace(),
+                    badge(c.niveau()), actionDissociation(c));
+            boiteAcces.getChildren().add(Ui.carte(entete,
+                    Ui.sousTitre("Mes droits pour ce club"),
+                    tableauDroits(c.droits()),
+                    new Separator(),
+                    Ui.sousTitre("Équipe de gestion"),
+                    tableauMembres(contexte.membresDuClub(c.numero()))));
         }
     }
 
+    private static GridPane tableauDroits(List<PresentationProfil.Droit> droits) {
+        GridPane g = new GridPane();
+        g.getStyleClass().add("profil-tableau-droits");
+        g.setHgap(18);
+        g.setVgap(8);
+        g.add(enteteCol("Action"), 0, 0);
+        g.add(enteteCol("Autorisé"), 1, 0);
+        g.add(enteteCol("Précision"), 2, 0);
+        int r = 1;
+        for (PresentationProfil.Droit d : droits) {
+            g.add(new Label(d.action()), 0, r);
+            g.add(Ui.pastille(d.etat().libelle(), d.etat().pastille()), 1, r);
+            Label p = discret(d.precision());
+            p.setWrapText(true);
+            g.add(p, 2, r);
+            r++;
+        }
+        return g;
+    }
+
     /** @return l'action de dissociation d'un club, ou une mention pour le référent. */
-    private javafx.scene.Node actionDissociation(AccesClub a) {
-        if (a.estPrincipal()) {
+    private Node actionDissociation(PresentationProfil.ClubRelie c) {
+        if (!c.dissociable()) {
             return discret("référent — non dissociable");
         }
         Button b = Ui.boutonSecondaire("Se dissocier");
         b.setOnAction(e -> {
-            if (contexte.dissocierClub(a.getNumeroClub())) {
+            if (contexte.dissocierClub(c.numero())) {
                 remplirAcces();
                 if (onHabilitationsChangees != null) {
                     onHabilitationsChangees.run();
@@ -230,8 +301,9 @@ public final class PageCompte {
     private void envoyerCode() {
         cacherMessage(messageClub);
         String numero = valeur(champNumeroClub);
-        if (numero.isBlank()) {
-            erreur(messageClub, "Saisissez un numéro de club.");
+        Optional<String> refus = PresentationProfil.refusDemandeLiaison(caseConfirmation.isSelected(), numero);
+        if (refus.isPresent()) {
+            erreur(messageClub, refus.get());
             return;
         }
         Optional<DemandeVerification> demande = contexte.demanderLiaisonClub(numero);
@@ -268,6 +340,7 @@ public final class PageCompte {
                 numeroClubEnCours = null;
                 champNumeroClub.clear();
                 champCode.clear();
+                caseConfirmation.setSelected(false);
                 cacher(zoneCode);
                 demoOuvert = false;
                 cacher(panneauDemo);
@@ -324,40 +397,6 @@ public final class PageCompte {
                 : "▼ Voir l'email type envoyé au référent"));
     }
 
-    private static String qualifications(FicheLicence fl) {
-        StringBuilder sb = new StringBuilder();
-        if (fl.getArbitre() != null) {
-            sb.append("Arbitre ").append(fl.getArbitre());
-        }
-        if (fl.getJugeArbitre() != null) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append("Juge-arbitre ").append(fl.getJugeArbitre());
-        }
-        if (fl.getTechnique() != null) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append("Technique ").append(fl.getTechnique());
-        }
-        return sb.length() == 0 ? null : sb.toString();
-    }
-
-    // Équipe de gestion -----------------------------------------------------
-
-    private VBox construireCarteEquipe() {
-        VBox corps = new VBox(16);
-        for (AccesClub mien : contexte.accesCourants()) {
-            String num = mien.getNumeroClub();
-            String nomClub = contexte.clubParNumero(num).map(Club::getNom).orElse("Club " + num);
-            corps.getChildren().add(new VBox(6,
-                    gras(nomClub),
-                    tableauMembres(contexte.membresDuClub(num))));
-        }
-        return carte("Équipe de gestion", corps);
-    }
-
     private static GridPane tableauMembres(List<AccesClub> membres) {
         GridPane g = new GridPane();
         g.setHgap(18);
@@ -382,23 +421,6 @@ public final class PageCompte {
     }
 
     // Présentation : délègue à Ui (classes de theme.css) ------------------
-
-    private static VBox carte(String titre, Node... contenu) {
-        return Ui.carte(titre, contenu);
-    }
-
-    private static void ligneFiche(GridPane grille, int rang, String cle, String valeur) {
-        grille.add(discret(cle), 0, rang);
-        grille.add(new Label(valeur), 1, rang);
-    }
-
-    private static HBox etiquetteValeur(String cle, String valeur) {
-        Label c = discret(cle);
-        c.setMinWidth(70);
-        HBox h = new HBox(16, c, new Label(valeur));
-        h.setAlignment(Pos.CENTER_LEFT);
-        return h;
-    }
 
     private static HBox ligne(Node... noeuds) {
         return Ui.ligne(8, noeuds);
