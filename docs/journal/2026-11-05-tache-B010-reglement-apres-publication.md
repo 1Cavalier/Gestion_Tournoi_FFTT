@@ -19,11 +19,10 @@ télécharger le PDF. Avant publication, rien ne change.
 ## À tester à l'écran
 
 - Compte de démo : Brunoy (rien à recréer, la démo est inchangée). Le « Tournoi
-  National B de Brunoy 2027 » de la démo est un **brouillon** : pour tester un
-  tournoi publié, le publier une fois par le parcours normal (vérifications puis
-  publication) ou ouvrir un tournoi déjà publié.
+  National B de Brunoy 2027 » de la démo est **déjà publié** (`TournoisDemo`,
+  n° d'homologation fictif) : sa copie figée est créée à sa première ouverture.
 - Chemin, tournoi publié : Gestion des tournois → Tournoi National B de Brunoy 2027
-  (une fois publié) → vue d'ensemble, puis onglet Complémentaire.
+  → vue d'ensemble, puis onglet Complémentaire.
   Attendu : plus de grande carte « Règlement » ; un lien « Règlement » à la place,
   qui ouvre l'aperçu en lecture seule et propose le téléchargement PDF.
 - Chemin, fiche : onglet Tournois → fiche du tournoi publié → télécharger le
