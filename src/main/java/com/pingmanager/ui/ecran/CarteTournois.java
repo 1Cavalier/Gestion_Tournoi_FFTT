@@ -103,12 +103,16 @@ final class CarteTournois {
         return racine;
     }
 
-    /** Couleurs reprises des jetons de la charte (clair / sombre). */
+    /**
+     * Couleurs reprises des variables de la charte v2 (clair / sombre) : la carte
+     * est une page web (Leaflet) qui ne lit pas theme.css. À garder alignées sur
+     * -primaire, -dep-optionnel, -surface / -sur-primaire et -dep-publication.
+     */
     void appliquerTheme() {
         boolean sombre = Theme.estSombre();
         String couleurs = sombre
-                ? "{primaire:'#4C93C9', grise:'#6B8394', contour:'#0E1A22', accent:'#55D5E0'}"
-                : "{primaire:'#335F8A', grise:'#A9B9C7', contour:'#FFFFFF', accent:'#1C97A3'}";
+                ? "{primaire:'#6B88FF', grise:'#56648A', contour:'#0B1020', accent:'#55D5E0'}"
+                : "{primaire:'#1D3FCF', grise:'#B8C4DC', contour:'#FFFFFF', accent:'#1597AB'}";
         executer("initialiser(" + sombre + ", " + couleurs + ")");
     }
 
