@@ -4,7 +4,7 @@ titre: Gestion des tournois : tournoi actuel, frise verticale des étapes, gros 
 type: interface
 priorite: P1
 taille: M
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/PageGestionTournoi]
 branche: tache/B033-gestion-tournois
