@@ -62,5 +62,8 @@ même logique de présentation.
 - designer-interface (5 nov.) : passe charte v2 sur `EcranSuiviTournoi` et sa section CSS : tokens tous déclarés dans les deux thèmes, aucun hexadécimal ni `setStyle`, contrastes ≥ 4,5:1 (vérifiés clair et sombre, 1440 px).
 - Seule correction : `.ligne-liste.suivi-ligne-en-cours` (fond arrondi 8, décollé du filet, retrait de 10 px : le texte touchait le bord bleu). 662 tests, 0 échec.
 - À reprendre plus tard (non bloquant, Java) : cartes de poule à largeur fixe 540 → largeurs inégales quand les badges « Place qualificative » s'ajoutent, et détail club long replié sur 2 lignes (« … · 1274 / pts »).
+- relecteur-code (5 nov.) : aucun bloquant.
+- relecteur-code, non bloquants : cinq classes de structure CSS sans règle (`suivi-page`, `suivi-barre-tableaux`, `suivi-poules`, `suivi-classement`, `suivi-poule`) ; rechargement du fichier à chaque affichage du suivi (voulu) ; minuteur des 30 s lié à `sceneProperty`.
+- Documentaliste (5 nov.) : journal `docs/journal/2026-11-05-tache-B027-suivre-tableaux.md` ; questions 1 (bascule hors jour J) et 2 (« Inscriptions ouvertes » affiché pendant le tournoi) à trancher par Quentin.
 
 ## Résultat
