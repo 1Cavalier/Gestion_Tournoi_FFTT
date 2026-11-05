@@ -34,4 +34,9 @@ Voir le cahier des charges v0.
   Captures `docs/captures/B034/design/avant|apres/nouveau-tournoi-{clair,sombre}.png`, regardées et mesurées.
   Tracé de l'icône calendrier laissé recopié dans `theme.css` (le CSS ne peut pas lire `Icones.GESTION`) ; popup du calendrier et état focus non capturés.
 
+- relecteur-code : aucun bloquant. Non bloquants : classes CSS `nouveau-tournoi` et `nouveau-tournoi-explication` sans règle (accroches) ; `PresentationNouveauTournoi.formater` utilisée seulement par le test ; nom complet du DatePicker dans `Ui.java`.
+  JavaFX non vérifié visuellement par Quentin (captures Xvfb seulement).
+
 ## Résultat
+
+Formulaire « Nouveau tournoi » en mise en page v2 : texte explicatif (pourquoi chaque information est demandée : homologation ou gestion du tournoi), cartes « Le tournoi » et « Dates », sélecteurs de dates à icône calendrier (jj/mm/aaaa, 31/02 refusé, jours après le début grisés pour la fin), résumé de période. Page suivante inchangée. Tests : 675 → 687 (`mvn -B test` à 0 échec). Captures clair et sombre : `docs/captures/B034/`. Journal : `docs/journal/2026-11-05-tache-B034-nouveau-tournoi.md`. Reste pour Quentin : validation à l'écran.
