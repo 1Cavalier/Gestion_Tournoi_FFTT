@@ -20,7 +20,8 @@ Règles :
 - Tu ne modifies pas le code de production. Tu peux ajouter des tests qui
   démontrent un écart (dans `src/test/java`), et tu mets à jour
   `CONFORMITE_FFTT.md`.
-- Pour un écart ou une ambiguïté, ajoute une entrée dans `QUESTIONS.md` :
+- Pour un écart ou une ambiguïté, ajoute une question dans le journal de la tâche
+  (`docs/journal/`) :
   article, extrait court du texte, comportement actuel, options possibles.
 - Ne présente jamais une interprétation comme une certitude : cite le texte.
 - Distingue règle fédérale et clause d'organisateur configurable.
@@ -28,3 +29,6 @@ Règles :
 
 Compte rendu final : articles audités, écarts trouvés (gravité), tests ajoutés,
 questions ouvertes pour Quentin.
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).

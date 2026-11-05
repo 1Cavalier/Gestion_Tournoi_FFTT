@@ -43,7 +43,7 @@ Un champ traverse toujours les mêmes couches, dans cet ordre :
    d'exigence (homologation, publication, recommandé, optionnel). Les règles de
    classement des champs sont décrites dans
    `docs/passation/REGLES_CREATION_TOURNOI.md` (à mettre à jour avec le
-   nouveau champ) ; en cas de doute, le noter dans `QUESTIONS.md`.
+   nouveau champ) ; en cas de doute, le noter dans le journal de la tâche.
 3. `persistence` (mappers `TournoiMapper`, `ConfigMapper`…) : écriture **et**
    relecture des anciens fichiers sans ce champ (valeur par défaut).
 4. `core.reglement.GenerateurReglement` si le champ apparaît dans le règlement.

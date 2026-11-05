@@ -10,7 +10,12 @@
       "Bash(git commit:*)",
       "Bash(git checkout -b:*)",
       "Bash(git switch -c:*)",
-      "Bash(git push -u origin:*)"
+      "Bash(git push -u origin:*)",
+      "Bash(gh api:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",

@@ -40,3 +40,6 @@ local de ceux qui ne compteront qu'au passage au web.
 
 Écris `RAPPORT_SECURITE.md` (date, résumé, tableau des constats triés par
 gravité, détail, plan de correction par lots). Termine par `mvn -B test`.
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).

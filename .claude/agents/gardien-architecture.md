@@ -33,3 +33,6 @@ Vérifications, dans l'ordre :
 précédente) : date, résultat des tests, une section par vérification avec
 « conforme » ou la liste des écarts (fichier:ligne, gravité, correction
 proposée). Termine par les trois actions les plus utiles.
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).
