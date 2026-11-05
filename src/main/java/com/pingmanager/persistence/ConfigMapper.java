@@ -130,6 +130,8 @@ final class ConfigMapper {
         o.set("qualifiesParPoule", c.getQualifiesParPoule());
         o.set("formatPhaseFinale", ecrireEnum(c.getFormatPhaseFinale()));
         o.set("nombreManchesGagnantes", c.getNombreManchesGagnantes());
+        // Petite finale par tableau ; absente des fichiers plus anciens (relus sans petite finale).
+        o.set("petiteFinale", c.avecPetiteFinale());
         o.set("placesMax", c.getPlacesMax());
         o.set("tailleMaxListeAttente", c.getTailleMaxListeAttente());
         o.set("tarif", ecrireTarif(c.getTarif()));
@@ -159,6 +161,7 @@ final class ConfigMapper {
                 .qualifiesParPoule(o.getInt("qualifiesParPoule", 2))
                 .formatPhaseFinale(lireEnum(o.get("formatPhaseFinale"), FormatPhaseFinale.class))
                 .nombreManchesGagnantes(o.getInt("nombreManchesGagnantes", 3))
+                .petiteFinale(o.getBoolean("petiteFinale", format.avecPetiteFinale()))
                 .placesMax(o.getInt("placesMax", 0))
                 .tailleMaxListeAttente(o.getInt("tailleMaxListeAttente", 4))
                 .tarif(lireTarif(o.get("tarif")))

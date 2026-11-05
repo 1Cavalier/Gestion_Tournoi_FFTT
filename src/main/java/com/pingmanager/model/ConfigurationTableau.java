@@ -20,7 +20,8 @@ import java.util.Set;
  *       (tranche de points, plafond de points, ou toutes séries), avec possibilité
  *       d'exclure les mieux numérotés au classement national ;</li>
  *   <li>restriction d'accès par sexe ({@code null} = mixte) et par catégorie d'âge
- *       (ensemble vide = toutes catégories).</li>
+ *       (ensemble vide = toutes catégories) ;</li>
+ *   <li>petite finale (match pour la 3e place), choisie tableau par tableau.</li>
  * </ul>
  *
  * <p>Objet immuable construit via son {@link Builder}, ce qui évite les
@@ -32,6 +33,15 @@ public final class ConfigurationTableau {
     private final int qualifiesParPoule;       // nb de joueurs sortant de chaque poule
     private final FormatPhaseFinale formatPhaseFinale;
     private final int nombreManchesGagnantes;  // best-of : 3 => premier à 3 manches
+
+    /**
+     * Petite finale (match pour la 3e place entre les perdants des demi-finales),
+     * réglable par tableau (décision de Quentin du 5 novembre 2026, QUESTIONS.md).
+     * Les règlements fédéraux ne l'imposent pas pour les tournois (chapitre IX) :
+     * c'est une clause d'organisateur, écrite dans le règlement du tournoi. Sans
+     * petite finale, les deux demi-finalistes battus sont 3es ex aequo.
+     */
+    private final boolean petiteFinale;
 
     /**
      * Format de tournoi de ce tableau, source des règles de déroulé (taille de
@@ -62,6 +72,7 @@ public final class ConfigurationTableau {
         this.qualifiesParPoule = b.qualifiesParPoule;
         this.formatPhaseFinale = b.formatPhaseFinale;
         this.nombreManchesGagnantes = b.nombreManchesGagnantes;
+        this.petiteFinale = b.petiteFinale;
         this.format = b.format;
         this.placesMax = b.placesMax;
         this.tailleMaxListeAttente = b.tailleMaxListeAttente;
@@ -91,6 +102,14 @@ public final class ConfigurationTableau {
 
     public int getNombreManchesGagnantes() {
         return nombreManchesGagnantes;
+    }
+
+    /**
+     * @return true si le tableau final de ce tableau comporte une petite finale
+     *         (match pour la 3e place). Clause d'organisateur, réglée par tableau.
+     */
+    public boolean avecPetiteFinale() {
+        return petiteFinale;
     }
 
     /** @return le format de tournoi de ce tableau, ou {@code null} si non défini. */
@@ -246,7 +265,8 @@ public final class ConfigurationTableau {
     /**
      * Crée un builder pré-rempli avec les règles structurelles d'un
      * {@link com.pingmanager.model.format.FormatTournoi} : taille de poule,
-     * qualifiés par poule, format de phase finale et best-of. Les paramètres
+     * qualifiés par poule, format de phase finale, best-of et petite finale
+     * (valeur du format, modifiable ensuite par tableau). Les paramètres
      * propres à l'organisation (places, tarif, récompenses, plage de classement,
      * sexe, catégories) restent à compléter ensuite.
      *
@@ -260,7 +280,8 @@ public final class ConfigurationTableau {
                 .taillePouleSouhaitee(format.taillePouleSouhaitee())
                 .qualifiesParPoule(format.qualifiesParPoule())
                 .formatPhaseFinale(format.formatPhaseFinale())
-                .nombreManchesGagnantes(format.nombreManchesGagnantes());
+                .nombreManchesGagnantes(format.nombreManchesGagnantes())
+                .petiteFinale(format.avecPetiteFinale());
     }
 
     /** Builder avec des valeurs par défaut raisonnables. */
@@ -270,6 +291,7 @@ public final class ConfigurationTableau {
         private int qualifiesParPoule = 2;
         private FormatPhaseFinale formatPhaseFinale = FormatPhaseFinale.ELIMINATION_DIRECTE;
         private int nombreManchesGagnantes = 3; // best-of 5
+        private boolean petiteFinale = false;
         private int placesMax = 0;
         private int tailleMaxListeAttente = 4;
 
@@ -316,6 +338,16 @@ public final class ConfigurationTableau {
                 throw new IllegalArgumentException("Le best-of doit être d'au moins 1 manche.");
             }
             this.nombreManchesGagnantes = v;
+            return this;
+        }
+
+        /**
+         * Active ou non la petite finale (match pour la 3e place) du tableau
+         * final. Sans effet si le tableau final compte moins de quatre joueurs
+         * (pas de demi-finales complètes).
+         */
+        public Builder petiteFinale(boolean v) {
+            this.petiteFinale = v;
             return this;
         }
 

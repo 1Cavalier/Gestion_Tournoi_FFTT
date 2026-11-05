@@ -477,6 +477,46 @@ public final class GenerateurReglement {
         return joueurs + ", " + joueuses;
     }
 
+    /**
+     * Troisième place des tableaux à élimination directe : petite finale (option
+     * choisie tableau par tableau) ou deux 3es ex aequo. Les règlements fédéraux
+     * n'imposent rien pour les tournois (chapitre IX) : clause d'organisateur,
+     * décision de Quentin du 5 novembre 2026 (QUESTIONS.md).
+     *
+     * @return la phrase, ou {@code null} si aucun tableau n'a de tableau final
+     */
+    static String phraseTroisiemePlace(List<Tableau> tableaux) {
+        List<String> avec = new ArrayList<>();
+        int finals = 0;
+        for (Tableau tab : tableaux) {
+            FormatTournoi f = tab.getConfiguration().getFormat();
+            if (f == null || f.formatPhaseFinale() != FormatPhaseFinale.ELIMINATION_DIRECTE
+                    || tab.getConfiguration().getFormatPhaseFinale() == FormatPhaseFinale.AUCUNE) {
+                continue;
+            }
+            finals++;
+            if (tab.getConfiguration().avecPetiteFinale()) {
+                avec.add("« " + tab.getNom() + " »");
+            }
+        }
+        if (finals == 0) {
+            return null;
+        }
+        String exAequo = "les deux joueurs battus en demi-finale sont classés troisièmes ex aequo";
+        if (avec.isEmpty()) {
+            return "Il n'y a pas de petite finale : " + exAequo + ".";
+        }
+        if (avec.size() == finals) {
+            return "Une petite finale (match pour la troisième place) oppose les deux joueurs battus en demi-finale"
+                    + (finals > 1 ? " dans chaque tableau." : ".");
+        }
+        String liste = avec.size() == 1 ? avec.get(0)
+                : String.join(", ", avec.subList(0, avec.size() - 1)) + " et " + avec.get(avec.size() - 1);
+        return "Une petite finale (match pour la troisième place) oppose les deux joueurs battus en demi-finale "
+                + (avec.size() > 1 ? "dans les tableaux " : "dans le tableau ") + liste
+                + " ; dans les autres tableaux, " + exAequo + ".";
+    }
+
     private static String tableaux(int n) {
         return n + (n > 1 ? " tableaux" : " tableau");
     }
@@ -509,10 +549,11 @@ public final class GenerateurReglement {
                     sb.append(", la finale au meilleur des ").append(f.nombreManchesGagnantesFinale() * 2 - 1).append(" manches");
                 }
                 sb.append('.');
-                if (f.avecPetiteFinale()) {
-                    sb.append(" Une petite finale désigne la troisième place.");
-                }
                 blocs.add(p(sb.toString()));
+            }
+            String troisieme = phraseTroisiemePlace(t.getTableaux());
+            if (troisieme != null) {
+                blocs.add(p(troisieme));
             }
         }
         List<AffectationArbitre> arbitres = t.getArbitres();

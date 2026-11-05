@@ -20,15 +20,15 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * PROVISOIRE : tableau d'essai pour tester la vue « Phase finale » à l'écran
- * tant que le pointage et le lancement des poules n'existent pas dans
- * l'interface (page Jour J à venir).
- *
- * <p>Construit en mémoire une <b>copie</b> d'un tableau réel (même format, mêmes
+ * Jeu d'essai des tests de la phase finale : construit en mémoire une
+ * <b>copie</b> d'un tableau (même format, même option de petite finale, mêmes
  * inscrits ; des joueurs fictifs s'il y en a moins de six), pointe tout le
- * monde, tire les poules et leur donne des scores aléatoires mais conformes.
- * Rien n'est rattaché au tournoi ni enregistré : le tableau réel n'est pas
- * modifié. À supprimer avec le point d'entrée provisoire.</p>
+ * monde, tire les poules et leur donne des scores aléatoires mais conformes
+ * (2.11.1 / 2.12.1).
+ *
+ * <p>Servait de tableau d'essai au point d'entrée provisoire de la phase finale,
+ * retiré depuis que la phase finale s'ouvre depuis la page Jour J ; il ne vit
+ * plus que dans les tests.</p>
  */
 final class TableauEssaiPhaseFinale {
 
@@ -51,6 +51,7 @@ final class TableauEssaiPhaseFinale {
                 ? modele.getConfiguration().getFormat() : RegistreFormats.formatParDefaut();
         ConfigurationTableau config = ConfigurationTableau.depuisFormat(format)
                 .formatPhaseFinale(modele.getConfiguration().getFormatPhaseFinale())
+                .petiteFinale(modele.getConfiguration().avecPetiteFinale())
                 .build();
         Tableau essai = new Tableau(modele.getNom() + " (essai)", config);
         Tournoi tournoi = new Tournoi("Essai", "Essai", LocalDate.now());

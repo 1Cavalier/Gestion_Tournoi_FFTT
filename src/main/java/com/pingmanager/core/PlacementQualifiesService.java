@@ -231,8 +231,11 @@ public final class PlacementQualifiesService {
     private int[] calculerQuartParSeed(int cadre) {
         int[] ordre = generateur.ordreDuCadre(cadre);
         int[] quart = new int[cadre + 1];
+        // Tableau de 2 (une seule poule, deux qualifiés) : pas de quarts, chaque
+        // place forme son propre « quart » (évite une division par zéro).
+        int placesParQuart = Math.max(1, cadre / 4);
         for (int pos = 0; pos < cadre; pos++) {
-            quart[ordre[pos]] = pos / (cadre / 4);
+            quart[ordre[pos]] = pos / placesParQuart;
         }
         return quart;
     }
