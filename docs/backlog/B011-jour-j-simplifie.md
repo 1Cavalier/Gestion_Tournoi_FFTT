@@ -4,10 +4,10 @@ titre: Jour J plus simple : matchs proposés et avancement des tableaux
 type: jour-j
 priorite: P1
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ui/ecran/EcranJourJ, ui/ecran/EcranSalle, ui/ecran/PresentationJourJ, ui/ecran/PresentationSalle]
-branche:
+branche: tache/B011-jour-j-simplifie (prise le 2026-11-05)
 pr:
 ---
 
