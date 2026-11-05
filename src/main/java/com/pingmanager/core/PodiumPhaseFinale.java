@@ -9,11 +9,12 @@ import java.util.List;
  * {@link ServicePhaseFinale#podium}. Chaque place est renseignée dès que le
  * match qui la décide est joué ({@code null} / liste vide sinon).
  *
- * <p><b>Troisièmes.</b> Si une petite finale est jouée, son vainqueur est seul
- * 3e et son perdant 4e. Sans petite finale, les perdants des demi-finales sont
+ * <p><b>Troisièmes.</b> Si une petite finale est jouée (option du tableau,
+ * {@code ConfigurationTableau#avecPetiteFinale()}), son vainqueur est seul 3e
+ * et son perdant 4e. Sans petite finale, les perdants des demi-finales sont
  * affichés <b>3es ex aequo</b> : les règlements fédéraux 2026-2027 ne disent
- * rien de ce cas pour les tournois (chapitre IX), choix provisoire noté dans
- * {@code QUESTIONS.md}.</p>
+ * rien de ce cas pour les tournois (chapitre IX) ; décision de Quentin du
+ * 5 novembre 2026 ({@code QUESTIONS.md}).</p>
  *
  * @param premier          vainqueur de la finale
  * @param deuxieme         finaliste perdant
