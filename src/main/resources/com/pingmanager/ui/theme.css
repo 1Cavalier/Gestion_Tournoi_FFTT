@@ -2542,8 +2542,13 @@
     -fx-font-weight: bold;
 }
 
+/* Fond doux arrondi, décollé du filet, avec un retrait pour que le texte ne
+   touche pas le bord coloré. */
 .ligne-liste.suivi-ligne-en-cours {
     -fx-background-color: -primaire-doux;
+    -fx-background-radius: 8;
+    -fx-background-insets: 3 0 2 0;
+    -fx-padding: 12 10 12 10;
 }
 
 .label.suivi-detail-score {
