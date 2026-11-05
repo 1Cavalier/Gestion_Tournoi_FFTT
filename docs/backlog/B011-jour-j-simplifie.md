@@ -4,7 +4,7 @@ titre: Jour J plus simple : matchs proposés et avancement des tableaux
 type: jour-j
 priorite: P1
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/EcranJourJ, ui/ecran/EcranSalle, ui/ecran/PresentationJourJ, ui/ecran/PresentationSalle]
 branche: tache/B011-jour-j-simplifie (prise le 2026-11-05)
@@ -41,3 +41,5 @@ Ne pas changer les règles de l'ordonnanceur (la tâche B025 s'en occupe).
 - pilote : verificateur-modele et controleur-conformite non appelés (cœur, ordonnanceur et JSON inchangés).
 
 ## Résultat
+
+PR : #PR_NUM. Écran Jour J unique, 656 tests verts. Validation visuelle réelle à faire par Quentin (captures Xvfb seulement).

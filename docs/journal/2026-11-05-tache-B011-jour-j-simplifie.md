@@ -53,6 +53,9 @@ Tout (bandeau, chiffres, tables, propositions) se redessine à chaque action.
 
 ## Notes pour l'état du projet
 
+- Défauts non bloquants restants : classes CSS `avancement-etape` / `avancement-jauge` sans règle ; `PresentationSalle.salleOuverte` utilisée seulement en test.
+- Interface vue uniquement en captures Xvfb ; validation à l'écran par Quentin.
+
 - Page Jour J = écran principal unique (`EcranJourJ` construit `EcranSalle` avec un bandeau) ; l'ancienne liste des tableaux et la carte « Salle et tables » disparaissent, les écrans de pointage, poules et arbre restent des vues secondaires ouvertes depuis le bandeau.
 - Logique sans JavaFX : `PresentationAvancement` (étape, texte, jauge, vue de détail, tour en cours du tableau final, exemptions non comptées) ; `PresentationSalle.resumeLigne`, `suiteSurTable`, `premiereTableLibre`.
 - Ordonnanceur et cœur inchangés ; format JSON inchangé ; démo inchangée (elle montre déjà toutes les étapes).
