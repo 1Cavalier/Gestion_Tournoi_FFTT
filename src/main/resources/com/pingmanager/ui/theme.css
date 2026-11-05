@@ -2186,3 +2186,259 @@
     -fx-padding: 10 14 10 14;
     -fx-background-radius: 8;
 }
+
+/* === Jour J : phase finale === */
+/* Arbre des rencontres (VuePhaseFinale + DispositionArbre). Uniquement des
+   variables de la palette : rendu correct en clair comme en sombre. */
+.scroll-pane.arbre-defilement {
+    -fx-background-color: -bordure, -fond-app;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 8;
+}
+
+.scroll-pane.arbre-defilement > .viewport,
+.arbre-dessin {
+    -fx-background-color: transparent;
+}
+
+.arbre-titre-colonne {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+    -fx-padding: 6 0 6 0;
+}
+
+.arbre-trait {
+    -fx-stroke: -bordure-forte;
+    -fx-stroke-width: 1.5;
+    -fx-stroke-line-join: round;
+}
+
+.arbre-trait.arbre-trait-parcouru {
+    -fx-stroke: -primaire;
+    -fx-stroke-width: 2.5;
+}
+
+.arbre-carte {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 6 10 6 10;
+}
+
+.arbre-carte.arbre-a-jouer {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 5;
+}
+
+.arbre-carte.arbre-a-jouer:hover,
+.arbre-carte.arbre-en-cours:hover,
+.arbre-carte.arbre-termine:hover {
+    -fx-background-color: -primaire, -primaire-doux;
+}
+
+.arbre-carte.arbre-en-cours {
+    -fx-background-color: -succes, -primaire-doux;
+    -fx-background-insets: 0, 2 2 2 6;
+    -fx-effect: dropshadow(gaussian, -ombre, 10, 0.2, 0, 2);
+}
+
+.arbre-carte.arbre-termine {
+    -fx-background-color: -bordure, -surface-2;
+}
+
+.arbre-carte.arbre-attente .arbre-nom {
+    -fx-text-fill: -texte-doux;
+}
+
+.arbre-carte.arbre-exempt {
+    -fx-background-color: -fond-app;
+    -fx-background-insets: 0;
+    -fx-border-color: -bordure-forte;
+    -fx-border-style: segments(5, 4);
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.arbre-carte.arbre-selectionne {
+    -fx-background-color: -accent, -primaire-doux;
+    -fx-background-insets: 0, 3;
+}
+
+.arbre-nom {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: -texte;
+}
+
+.arbre-inconnu {
+    -fx-font-style: italic;
+    -fx-text-fill: -texte-doux;
+}
+
+.arbre-manches {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-min-width: 18px;
+    -fx-alignment: center-right;
+    -fx-text-fill: -texte-doux;
+}
+
+.arbre-vainqueur .arbre-nom,
+.arbre-vainqueur .arbre-manches {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.arbre-numero-table {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-radius: 8;
+    -fx-min-width: 34px;
+    -fx-min-height: 34px;
+    -fx-alignment: center;
+}
+
+.arbre-badge-exempt {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 999;
+    -fx-padding: 2 8 2 8;
+}
+
+.arbre-aide {
+    -fx-font-size: 11px;
+    -fx-text-fill: -texte-doux;
+}
+
+.arbre-legende-pastille {
+    -fx-min-width: 14px;
+    -fx-min-height: 14px;
+    -fx-max-width: 14px;
+    -fx-max-height: 14px;
+    -fx-background-radius: 4;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+}
+
+.arbre-legende-pastille.arbre-a-jouer {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.arbre-legende-pastille.arbre-en-cours {
+    -fx-background-color: -succes, -primaire-doux;
+    -fx-background-insets: 0, 2 2 2 4;
+}
+
+.arbre-legende-pastille.arbre-termine {
+    -fx-background-color: -bordure, -surface-2;
+}
+
+.arbre-legende-pastille.arbre-exempt {
+    -fx-background-color: -fond-app;
+    -fx-border-color: -bordure-forte;
+    -fx-border-style: segments(3, 2);
+    -fx-border-radius: 4;
+}
+
+/* =====================================================================
+   Jour J : salle et tables (EcranSalle)
+   (tokens uniquement : valables en thème clair et sombre)
+   ===================================================================== */
+
+.scroll-pane.salle-cote,
+.scroll-pane.salle-cote > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Carte d'une table : le numéro se lit de loin. */
+.salle-table {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+    -fx-padding: 12 14 14 14;
+}
+
+.salle-table.salle-table-occupee {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 5;
+}
+
+.salle-table.salle-table-libre {
+    -fx-background-color: -bordure, -surface-2;
+}
+
+/* Table libre survolée pendant un glisser-déposer : prête à recevoir le match. */
+.salle-table.salle-table-survol {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.salle-numero {
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.salle-table-libre .salle-numero {
+    -fx-text-fill: -texte-doux;
+}
+
+.salle-joueur {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.salle-duree {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.salle-duree.salle-duree-longue {
+    -fx-text-fill: -erreur;
+    -fx-font-weight: bold;
+}
+
+/* Colonne des matchs prêts et bloqués. */
+.salle-pret {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 6 10 6;
+}
+
+.salle-pret:hover {
+    -fx-background-color: -surface-2;
+}
+
+.salle-pret.salle-bloque,
+.salle-pret.salle-bloque:hover {
+    -fx-background-color: transparent;
+}
+
+.salle-pret.salle-bloque .texte {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Poules : partie en cours sur une table. */
+.ligne-match.ligne-match-en-cours {
+    -fx-background-color: -primaire-doux;
+}
+
+/* Tableau final : case d'un match en cours sur une table. */
+.pf-case.pf-en-cours {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 1 1 1 4;
+}
+
+.badge.pf-table {
+    -fx-text-fill: -sur-primaire;
+    -fx-background-color: -primaire;
+    -fx-background-insets: 0;
+}

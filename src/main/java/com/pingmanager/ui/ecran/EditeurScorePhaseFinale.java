@@ -7,6 +7,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.Tableau;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -132,6 +133,10 @@ final class EditeurScorePhaseFinale {
         panneau.getStyleClass().addAll("carte", "pf-panneau-saisie");
         panneau.setPrefWidth(340);
         panneau.setMaxWidth(340);
+        if (!champs.isEmpty()) {
+            // Saisie au clavier dès l'ouverture : Tab passe d'un champ à l'autre, Entrée enregistre.
+            Platform.runLater(champs.get(0)[0]::requestFocus);
+        }
         return panneau;
     }
 

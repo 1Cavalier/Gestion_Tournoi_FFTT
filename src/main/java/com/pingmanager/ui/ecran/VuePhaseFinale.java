@@ -38,6 +38,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Polyline;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -424,57 +425,6 @@ public final class VuePhaseFinale {
         aide.getStyleClass().add("arbre-aide");
         VBox v = new VBox(2, ligne, aide);
         v.setAlignment(Pos.CENTER_LEFT);
-        dimensionner(v);
-        String detail = PresentationPhaseFinale.detailJoueur(joueur);
-        if (!detail.isEmpty()) {
-            Tooltip.install(v, new Tooltip(detail));
-        }
-        return v;
-    }
-
-    private Node caseMatch(Match m) {
-        HBox ligneA = ligneJoueur(m, true);
-        // Match en cours dans la salle : numéro de table sur la case.
-        String table = PresentationSalle.libelleTable(m);
-        if (!table.isEmpty()) {
-            Label badge = Ui.badge(table);
-            badge.getStyleClass().add("pf-table");
-            ligneA.getChildren().add(1, badge);
-        }
-        VBox v = new VBox(2, ligneA, ligneJoueur(m, false));
-        v.getStyleClass().add("pf-case");
-        if (!table.isEmpty()) {
-            v.getStyleClass().add("pf-en-cours");
-        }
-        v.setAlignment(Pos.CENTER_LEFT);
-        if (m.getStatut() == StatutMatch.TERMINE) {
-            v.getStyleClass().add("pf-termine");
-        } else if (PresentationPhaseFinale.estSaisissable(m)) {
-            v.getStyleClass().add("pf-a-jouer");
-        } else {
-            v.getStyleClass().add("pf-attente");
-        }
-        if (m == selectionne) {
-            v.getStyleClass().add("pf-selectionne");
-        }
-        dimensionner(v);
-
-        StringBuilder bulle = new StringBuilder(PresentationPhaseFinale.etatMatch(m))
-                .append(table.isEmpty() ? "" : " · " + table)
-                .append(" · ").append(PresentationPhaseFinale.formatMatch(m));
-        String detail = PresentationPhaseFinale.detailScore(m);
-        if (!detail.isEmpty()) {
-            bulle.append("\n").append(detail);
-        }
-        Tooltip.install(v, new Tooltip(bulle.toString()));
-
-        if (PresentationPhaseFinale.estSaisissable(m)) {
-            v.setCursor(Cursor.HAND);
-            v.setOnMouseClicked(e -> {
-                selectionne = m;
-                rafraichir();
-            });
-        }
         return v;
     }
 
