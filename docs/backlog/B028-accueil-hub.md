@@ -17,10 +17,10 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 1. Refaire complètement 
 
 ## Critères de fin
 
-- [ ] un compte joueur ne voit pas « Gestion de votre club », un compte de club la voit
-- [ ] chaque carte mène à sa section
-- [ ] captures clair et sombre regardées
-- [ ] `mvn -B test` à 0 échec
+- [x] un compte joueur ne voit pas « Gestion de votre club », un compte de club la voit
+- [x] chaque carte mène à sa section (vérifié par test sur la destination ; clic à l'écran à faire)
+- [x] captures clair et sombre regardées (designer-interface)
+- [x] `mvn -B test` à 0 échec (697 tests)
 
 ## Contraintes / décisions de Quentin
 
@@ -32,5 +32,11 @@ Voir le cahier des charges v0.
 - designer-interface (2026-11-05) : charte v2 appliquée — composant commun `Ui.iconeTuile` (tuile d'icône 36 px bleu doux, grise si « Bientôt ») sur toutes les cartes ; section « Gestion de votre club » en bandeau bleu doux encadré avec titre 18 px et tuile bleu plein ; uniquement des variables de thème (section B028 de theme.css). Logique inchangée, 696 tests verts.
 - Captures avant/après clair et sombre (compte club, compte joueur licencié, compte sans licence) dans `docs/captures/B028/avant|apres/`, regardées ; harnais : `outils-dev/run.sh <dossier> accueil [sombre]`.
 - À voir : les textes des cartes « Bientôt » commencent aussi par « Bientôt : » (doublon avec la pastille, texte de PresentationAccueil testé, laissé tel quel) ; la carte Agenda de Quentin n'affiche aucune date (aucun tournoi où il est inscrit dans le harnais).
+- documentaliste (2026-11-05) : journal `docs/journal/2026-11-05-tache-B028-accueil-hub.md` écrit (3 questions : pastilles « Mes prochains tournois » retirées de l'accueil, bandeau bleu doux, entrée Agenda provisoire). `mvn -B -q test` relancé : 0 échec, 697 `@Test` (main : 687). Critères cochés selon les passations ; le clic réel sur chaque carte reste à faire à l'écran.
 
 ## Résultat
+
+- Statut : en attente de fusion (`integrateur`).
+- Livré : accueil refait (Profil, Tournois, Agenda, Statistiques), section « Gestion de votre club » seulement pour un compte relié à un club, entrée Agenda provisoire dans la coquille, charte v2 (tuiles d'icônes, bandeau bleu doux).
+- Tests : 687 → 697, 0 échec. Captures : `docs/captures/B028/avant|apres/`.
+- Questions ouvertes : voir le journal `docs/journal/2026-11-05-tache-B028-accueil-hub.md`.
