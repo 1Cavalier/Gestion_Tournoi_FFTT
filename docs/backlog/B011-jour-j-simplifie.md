@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [ui/ecran/EcranJourJ, ui/ecran/EcranSalle, ui/ecran/PresentationJourJ, ui/ecran/PresentationSalle]
 branche: tache/B011-jour-j-simplifie (prise le 2026-11-05)
-pr:
+pr: 23
 ---
 
 ## Ce qu'il faut faire
@@ -42,4 +42,4 @@ Ne pas changer les règles de l'ordonnanceur (la tâche B025 s'en occupe).
 
 ## Résultat
 
-PR : #PR_NUM. Écran Jour J unique, 656 tests verts. Validation visuelle réelle à faire par Quentin (captures Xvfb seulement).
+PR : #23. Écran Jour J unique, 656 tests verts. Validation visuelle réelle à faire par Quentin (captures Xvfb seulement).
