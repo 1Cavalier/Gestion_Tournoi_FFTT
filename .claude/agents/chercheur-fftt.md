@@ -40,3 +40,6 @@ Règles :
 Livrable : `docs/RECHERCHE_FFTT.md` : résumé en dix lignes, options classées
 (faisabilité, coût, délai, risque juridique), démarches à faire par Quentin
 (avec le brouillon du courriel à envoyer à la FFTT), sources.
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).

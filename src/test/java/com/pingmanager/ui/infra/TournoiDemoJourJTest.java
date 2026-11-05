@@ -127,21 +127,31 @@ class TournoiDemoJourJTest {
         ServiceSalle salle = new ServiceSalle(() -> maintenant);
         TableauDeBordSalle bord = salle.tableauDeBord(t);
 
+        // Depuis la réunion des deux démos v14 (salle et tableau final), la salle porte
+        // aussi le quart de finale du tableau F en cours sur la table 3 : les attentes
+        // sur C et D sont vérifiées tableau par tableau.
+        String c = "C – Toutes séries";
         assertEquals(16, bord.getNombreDeTables());
-        assertEquals(2, bord.nombreTablesOccupees());
         assertFalse(bord.table(2).estLibre());
         assertFalse(bord.table(5).estLibre());
+        assertEquals(c, bord.table(2).match().tableau());
+        assertEquals(c, bord.table(5).match().tableau());
         assertEquals(java.time.Duration.ofMinutes(15), bord.table(2).ecoule());
         assertEquals(java.time.Duration.ofMinutes(6), bord.table(5).ecoule());
-        assertEquals(3, bord.getPrets().size(), "les trois parties de la poule D");
-        assertEquals(2, bord.getBloques().size(), "le reste de la poule C");
+        assertFalse(bord.table(TournoiDemoJourJ.TABLE_EN_COURS_F).estLibre(), "quart de finale de F");
+        assertEquals(3, bord.nombreTablesOccupees(), "deux parties de C et un quart de F");
+        assertEquals(3, bord.getPrets().stream()
+                        .filter(m -> c.equals(m.tableau()) && m.tour().startsWith("Poule D")).count(),
+                "les trois parties de la poule D du tableau C");
+        assertEquals(2, bord.getBloques().stream().filter(b -> c.equals(b.match().tableau())).count(),
+                "le reste de la poule C");
         assertTrue(bord.getAnomalies().isEmpty());
 
         // Les parties en cours survivent à l'enregistrement.
         Path f = dossier.resolve("salle" + DepotTournoi.EXTENSION);
         DepotTournoi.sauvegarder(t, f);
         TableauDeBordSalle relu = salle.tableauDeBord(DepotTournoi.charger(f).getTournoi());
-        assertEquals(2, relu.nombreTablesOccupees());
+        assertEquals(3, relu.nombreTablesOccupees());
         assertEquals(java.time.Duration.ofMinutes(15), relu.table(2).ecoule());
     }
 

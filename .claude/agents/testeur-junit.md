@@ -31,3 +31,6 @@ Méthode pour choisir quoi tester :
 
 Ton compte rendu final : classes couvertes, nombre de tests ajoutés, bugs
 suspectés, ce que tu n'as pas pu tester et pourquoi.
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).

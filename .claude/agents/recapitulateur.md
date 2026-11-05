@@ -22,7 +22,9 @@ décider, ce qu'il doit tester et ce qui vient ensuite**.
    les branches distantes (`git branch -r`) et l'historique.
 3. Les branches distantes **non fusionnées** (`git branch -r --no-merged
    origin/main`) : travail en cours ou abandonné.
-4. `QUESTIONS.md` : chaque entrée « En attente » sans réponse de Quentin.
+4. **Les journaux de tâches** `docs/journal/20*.md` (hors `archives/`) : ce
+   que chaque session a fait, ses questions et ses notes ; puis
+   `QUESTIONS.md` : chaque entrée « En attente » sans réponse de Quentin.
 5. `ETAT_DU_PROJET.md` (section 0), `RAPPORT_*.md`, `docs/RECHERCHE_*.md`,
    `docs/PLAN_DE_NUIT.md`, `docs/TACHES_AUTONOMES.md`.
 6. `mvn -B test` : nombre de tests et d'échecs **mesurés**, pas recopiés.
@@ -37,6 +39,15 @@ décider, ce qu'il doit tester et ce qui vient ensuite**.
 - Un nombre de tests annoncé différent du nombre mesuré.
 - Une recommandation d'un rapport (sécurité, architecture, recherche) qui
   n'a ni tâche prévue ni décision.
+
+## Report des journaux (tu es la seule session à écrire ces fichiers)
+
+Pour chaque journal non archivé, dans l'ordre des dates :
+- ses questions → ajoutées à la fin de la section « En attente » de
+  `QUESTIONS.md` (sans doublon) ; les réponses déjà données par Quentin dans
+  un journal ou une session → reportées et l'entrée passe dans « Tranché » ;
+- ses notes pour l'état du projet → `ETAT_DU_PROJET.md` section 0 ;
+- puis `git mv` du journal dans `docs/journal/archives/`.
 
 ## Livrable : `RECAPITULATIF.md` (remplacé à chaque fois)
 
@@ -61,7 +72,9 @@ En français simple, sans jargon inutile, phrases courtes :
 7. **Chiffres** : tests mesurés, PR fusionnées, questions ouvertes.
 
 Ne modifie pas le code. Travaille sur une branche `doc/recapitulatif-AAAA-MM-JJ`,
-commite `RECAPITULATIF.md` (et les restaurations de documentation éventuelles,
-dans un commit séparé) et ouvre une Pull Request. Termine ta réponse par le
+commite le report des journaux, puis `RECAPITULATIF.md` (et les restaurations
+de documentation éventuelles, dans un commit séparé), et termine avec la skill
+`terminer-tache` (sans écrire de journal pour toi-même : `RECAPITULATIF.md`
+en tient lieu). Termine ta réponse par le
 contenu des sections 1, 3 et 6, pour que Quentin puisse le lire directement
 dans la session.

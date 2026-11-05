@@ -26,3 +26,6 @@ changement du format JSON, pas de `switch` sur une énumération.
 
 Étape 3 : `RAPPORT_OPTIMISATION.md` : mesures, ce qui a été corrigé, ce qui
 est proposé mais demande une décision de Quentin (refonte plus large).
+
+Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+avec `main`, Pull Request, fusion automatique, description pour Quentin).

@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * Tournoi de démonstration du <b>jour J</b>, organisé par le club de Brunoy (donc
  * visible dans « Gestion des tournois » pour les comptes de Brunoy), le samedi
- * 14 novembre 2026. Ses quatre tableaux montrent chaque étape du juge-arbitre :
+ * 14 novembre 2026. Ses six tableaux montrent chaque étape du juge-arbitre :
  *
  * <ul>
  *   <li><b>A – ≤ 899 pts</b> : encore en inscription (on peut y ouvrir le pointage) ;</li>
@@ -40,7 +40,12 @@ import java.util.Map;
  *       dernière partie de la poule B se joue à la table 2 (depuis 15 min) et la
  *       première de la poule C à la table 5 (depuis 6 min) : la poule D est prête,
  *       le reste de la poule C est bloqué (joueur déjà en jeu) ;</li>
- *   <li><b>D – Dames</b> : pointage clôturé, toutes présentes : prêt pour le tirage.</li>
+ *   <li><b>D – Dames</b> : pointage clôturé, toutes présentes : prêt pour le tirage ;</li>
+ *   <li><b>E – ≤ 1599 pts</b> : poules toutes jouées, prêt pour la construction du
+ *       tableau final (second tirage), avec petite finale ;</li>
+ *   <li><b>F – Open du matin</b> : tableau final tiré (graine 141127) avec exempts et
+ *       petite finale, premier tour joué, quarts entamés (un match en cours sur la
+ *       table 3).</li>
  * </ul>
  *
  * <p>Les données ne touchent pas au National B de Brunoy ({@link TournoiDemoBrunoy}).
@@ -97,6 +102,8 @@ public final class TournoiDemoJourJ {
         pointageOuvertB(t, tableau(t, "B"), pointage);
         lanceC(t, tableau(t, "C"), pointage);
         pretD(t, tableau(t, "D"), pointage);
+        poulesTermineesE(t, tableau(t, "E"), pointage);
+        tableauFinalEnCoursF(t, tableau(t, "F"), pointage);
         salleC(t, tableau(t, "C"), maintenant);
         return t;
     }

@@ -12,7 +12,7 @@ Tu es le designer de l'interface de PingManager. Tu appliques la skill
 - Tu changes **l'apparence**, pas le comportement : pas de règle métier, pas
   de modification du cœur (`model`, `core`, `ordonnancement`), pas de
   changement du format de sauvegarde. Si un écran a besoin d'une donnée que
-  le cœur ne fournit pas, note-le dans `QUESTIONS.md` au lieu de l'ajouter.
+  le cœur ne fournit pas, note-le dans le journal de la tâche au lieu de l'ajouter.
 - Inspiration : le **style** des tableaux de bord web modernes en blanc et
   bleu (référence citée par Quentin : Gestion Ping). Jamais de logo, de nom,
   de texte, d'icône ou de capture repris d'un autre logiciel.
@@ -40,7 +40,8 @@ Tu es le designer de l'interface de PingManager. Tu appliques la skill
    avec l'outil de lecture d'image : textes coupés, contrastes, alignements,
    états vides, débordements. Corrige, recapture.
 5. `mvn -B test` à 0 échec.
-6. Pull Request : captures avant / après côte à côte (liens vers les PNG du
+6. Termine avec la skill `terminer-tache`. Le journal et la Pull Request
+   contiennent : captures avant / après côte à côte (liens vers les PNG du
    dépôt), liste des écrans modifiés, ce que Quentin doit regarder chez lui
    (`git pull`, `mvn clean javafx:run`, compte de démo, chemin de navigation)
    et ce qui n'a pas pu être vérifié (rendu Windows, mise à l'échelle).

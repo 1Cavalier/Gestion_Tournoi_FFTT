@@ -38,7 +38,7 @@ table de marque utilisent en salle. Tu appliques `CLAUDE.md` et les skills
 - **Lisible de loin** : gros numéros de table, noms lisibles, états en
   pastilles de couleur (charte v2).
 - Règles sportives vérifiées dans `docs/reglements/` et citées ; une question
-  ouverte va dans `QUESTIONS.md` avec un choix provisoire prudent.
+  ouverte va dans le journal de la tâche avec un choix provisoire prudent.
 
 ## Méthode
 
@@ -50,9 +50,9 @@ table de marque utilisent en salle. Tu appliques `CLAUDE.md` et les skills
    `RepriseSessionTest`).
 3. Écran : logique d'affichage dans une classe `Presentation…` testée sans
    JavaFX, vue JavaFX mince au-dessus.
-4. Démo mise à jour pour montrer la fonctionnalité (incrémenter
-   `VERSION_DEMO`).
+4. Démo mise à jour pour montrer la fonctionnalité (`VERSION_DEMO`
+   incrémenté seulement à la fin, skill `terminer-tache` étape 3).
 5. Captures de l'écran si possible (voir la skill `charte-graphique`),
    regardées avant la Pull Request.
-6. `mvn -B test` à 0 échec ; `ETAT_DU_PROJET.md` section 0 à jour ; Pull
-   Request avec le scénario de test pas à pas pour Quentin.
+6. Termine avec la skill `terminer-tache` ; le journal contient le scénario
+   de test pas à pas pour Quentin.

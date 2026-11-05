@@ -32,9 +32,10 @@ phases) est dans `docs/passation/` :
   `X$1` qui a déjà cassé le build chez Quentin. Utiliser une chaîne de `if`
   ou un `switch` sur `.name()`.
 - JavaFX CSS ne gère pas `:first-child` / `:last-child` : poser des classes.
-- Données de démo : quand elles changent, incrémenter
-  `ContexteApplication.VERSION_DEMO` (marqueur `.demo-brunoy-vN`) pour qu'elles
-  soient recréées au démarrage.
+- Données de démo : quand elles changent, `ContexteApplication.VERSION_DEMO`
+  (marqueur `.demo-brunoy-vN`) doit être incrémenté pour qu'elles soient
+  recréées au démarrage. **Uniquement à la fin**, après synchronisation avec
+  `main` (skill `terminer-tache`, étape 3), jamais pendant le travail.
 
 ## Règle d'or : l'architecture
 
@@ -67,7 +68,8 @@ com.pingmanager
   d'article, par exemple `I.305`), jamais de mémoire ni sur un site tiers.
 - Citer l'article dans le code ou le test concerné (`// I.303 : …`).
 - Si un texte est ambigu ou muet : **ne pas deviner**. Noter la question dans
-  `QUESTIONS.md` (article, cas, options possibles) et continuer le reste.
+  le journal de la tâche (`docs/journal/`, voir plus bas : article, cas,
+  options possibles) et continuer le reste.
 - Distinguer règle fédérale et **clause d'organisateur** configurable (par
   exemple « pas deux tableaux qui se suivent »).
 
@@ -88,28 +90,34 @@ mvn -B test
   le dire clairement dans la Pull Request et laisser la validation visuelle à
   Quentin.
 
-## Travail autonome (tâches lancées en l'absence de Quentin)
+## Travail autonome : le circuit des sessions
+
+Plusieurs sessions tournent en parallèle et **fusionnent elles-mêmes** leur
+travail. Pour éviter les conflits :
 
 1. Travailler sur une **branche** dédiée, jamais directement sur `main`.
-2. Lire `ETAT_DU_PROJET.md` et les fichiers concernés avant de coder.
-3. Découper : petits commits cohérents, messages en français.
-4. Lancer `mvn -B test` avant chaque commit significatif.
-5. En cas de blocage ou de choix produit : noter dans `QUESTIONS.md`, prendre
-   l'option la plus prudente et réversible, continuer.
-6. Ne jamais fusionner soi-même : ouvrir une **Pull Request** avec un résumé
-   (ce qui est fait, tests ajoutés, nombre total de tests, questions ouvertes,
-   ce qui reste à vérifier à l'écran).
-7. Mettre à jour `ETAT_DU_PROJET.md` (section 0) quand une fonctionnalité est
-   livrée, et `docs/passation/REGLES_CREATION_TOURNOI.md` si un champ du
+2. Au début : `git fetch origin main` et lire les journaux récents de
+   `docs/journal/` (ce que les autres sessions viennent de faire), en plus de
+   `ETAT_DU_PROJET.md` et `QUESTIONS.md`.
+3. Découper : petits commits cohérents, messages en français. Lancer
+   `mvn -B test` avant chaque commit significatif.
+4. **Fichiers partagés** : ne pas modifier `QUESTIONS.md`,
+   `ETAT_DU_PROJET.md` ni `RECAPITULATIF.md` ; tout va dans le journal de la
+   tâche (`docs/journal/AAAA-MM-JJ-<branche>.md`, modèle
+   `docs/journal/MODELE.md`). L'agent `recapitulateur` les y reporte.
+   Exception : `docs/passation/REGLES_CREATION_TOURNOI.md` si un champ du
    tournoi change.
-8. Avant d'ouvrir la Pull Request, mettre la branche à jour avec `main`. En
-   cas de conflit sur `QUESTIONS.md`, `ETAT_DU_PROJET.md` ou un `RAPPORT_*.md`,
-   **garder les deux versions** (les entrées des autres sessions ne doivent
-   jamais disparaître), puis vérifier avec `git diff origin/main` qu'aucune
-   ligne d'une autre session n'a été supprimée.
-9. Indiquer dans la Pull Request comment tester chez Quentin :
-   `git pull`, puis `mvn clean javafx:run`, et quel écran ouvrir avec quel
-   compte de démo.
+5. **Points de passage communs** (`theme.css`, `PageGestionTournoi`,
+   `Coquille`, `ContexteApplication`, `Ui`) : modifications minimales et
+   localisées ; dans `theme.css`, une section commentée par domaine, en fin
+   de fichier.
+6. En cas de blocage ou de choix produit : question dans le journal, option la
+   plus prudente et réversible, continuer.
+7. **Pour finir, toujours appliquer la skill `terminer-tache`** :
+   synchronisation avec les dernières fusions de `main`, résolution des
+   conflits, tests, Pull Request, **fusion automatique** si les tests passent
+   (sauf cas listés dans la skill, ou consigne « relecture »), description
+   finale pour Quentin.
 
 ## Ce qu'il ne faut pas faire
 
