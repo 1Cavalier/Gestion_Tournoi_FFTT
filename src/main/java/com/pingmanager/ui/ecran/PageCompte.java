@@ -7,6 +7,8 @@ import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteUtilisateur;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.ContexteApplication;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -73,23 +75,27 @@ public final class PageCompte {
     public Parent build() {
         CompteUtilisateur compte = contexte.compteConnecte();
 
-        // Bloc du haut : identité | licence, puis Tournoi | Appel micro.
-        VBox carteIdentite = Ui.carte(PresentationProfil.TITRE_IDENTITE,
+        // Bloc du haut : à gauche identité, Tournoi et Appel micro ; à droite,
+        // à côté de l'identité, la licence (longue) : pas de carte étirée à vide.
+        Node enteteIdentite = Ui.ligne(14,
+                Ui.avatarGrand(compte.getPrenom(), compte.getNom()),
+                Ui.titreCarte(PresentationProfil.TITRE_IDENTITE));
+        VBox carteIdentite = Ui.carte(enteteIdentite,
                 grilleChamps(PresentationProfil.identite(
                         compte.getNom(), compte.getPrenom(), compte.getEmail(), null)));
         remplirLicence();
         VBox carteLicence = Ui.carte(PresentationProfil.TITRE_LICENCE, boiteLicence);
 
-        VBox blocPersonnel = new VBox(20,
-                deuxColonnes(carteIdentite, carteLicence),
-                deuxColonnes(construireCarteTournoi(), construireCarteAppel()));
+        VBox blocPersonnel = new VBox(deuxColonnes(
+                new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel()),
+                new VBox(20, carteLicence)));
         blocPersonnel.getStyleClass().add("profil-bloc-personnel");
 
         VBox contenu = Ui.page(1080, titre(PresentationProfil.TITRE), blocPersonnel, construireBlocClub());
         return Ui.defilant(contenu);
     }
 
-    /** Deux cartes côte à côte, de même largeur et de même hauteur. */
+    /** Deux colonnes de cartes de même largeur, alignées en haut. */
     private static GridPane deuxColonnes(VBox gauche, VBox droite) {
         GridPane g = new GridPane();
         g.setHgap(20);
@@ -98,10 +104,8 @@ public final class PageCompte {
             c.setPercentWidth(50);
             g.getColumnConstraints().add(c);
         }
-        gauche.setMaxHeight(Double.MAX_VALUE);
-        droite.setMaxHeight(Double.MAX_VALUE);
-        GridPane.setVgrow(gauche, Priority.ALWAYS);
-        GridPane.setVgrow(droite, Priority.ALWAYS);
+        GridPane.setValignment(gauche, VPos.TOP);
+        GridPane.setValignment(droite, VPos.TOP);
         g.add(gauche, 0, 0);
         g.add(droite, 1, 0);
         return g;
@@ -262,20 +266,14 @@ public final class PageCompte {
     }
 
     private static GridPane tableauDroits(List<PresentationProfil.Droit> droits) {
-        GridPane g = new GridPane();
-        g.getStyleClass().add("profil-tableau-droits");
-        g.setHgap(18);
-        g.setVgap(8);
-        g.add(enteteCol("Action"), 0, 0);
-        g.add(enteteCol("Autorisé"), 1, 0);
-        g.add(enteteCol("Précision"), 2, 0);
+        GridPane g = tableau("profil-tableau-droits", 2);
+        entetes(g, "Action", "Autorisé", "Précision");
         int r = 1;
         for (PresentationProfil.Droit d : droits) {
-            g.add(new Label(d.action()), 0, r);
-            g.add(Ui.pastille(d.etat().libelle(), d.etat().pastille()), 1, r);
             Label p = discret(d.precision());
             p.setWrapText(true);
-            g.add(p, 2, r);
+            ligneTableau(g, r, new Label(d.action()),
+                    Ui.pastille(d.etat().libelle(), d.etat().pastille()), p);
             r++;
         }
         return g;
@@ -398,26 +396,59 @@ public final class PageCompte {
     }
 
     private static GridPane tableauMembres(List<AccesClub> membres) {
-        GridPane g = new GridPane();
-        g.setHgap(18);
-        g.setVgap(6);
-        g.add(enteteCol("Nom"), 0, 0);
-        g.add(enteteCol("Prénom"), 1, 0);
-        g.add(enteteCol("Email"), 2, 0);
-        g.add(enteteCol("Autorisation"), 3, 0);
+        GridPane g = tableau("profil-tableau-membres", 3);
+        entetes(g, "Nom", "Prénom", "Email", "Autorisation");
         int r = 1;
         for (AccesClub a : membres) {
-            g.add(new Label(safe(a.getNom())), 0, r);
-            g.add(new Label(safe(a.getPrenom())), 1, r);
-            g.add(new Label(safe(a.getEmail())), 2, r);
-            g.add(new Label(a.getNiveau().getLibelle()), 3, r);
+            ligneTableau(g, r, new Label(safe(a.getNom())), new Label(safe(a.getPrenom())),
+                    new Label(safe(a.getEmail())), new Label(a.getNiveau().getLibelle()));
             r++;
         }
         return g;
     }
 
-    private static Label enteteCol(String texte) {
-        return Ui.enteteColonne(texte);
+    // Tableaux à lignes filetées (classes .profil-tableau*) -----------------
+
+    /** Tableau pleine largeur ; la colonne {@code colonneExtensible} prend le reste. */
+    private static GridPane tableau(String classe, int colonneExtensible) {
+        GridPane g = new GridPane();
+        g.getStyleClass().addAll("profil-tableau", classe);
+        g.setMaxWidth(Double.MAX_VALUE);
+        for (int i = 0; i <= colonneExtensible; i++) {
+            ColumnConstraints c = new ColumnConstraints();
+            if (i == colonneExtensible) {
+                c.setHgrow(Priority.ALWAYS);
+            }
+            g.getColumnConstraints().add(c);
+        }
+        return g;
+    }
+
+    private static void entetes(GridPane g, String... titres) {
+        for (int i = 0; i < titres.length; i++) {
+            HBox c = cellule(Ui.enteteColonne(titres[i]));
+            c.getStyleClass().add("profil-tableau-entete");
+            g.add(c, i, 0);
+        }
+    }
+
+    private static void ligneTableau(GridPane g, int rang, Node... valeurs) {
+        for (int i = 0; i < valeurs.length; i++) {
+            g.add(cellule(valeurs[i]), i, rang);
+        }
+    }
+
+    /** Cellule pleine largeur de colonne, filet bas posé par la feuille de style. */
+    private static HBox cellule(Node contenu) {
+        HBox c = new HBox(contenu);
+        c.setAlignment(Pos.CENTER_LEFT);
+        c.getStyleClass().add("profil-tableau-cellule");
+        c.setMaxWidth(Double.MAX_VALUE);
+        c.setMaxHeight(Double.MAX_VALUE);
+        if (contenu instanceof Label l && l.isWrapText()) {
+            HBox.setHgrow(l, Priority.ALWAYS);
+        }
+        return c;
     }
 
     // Présentation : délègue à Ui (classes de theme.css) ------------------

@@ -28,5 +28,8 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 2. Bloc du haut pour tous
 Voir le cahier des charges v0.
 
 ## Passations
+- designer-interface : charte v2 appliquée — colonnes alignées en haut (identité + Tournoi + Appel à gauche, licence à droite, plus de carte étirée à vide), avatar dans « Mes informations », tableaux droits/équipe pleine largeur à en-tête teinté et lignes filetées (classes .profil-tableau* en section B029 de theme.css). Logique inchangée.
+- Réparé au passage dans theme.css une fusion cassée venue de main (accolade et ouverture de commentaire perdues entre B028 et B033 : règle accueil-club-tuile et section B033 ignorées).
+- Harnais : mode `profil` (outils-dev/run.sh) ; captures avant/après clair et sombre dans docs/captures/B029/ ; mvn -B test vert. Non vérifié : rendu Windows, mise à l'échelle.
 
 ## Résultat
