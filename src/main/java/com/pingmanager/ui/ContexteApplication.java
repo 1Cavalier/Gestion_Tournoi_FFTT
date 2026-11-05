@@ -204,9 +204,12 @@ public final class ContexteApplication {
      * l'inscription en attente).
      * v13 (05/11/2026) : tournoi de démonstration du jour J (Brunoy, 14 novembre 2026) avec
      * un tableau en inscription, un en pointage, un lancé et un prêt pour le tirage.
-     * v14 (05/11/2026) : salle du jour J, deux parties du tableau C en cours (tables 2 et 5).
+     * v14 (05/11/2026) : salle du jour J, deux parties du tableau C en cours (tables 2 et 5) ;
+     * en parallèle, tableaux E (poules terminées) et F (tableau final en cours, table 3)
+     * avec petite finale.
+     * v15 (05/11/2026) : les deux v14 réunies (fusions du 5 novembre réparées).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v14";
+    private static final String VERSION_DEMO = ".demo-brunoy-v15";
 
     private void rafraichirTournoiDemo() {
         Path marqueur = dossierDonnees.resolve("tournois").resolve(VERSION_DEMO);

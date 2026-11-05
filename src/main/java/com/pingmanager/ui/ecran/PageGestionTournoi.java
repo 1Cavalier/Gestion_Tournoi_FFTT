@@ -202,12 +202,6 @@ public final class PageGestionTournoi {
             droite.add(Ui.pastille("Jour J commencé", StatutPastille.INFO));
         }
 
-        // PROVISOIRE : point d'entrée de test de la phase finale, à remplacer par la page Jour J
-        Button phaseFinale = Ui.boutonLien("Phase finale (provisoire)");
-        phaseFinale.setOnAction(e -> racine.setCenter(
-                AccesPhaseFinaleProvisoire.creer(contexte, r.fichier, this::afficherAccueil)));
-        droite.add(phaseFinale);
-
         Button completer = Ui.boutonSecondaire(r.mode == com.pingmanager.model.ModePreparation.COMPLETE
                 ? "Compléter" : r.mode == com.pingmanager.model.ModePreparation.IMPORT ? "Ouvrir" : "Choisir le mode");
         completer.setOnAction(e -> afficherCompletion(r.fichier));
