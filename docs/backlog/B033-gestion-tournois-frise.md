@@ -29,4 +29,6 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- developpeur-interface : accueil extrait dans `AccueilGestionTournois` (vue) + `PresentationGestionTournois` (10 tests) ; `PageGestionTournoi` ne fait plus que déléguer (tuiles chiffrées retirées, « Tournoi actuel » en haut). Frise 4→1 calée sur `StatutTournoi` (aucune étape manquante), gros bouton « Créer un tournoi », historique (annulés + homologués/publiés dont le dernier jour est passé) affiché dans la page, l'entrée « Historique » de la `Coquille` reste un espace réservé. CSS section « B033 » en fin de theme.css ; captures non regardées (pas d'affichage en session cloud).
+
 ## Résultat
