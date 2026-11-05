@@ -1,5 +1,6 @@
 package com.pingmanager.core;
 
+import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
 import com.pingmanager.ordonnancement.Ordonnanceur;
 import com.pingmanager.ordonnancement.PhaseMatch;
@@ -36,13 +37,76 @@ public final class TableauDeBordSalle {
      * l'ordonnanceur (0 et explication vide s'il n'est pas jouable).
      */
     public record MatchSalle(Match match, String tableau, String tour, PhaseMatch phase,
-                             double priorite, String explication) {
+                             double priorite, String explication, NiveauPriorite niveau, String motifNiveau,
+                             Duration attente) {
         public MatchSalle {
             Objects.requireNonNull(match, "match");
             Objects.requireNonNull(tableau, "tableau");
             Objects.requireNonNull(tour, "tour");
             Objects.requireNonNull(phase, "phase");
             explication = explication == null ? "" : explication;
+            niveau = niveau == null ? NiveauPriorite.NORMAL : niveau;
+            motifNiveau = motifNiveau == null ? "" : motifNiveau;
+        }
+
+        /** Match sans couleur de priorité (vert), attente inconnue. */
+        public MatchSalle(Match match, String tableau, String tour, PhaseMatch phase,
+                          double priorite, String explication) {
+            this(match, tableau, tour, phase, priorite, explication, NiveauPriorite.NORMAL, "", null);
+        }
+    }
+
+    /**
+     * Pourquoi un joueur en attente ne joue pas, pour l'un de ses matchs à jouer.
+     * Pas de {@code switch} sur cette énumération.
+     */
+    public enum RaisonAttente {
+        /** Le match est prêt : il attend une table libre ou l'envoi par le juge-arbitre. */
+        PRET,
+        /** Son adversaire joue déjà sur une table. */
+        ADVERSAIRE_EN_JEU,
+        /** Son adversaire n'est pas connu : le tour précédent n'est pas joué. */
+        ADVERSAIRE_INCONNU
+    }
+
+    /**
+     * Un match à jouer d'un joueur en attente.
+     *
+     * @param match           le match vu depuis la salle (tableau, tour)
+     * @param raison          pourquoi il n'est pas sur une table
+     * @param adversaire      l'adversaire (ou le joueur « à déterminer »)
+     * @param tableAdversaire table où joue l'adversaire, ou null
+     * @param groupe          nom de la poule ou du tour (« Poule B », « Quarts de finale »)
+     * @param matchsDuGroupe  tous les matchs de cette poule ou de ce tour, pour situer le joueur
+     */
+    public record Engagement(MatchSalle match, RaisonAttente raison, Joueur adversaire, Integer tableAdversaire,
+                             String groupe, List<Match> matchsDuGroupe) {
+        public Engagement {
+            Objects.requireNonNull(match, "match");
+            Objects.requireNonNull(raison, "raison");
+            groupe = groupe == null ? "" : groupe;
+            matchsDuGroupe = List.copyOf(matchsDuGroupe);
+        }
+    }
+
+    /**
+     * Un joueur qui a encore un match à jouer et n'est sur aucune table, avec son
+     * chrono d'attente et ses matchs à jouer.
+     *
+     * @param depuis  instant depuis lequel il attend (fin de son dernier match, sinon
+     *                début de son tableau), ou null s'il n'a pas encore commencé
+     * @param attente durée d'attente, ou null si inconnue
+     */
+    public record JoueurEnAttente(Joueur joueur, LocalDateTime depuis, Duration attente,
+                                  List<Engagement> engagements) {
+        public JoueurEnAttente {
+            Objects.requireNonNull(joueur, "joueur");
+            engagements = List.copyOf(engagements);
+        }
+
+        /** A-t-il au moins un match prêt (jouable dès qu'une table est libre) ? */
+        public boolean peutJouer() {
+            return engagements.stream().anyMatch(e -> e.raison() == RaisonAttente.PRET);
         }
     }
 
@@ -68,11 +132,13 @@ public final class TableauDeBordSalle {
     private final List<MatchBloque> bloques;
     private final List<MatchSalle> anomalies;
     private final int enAttenteDesJoueurs;
+    private final List<JoueurEnAttente> joueursEnAttente;
     private final Ordonnanceur ordonnanceur;
 
     TableauDeBordSalle(LocalDateTime maintenant, int nombreDeTables, List<CarteTable> tables,
                        List<MatchSalle> prets, List<MatchBloque> bloques, List<MatchSalle> anomalies,
-                       int enAttenteDesJoueurs, Ordonnanceur ordonnanceur) {
+                       int enAttenteDesJoueurs, List<JoueurEnAttente> joueursEnAttente,
+                       Ordonnanceur ordonnanceur) {
         this.maintenant = maintenant;
         this.nombreDeTables = nombreDeTables;
         this.tables = List.copyOf(tables);
@@ -80,6 +146,7 @@ public final class TableauDeBordSalle {
         this.bloques = List.copyOf(bloques);
         this.anomalies = List.copyOf(anomalies);
         this.enAttenteDesJoueurs = enAttenteDesJoueurs;
+        this.joueursEnAttente = List.copyOf(joueursEnAttente);
         this.ordonnanceur = ordonnanceur;
     }
 
@@ -121,6 +188,25 @@ public final class TableauDeBordSalle {
     /** Matchs du tableau final dont les joueurs ne sont pas encore connus. */
     public int getEnAttenteDesJoueurs() {
         return enAttenteDesJoueurs;
+    }
+
+    /**
+     * Joueurs qui ont encore un match à jouer et ne sont sur aucune table, du
+     * plus long chrono d'attente au plus court (chrono inconnu à la fin), puis
+     * par nom.
+     */
+    public List<JoueurEnAttente> getJoueursEnAttente() {
+        return joueursEnAttente;
+    }
+
+    /** Joueur en attente par licence, ou null s'il joue ou n'a plus rien à jouer. */
+    public JoueurEnAttente joueurEnAttente(String licence) {
+        for (JoueurEnAttente j : joueursEnAttente) {
+            if (j.joueur().getNumeroLicence().equals(licence)) {
+                return j;
+            }
+        }
+        return null;
     }
 
     public int nombreTablesLibres() {

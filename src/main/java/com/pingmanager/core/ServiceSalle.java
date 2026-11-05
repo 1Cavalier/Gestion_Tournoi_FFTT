@@ -198,6 +198,14 @@ public final class ServiceSalle {
         private final Map<MatchOrdonnancable, String> tours = new IdentityHashMap<>();
         private final List<MatchOrdonnancable> ordre = new ArrayList<>();
         private final List<MatchOrdonnancable> anomalies = new ArrayList<>();
+        /** Enveloppe → tableau, poule ou tour (nom et matchs), importance du tour. */
+        private final Map<MatchOrdonnancable, Tableau> tableaux = new IdentityHashMap<>();
+        private final Map<MatchOrdonnancable, String> groupes = new IdentityHashMap<>();
+        private final Map<MatchOrdonnancable, List<Match>> matchsDuGroupe = new IdentityHashMap<>();
+        private final Map<MatchOrdonnancable, String> importanceTour = new IdentityHashMap<>();
+        /** Licence → fin de son dernier match ; tableau → premier match lancé. */
+        private final Map<String, LocalDateTime> libreDepuis = new HashMap<>();
+        private final Map<String, LocalDateTime> debutTableau = new HashMap<>();
 
         Salle(Tournoi tournoi, LocalDateTime maintenant) {
             this.tournoi = Objects.requireNonNull(tournoi, "tournoi");
@@ -221,7 +229,7 @@ public final class ServiceSalle {
                     for (int i = 0; i < matchs.size(); i++) {
                         // I.301 : tour de la partie dans l'ordre officiel de la poule.
                         ajouter(matchs.get(i), t, "Poule " + p.getNom() + " · tour " + SuiviPoule.tourDuMatch(p, i),
-                                PhaseMatch.POULE);
+                                PhaseMatch.POULE, "Poule " + p.getNom(), matchs, null);
                     }
                 }
                 if (t.aPhaseFinale()) {
@@ -229,21 +237,31 @@ public final class ServiceSalle {
                     for (int k = 0; k < toursPf.size(); k++) {
                         Tour tour = toursPf.get(k);
                         PhaseMatch phase = k == 0 ? PhaseMatch.PREMIER_TOUR_TABLEAU : PhaseMatch.TOUR_SUIVANT_TABLEAU;
+                        // Demi-finales, finale, petite finale : tours d'au plus deux parties réelles.
+                        long reels = tour.getMatchs().stream().filter(m -> !m.estBye()).count();
+                        String importance = reels <= 2 ? tour.getNom() : null;
                         for (Match m : tour.getMatchs()) {
-                            ajouter(m, t, tour.getNom(), phase);
+                            ajouter(m, t, tour.getNom(), phase, tour.getNom(), tour.getMatchs(), importance);
                         }
                     }
                 }
             }
         }
 
-        private void ajouter(Match m, Tableau t, String tour, PhaseMatch phase) {
+        private void ajouter(Match m, Tableau t, String tour, PhaseMatch phase, String groupe,
+                             List<Match> groupeMatchs, String importance) {
             if (m.estBye() || parMatch.containsKey(m)) {
                 return;
             }
             MatchOrdonnancable mo = new MatchOrdonnancable(m, t.getNom(), t.getNom(), phase);
             parMatch.put(m, mo);
             tours.put(mo, tour);
+            tableaux.put(mo, t);
+            groupes.put(mo, groupe);
+            matchsDuGroupe.put(mo, groupeMatchs);
+            if (importance != null) {
+                importanceTour.put(mo, importance);
+            }
             ordre.add(mo);
             ordonnanceur.ajouterMatch(mo);
         }
@@ -283,8 +301,6 @@ public final class ServiceSalle {
          * tableau dans la salle (premier match lancé), sans dépasser maintenant.
          */
         private void poserAttentes() {
-            Map<String, LocalDateTime> libreDepuis = new HashMap<>();
-            Map<String, LocalDateTime> debutTableau = new HashMap<>();
             for (MatchOrdonnancable mo : ordre) {
                 Match m = mo.getMatch();
                 if (m.getInstantLancement() != null) {
@@ -370,15 +386,151 @@ public final class ServiceSalle {
             prets.sort(parPriorite);
             bloques.sort(parPriorite);
 
+            // Couleur de priorité : les premiers proposés, autant que de tables libres,
+            // sont ceux que la stratégie de l'ordonnanceur enverrait maintenant.
+            int libres = nombreDeTables == 0 ? 0 : ordonnanceur.tablesLibres().size();
             List<TableauDeBordSalle.MatchSalle> listePrets = new ArrayList<>();
-            prets.forEach(c -> listePrets.add(c.vu));
+            for (int rang = 0; rang < prets.size(); rang++) {
+                listePrets.add(colorer(prets.get(rang).vu, rang < libres));
+            }
             List<TableauDeBordSalle.MatchBloque> listeBloques = new ArrayList<>();
             bloques.forEach(c -> listeBloques.add(new TableauDeBordSalle.MatchBloque(c.vu, c.motif)));
             List<TableauDeBordSalle.MatchSalle> listeAnomalies = new ArrayList<>();
             anomalies.forEach(mo -> listeAnomalies.add(vue(mo, 0, "")));
 
             return new TableauDeBordSalle(maintenant, nombreDeTables, cartes, listePrets, listeBloques,
-                    listeAnomalies, enAttente, ordonnanceur);
+                    listeAnomalies, enAttente, joueursEnAttente(), ordonnanceur);
+        }
+
+        /** Attente d'un match prêt (depuis que ses deux joueurs sont libres), ou null. */
+        private Duration attente(MatchOrdonnancable mo) {
+            LocalDateTime pret = mo.getPretDepuis();
+            if (pret == null) {
+                return null;
+            }
+            Duration d = Duration.between(pret, maintenant);
+            return d.isNegative() ? Duration.ZERO : d;
+        }
+
+        /** Pose la couleur de priorité d'un match prêt ({@link ReglePrioriteSalle}). */
+        private TableauDeBordSalle.MatchSalle colorer(TableauDeBordSalle.MatchSalle vu, boolean choisiParStrategie) {
+            MatchOrdonnancable mo = parMatch.get(vu.match());
+            Duration attente = attente(mo);
+            ReglePrioriteSalle.Evaluation e = ReglePrioriteSalle.evaluer(attente, importance(mo), choisiParStrategie);
+            return new TableauDeBordSalle.MatchSalle(vu.match(), vu.tableau(), vu.tour(), vu.phase(),
+                    vu.priorite(), vu.explication(), e.niveau(), e.motif(), attente);
+        }
+
+        /**
+         * Importance d'un match : tour final (demi-finales, finale, petite finale),
+         * ou joueur attendu dans un autre tableau (le lancer libère la suite).
+         */
+        private String importance(MatchOrdonnancable mo) {
+            List<String> raisons = new ArrayList<>();
+            String tour = importanceTour.get(mo);
+            if (tour != null) {
+                raisons.add(tour);
+            }
+            Match m = mo.getMatch();
+            for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
+                String autre = autreTableauAJouer(j, mo.getIdentifiantTableau());
+                if (autre != null) {
+                    raisons.add(j.getNomComplet() + " joue aussi " + autre);
+                }
+            }
+            return String.join(", ", raisons);
+        }
+
+        /** Nom d'un autre tableau où le joueur a encore un match à jouer, ou null. */
+        private String autreTableauAJouer(Joueur j, String tableau) {
+            if (!connu(j)) {
+                return null;
+            }
+            for (MatchOrdonnancable autre : ordre) {
+                Match m = autre.getMatch();
+                if (!autre.getIdentifiantTableau().equals(tableau) && m.getStatut() == StatutMatch.A_JOUER
+                        && (memeJoueur(j, m.getJoueurA()) || memeJoueur(j, m.getJoueurB()))) {
+                    return autre.getNomTableau();
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Joueurs qui ont un match à jouer et ne sont sur aucune table : chrono
+         * depuis la fin de leur dernier match (sinon début de leur tableau dans la
+         * salle, sinon heure de début prévue du tableau si elle est passée), et
+         * pourquoi chacun de leurs matchs ne se joue pas.
+         */
+        private List<TableauDeBordSalle.JoueurEnAttente> joueursEnAttente() {
+            Map<String, Joueur> joueurs = new java.util.LinkedHashMap<>();
+            Map<String, List<TableauDeBordSalle.Engagement>> engagements = new HashMap<>();
+            Map<String, LocalDateTime> depuis = new HashMap<>();
+            java.util.Set<String> enMatch = new java.util.HashSet<>();
+            for (MatchOrdonnancable mo : ordre) {
+                Match m = mo.getMatch();
+                if (m.getStatut() == StatutMatch.EN_COURS) {
+                    enMatch.add(licence(m.getJoueurA()));
+                    enMatch.add(licence(m.getJoueurB()));
+                }
+            }
+            for (MatchOrdonnancable mo : ordre) {
+                Match m = mo.getMatch();
+                if (m.getStatut() != StatutMatch.A_JOUER) {
+                    continue;
+                }
+                for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
+                    if (!connu(j) || enMatch.contains(j.getNumeroLicence())) {
+                        continue;
+                    }
+                    Joueur adversaire = memeJoueur(j, m.getJoueurA()) ? m.getJoueurB() : m.getJoueurA();
+                    TableauDeBordSalle.RaisonAttente raison;
+                    Integer tableAdversaire = null;
+                    if (!connu(adversaire)) {
+                        raison = TableauDeBordSalle.RaisonAttente.ADVERSAIRE_INCONNU;
+                    } else {
+                        tableAdversaire = ordonnanceur.tableDuJoueur(adversaire.getNumeroLicence());
+                        raison = tableAdversaire != null || enMatch.contains(adversaire.getNumeroLicence())
+                                ? TableauDeBordSalle.RaisonAttente.ADVERSAIRE_EN_JEU
+                                : TableauDeBordSalle.RaisonAttente.PRET;
+                    }
+                    String cle = j.getNumeroLicence();
+                    joueurs.putIfAbsent(cle, j);
+                    engagements.computeIfAbsent(cle, k -> new ArrayList<>()).add(new TableauDeBordSalle.Engagement(
+                            vue(mo, 0, ""), raison, adversaire, tableAdversaire, groupes.get(mo),
+                            matchsDuGroupe.getOrDefault(mo, List.of())));
+                    LocalDateTime debut = debutAttente(j, mo);
+                    if (debut != null) {
+                        depuis.merge(cle, debut, (a, b) -> a.isBefore(b) ? a : b);
+                    }
+                }
+            }
+            List<TableauDeBordSalle.JoueurEnAttente> res = new ArrayList<>();
+            for (Map.Entry<String, Joueur> e : joueurs.entrySet()) {
+                LocalDateTime d = depuis.get(e.getKey());
+                Duration attente = d == null ? null : Duration.between(d, maintenant);
+                res.add(new TableauDeBordSalle.JoueurEnAttente(e.getValue(), d, attente,
+                        engagements.get(e.getKey())));
+            }
+            res.sort(Comparator.comparing(TableauDeBordSalle.JoueurEnAttente::attente,
+                            Comparator.nullsLast(Comparator.<Duration>reverseOrder()))
+                    .thenComparing(x -> x.joueur().getNom())
+                    .thenComparing(x -> x.joueur().getPrenom()));
+            return res;
+        }
+
+        /** Début de l'attente d'un joueur pour un match, borné à maintenant, ou null. */
+        private LocalDateTime debutAttente(Joueur j, MatchOrdonnancable mo) {
+            LocalDateTime d = libreDepuis.get(j.getNumeroLicence());
+            if (d == null) {
+                d = debutTableau.get(mo.getIdentifiantTableau());
+            }
+            if (d == null) {
+                Tableau t = tableaux.get(mo);
+                LocalDateTime prevu = t == null ? null : t.getHoraires().getDebutMatchs();
+                d = prevu != null && !prevu.isAfter(maintenant) ? prevu : null;
+            }
+            return d != null && d.isAfter(maintenant) ? maintenant : d;
         }
     }
 
@@ -388,6 +540,10 @@ public final class ServiceSalle {
 
     private static String licence(Joueur j) {
         return j == null ? null : j.getNumeroLicence();
+    }
+
+    private static boolean memeJoueur(Joueur j, Joueur autre) {
+        return j != null && autre != null && j.getNumeroLicence().equals(autre.getNumeroLicence());
     }
 
     private static boolean connu(Joueur j) {
