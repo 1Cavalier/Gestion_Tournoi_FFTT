@@ -10,7 +10,7 @@
 
 ---
 
-## 0. Point au 2 novembre 2026 (à lire en premier)
+## 0. Point au 5 novembre 2026 (à lire en premier)
 
 Les sections suivantes datent du chat « persistance » ; depuis, ont été réalisés :
 - **Interface JavaFX** : connexion, comptes (licence liée, rattachement à un club), navigation (`Coquille`), gestion des tournois du club, supervision « ultra admin ».
@@ -25,9 +25,16 @@ Les sections suivantes datent du chat « persistance » ; depuis, ont été réa
 - **Suite (13 h)** : après la création d'un brouillon, **choix imposé** entre préparation complète et import (`ModePreparation`, `EcranChoixPreparation`, `EcranTournoiImporte`) ; **classeur Excel modèle à deux feuilles** (Tableaux avec points imposés, Joueurs avec catégorie et tableaux en listes déroulantes) lu par l'import ; carte corrigée (Leaflet en 2D dans la WebView).
 - **412 tests verts.** Outils de compilation hors Maven dans `outils-dev/`.
 - **5 novembre 2026** : passage à Claude Code. Code sur GitHub (`1Cavalier/Gestion_Tournoi_FFTT`), consignes dans `CLAUDE.md` et `.claude/`, passations dans `docs/passation/`, règlements FFTT en texte dans `docs/reglements/`. Les livraisons se font par Pull Request (plus de zip).
+- **5 novembre 2026 — Jour J à l'écran (branche `jour-j/pointage-tirage-poules`)** :
+  - cœur : `SaisieResultatMatch` (score manche par manche, 2.11.1 / 2.12.1 ; issues non normales, I.303 a ; correction), `NotationManche` (« 11-9 » ou « 9 / -9 »), `SuiviPoule` (tour de chaque partie selon I.301, classement en direct et qualifiés), `ServiceLancementTableau.verifierLancement` (`ResultatVerificationLancement`, motif précis), graine du tirage conservée dans le tableau (`Tableau.getGrainePoules`, IX.109), `ServicePointage.annulerPaiement` / `nonPointes`, `Match.effacerResultat` ;
+  - persistance : champ facultatif `grainePoules` (anciens fichiers relus sans graine), `RoundTripTournoiTest` étendu (pointage en cours, graine, forfait) ;
+  - interface : page **Jour J** (Gestion → tournoi → carte « Jour J », ou « Suivre le tournoi ») avec l'étape de chaque tableau ; **pointage** (présent / payé, recherche, liste d'attente, désistement, clôture, repêchés à confirmer ou retirer) ; **tirage au sort** (graine affichée et modifiable, confirmation) ; **poules** (composition, ordre I.301 par tour, saisie des manches, forfait / abandon / refus / disqualification, classement I.303 en direct, places qualificatives). Logique d'affichage testée sans JavaFX (`PresentationJourJ`). Phase finale non faite (prochaine session) ;
+  - démo v13 : « Tournoi de démonstration du jour J » (Brunoy, 14 novembre 2026, compte de Quentin) : A en inscription, B en pointage, C lancé (graine 141126), D prêt pour le tirage ;
+  - 4 questions ajoutées à `QUESTIONS.md` (repêchés non pointés au lancement, graine IX.109, manches d'un forfait, inscriptions sur un tableau en pointage).
+- **447 tests verts** au 5 novembre 2026.
 
 Détails : `docs/passation/PASSATION_CHOIX_ET_CLASSEUR.md` (dernier lot), `docs/passation/PASSATION_IMPORT_ET_J-1.md` (import et phase J-1), `docs/passation/PASSATION_ONGLET_TOURNOIS.md` (état de fin de phase), `docs/passation/REGLES_CREATION_TOURNOI.md`, `docs/passation/PASSATION_PHASE_INSCRIPTIONS.md`.
-**Phase suivante** : J-1, tournoi prêt (tableau de bord de la veille, listes de pointage, mise à jour des points, pointage et lancement à l'écran). Plus tard : paiement HelloAsso, désinscription par le joueur, écrans adaptés aux petites tailles.
+**Phase suivante** : phase finale à l'écran (construction du tableau à élimination une fois les poules terminées, `ServiceLancementTableau.construirePhaseFinale`, saisie des matchs du tableau), puis J-1 (tableau de bord de la veille, listes de pointage imprimables, mise à jour des points). Plus tard : affectation des tables à l'écran, paiement HelloAsso, désinscription par le joueur, écrans adaptés aux petites tailles.
 
 ---
 
