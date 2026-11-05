@@ -742,6 +742,12 @@ final class Ui {
                 () -> combo.getValue() != null);
     }
 
+    /** Variante pour un sélecteur de date : l'état suit le texte tapé comme le jour choisi. */
+    static VBox champEtiquete(String libelle, javafx.scene.control.DatePicker date, Niveau niveau) {
+        return champEtiquete(libelle, date, niveau, date.getEditor().textProperty(),
+                () -> date.getEditor().getText() != null && !date.getEditor().getText().isBlank());
+    }
+
     // ------------------------------------------------------------------
     // Visibilité
     // ------------------------------------------------------------------
