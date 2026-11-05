@@ -4,11 +4,11 @@ titre: Jour J v2 : priorités en couleur, joueurs en attente, salle, lancer, ter
 type: jour-j
 priorite: P1
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/EcranJourJ, ui/ecran/EcranSalle, ui/ecran/PresentationJourJ, ui/ecran/PresentationSalle, core/ServiceSalle]
 branche: tache/B037-jour-j-v2 (prise le 2026-11-05)
-pr:
+pr: 33
 ---
 
 ## Ce qu'il faut faire
