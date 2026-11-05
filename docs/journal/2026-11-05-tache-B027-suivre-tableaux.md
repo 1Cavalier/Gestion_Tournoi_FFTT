@@ -78,8 +78,11 @@ Un bouton permet de revenir à la fiche complète à tout moment.
 
 ## Fusion
 
-À remplir par l'`integrateur` (résultat de `python3 outils-dev/verifier-fusion.py`
-après synchronisation avec `main`).
+Synchronisation avec `main` (B011 fusionnée) : 2 conflits, les deux côtés
+gardés. `theme.css` : section B011 de main puis section B027 ajoutée à la suite.
+`Capture.java` : options `suivi` et `jourj` conservées. `verifier-fusion.py` :
+OK. Tests après fusion : 675, 0 échec (`outils-dev/tests.sh`). Interface JavaFX
+non validée visuellement par Quentin.
 
 ## Chiffres
 
