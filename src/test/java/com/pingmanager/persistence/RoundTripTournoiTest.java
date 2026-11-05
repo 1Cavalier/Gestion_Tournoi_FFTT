@@ -382,7 +382,7 @@ class RoundTripTournoiTest {
         t.setModeAnnonce(com.pingmanager.model.ModeAnnonce.SMS);
         DepotTournoi.sauvegarder(t, fichier);
         String json = Files.readString(fichier);
-        for (String valeur : new String[] {"null", "\"\"", "\"sms\""}) {
+        for (String valeur : new String[] {"null", "\"\"", "\"sms\"", "3", "true", "{}", "[]"}) {
             Files.writeString(fichier, json.replace("\"SMS\"", valeur));
             assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce(), "valeur " + valeur);
         }

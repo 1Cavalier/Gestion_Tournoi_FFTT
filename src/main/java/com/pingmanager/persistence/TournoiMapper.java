@@ -503,9 +503,9 @@ public final class TournoiMapper {
         return new DocumentCharge(tournoi, discipline);
     }
 
-    /** Mode d'annonce relu ; absent, nul ou inconnu (fichier plus récent) : demander à chaque lancement. */
+    /** Mode d'annonce relu ; absent, nul, non textuel ou inconnu (fichier plus récent) : demander à chaque lancement. */
     private static ModeAnnonce lireModeAnnonce(Json j) {
-        if (j == null || j.estNul()) {
+        if (j == null || j.getType() != Json.Type.CHAINE) {
             return null;
         }
         for (ModeAnnonce m : ModeAnnonce.values()) {

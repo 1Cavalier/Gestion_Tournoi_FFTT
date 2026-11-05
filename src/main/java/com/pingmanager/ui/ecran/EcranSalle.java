@@ -807,6 +807,13 @@ final class EcranSalle {
                 lancementEnAttente = null;
                 if (retenir.isSelected()) {
                     tournoi.setModeAnnonce(m);
+                    // Enregistré tout de suite : le choix retenu ne doit pas dépendre de la réussite du lancement.
+                    try {
+                        enregistrer.run();
+                    } catch (RuntimeException ex) {
+                        messageErreur = "Attention : l'enregistrement du choix d'annonce a échoué (" + ex.getMessage()
+                                + ").";
+                    }
                 }
                 if (action != null) {
                     action.accept(m);

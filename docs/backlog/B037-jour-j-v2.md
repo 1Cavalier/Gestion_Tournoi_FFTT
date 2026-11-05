@@ -35,5 +35,8 @@ Voir le cahier des charges v0.
 - `verificateur-modele` (2026-11-05) : +5 tests (seuils 9:59/10/20, attente nulle/négative, annonce, JSON tous modes), 708 verts. Invariants et cas limites OK, aucun défaut bloquant.
 - Mineur : `modeAnnonce` de type non texte dans le JSON (nombre, booléen) lève `Json` au lieu de redemander ; rouge dès 10 min pour tout tour de 2 parties réelles ou moins (y compris 1er tour à byes).
 - Règle d'or : aucun import interdit ajouté.
+- `correcteur` (2026-11-05) : `lireModeAnnonce` n'accepte qu'une chaîne (nombre, booléen, objet, tableau → redemander) ; test `mode_d_annonce_tous_les_modes_et_valeurs_degenerees` étendu (rouge avant, vert après).
+- `EcranSalle.choixAnnonce` : « Retenir ce choix » enregistre aussitôt le tournoi (même si le lancement échoue), erreur d'enregistrement affichée. Non testé : logique JavaFX non extractible simplement.
+- 708 tests, 0 échec.
 
 ## Résultat
