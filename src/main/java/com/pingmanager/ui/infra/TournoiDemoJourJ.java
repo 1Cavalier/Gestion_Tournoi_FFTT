@@ -4,6 +4,7 @@ import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.ServicePointage;
+import com.pingmanager.core.ServiceSalle;
 import com.pingmanager.model.AdresseTournoi;
 import com.pingmanager.model.Coordonnees;
 import com.pingmanager.model.FicheLicence;
@@ -35,13 +36,11 @@ import java.util.Map;
  *   <li><b>B – ≤ 1299 pts</b> : pointage ouvert, complet avec une liste d'attente,
  *       une partie des joueurs pointés et payés (clôture et repêchage à essayer) ;</li>
  *   <li><b>C – Toutes séries</b> : lancé (graine 141126), quatre poules de trois, la
- *       poule A terminée, la poule B avec un score et un forfait ;</li>
- *   <li><b>D – Dames</b> : pointage clôturé, toutes présentes : prêt pour le tirage ;</li>
- *   <li><b>E – ≤ 1599 pts</b> : poules toutes jouées, prêt pour la construction du
- *       tableau final (second tirage), avec petite finale ;</li>
- *   <li><b>F – Open du matin</b> : tableau final tiré (graine 141127) avec exempts et
- *       petite finale, premier tour joué, quarts entamés (un match en cours sur la
- *       table 3).</li>
+ *       poule A terminée, la poule B avec un score et un forfait ; dans la salle, la
+ *       dernière partie de la poule B se joue à la table 2 (depuis 15 min) et la
+ *       première de la poule C à la table 5 (depuis 6 min) : la poule D est prête,
+ *       le reste de la poule C est bloqué (joueur déjà en jeu) ;</li>
+ *   <li><b>D – Dames</b> : pointage clôturé, toutes présentes : prêt pour le tirage.</li>
  * </ul>
  *
  * <p>Les données ne touchent pas au National B de Brunoy ({@link TournoiDemoBrunoy}).
@@ -66,6 +65,14 @@ public final class TournoiDemoJourJ {
     }
 
     public static Tournoi construire(List<FicheLicence> joueurs) {
+        return construire(joueurs, Instant.now());
+    }
+
+    /**
+     * @param maintenant heure de création de la démo : les matchs en cours dans la
+     *                   salle ont commencé quelques minutes avant
+     */
+    public static Tournoi construire(List<FicheLicence> joueurs, Instant maintenant) {
         LocalDate jour = LocalDate.of(2026, 11, 14);
         Tournoi t = TournoisDemo.base(NOM, "Brunoy", DonneesDemo.CLUB_BRUNOY, NiveauTournoi.DEPARTEMENTAL,
                 List.of(jour), AdresseTournoi.de("157 route de Brie", "91800", "Brunoy"),
@@ -90,9 +97,19 @@ public final class TournoiDemoJourJ {
         pointageOuvertB(t, tableau(t, "B"), pointage);
         lanceC(t, tableau(t, "C"), pointage);
         pretD(t, tableau(t, "D"), pointage);
-        poulesTermineesE(t, tableau(t, "E"), pointage);
-        tableauFinalEnCoursF(t, tableau(t, "F"), pointage);
+        salleC(t, tableau(t, "C"), maintenant);
         return t;
+    }
+
+    /** C : deux parties en cours dans la salle (tables 2 et 5), envoyées par le service de la salle. */
+    private static void salleC(Tournoi t, Tableau c, Instant maintenant) {
+        if (c.getPoules().size() < 3) {
+            return;
+        }
+        Match finPouleB = c.getPoules().get(1).getMatchs().get(2);
+        Match debutPouleC = c.getPoules().get(2).getMatchs().get(0);
+        new ServiceSalle(() -> maintenant.minusSeconds(15 * 60L)).affecter(t, finPouleB, 2);
+        new ServiceSalle(() -> maintenant.minusSeconds(6 * 60L)).affecter(t, debutPouleC, 5);
     }
 
     /** B : pointage ouvert, 8 pointés sur 12, des paiements en ligne non encore pointés. */

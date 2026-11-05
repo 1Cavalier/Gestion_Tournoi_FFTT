@@ -169,6 +169,47 @@ Format d'une entrée :
 - Recommandation : A.
 - Réponse de Quentin :
 
+### 2026-11-05 — Temps de repos entre deux parties d'un même joueur (salle)
+- Contexte : vue « Salle » du jour J (`core.ServiceSalle`, `Ordonnanceur`).
+  Un match devient « prêt » dès que ses deux joueurs sont libres, même s'ils
+  sortent à l'instant d'une autre table.
+- Article FFTT : 3.3.1.2.2 « Le juge-arbitre est responsable de […] la
+  programmation des parties en fonction de l'horaire retenu et des tables
+  disponibles » ; IX.109 « […] de l'horaire des parties ». Aucun texte trouvé
+  dans `docs/reglements/` sur un temps de repos minimal en tournoi individuel
+  (recherche « repos », « retard », « minutes »).
+- Options : A) aucun repos imposé, le juge-arbitre décide (la priorité favorise
+  déjà les joueurs qui attendent depuis longtemps) ; B) délai minimal
+  configurable par le club (clause d'organisateur), les matchs concernés
+  apparaissant dans « Bloqués » avec le motif « au repos jusqu'à 10 h 42 ».
+- Choix provisoire de l'agent : A (comportement de l'ordonnanceur inchangé).
+- Réponse de Quentin :
+
+### 2026-11-05 — Autosave de session et reprise à l'écran
+- Contexte : vue « Salle ». Chaque action (envoi sur une table, annulation,
+  score) enregistre aussitôt le fichier du tournoi, qui porte déjà le statut
+  « en cours », le numéro de table et l'heure de début : rouvrir le tournoi
+  rend la salle telle qu'elle était (testé). L'autosave de session
+  (`ServiceAutosave`, `SessionSalle`) sait aussi la sauvegarder et la
+  reprendre (testé), mais l'interface ne l'active pas et ne propose pas de
+  reprise au démarrage (situation antérieure à ce lot).
+- Options : A) garder l'enregistrement immédiat du tournoi comme seule source
+  (choix actuel) ; B) activer en plus l'autosave de session pendant le jour J
+  et proposer la reprise au démarrage (utile surtout pour l'apprentissage des
+  durées de match, qui n'est pas encore affiché).
+- Choix provisoire de l'agent : A (une seule source de vérité, pas de risque
+  de divergence entre deux fichiers).
+- Réponse de Quentin :
+
+### 2026-11-05 — Durée « longue » d'une partie en salle
+- Contexte : carte d'une table, la durée passe en rouge au-delà de 40 minutes
+  (`PresentationSalle.DUREE_LONGUE`), pour attirer l'œil du juge-arbitre.
+- Options : A) seuil fixe de 40 min ; B) seuil réglable par tournoi ; C) seuil
+  tiré de l'estimateur de durées (`EstimateurDuree`, selon la phase et le
+  niveau).
+- Choix provisoire de l'agent : A (affichage seulement, aucune règle).
+- Réponse de Quentin :
+
 ## Tranché
 
 ### 2026-11-05 — Abandon ou disqualification en demi-finale, puis petite finale

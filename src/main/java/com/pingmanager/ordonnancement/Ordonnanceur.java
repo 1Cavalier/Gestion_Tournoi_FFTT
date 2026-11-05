@@ -251,7 +251,8 @@ public final class Ordonnanceur {
         return count;
     }
 
-    private String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant) {
+    /** Explication lisible de la priorité d'un match (phase, attente, déblocage). */
+    public String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant) {
         List<String> raisons = new ArrayList<>();
         raisons.add(switch (mo.getPhase()) {
             case POULE -> "poule";
@@ -307,6 +308,132 @@ public final class Ordonnanceur {
     /** Match en cours sur une table donnée, ou null si libre. */
     public MatchOrdonnancable matchSurTable(int table) {
         return occupationTables.get(table);
+    }
+
+    // -------------------------------------------------------------------------
+    // Affectation manuelle (choix du juge-arbitre), avec motif de refus
+    // -------------------------------------------------------------------------
+
+    /**
+     * Table sur laquelle joue actuellement un joueur (par licence), ou null s'il
+     * n'est sur aucune table.
+     */
+    public Integer tableDuJoueur(String licence) {
+        if (licence == null) {
+            return null;
+        }
+        for (int t = 1; t <= nombreDeTables; t++) {
+            MatchOrdonnancable mo = occupationTables.get(t);
+            if (mo != null && joue(mo.getMatch(), licence)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    private static boolean joue(Match m, String licence) {
+        return (m.getJoueurA() != null && licence.equals(m.getJoueurA().getNumeroLicence()))
+                || (m.getJoueurB() != null && licence.equals(m.getJoueurB().getNumeroLicence()));
+    }
+
+    /**
+     * Dit si un match peut être lancé maintenant, indépendamment de la table :
+     * match géré, à jouer, deux joueurs connus, aucun des deux déjà en jeu.
+     *
+     * @return {@link ResultatAffectationTable.Motif#AFFECTE} (table 0) si le match
+     *         est jouable, sinon le motif du blocage
+     */
+    public ResultatAffectationTable verifierMatch(MatchOrdonnancable mo) {
+        Objects.requireNonNull(mo, "mo");
+        if (!matchs.contains(mo)) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, 0);
+        }
+        Match m = mo.getMatch();
+        if (m.estBye()) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_EXEMPT, 0);
+        }
+        if (m.getStatut() == StatutMatch.TERMINE) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_TERMINE, 0);
+        }
+        if (m.getStatut() == StatutMatch.EN_COURS) {
+            Integer table = m.getNumeroTable();
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS,
+                    table == null ? 0 : table);
+        }
+        Joueur a = m.getJoueurA();
+        Joueur b = m.getJoueurB();
+        if (m.getStatut() != StatutMatch.A_JOUER || a == null || b == null
+                || a.estADeterminer() || b.estADeterminer()) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.JOUEURS_NON_CONNUS, 0);
+        }
+        // Contrainte dure : un joueur n'est jamais sur deux tables à la fois.
+        for (Joueur j : List.of(a, b)) {
+            Integer table = tableDuJoueur(j.getNumeroLicence());
+            if (table != null) {
+                return ResultatAffectationTable.joueurEnJeu(0, j, table);
+            }
+        }
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, 0);
+    }
+
+    /**
+     * Vérifie qu'un match peut être envoyé sur une table précise (choix manuel
+     * du juge-arbitre), sans rien modifier.
+     */
+    public ResultatAffectationTable verifierAffectation(MatchOrdonnancable mo, int table) {
+        Objects.requireNonNull(mo, "mo");
+        if (table < 1 || table > nombreDeTables) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
+        }
+        ResultatAffectationTable match = verifierMatch(mo);
+        if (match.getMotif() == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {
+            return ResultatAffectationTable.joueurEnJeu(table, match.getJoueurBloquant(),
+                    match.getTableDuJoueurBloquant());
+        }
+        if (!match.estReussi()) {
+            return match;
+        }
+        if (occupationTables.get(table) != null) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_OCCUPEE, table);
+        }
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, table);
+    }
+
+    /**
+     * Envoie un match sur une table choisie : vérifie d'abord (table libre et
+     * existante, match à jouer, aucun joueur déjà en jeu), puis lance le match
+     * (statut en cours, numéro de table, heure de début). Rien n'est modifié en
+     * cas de refus.
+     */
+    public ResultatAffectationTable affecter(MatchOrdonnancable mo, int table, LocalDateTime maintenant) {
+        Objects.requireNonNull(maintenant, "maintenant");
+        ResultatAffectationTable r = verifierAffectation(mo, table);
+        if (r.estReussi()) {
+            lancer(new PropositionLancement(mo, table, 0.0, "choix du juge-arbitre"), maintenant);
+        }
+        return r;
+    }
+
+    /**
+     * Annule une affectation faite par erreur : la table redevient libre et le
+     * match redevient à jouer, sans numéro de table ni heure de début.
+     */
+    public ResultatAffectationTable annulerLancement(MatchOrdonnancable mo) {
+        Objects.requireNonNull(mo, "mo");
+        Match m = mo.getMatch();
+        Integer table = m.getNumeroTable();
+        if (m.getStatut() != StatutMatch.EN_COURS) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_PAS_EN_COURS,
+                    table == null ? 0 : table);
+        }
+        if (table != null && mo.equals(occupationTables.get(table))) {
+            occupationTables.put(table, null);
+        }
+        m.setStatut(StatutMatch.A_JOUER);
+        m.setNumeroTable(null);
+        m.setInstantLancement(null);
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTATION_ANNULEE,
+                table == null ? 0 : table);
     }
 
     // -------------------------------------------------------------------------

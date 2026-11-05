@@ -1,0 +1,396 @@
+package com.pingmanager.core;
+
+import com.pingmanager.model.Joueur;
+import com.pingmanager.model.Match;
+import com.pingmanager.model.Poule;
+import com.pingmanager.model.StatutMatch;
+import com.pingmanager.model.StatutTableau;
+import com.pingmanager.model.StatutTournoi;
+import com.pingmanager.model.Tableau;
+import com.pingmanager.model.Tour;
+import com.pingmanager.model.Tournoi;
+import com.pingmanager.ordonnancement.MatchOrdonnancable;
+import com.pingmanager.ordonnancement.Ordonnanceur;
+import com.pingmanager.ordonnancement.PhaseMatch;
+import com.pingmanager.ordonnancement.PoidsOrdonnancement;
+import com.pingmanager.ordonnancement.PropositionLancement;
+import com.pingmanager.ordonnancement.ResultatAffectationTable;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Pilotage de la salle le jour J : affectation des matchs aux tables.
+ *
+ * <p><b>Source de vérité unique : le tournoi.</b> Un match en cours porte déjà
+ * son statut ({@link StatutMatch#EN_COURS}), son numéro de table et son heure de
+ * début, et ces champs sont enregistrés avec le tournoi. Chaque appel
+ * reconstruit donc l'{@link Ordonnanceur} à partir du tournoi : l'occupation des
+ * tables se déduit des matchs en cours, et un score saisi depuis n'importe quel
+ * écran (poules, tableau final) libère sa table sans autre formalité. La salle
+ * survit ainsi à une fermeture du logiciel : il suffit de rouvrir le tournoi.</p>
+ *
+ * <p><b>Règle dure</b> (reprise de l'{@link Ordonnanceur}) : un joueur n'est
+ * jamais sur deux tables à la fois, ni par le bouton « Proposer » ni par un
+ * choix manuel ; une table occupée ne reçoit pas un second match. Tout refus
+ * renvoie un {@link ResultatAffectationTable} avec son motif.</p>
+ *
+ * <p><b>Attente.</b> La priorité de l'ordonnanceur tient compte du temps
+ * d'attente d'un match prêt. Cet instant n'est pas enregistré : il se déduit
+ * du tournoi (dernier match terminé de chacun des deux joueurs, sinon premier
+ * match lancé de son tableau), ce qui donne le même ordre après une reprise.</p>
+ *
+ * <p>Règlements : le juge-arbitre est responsable de « la programmation des
+ * parties en fonction de l'horaire retenu et des tables disponibles »
+ * (3.3.1.2.2) et de « l'horaire des parties » (IX.109). Le choix lui revient
+ * donc toujours : l'ordre de priorité et le bouton « Proposer » ne sont qu'une
+ * aide, et une affectation se corrige ({@link #annulerAffectation}). Aucun temps
+ * de repos entre deux parties n'est imposé par les textes (voir QUESTIONS.md).</p>
+ */
+public final class ServiceSalle {
+
+    private final Horloge horloge;
+    private final ZoneId zone;
+    private final PoidsOrdonnancement poids;
+
+    public ServiceSalle() {
+        this(Horloge.systeme());
+    }
+
+    public ServiceSalle(Horloge horloge) {
+        this(horloge, ZoneId.systemDefault());
+    }
+
+    public ServiceSalle(Horloge horloge, ZoneId zone) {
+        this(horloge, zone, new PoidsOrdonnancement());
+    }
+
+    public ServiceSalle(Horloge horloge, ZoneId zone, PoidsOrdonnancement poids) {
+        this.horloge = Objects.requireNonNull(horloge, "horloge");
+        this.zone = Objects.requireNonNull(zone, "zone");
+        this.poids = Objects.requireNonNull(poids, "poids");
+    }
+
+    /** Heure courante de la salle (port {@link Horloge}). */
+    public LocalDateTime maintenant() {
+        return LocalDateTime.ofInstant(horloge.maintenant(), zone);
+    }
+
+    // ==================================================================
+    // Lecture
+    // ==================================================================
+
+    /** Photographie de la salle : tables, matchs prêts, bloqués et anomalies. */
+    public TableauDeBordSalle tableauDeBord(Tournoi tournoi) {
+        return new Salle(tournoi, maintenant()).photographier();
+    }
+
+    // ==================================================================
+    // Actions
+    // ==================================================================
+
+    /**
+     * Envoie un match sur une table choisie par le juge-arbitre (menu ou
+     * glisser-déposer). Rien n'est modifié en cas de refus.
+     */
+    public ResultatAffectationTable affecter(Tournoi tournoi, Match match, int table) {
+        Objects.requireNonNull(match, "match");
+        Salle salle = new Salle(tournoi, maintenant());
+        if (tournoi.getStatut() == StatutTournoi.ANNULE) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TOURNOI_FERME, table);
+        }
+        if (table < 1 || table > salle.nombreDeTables) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
+        }
+        MatchOrdonnancable mo = salle.parMatch.get(match);
+        if (mo == null) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, table);
+        }
+        return salle.ordonnanceur.affecter(mo, table, salle.maintenant);
+    }
+
+    /**
+     * Bouton « Proposer » : remplit les tables libres avec les matchs prêts, par
+     * ordre de priorité de l'ordonnanceur, sans jamais mettre un joueur sur deux
+     * tables.
+     */
+    public ResultatPropositionSalle proposer(Tournoi tournoi) {
+        Salle salle = new Salle(tournoi, maintenant());
+        if (tournoi.getStatut() == StatutTournoi.ANNULE) {
+            return ResultatPropositionSalle.aucun(ResultatPropositionSalle.Motif.TOURNOI_FERME);
+        }
+        if (salle.nombreDeTables == 0) {
+            return ResultatPropositionSalle.aucun(ResultatPropositionSalle.Motif.SALLE_SANS_TABLE);
+        }
+        if (salle.ordonnanceur.tablesLibres().isEmpty()) {
+            return ResultatPropositionSalle.aucun(ResultatPropositionSalle.Motif.AUCUNE_TABLE_LIBRE);
+        }
+        List<PropositionLancement> propositions = salle.ordonnanceur.proposerLancements(salle.maintenant);
+        if (propositions.isEmpty()) {
+            return ResultatPropositionSalle.aucun(ResultatPropositionSalle.Motif.AUCUN_MATCH_PRET);
+        }
+        List<ResultatPropositionSalle.Lancement> lances = new ArrayList<>();
+        for (PropositionLancement p : propositions) {
+            TableauDeBordSalle.MatchSalle vu = salle.vue(p.getMatch(), p.getScore(), p.getExplication());
+            salle.ordonnanceur.lancer(p, salle.maintenant);
+            lances.add(new ResultatPropositionSalle.Lancement(vu, p.getNumeroTable()));
+        }
+        return ResultatPropositionSalle.lances(lances);
+    }
+
+    /**
+     * Annule une affectation faite par erreur (mauvais match ou mauvaise table) :
+     * la table redevient libre et le match redevient à jouer.
+     */
+    public ResultatAffectationTable annulerAffectation(Tournoi tournoi, Match match) {
+        Objects.requireNonNull(match, "match");
+        Salle salle = new Salle(tournoi, maintenant());
+        MatchOrdonnancable mo = salle.parMatch.get(match);
+        if (mo == null) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, 0);
+        }
+        return salle.ordonnanceur.annulerLancement(mo);
+    }
+
+    /**
+     * À appeler après la saisie du score d'un match joué sur une table (bouton
+     * « Terminer ») : constate que la table est libérée et pose l'heure de fin si
+     * la saisie ne l'a pas fait (tableau final).
+     */
+    public ResultatAffectationTable libererApresResultat(Tournoi tournoi, Match match) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        Objects.requireNonNull(match, "match");
+        int table = match.getNumeroTable() == null ? 0 : match.getNumeroTable();
+        if (match.getStatut() == StatutMatch.EN_COURS) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.RESULTAT_NON_SAISI, table);
+        }
+        if (match.getStatut() != StatutMatch.TERMINE) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_PAS_EN_COURS, table);
+        }
+        if (match.getInstantFin() == null) {
+            match.setInstantFin(maintenant());
+        }
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_LIBEREE, table);
+    }
+
+    // ==================================================================
+    // Reconstruction de la salle depuis le tournoi
+    // ==================================================================
+
+    /** État de travail : l'ordonnanceur rebâti et la description de chaque match. */
+    private final class Salle {
+
+        private final Tournoi tournoi;
+        private final LocalDateTime maintenant;
+        private final int nombreDeTables;
+        private final Ordonnanceur ordonnanceur;
+        /** Match → enveloppe d'ordonnancement (identité des instances du tournoi). */
+        private final Map<Match, MatchOrdonnancable> parMatch = new IdentityHashMap<>();
+        /** Enveloppe → libellé du tour. */
+        private final Map<MatchOrdonnancable, String> tours = new IdentityHashMap<>();
+        private final List<MatchOrdonnancable> ordre = new ArrayList<>();
+        private final List<MatchOrdonnancable> anomalies = new ArrayList<>();
+
+        Salle(Tournoi tournoi, LocalDateTime maintenant) {
+            this.tournoi = Objects.requireNonNull(tournoi, "tournoi");
+            this.maintenant = maintenant;
+            this.nombreDeTables = Math.max(0, tournoi.getNombreDeTables());
+            // L'ordonnanceur exige au moins une table ; sans table renseignée, aucune
+            // carte n'est montrée et toute affectation est refusée (hors limites).
+            this.ordonnanceur = new Ordonnanceur(Math.max(1, nombreDeTables), poids);
+            recenser();
+            restaurerOccupation();
+            poserAttentes();
+        }
+
+        private void recenser() {
+            for (Tableau t : tournoi.getTableaux()) {
+                if (t.getStatut() != StatutTableau.LANCE && t.getStatut() != StatutTableau.PHASE_FINALE) {
+                    continue;
+                }
+                for (Poule p : t.getPoules()) {
+                    List<Match> matchs = p.getMatchs();
+                    for (int i = 0; i < matchs.size(); i++) {
+                        // I.301 : tour de la partie dans l'ordre officiel de la poule.
+                        ajouter(matchs.get(i), t, "Poule " + p.getNom() + " · tour " + SuiviPoule.tourDuMatch(p, i),
+                                PhaseMatch.POULE);
+                    }
+                }
+                if (t.aPhaseFinale()) {
+                    List<Tour> toursPf = t.getPhaseFinale().getTours();
+                    for (int k = 0; k < toursPf.size(); k++) {
+                        Tour tour = toursPf.get(k);
+                        PhaseMatch phase = k == 0 ? PhaseMatch.PREMIER_TOUR_TABLEAU : PhaseMatch.TOUR_SUIVANT_TABLEAU;
+                        for (Match m : tour.getMatchs()) {
+                            ajouter(m, t, tour.getNom(), phase);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ajouter(Match m, Tableau t, String tour, PhaseMatch phase) {
+            if (m.estBye() || parMatch.containsKey(m)) {
+                return;
+            }
+            MatchOrdonnancable mo = new MatchOrdonnancable(m, t.getNom(), t.getNom(), phase);
+            parMatch.put(m, mo);
+            tours.put(mo, tour);
+            ordre.add(mo);
+            ordonnanceur.ajouterMatch(mo);
+        }
+
+        /**
+         * Les matchs en cours occupent leur table. Le plus ancien garde la table en
+         * cas de conflit ; les autres (table absente ou hors limites, table déjà
+         * prise, joueur déjà sur une autre table) deviennent des anomalies.
+         */
+        private void restaurerOccupation() {
+            List<MatchOrdonnancable> enCours = new ArrayList<>();
+            for (MatchOrdonnancable mo : ordre) {
+                if (mo.getMatch().getStatut() == StatutMatch.EN_COURS) {
+                    enCours.add(mo);
+                }
+            }
+            enCours.sort(Comparator.comparing((MatchOrdonnancable mo) -> mo.getMatch().getInstantLancement(),
+                    Comparator.nullsLast(Comparator.naturalOrder())));
+            for (MatchOrdonnancable mo : enCours) {
+                Match m = mo.getMatch();
+                Integer table = m.getNumeroTable();
+                boolean valable = table != null && table >= 1 && table <= nombreDeTables
+                        && ordonnanceur.matchSurTable(table) == null
+                        && ordonnanceur.tableDuJoueur(licence(m.getJoueurA())) == null
+                        && ordonnanceur.tableDuJoueur(licence(m.getJoueurB())) == null;
+                if (valable) {
+                    ordonnanceur.restaurerOccupation(table, mo);
+                } else {
+                    anomalies.add(mo);
+                }
+            }
+        }
+
+        /**
+         * Instant depuis lequel chaque match à jouer attend : le moment où ses deux
+         * joueurs sont libres (fin de leur dernier match), sinon le début du
+         * tableau dans la salle (premier match lancé), sans dépasser maintenant.
+         */
+        private void poserAttentes() {
+            Map<String, LocalDateTime> libreDepuis = new HashMap<>();
+            Map<String, LocalDateTime> debutTableau = new HashMap<>();
+            for (MatchOrdonnancable mo : ordre) {
+                Match m = mo.getMatch();
+                if (m.getInstantLancement() != null) {
+                    debutTableau.merge(mo.getIdentifiantTableau(), m.getInstantLancement(),
+                            (a, b) -> a.isBefore(b) ? a : b);
+                }
+                if (m.getStatut() == StatutMatch.TERMINE && m.getInstantFin() != null) {
+                    for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
+                        if (j != null) {
+                            libreDepuis.merge(j.getNumeroLicence(), m.getInstantFin(),
+                                    (a, b) -> a.isAfter(b) ? a : b);
+                        }
+                    }
+                }
+            }
+            for (MatchOrdonnancable mo : ordre) {
+                Match m = mo.getMatch();
+                if (m.getStatut() != StatutMatch.A_JOUER || !connu(m.getJoueurA()) || !connu(m.getJoueurB())) {
+                    continue;
+                }
+                LocalDateTime debut = debutTableau.get(mo.getIdentifiantTableau());
+                LocalDateTime pret = null;
+                for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
+                    LocalDateTime libre = libreDepuis.getOrDefault(j.getNumeroLicence(), debut);
+                    if (libre != null && (pret == null || libre.isAfter(pret))) {
+                        pret = libre;
+                    }
+                }
+                if (pret != null && pret.isAfter(maintenant)) {
+                    pret = maintenant;
+                }
+                mo.setPretDepuis(pret);
+            }
+            ordonnanceur.rafraichirDisponibilites(maintenant);
+        }
+
+        TableauDeBordSalle.MatchSalle vue(MatchOrdonnancable mo, double priorite, String explication) {
+            return new TableauDeBordSalle.MatchSalle(mo.getMatch(), mo.getNomTableau(), tours.get(mo),
+                    mo.getPhase(), priorite, explication);
+        }
+
+        TableauDeBordSalle photographier() {
+            List<TableauDeBordSalle.CarteTable> cartes = new ArrayList<>();
+            for (int t = 1; t <= nombreDeTables; t++) {
+                MatchOrdonnancable mo = ordonnanceur.matchSurTable(t);
+                if (mo == null) {
+                    cartes.add(new TableauDeBordSalle.CarteTable(t, null, null));
+                } else {
+                    LocalDateTime debut = mo.getMatch().getInstantLancement();
+                    Duration ecoule = debut == null ? null : Duration.between(debut, maintenant);
+                    if (ecoule != null && ecoule.isNegative()) {
+                        ecoule = Duration.ZERO;
+                    }
+                    cartes.add(new TableauDeBordSalle.CarteTable(t, vue(mo, 0, ""), ecoule));
+                }
+            }
+
+            List<Classe> prets = new ArrayList<>();
+            List<Classe> bloques = new ArrayList<>();
+            int enAttente = 0;
+            for (int i = 0; i < ordre.size(); i++) {
+                MatchOrdonnancable mo = ordre.get(i);
+                Match m = mo.getMatch();
+                if (m.getStatut() == StatutMatch.TERMINE || m.getStatut() == StatutMatch.EN_COURS) {
+                    continue;
+                }
+                ResultatAffectationTable r = ordonnanceur.verifierMatch(mo);
+                if (r.getMotif() == ResultatAffectationTable.Motif.JOUEURS_NON_CONNUS) {
+                    enAttente++;
+                    continue;
+                }
+                double score = ordonnanceur.scorePriorite(mo, maintenant);
+                TableauDeBordSalle.MatchSalle vu = vue(mo, score, ordonnanceur.expliquer(mo, maintenant));
+                if (r.estReussi()) {
+                    prets.add(new Classe(vu, null, i));
+                } else {
+                    bloques.add(new Classe(vu, r, i));
+                }
+            }
+            // Priorité décroissante ; à égalité, l'ordre du tournoi (tableau, poule, I.301).
+            Comparator<Classe> parPriorite = Comparator.comparingDouble((Classe c) -> -c.vu.priorite())
+                    .thenComparingInt(c -> c.rang);
+            prets.sort(parPriorite);
+            bloques.sort(parPriorite);
+
+            List<TableauDeBordSalle.MatchSalle> listePrets = new ArrayList<>();
+            prets.forEach(c -> listePrets.add(c.vu));
+            List<TableauDeBordSalle.MatchBloque> listeBloques = new ArrayList<>();
+            bloques.forEach(c -> listeBloques.add(new TableauDeBordSalle.MatchBloque(c.vu, c.motif)));
+            List<TableauDeBordSalle.MatchSalle> listeAnomalies = new ArrayList<>();
+            anomalies.forEach(mo -> listeAnomalies.add(vue(mo, 0, "")));
+
+            return new TableauDeBordSalle(maintenant, nombreDeTables, cartes, listePrets, listeBloques,
+                    listeAnomalies, enAttente, ordonnanceur);
+        }
+    }
+
+    /** Match classé : sa vue, son motif de blocage éventuel et son rang dans le tournoi. */
+    private record Classe(TableauDeBordSalle.MatchSalle vu, ResultatAffectationTable motif, int rang) {
+    }
+
+    private static String licence(Joueur j) {
+        return j == null ? null : j.getNumeroLicence();
+    }
+
+    private static boolean connu(Joueur j) {
+        return j != null && !j.estADeterminer();
+    }
+}
