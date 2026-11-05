@@ -113,11 +113,43 @@ travail. Pour éviter les conflits :
    de fichier.
 6. En cas de blocage ou de choix produit : question dans le journal, option la
    plus prudente et réversible, continuer.
-7. **Pour finir, toujours appliquer la skill `terminer-tache`** :
+7. **Étape de pipeline** : si ta consigne commence par « Étape de pipeline »
+   (elle vient de la skill `piloter-projet`), tu **n'appliques pas**
+   `terminer-tache` et tu ne fusionnes pas : tu commites sur la branche
+   indiquée et tu rends ton compte rendu court. Seul l'agent `integrateur`
+   termine la tâche.
+8. **Pour finir, toujours appliquer la skill `terminer-tache`** :
    synchronisation avec les dernières fusions de `main`, résolution des
    conflits, tests, Pull Request, **fusion automatique** si les tests passent
    (sauf cas listés dans la skill, ou consigne « relecture »), description
    finale pour Quentin.
+
+## Avancer sans Quentin : le carnet et la chaîne d'agents
+
+- Le travail à faire est dans `docs/backlog/` (un fichier par tâche, voir
+  `docs/backlog/LISEZMOI.md`). « Avance le projet » ou une tâche planifiée →
+  skill `piloter-projet` : elle prend la tâche suivante et la fait passer par
+  la chaîne d'agents, jusqu'à l'`integrateur`.
+- Les agents de la chaîne (`.claude/agents/`) : `developpeur` (idées),
+  `developpeur-jour-j`, `developpeur-interface` (écrans), `designer-interface`
+  (charte), `verificateur-modele` (cœur), `relecteur-code` (nouveau code et
+  liaisons), `controleur-conformite` (règlements), `correcteur` (erreurs),
+  `documentaliste`, `integrateur` (synchronisation, tests, fusion). Hors
+  chaîne : `recapitulateur`, `chercheur-fftt`, `auditeur-securite`,
+  `gardien-architecture`, `optimiseur`, `testeur-junit`.
+
+## Économie de jetons (s'applique à tous les agents)
+
+- **Lire peu** : Grep d'abord, puis Read sur la zone utile (offset/limit).
+  Jamais en entier : `theme.css`, les règlements de `docs/reglements/`, les
+  gros écrans, `ETAT_DU_PROJET.md` (section 0 seulement).
+- **Sorties courtes** : `mvn -B -q test` puis, en cas d'échec, seulement les
+  lignes `ERROR` / `FAIL` / `expected` ; jamais de journal entier collé.
+- **Pas de travail en double** : ne relis pas ce qu'un agent précédent a
+  résumé dans « Passations » ; ne relance pas les tests si rien n'a changé
+  depuis le dernier passage vert.
+- **Comptes rendus brefs** (5 à 10 lignes) : ils sont relus par l'agent
+  suivant et par Quentin.
 
 ## Ce qu'il ne faut pas faire
 

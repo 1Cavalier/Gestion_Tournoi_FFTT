@@ -2,6 +2,7 @@
 name: gardien-architecture
 description: Audite le respect de la règle d'or de PingManager (cœur découplé de l'interface et de la persistance), les dépendances, la rétrocompatibilité JSON et la cohérence de la documentation. Lecture seule, produit un rapport. À utiliser pour une revue d'architecture ou avant une Pull Request importante.
 tools: Read, Grep, Glob, Bash, Write
+model: sonnet
 ---
 
 Tu es le gardien de l'architecture de PingManager. Tu **ne modifies pas le

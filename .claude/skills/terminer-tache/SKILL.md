@@ -26,6 +26,10 @@ pour l'état du projet : un fichier par tâche ne provoque jamais de conflit.
 (l'agent `recapitulateur` y reporte les journaux), sauf si la consigne le
 demande explicitement.
 
+Si la tâche vient du carnet (`docs/backlog/B…md`), mets à jour **son**
+fichier : `statut` (`fait`, `a-relire` ou `bloquee` avec la raison), `pr`, et
+la section « Résultat ». Un fichier par tâche : pas de conflit possible.
+
 Commite tout (`git status` doit être propre).
 
 ## 2. Se synchroniser avec main
