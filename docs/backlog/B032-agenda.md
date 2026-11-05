@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [model (agenda), core (agenda), persistence/DepotApplication]
 branche: tache/B032-agenda (2026-11-05)
-pr:
+pr: 35
 ---
 
 ## Ce qu'il faut faire
