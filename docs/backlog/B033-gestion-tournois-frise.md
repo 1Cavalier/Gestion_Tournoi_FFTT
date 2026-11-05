@@ -30,5 +30,6 @@ Voir le cahier des charges v0.
 ## Passations
 
 - developpeur-interface : accueil extrait dans `AccueilGestionTournois` (vue) + `PresentationGestionTournois` (10 tests) ; `PageGestionTournoi` ne fait plus que déléguer (tuiles chiffrées retirées, « Tournoi actuel » en haut). Frise 4→1 calée sur `StatutTournoi` (aucune étape manquante), gros bouton « Créer un tournoi », historique (annulés + homologués/publiés dont le dernier jour est passé) affiché dans la page, l'entrée « Historique » de la `Coquille` reste un espace réservé. CSS section « B033 » en fin de theme.css ; captures non regardées (pas d'affichage en session cloud).
+- designer-interface : frise retouchée (pastille pleine + halo pour une étape remplie, cercle au trait pour une étape vide, trait vertical `-bordure-forte`, titre et mention « Aucun tournoi » discrets, tournois d'une étape dans un cadre léger) ; seule retouche Java : l'étape vide utilise un label `frise-vide` au lieu d'un `etatVideCompact`. Captures 1440 clair/sombre regardées (démo Brunoy) dans `docs/captures/B033/avant|apres/` ; bouton « Créer un tournoi » laissé tel quel (déjà très visible). Non vu : carte « Tournoi actuel » vide et page Historique (absentes de la démo), rendu Windows et mise à l'échelle.
 
 ## Résultat

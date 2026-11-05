@@ -2672,15 +2672,18 @@
 }
 
 .frise-etape {
-    -fx-padding: 0 0 0 0;
+    -fx-padding: 0;
 }
 
 .frise-repere {
     -fx-alignment: top-center;
-    -fx-min-width: 36;
-    -fx-pref-width: 36;
+    -fx-min-width: 40;
+    -fx-pref-width: 40;
+    -fx-padding: 2 0 0 0;
 }
 
+/* Pastille numérotée : pleine et cerclée d'un halo pour une étape qui contient
+   des tournois, simple cercle au trait pour une étape vide. */
 .label.frise-numero {
     -fx-min-width: 32;
     -fx-min-height: 32;
@@ -2688,6 +2691,7 @@
     -fx-pref-height: 32;
     -fx-alignment: center;
     -fx-background-radius: 16;
+    -fx-border-radius: 16;
     -fx-font-weight: bold;
     -fx-font-size: 14px;
 }
@@ -2695,18 +2699,26 @@
 .frise-etape-active .label.frise-numero {
     -fx-background-color: -primaire;
     -fx-text-fill: -sur-primaire;
+    -fx-border-color: -anneau;
+    -fx-border-width: 4;
+    -fx-border-insets: -4;
+    -fx-border-radius: 20;
 }
 
 .frise-etape-vide .label.frise-numero {
-    -fx-background-color: -neutre-doux;
-    -fx-text-fill: -neutre-texte;
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure-forte;
+    -fx-border-width: 2;
+    -fx-text-fill: -texte-doux;
 }
 
+/* Trait vertical qui relie les pastilles d'une étape à la suivante. */
 .frise-trait {
     -fx-min-width: 2;
     -fx-max-width: 2;
-    -fx-min-height: 16;
-    -fx-background-color: -bordure;
+    -fx-min-height: 12;
+    -fx-background-color: -bordure-forte;
+    -fx-background-radius: 1;
 }
 
 .frise-etape-derniere .frise-trait {
@@ -2714,7 +2726,11 @@
 }
 
 .frise-contenu {
-    -fx-padding: 4 0 22 0;
+    -fx-padding: 4 0 26 0;
+}
+
+.frise-etape-vide .frise-contenu {
+    -fx-padding: 4 0 18 0;
 }
 
 .label.frise-etape-titre {
@@ -2723,8 +2739,27 @@
     -fx-text-fill: -texte;
 }
 
+.frise-etape-vide .label.frise-etape-titre {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Tournois d'une étape : regroupés dans un cadre léger. */
 .frise-liste {
-    -fx-padding: 6 0 0 0;
+    -fx-padding: 4 0 0 0;
+}
+
+.frise-etape-active .frise-liste {
+    -fx-background-color: -surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 10;
+    -fx-padding: 2 6 2 6;
+}
+
+.label.frise-vide {
+    -fx-font-size: 13px;
+    -fx-font-style: italic;
+    -fx-text-fill: -texte-doux;
 }
 
 .ligne-element.ligne-tournoi-cliquable {

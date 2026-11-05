@@ -144,7 +144,7 @@ final class AccueilGestionTournois {
         Region trait = new Region();
         trait.getStyleClass().add("frise-trait");
         VBox.setVgrow(trait, Priority.ALWAYS);
-        VBox repere = new VBox(0, numero, trait);
+        VBox repere = new VBox(6, numero, trait);
         repere.getStyleClass().add("frise-repere");
 
         HBox titre = Ui.ligne(10, Ui.label(etape.libelle().toUpperCase(java.util.Locale.FRENCH), "surtitre"),
@@ -157,7 +157,8 @@ final class AccueilGestionTournois {
         VBox liste = new VBox(0);
         liste.getStyleClass().add("frise-liste");
         if (etape.estVide()) {
-            liste.getChildren().add(Ui.etatVideCompact(PresentationGestionTournois.ETAPE_VIDE));
+            // Étape vide : une simple mention discrète, pour que l'œil aille aux étapes remplies.
+            liste.getChildren().add(Ui.label(PresentationGestionTournois.ETAPE_VIDE, "frise-vide"));
         } else {
             for (int i = 0; i < etape.tournois().size(); i++) {
                 HBox l = ligneTournoi(p, etape.tournois().get(i));
