@@ -27,4 +27,6 @@ Aucune pour l'instant.
 
 ## Passations
 
+- **correcteur** : 6 `switch` d'énumération passés sur `.name()` (ConfigurationTableau, RegleTableauxParJour, Ordonnanceur ×2, JsonWriter, TournoiMapper) ; `default -> throw IllegalStateException` ajouté aux 4 `switch` qui renvoient une valeur (inatteignable). Les 13 autres `switch` portent sur int / char / String. `javac` hors ui OK, plus de `$SwitchMap$` ; tests via GitHub Actions (mvn bloqué ici).
+
 ## Résultat
