@@ -30,4 +30,7 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- developpeur (cœur, 05/11) : verrous du dossier 🔴 dès la demande (`ServiceVerrousHomologation`, refus détaillé `ResultatModificationTournoi`), refus d'homologation avec motif → brouillon (`ServiceCycleTournoi.refuserHomologation`, JSON `refusHomologation` rétrocompatible). Tests 697 → 742.
+- Pour l'écran : passer toutes les modifications des champs 🔴 par `ServiceVerrousHomologation` (les setters ne refusent rien) ; griser via `champsVerrouilles`/`motifVerrou` ; bouton « Homologation refusée » (saisie du motif) en demande ; afficher `getDernierRefusHomologation()` sur le brouillon.
+
 ## Résultat
