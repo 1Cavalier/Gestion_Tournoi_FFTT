@@ -91,6 +91,10 @@ Format d'une entrée :
 - Réponse de Quentin (5 novembre) : **prévoir la petite finale** → option C,
   réglable par tableau. Sans petite finale, garder A (3es ex aequo) en
   attendant une décision contraire.
+- **Traité** (5 novembre, branche `jour-j/arbre-petite-finale`) : case
+  « Petite finale (match pour la 3e place) » dans le formulaire du tableau
+  (`ConfigurationTableau.avecPetiteFinale`), écrite dans le règlement généré,
+  appliquée au tirage du tableau final ; sans elle, 3es ex aequo.
 
 ### 2026-11-05 — Graine du tirage du tableau final non enregistrée
 - Contexte : `ServicePhaseFinale.construire` renvoie la graine du second
@@ -104,6 +108,10 @@ Format d'une entrée :
 - Choix provisoire de l'agent : B (pas de changement du format de
   sauvegarde sans accord).
 - Réponse de Quentin :
+- **Traité** (5 novembre, branche `jour-j/arbre-petite-finale`, à la demande
+  du plan B de `docs/PLAN_INTERFACE.md`) : option A, champ JSON facultatif
+  `graineTableauFinal` (anciens fichiers relus sans graine,
+  `RoundTripTournoiTest`), affichée sur le tableau final.
 
 ### 2026-11-05 — Place des exempts (byes) dans le tableau final
 - Contexte : `core/PlacementQualifiesService` (existant, non modifié) place
@@ -203,3 +211,23 @@ Format d'une entrée :
 - Réponse de Quentin :
 
 ## Tranché
+
+### 2026-11-05 — Abandon ou disqualification en demi-finale, puis petite finale
+- Contexte : `core/ServicePhaseFinale`, `ProgressionTableau`. Avec une petite
+  finale, le perdant d'une demi-finale y est placé, quelle que soit l'issue de
+  la demie : un joueur qui a déclaré forfait, abandonné (blessure) ou été
+  disqualifié en demi-finale se retrouve en petite finale.
+- Article FFTT : rien pour les tournois (chapitre IX). 3.5.3.1.1 autorise
+  l'abandon pour maladie ou blessure ; 3.5.2.10 permet au juge-arbitre de
+  disqualifier « pour le restant de la compétition ». III.109 (abandon :
+  « considéré battu pour la partie ou les parties qui lui reste(nt) à
+  disputer ») vise le Critérium fédéral.
+- Options : A) le fautif est placé en petite finale ; le juge-arbitre y
+  déclare ensuite son forfait (rien d'automatique) ; B) après un abandon, une
+  disqualification ou un forfait en demie, la petite finale est donnée
+  automatiquement à l'autre demi-finaliste battu ; C) B seulement pour la
+  disqualification (3.5.2.10), A sinon.
+- Choix provisoire de l'agent : A (aucune décision automatique, réversible,
+  le juge-arbitre garde la main ; test
+  `PetiteFinaleParTableauTest.petite_finale_attend_ses_deux_joueurs_avant_d_etre_jouable`).
+- Réponse de Quentin :

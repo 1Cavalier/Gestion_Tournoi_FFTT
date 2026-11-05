@@ -11,10 +11,16 @@ import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.ContexteApplication;
+import com.pingmanager.ui.ecran.DispositionArbre.Carte;
+import com.pingmanager.ui.ecran.DispositionArbre.Disposition;
+import com.pingmanager.ui.ecran.DispositionArbre.EtatCarte;
+import com.pingmanager.ui.ecran.DispositionArbre.Point;
+import com.pingmanager.ui.ecran.DispositionArbre.TitreColonne;
+import com.pingmanager.ui.ecran.DispositionArbre.Trait;
 import com.pingmanager.ui.ecran.PresentationPhaseFinale.CaseTableau;
-import com.pingmanager.ui.ecran.PresentationPhaseFinale.Colonne;
 import com.pingmanager.ui.ecran.PresentationPhaseFinale.LignePodium;
 import com.pingmanager.ui.ecran.PresentationPhaseFinale.TypeCase;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -22,65 +28,70 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 
 /**
- * Vue « Phase finale » d'un tableau : construction du tableau final une fois
- * les poules terminées (second tirage), affichage tour par tour avec les
- * exempts, saisie des scores (panneau à droite), progression automatique des
- * vainqueurs, petite finale et podium.
+ * Vue « Phase finale » d'un tableau, ouverte depuis la page Jour J : second
+ * tirage (construction du tableau final, graine affichée et modifiable) une fois
+ * les poules terminées, puis <b>arbre des rencontres</b> — une colonne par tour,
+ * cartes de match reliées par des traits au tour suivant, vainqueur en gras,
+ * exempts visibles, match en cours mis en évidence, petite finale sous la
+ * finale — et podium.
  *
- * <p>Toute la logique est dans {@link ServicePhaseFinale} (cœur) et
- * {@link PresentationPhaseFinale} / {@link SaisieScorePhaseFinale} (sans
- * JavaFX, testées) ; cette classe ne fait que poser les composants. Chaque
- * modification réussie enregistre le tournoi, comme les autres écrans.</p>
- *
- * <p>Point d'entrée : {@link #creer(ContexteApplication, Tournoi, Tableau, Path)}.</p>
+ * <p>Un clic sur un match ouvre la saisie du score (panneau à droite) ; après
+ * chaque résultat, l'arbre, le podium et l'état sont redessinés aussitôt et le
+ * tournoi est enregistré. Toute la logique est hors JavaFX et testée :
+ * {@link ServicePhaseFinale} (cœur), {@link PresentationPhaseFinale},
+ * {@link DispositionArbre} (coordonnées des cartes et des traits) et
+ * {@link SaisieScorePhaseFinale}.</p>
  */
 public final class VuePhaseFinale {
 
-    /** Hauteur fixe d'une case : l'alignement des colonnes en dépend. */
-    private static final double HAUTEUR_CASE = 64;
-    /** Écart vertical entre deux cases du premier tour. */
-    private static final double ECART_CASES = 12;
-    private static final double LARGEUR_CASE = 236;
-
-    /**
-     * Graines des tirages faits pendant la session, par fichier et tableau. La
-     * graine n'est pas (encore) enregistrée dans le fichier du tournoi : voir
-     * QUESTIONS.md.
-     */
-    private static final Map<String, Long> GRAINES = new ConcurrentHashMap<>();
+    /** Hauteur maximale de la zone visible de l'arbre (au-delà, il défile). */
+    private static final double HAUTEUR_ARBRE_MAX = 640;
 
     private final ContexteApplication contexte;
     private final Tournoi tournoi;
     private final Tableau tableau;
     private final Path fichier;
+    private final Runnable onRetour;
     private final ServicePhaseFinale service = new ServicePhaseFinale();
 
     private final BorderPane racine = new BorderPane();
     private Match selectionne;
     private String messageSucces;
     private String messageErreur;
+    /** Graine proposée pour le tirage, stable d'un rafraîchissement à l'autre. */
+    private final long graineProposee = PresentationJourJ.nouvelleGraine(new Random());
 
-    private VuePhaseFinale(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier) {
+    // Positions de défilement, conservées quand la vue est redessinée.
+    private ScrollPane defilementPage;
+    private ScrollPane defilementArbre;
+    private double positionPage;
+    private double positionArbreH;
+    private double positionArbreV;
+
+    private VuePhaseFinale(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier,
+                           Runnable onRetour) {
         this.contexte = contexte;
         this.tournoi = tournoi;
         this.tableau = Objects.requireNonNull(tableau, "tableau");
         this.fichier = fichier;
+        this.onRetour = onRetour;
     }
 
     /**
@@ -90,13 +101,20 @@ public final class VuePhaseFinale {
      * @param tournoi  le tournoi qui contient le tableau
      * @param tableau  le tableau dont on suit la phase finale
      * @param fichier  fichier du tournoi, où chaque modification est enregistrée ;
-     *                 {@code null} pour un tableau d'essai (rien n'est enregistré)
+     *                 {@code null} pour ne rien enregistrer
+     * @param onRetour retour à la page Jour J ({@code null} : pas de bouton retour)
      * @return le nœud racine de la vue (il gère son propre défilement)
      */
-    public static Parent creer(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier) {
-        VuePhaseFinale vue = new VuePhaseFinale(contexte, tournoi, tableau, fichier);
+    public static Parent creer(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier,
+                               Runnable onRetour) {
+        VuePhaseFinale vue = new VuePhaseFinale(contexte, tournoi, tableau, fichier, onRetour);
         vue.rafraichir();
         return vue.racine;
+    }
+
+    /** Comme {@link #creer(ContexteApplication, Tournoi, Tableau, Path, Runnable)}, sans bouton retour. */
+    public static Parent creer(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier) {
+        return creer(contexte, tournoi, tableau, fichier, null);
     }
 
     // ==================================================================
@@ -104,9 +122,10 @@ public final class VuePhaseFinale {
     // ==================================================================
 
     private void rafraichir() {
+        memoriserDefilement();
         DiagnosticPhaseFinale diagnostic = service.diagnostiquer(tableau);
         VBox contenu = new VBox(20);
-        contenu.getStyleClass().add("page");
+        contenu.getStyleClass().addAll("page", "pf-page");
         contenu.getChildren().add(entete(diagnostic));
         if (messageSucces != null || messageErreur != null) {
             Label message = Ui.message();
@@ -119,27 +138,53 @@ public final class VuePhaseFinale {
             messageSucces = null;
             messageErreur = null;
         }
-        if (fichier == null) {
-            contenu.getChildren().add(rappel("Tableau d'essai : les poules ont été jouées au hasard et rien "
-                    + "n'est enregistré. Le vrai tableau n'est pas modifié."));
-        }
+        defilementArbre = null;
         if (diagnostic.estConstruite()) {
             TableauElimination elim = tableau.getPhaseFinale();
-            contenu.getChildren().addAll(carteResume(diagnostic, elim), cartePodium(elim), carteTableau(elim));
-            Match pf = PresentationPhaseFinale.matchPetiteFinale(elim);
-            if (pf != null) {
-                contenu.getChildren().add(cartePetiteFinale(pf));
-            }
+            contenu.getChildren().addAll(carteResume(diagnostic, elim), carteArbre(elim), cartePodium(elim));
         } else {
             contenu.getChildren().add(carteConstruction(diagnostic));
         }
-        racine.setCenter(Ui.defilant(contenu));
+        defilementPage = Ui.defilant(contenu);
+        racine.setCenter(defilementPage);
         racine.setRight(selectionne == null ? null : panneauSaisie(selectionne));
+        restaurerDefilement();
+    }
+
+    private void memoriserDefilement() {
+        if (defilementPage != null) {
+            positionPage = defilementPage.getVvalue();
+        }
+        if (defilementArbre != null) {
+            positionArbreH = defilementArbre.getHvalue();
+            positionArbreV = defilementArbre.getVvalue();
+        }
+    }
+
+    private void restaurerDefilement() {
+        ScrollPane page = defilementPage;
+        ScrollPane arbre = defilementArbre;
+        double p = positionPage;
+        double h = positionArbreH;
+        double v = positionArbreV;
+        Platform.runLater(() -> {
+            page.setVvalue(p);
+            if (arbre != null) {
+                arbre.setHvalue(h);
+                arbre.setVvalue(v);
+            }
+        });
     }
 
     private Node entete(DiagnosticPhaseFinale diagnostic) {
         String sous = tournoi == null || tournoi.getNom() == null ? "" : tournoi.getNom();
-        VBox titres = new VBox(4, Ui.titre("Phase finale — " + tableau.getNom()), Ui.discret(sous));
+        VBox titres = new VBox(4);
+        if (onRetour != null) {
+            Button retour = Ui.boutonLien("← Jour J");
+            retour.setOnAction(e -> onRetour.run());
+            titres.getChildren().add(retour);
+        }
+        titres.getChildren().addAll(Ui.titre("Tableau final — " + tableau.getNom()), Ui.discret(sous));
         String etat = diagnostic.getEtat() == DiagnosticPhaseFinale.Etat.TERMINEE ? Ui.ETAT_OK
                 : diagnostic.estConstruite() || diagnostic.peutConstruire() ? Ui.ETAT_RECOMMANDE : Ui.ETAT_OPTIONNEL;
         return Ui.enteteAvecActions(titres, Ui.pastille(PresentationPhaseFinale.titreEtat(diagnostic), etat));
@@ -153,27 +198,33 @@ public final class VuePhaseFinale {
     }
 
     // ------------------------------------------------------------------
-    // Avant le tirage
+    // Avant le tirage : construire le tableau final
     // ------------------------------------------------------------------
 
     private Node carteConstruction(DiagnosticPhaseFinale diagnostic) {
         VBox corps = new VBox(12, Ui.texte(PresentationPhaseFinale.messageEtat(diagnostic)));
         if (diagnostic.peutConstruire()) {
-            TextField graine = Ui.champ("Laisser vide pour un tirage au hasard");
-            VBox champGraine = Ui.champEtiquete("Graine du tirage (facultatif)", graine);
+            TextField graine = Ui.champ("ex. 141126");
+            graine.setText(String.valueOf(graineProposee));
+            graine.getStyleClass().add("graine-tirage");
+            VBox champGraine = Ui.champEtiquete("Graine du tirage", graine);
             champGraine.setMaxWidth(360);
             Label erreur = Ui.message();
             Button tirer = Ui.boutonPrimaire("Tirer le tableau final");
             tirer.setDefaultButton(true);
             tirer.setOnAction(e -> construire(graine, erreur));
             corps.getChildren().addAll(
+                    rappel(PresentationPhaseFinale.textePetiteFinaleAvantTirage(
+                            tableau.getConfiguration().avecPetiteFinale())),
                     champGraine,
-                    Ui.aide("Pour refaire un tirage déjà publié, saisissez sa graine : le même tirage sera "
-                            + "reproduit à l'identique."),
+                    Ui.aide("IX.109 : le juge-arbitre est responsable du tirage au sort. Annoncez la graine : avec "
+                            + "la même graine et les mêmes qualifiés, PingManager refait exactement le même tableau. "
+                            + "Pour refaire un tirage déjà publié, saisissez sa graine."),
                     erreur,
                     Ui.actions(tirer));
+            Platform.runLater(tirer::requestFocus);
         }
-        return Ui.carte("Tableau final", corps);
+        return Ui.carte("Construire le tableau final", corps);
     }
 
     private void construire(TextField champGraine, Label erreur) {
@@ -189,25 +240,24 @@ public final class VuePhaseFinale {
             Ui.erreur(erreur, PresentationPhaseFinale.messageEtat(r.getDiagnostic()));
             return;
         }
-        GRAINES.put(cleGraine(), r.getGraine());
-        messageSucces = "Tableau final tiré (graine " + r.getGraine() + ").";
+        messageSucces = "Tableau final tiré avec la graine " + r.getGraine()
+                + ". Annoncez-la et affichez le tableau.";
         enregistrerPuisRafraichir();
     }
 
-    private String cleGraine() {
-        String origine = fichier == null ? "essai@" + System.identityHashCode(tableau) : fichier.toAbsolutePath().toString();
-        return origine + "|" + tableau.getNom();
-    }
-
     // ------------------------------------------------------------------
-    // Tableau construit
+    // Tableau construit : résumé, arbre, podium
     // ------------------------------------------------------------------
 
     private Node carteResume(DiagnosticPhaseFinale diagnostic, TableauElimination elim) {
         VBox corps = new VBox(8,
                 Ui.gras(PresentationPhaseFinale.resume(elim)),
-                Ui.aide(PresentationPhaseFinale.texteGraine(GRAINES.get(cleGraine()))),
+                Ui.aide(PresentationPhaseFinale.texteGraine(tableau.getGraineTableauFinal())),
                 Ui.texte(PresentationPhaseFinale.messageEtat(diagnostic)));
+        String notePf = PresentationPhaseFinale.notePetiteFinale(tableau.getConfiguration().avecPetiteFinale(), elim);
+        if (!notePf.isEmpty()) {
+            corps.getChildren().add(Ui.aide(notePf));
+        }
         return Ui.carte("Tableau final", corps);
     }
 
@@ -227,70 +277,152 @@ public final class VuePhaseFinale {
         return Ui.carte("Podium", corps);
     }
 
-    private Node carteTableau(TableauElimination elim) {
-        List<Colonne> colonnes = PresentationPhaseFinale.colonnes(elim);
-        HBox arbre = new HBox(24);
-        arbre.getStyleClass().add("pf-arbre");
-        for (int i = 0; i < colonnes.size(); i++) {
-            arbre.getChildren().add(colonne(colonnes.get(i), i));
+    /** L'arbre des rencontres, dessiné aux coordonnées de {@link DispositionArbre}. */
+    private Node carteArbre(TableauElimination elim) {
+        Disposition d = DispositionArbre.calculer(elim);
+        Pane dessin = new Pane();
+        dessin.getStyleClass().add("arbre-dessin");
+        dessin.setMinSize(d.largeur(), d.hauteur());
+        dessin.setPrefSize(d.largeur(), d.hauteur());
+        dessin.setMaxSize(d.largeur(), d.hauteur());
+
+        for (Trait t : d.traits()) {
+            Polyline ligne = new Polyline();
+            for (Point pt : t.points()) {
+                ligne.getPoints().addAll(pt.x(), pt.y());
+            }
+            ligne.getStyleClass().add("arbre-trait");
+            if (t.parcouru()) {
+                ligne.getStyleClass().add("arbre-trait-parcouru");
+            }
+            ligne.setMouseTransparent(true);
+            dessin.getChildren().add(ligne);
         }
-        ScrollPane defilement = new ScrollPane(arbre);
-        defilement.getStyleClass().add("pf-defilement");
-        defilement.setFitToHeight(true);
-        defilement.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        for (TitreColonne titre : d.titres()) {
+            dessin.getChildren().add(titreColonne(titre.libelle(), titre.x(), 0, titre.largeur()));
+        }
+        for (Carte c : d.cartes()) {
+            dessin.getChildren().add(carte(c));
+        }
+        if (d.petiteFinale() != null) {
+            Carte pf = d.petiteFinale();
+            dessin.getChildren().addAll(
+                    titreColonne(DispositionArbre.TITRE_PETITE_FINALE, pf.x(), d.yTitrePetiteFinale(), pf.largeur()),
+                    carte(pf));
+        }
+
+        ScrollPane defilement = new ScrollPane(dessin);
+        defilement.getStyleClass().add("arbre-defilement");
+        defilement.setPannable(true);
         defilement.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        return Ui.carte("Tableau", Ui.aide("Les matchs à jouer sont encadrés : cliquez dessus pour saisir le "
-                + "score. Un joueur « Exempt » n'a pas d'adversaire à ce tour."), defilement);
+        defilement.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        defilement.setPrefViewportHeight(DispositionArbre.hauteurVisible(d, HAUTEUR_ARBRE_MAX));
+        defilement.setPrefViewportWidth(d.largeur() + 16);
+        defilementArbre = defilement;
+
+        return Ui.carte("Arbre des rencontres",
+                Ui.aide("Cliquez sur un match à jouer (cadre bleu) pour saisir son score ; le vainqueur avance "
+                        + "aussitôt au tour suivant. Un joueur « Exempt » passe ce tour sans adversaire. "
+                        + "Glissez l'arbre ou utilisez les barres pour le parcourir."),
+                legende(), defilement);
     }
 
-    private Node colonne(Colonne colonne, int niveau) {
-        double[] alignement = PresentationPhaseFinale.alignement(niveau, HAUTEUR_CASE, ECART_CASES);
-        VBox cases = new VBox(alignement[1]);
-        cases.setPadding(new Insets(alignement[0], 0, 0, 0));
-        for (CaseTableau c : colonne.cases()) {
-            cases.getChildren().add(caseTableau(c));
+    private static Node legende() {
+        HBox h = new HBox(16);
+        h.getStyleClass().add("arbre-legende");
+        for (EtatCarte e : List.of(EtatCarte.A_JOUER, EtatCarte.EN_COURS, EtatCarte.TERMINE,
+                EtatCarte.EN_ATTENTE, EtatCarte.EXEMPT)) {
+            Region pastille = new Region();
+            pastille.getStyleClass().addAll("arbre-legende-pastille", DispositionArbre.classeEtat(e));
+            Label l = Ui.discret(DispositionArbre.libelleEtat(e));
+            h.getChildren().add(Ui.ligne(6, pastille, l));
         }
-        Label titre = Ui.enteteColonne(colonne.libelle());
-        titre.getStyleClass().add("pf-titre-colonne");
-        titre.setMinHeight(24);
-        titre.setPrefHeight(24);
-        VBox v = new VBox(10, titre, cases);
-        v.setMinWidth(LARGEUR_CASE);
-        return v;
+        return h;
     }
 
-    private Node caseTableau(CaseTableau c) {
-        if (c.type() == TypeCase.MATCH) {
-            return caseMatch(c.match());
+    private static Label titreColonne(String texte, double x, double y, double largeur) {
+        Label l = new Label(texte);
+        l.getStyleClass().add("arbre-titre-colonne");
+        l.setAlignment(Pos.CENTER);
+        l.setMinWidth(largeur);
+        l.setPrefWidth(largeur);
+        l.setMaxWidth(largeur);
+        l.relocate(x, y);
+        return l;
+    }
+
+    private Node carte(Carte c) {
+        CaseTableau contenu = c.contenu();
+        EtatCarte etat = DispositionArbre.etat(contenu);
+        Region noeud = contenu.type() == TypeCase.EXEMPT ? carteExempt(contenu.joueurExempte()) : carteMatch(c.match());
+        noeud.getStyleClass().addAll("arbre-carte", DispositionArbre.classeEtat(etat));
+        if (c.petiteFinale()) {
+            noeud.getStyleClass().add("arbre-petite-finale");
         }
-        if (c.type() == TypeCase.EXEMPT) {
-            return caseExempt(c.joueurExempte());
+        noeud.setMinSize(c.largeur(), c.hauteur());
+        noeud.setPrefSize(c.largeur(), c.hauteur());
+        noeud.setMaxSize(c.largeur(), c.hauteur());
+        noeud.relocate(c.x(), c.y());
+
+        if (contenu.type() == TypeCase.MATCH) {
+            Match m = c.match();
+            if (m == selectionne) {
+                noeud.getStyleClass().add("arbre-selectionne");
+            }
+            StringBuilder bulle = new StringBuilder(PresentationPhaseFinale.etatMatch(m))
+                    .append(" · ").append(PresentationPhaseFinale.formatMatch(m));
+            String detail = PresentationPhaseFinale.detailScore(m);
+            if (!detail.isEmpty()) {
+                bulle.append("\n").append(detail);
+            }
+            Tooltip.install(noeud, new Tooltip(bulle.toString()));
+            if (PresentationPhaseFinale.estSaisissable(m)) {
+                noeud.setCursor(Cursor.HAND);
+                noeud.setOnMouseClicked(e -> {
+                    selectionne = m;
+                    rafraichir();
+                });
+            }
+        } else {
+            String detail = PresentationPhaseFinale.detailJoueur(contenu.joueurExempte());
+            Tooltip.install(noeud, new Tooltip(PresentationPhaseFinale.AIDE_EXEMPT
+                    + (detail.isEmpty() ? "" : "\n" + detail)));
         }
-        Region vide = new Region();
-        dimensionner(vide);
-        return vide;
+        return noeud;
     }
 
-    private static void dimensionner(Region r) {
-        r.setMinHeight(HAUTEUR_CASE);
-        r.setPrefHeight(HAUTEUR_CASE);
-        r.setMaxHeight(HAUTEUR_CASE);
-        r.setMinWidth(LARGEUR_CASE);
-        r.setPrefWidth(LARGEUR_CASE);
-        r.setMaxWidth(LARGEUR_CASE);
+    private Region carteMatch(Match m) {
+        VBox lignes = new VBox(2, ligneJoueur(m, true), ligneJoueur(m, false));
+        lignes.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(lignes, Priority.ALWAYS);
+        HBox h = new HBox(8);
+        h.setAlignment(Pos.CENTER_LEFT);
+        String table = DispositionArbre.libelleTable(m);
+        if (!table.isEmpty()) {
+            // Numéro de table en gros, lisible de loin.
+            Label numero = new Label(String.valueOf(m.getNumeroTable()));
+            numero.getStyleClass().add("arbre-numero-table");
+            numero.setMinWidth(Region.USE_PREF_SIZE);
+            Tooltip.install(numero, new Tooltip(table));
+            h.getChildren().add(numero);
+        }
+        h.getChildren().add(lignes);
+        return h;
     }
 
-    private Node caseExempt(Joueur joueur) {
+    private static Region carteExempt(Joueur joueur) {
         Label nom = new Label(PresentationPhaseFinale.nomJoueur(joueur));
-        nom.getStyleClass().add("pf-nom");
-        HBox.setHgrow(nom, Priority.ALWAYS);
+        nom.getStyleClass().add("arbre-nom");
+        nom.setTextOverrun(OverrunStyle.ELLIPSIS);
         nom.setMaxWidth(Double.MAX_VALUE);
-        Label badge = Ui.badge(PresentationPhaseFinale.LIBELLE_EXEMPT);
+        HBox.setHgrow(nom, Priority.ALWAYS);
+        Label badge = new Label(PresentationPhaseFinale.LIBELLE_EXEMPT);
+        badge.getStyleClass().add("arbre-badge-exempt");
+        badge.setMinWidth(Region.USE_PREF_SIZE);
         HBox ligne = Ui.ligne(6, nom, badge);
         Label aide = new Label(PresentationPhaseFinale.AIDE_EXEMPT);
-        aide.getStyleClass().add("pf-aide-case");
-        VBox v = new VBox(4, ligne, aide);
-        v.getStyleClass().addAll("pf-case", "pf-exempt");
+        aide.getStyleClass().add("arbre-aide");
+        VBox v = new VBox(2, ligne, aide);
         v.setAlignment(Pos.CENTER_LEFT);
         dimensionner(v);
         String detail = PresentationPhaseFinale.detailJoueur(joueur);
@@ -349,26 +481,22 @@ public final class VuePhaseFinale {
     private static HBox ligneJoueur(Match m, boolean joueurA) {
         Joueur j = joueurA ? m.getJoueurA() : m.getJoueurB();
         Label nom = new Label(PresentationPhaseFinale.nomJoueur(j));
-        nom.getStyleClass().add("pf-nom");
+        nom.getStyleClass().add("arbre-nom");
+        nom.setTextOverrun(OverrunStyle.ELLIPSIS);
         if (!PresentationPhaseFinale.estConnu(j)) {
-            nom.getStyleClass().add("pf-inconnu");
+            nom.getStyleClass().add("arbre-inconnu");
         }
         nom.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nom, Priority.ALWAYS);
         Label manches = new Label(PresentationPhaseFinale.manchesDe(m, joueurA));
-        manches.getStyleClass().add("pf-manches");
+        manches.getStyleClass().add("arbre-manches");
+        manches.setMinWidth(Region.USE_PREF_SIZE);
         HBox h = Ui.ligne(6, nom, manches);
-        h.getStyleClass().add("pf-ligne-joueur");
+        h.getStyleClass().add("arbre-ligne-joueur");
         if (PresentationPhaseFinale.estVainqueur(m, joueurA)) {
-            h.getStyleClass().add("pf-vainqueur");
+            h.getStyleClass().add("arbre-vainqueur");
         }
         return h;
-    }
-
-    private Node cartePetiteFinale(Match pf) {
-        return Ui.carte("Petite finale (3e place)",
-                Ui.aide("Les deux perdants des demi-finales se rencontrent pour la 3e place."),
-                caseMatch(pf));
     }
 
     // ==================================================================

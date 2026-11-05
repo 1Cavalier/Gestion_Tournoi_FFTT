@@ -121,7 +121,9 @@ final class EcranJourJ {
         VBox contenu = Ui.page(860, entete, tuiles(),
                 Ui.aide("Le juge-arbitre ouvre le pointage tableau par tableau, coche les présents et les "
                         + "paiements, clôture le pointage (les absents libèrent leur place, la liste d'attente est "
-                        + "repêchée), puis lance le tirage au sort des poules. Tout est enregistré au fur et à mesure."));
+                        + "repêchée), puis lance le tirage au sort des poules. Quand toutes les poules d'un tableau "
+                        + "sont jouées, il construit le tableau final (second tirage) et suit l'arbre des "
+                        + "rencontres. Tout est enregistré au fur et à mesure."));
 
         if (tournoi.getStatut() == StatutTournoi.ANNULE) {
             contenu.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : le pointage et les tirages sont fermés."));
@@ -165,14 +167,17 @@ final class EcranJourJ {
         int pointage = 0;
         int poules = 0;
         int termines = 0;
+        int finals = 0;
         for (Tableau t : tournoi.getTableaux()) {
             PresentationJourJ.Etape e = PresentationJourJ.etape(t);
             if (e == PresentationJourJ.Etape.POINTAGE_OUVERT || e == PresentationJourJ.Etape.POINTAGE_CLOTURE) {
                 pointage++;
             } else if (e == PresentationJourJ.Etape.POULES) {
                 poules++;
-            } else if (e == PresentationJourJ.Etape.POULES_TERMINEES || e == PresentationJourJ.Etape.PHASE_FINALE) {
+            } else if (e == PresentationJourJ.Etape.POULES_TERMINEES) {
                 termines++;
+            } else if (e == PresentationJourJ.Etape.PHASE_FINALE) {
+                finals++;
             }
         }
         int n = tournoi.getTableaux().size();
@@ -180,7 +185,8 @@ final class EcranJourJ {
                 Ui.tuile(String.valueOf(n), n > 1 ? "tableaux" : "tableau"),
                 Ui.tuile(String.valueOf(pointage), "en pointage"),
                 Ui.tuile(String.valueOf(poules), "poules en cours"),
-                Ui.tuile(String.valueOf(termines), "poules terminées"));
+                Ui.tuile(String.valueOf(termines), "prêts pour le tableau final"),
+                Ui.tuile(String.valueOf(finals), "en tableau final"));
         return f;
     }
 
@@ -190,8 +196,9 @@ final class EcranJourJ {
         Label pastille = Ui.pastille(PresentationJourJ.libelle(etape), PresentationJourJ.classe(etape));
         HBox titre = Ui.ligne(10, Ui.gras(t.getNom()), pastille);
 
-        String resume = t.getStatut() == StatutTableau.LANCE || t.getStatut() == StatutTableau.PHASE_FINALE
-                ? PresentationJourJ.resumePoules(t) : PresentationJourJ.resumePointage(t);
+        String resume = t.getStatut() == StatutTableau.PHASE_FINALE ? PresentationJourJ.resumeTableauFinal(t)
+                : t.getStatut() == StatutTableau.LANCE ? PresentationJourJ.resumePoules(t)
+                : PresentationJourJ.resumePointage(t);
         VBox infos = new VBox(3, titre, Ui.discret(PresentationJourJ.horaires(t)), Ui.discret(resume));
         HBox.setHgrow(infos, Priority.ALWAYS);
 
@@ -199,22 +206,32 @@ final class EcranJourJ {
         VBox bloc = new VBox(8);
         boolean ferme = tournoi.getStatut() == StatutTournoi.ANNULE;
 
+        String action = PresentationJourJ.libelleAction(etape);
         if (etape == PresentationJourJ.Etape.INSCRIPTION) {
-            Button ouvrir = Ui.boutonPrimaire("Ouvrir le pointage");
+            Button ouvrir = Ui.boutonPrimaire(action);
             ouvrir.setDisable(ferme);
             ouvrir.setOnAction(e -> confirmerOuverture(t, bloc));
             actions.getChildren().add(ouvrir);
         } else if (etape == PresentationJourJ.Etape.POINTAGE_OUVERT || etape == PresentationJourJ.Etape.POINTAGE_CLOTURE) {
-            Button pointage = Ui.boutonPrimaire(etape == PresentationJourJ.Etape.POINTAGE_OUVERT
-                    ? "Pointer" : "Lancer le tirage");
+            Button pointage = Ui.boutonPrimaire(action);
             pointage.setOnAction(e -> afficherPointage(t));
             actions.getChildren().add(pointage);
-        } else {
-            Button poules = Ui.boutonPrimaire("Poules");
+        } else if (etape == PresentationJourJ.Etape.POULES) {
+            Button poules = Ui.boutonPrimaire(action);
             poules.setOnAction(e -> afficherPoules(t, false));
             Button pointage = Ui.boutonLien("Liste de pointage");
             pointage.setOnAction(e -> afficherPointage(t));
             actions.getChildren().addAll(poules, pointage);
+        } else {
+            // Poules terminées (second tirage à faire) ou tableau final en cours.
+            Button tableauFinal = Ui.boutonPrimaire(action);
+            tableauFinal.setDisable(ferme && etape == PresentationJourJ.Etape.POULES_TERMINEES);
+            tableauFinal.setOnAction(e -> afficherTableauFinal(t));
+            Button poules = Ui.boutonLien("Poules");
+            poules.setOnAction(e -> afficherPoules(t, false));
+            Button pointage = Ui.boutonLien("Liste de pointage");
+            pointage.setOnAction(e -> afficherPointage(t));
+            actions.getChildren().addAll(tableauFinal, poules, pointage);
         }
         bloc.getChildren().add(Ui.ligne(16, infos, actions));
         HBox ligne = Ui.ligneListe(bloc);
@@ -262,6 +279,14 @@ final class EcranJourJ {
 
     private void afficherPoules(Tableau t, boolean apresTirage) {
         racine.setCenter(new EcranPoulesTableau(tournoi, t, this::enregistrer, this::afficherListe,
-                apresTirage).build());
+                apresTirage, () -> afficherTableauFinal(t)).build());
+    }
+
+    /**
+     * Tableau final : second tirage si les poules viennent de se terminer, puis
+     * arbre des rencontres et saisie des scores ({@link VuePhaseFinale}).
+     */
+    private void afficherTableauFinal(Tableau t) {
+        racine.setCenter(VuePhaseFinale.creer(contexte, tournoi, t, fichier, this::afficherListe));
     }
 }

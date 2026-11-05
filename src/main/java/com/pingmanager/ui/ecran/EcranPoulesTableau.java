@@ -34,7 +34,7 @@ import java.util.List;
  * direct (I.303) avec les places qualificatives.
  *
  * <p>La phase finale n'est pas traitée ici : une fois toutes les poules jouées,
- * l'écran l'indique simplement.</p>
+ * l'écran propose de construire le tableau final ({@link VuePhaseFinale}).</p>
  */
 final class EcranPoulesTableau {
 
@@ -42,6 +42,8 @@ final class EcranPoulesTableau {
     private final Tableau tableau;
     private final Runnable enregistrer;
     private final Runnable onRetour;
+    /** Ouvre le tableau final (second tirage, arbre) ; {@code null} si indisponible. */
+    private final Runnable onTableauFinal;
 
     private final SaisieResultatMatch saisie = new SaisieResultatMatch();
     private final SuiviPoule suivi = new SuiviPoule();
@@ -56,6 +58,12 @@ final class EcranPoulesTableau {
 
     EcranPoulesTableau(Tournoi tournoi, Tableau tableau, Runnable enregistrer, Runnable onRetour,
                        boolean apresTirage) {
+        this(tournoi, tableau, enregistrer, onRetour, apresTirage, null);
+    }
+
+    EcranPoulesTableau(Tournoi tournoi, Tableau tableau, Runnable enregistrer, Runnable onRetour,
+                       boolean apresTirage, Runnable onTableauFinal) {
+        this.onTableauFinal = onTableauFinal;
         this.tournoi = tournoi;
         this.tableau = tableau;
         this.enregistrer = enregistrer;
@@ -118,14 +126,29 @@ final class EcranPoulesTableau {
             return;
         }
         if (tableau.getStatut() == StatutTableau.PHASE_FINALE) {
-            contenu.getChildren().add(Ui.encartInfo("La phase finale est construite : les résultats de poule sont figés."));
+            contenu.getChildren().add(encartTableauFinal(
+                    "Le tableau final est construit : les résultats de poule sont figés.", "Voir le tableau final"));
         } else if (tableau.poulesTerminees()) {
-            contenu.getChildren().add(Ui.encartInfo("Toutes les poules sont terminées : les qualifiés sont connus. "
-                    + "La construction du tableau final (phase finale) n'est pas encore disponible dans cet écran."));
+            contenu.getChildren().add(encartTableauFinal("Toutes les poules sont terminées : les qualifiés sont "
+                    + "connus. Construisez le tableau final (second tirage au sort).", "Construire le tableau final"));
         }
         contenu.getChildren().addAll(selecteurPoules(), cartePoule(tableau.getPoules().get(pouleChoisie)));
         defilement.setContent(contenu);
         Platform.runLater(() -> defilement.setVvalue(position));
+    }
+
+    /** Encart menant au tableau final, mis à jour dès que la dernière partie de poule est saisie. */
+    private Node encartTableauFinal(String texte, String action) {
+        Label info = Ui.encartInfo(texte);
+        if (onTableauFinal == null) {
+            return info;
+        }
+        Button ouvrir = Ui.boutonPrimaire(action);
+        ouvrir.setOnAction(e -> onTableauFinal.run());
+        HBox h = Ui.ligne(12, info, ouvrir);
+        HBox.setHgrow(info, Priority.ALWAYS);
+        info.setMaxWidth(Double.MAX_VALUE);
+        return h;
     }
 
     // ------------------------------------------------------------------

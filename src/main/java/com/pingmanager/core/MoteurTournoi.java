@@ -139,12 +139,28 @@ public final class MoteurTournoi {
      * @return le tableau à élimination prêt à être joué
      */
     public TableauElimination construireTableau(List<Poule> poules, FormatTournoi format, long graine) {
+        Objects.requireNonNull(format, "format");
+        return construireTableau(poules, format, graine, format.avecPetiteFinale());
+    }
+
+    /**
+     * Comme {@link #construireTableau(List, FormatTournoi, long)}, mais la petite
+     * finale est décidée par l'appelant (option du tableau,
+     * {@code ConfigurationTableau#avecPetiteFinale()}) plutôt que par le format.
+     *
+     * @param petiteFinale true pour ajouter un match pour la 3e place (si le
+     *                     tableau a deux demi-finales)
+     */
+    public TableauElimination construireTableau(List<Poule> poules, FormatTournoi format, long graine,
+                                                boolean petiteFinale) {
         Objects.requireNonNull(poules, "poules");
         Objects.requireNonNull(format, "format");
         TableauElimination tableau =
                 placementService.construireTableau(poules, format.qualifiesParPoule(), graine);
         appliquerBestOf(tableau, format);
-        ajouterPetiteFinaleSiPrevue(tableau, format);
+        if (petiteFinale) {
+            ajouterPetiteFinale(tableau, format);
+        }
         return tableau;
     }
 
@@ -166,7 +182,7 @@ public final class MoteurTournoi {
     }
 
     /**
-     * Ajoute une petite finale (match pour la 3e place) si le format la prévoit.
+     * Ajoute une petite finale (match pour la 3e place).
      * Le match oppose les perdants des deux demi-finales ; ses joueurs sont donc
      * « à déterminer » au départ et alimentés par la progression du tableau. Le
      * best-of de petite finale est appliqué.
@@ -175,10 +191,7 @@ public final class MoteurTournoi {
      * le tableau). Pour un tableau plus petit, la petite finale n'a pas de sens
      * et n'est pas ajoutée.</p>
      */
-    private void ajouterPetiteFinaleSiPrevue(TableauElimination tableau, FormatTournoi format) {
-        if (!format.avecPetiteFinale()) {
-            return;
-        }
+    private void ajouterPetiteFinale(TableauElimination tableau, FormatTournoi format) {
         List<com.pingmanager.model.Tour> tours = tableau.getTours();
         if (tours.size() < 2) {
             return; // pas de demi-finales identifiables
@@ -205,7 +218,7 @@ public final class MoteurTournoi {
         petiteFinale.setSourceB(demi2);
 
         com.pingmanager.model.Tour tourPetiteFinale =
-                new com.pingmanager.model.Tour(tours.size() + 1, "Petite finale");
+                new com.pingmanager.model.Tour(tours.size() + 1, ServicePhaseFinale.NOM_TOUR_PETITE_FINALE);
         tourPetiteFinale.ajouterMatch(petiteFinale);
         tableau.ajouterTour(tourPetiteFinale);
     }
