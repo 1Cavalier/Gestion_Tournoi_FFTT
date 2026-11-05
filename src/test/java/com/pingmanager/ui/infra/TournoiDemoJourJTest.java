@@ -3,6 +3,8 @@ package com.pingmanager.ui.infra;
 import com.pingmanager.core.ResultatVerificationLancement;
 import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePointage;
+import com.pingmanager.core.ServiceSalle;
+import com.pingmanager.core.TableauDeBordSalle;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.Sexe;
@@ -71,6 +73,31 @@ class TournoiDemoJourJTest {
         assertEquals(Long.valueOf(TournoiDemoJourJ.GRAINE_TABLEAU_C), tab(relu, "C").getGrainePoules());
         assertEquals(ServicePointage.nonPointes(tab(t, "B")).size(), ServicePointage.nonPointes(tab(relu, "B")).size());
         assertTrue(tab(relu, "D").pointageEstCloture());
+    }
+
+    @Test
+    void salle_avec_deux_parties_en_cours_et_la_poule_d_prete() throws Exception {
+        java.time.Instant maintenant = java.time.Instant.parse("2026-11-14T10:30:00Z");
+        Tournoi t = TournoiDemoJourJ.construire(DonneesDemo.JOUEURS_FICTIFS, maintenant);
+        ServiceSalle salle = new ServiceSalle(() -> maintenant);
+        TableauDeBordSalle bord = salle.tableauDeBord(t);
+
+        assertEquals(16, bord.getNombreDeTables());
+        assertEquals(2, bord.nombreTablesOccupees());
+        assertFalse(bord.table(2).estLibre());
+        assertFalse(bord.table(5).estLibre());
+        assertEquals(java.time.Duration.ofMinutes(15), bord.table(2).ecoule());
+        assertEquals(java.time.Duration.ofMinutes(6), bord.table(5).ecoule());
+        assertEquals(3, bord.getPrets().size(), "les trois parties de la poule D");
+        assertEquals(2, bord.getBloques().size(), "le reste de la poule C");
+        assertTrue(bord.getAnomalies().isEmpty());
+
+        // Les parties en cours survivent à l'enregistrement.
+        Path f = dossier.resolve("salle" + DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, f);
+        TableauDeBordSalle relu = salle.tableauDeBord(DepotTournoi.charger(f).getTournoi());
+        assertEquals(2, relu.nombreTablesOccupees());
+        assertEquals(java.time.Duration.ofMinutes(15), relu.table(2).ecoule());
     }
 
     @Test
