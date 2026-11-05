@@ -21,7 +21,7 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 7. Sur l'écran du jour J
 - [x] jour suivant, lancer, terminer, annuler avec confirmation
 - [x] choix d'annonce mémorisé
 - [x] captures regardées
-- [ ] `mvn -B test` à 0 échec
+- [x] `mvn -B test` à 0 échec (708 tests, mesuré le 2026-11-05)
 
 ## Contraintes / décisions de Quentin
 
@@ -38,5 +38,8 @@ Voir le cahier des charges v0.
 - `correcteur` (2026-11-05) : `lireModeAnnonce` n'accepte qu'une chaîne (nombre, booléen, objet, tableau → redemander) ; test `mode_d_annonce_tous_les_modes_et_valeurs_degenerees` étendu (rouge avant, vert après).
 - `EcranSalle.choixAnnonce` : « Retenir ce choix » enregistre aussitôt le tournoi (même si le lancement échoue), erreur d'enregistrement affichée. Non testé : logique JavaFX non extractible simplement.
 - 708 tests, 0 échec.
+- `documentaliste` (2026-11-05) : journal mis en forme (`docs/journal/2026-11-05-tache-B037-jour-j-v2.md`), questions regroupées, défauts mineurs notés, chiffres mesurés (708). `REGLES_CREATION_TOURNOI.md` : note sur `modeAnnonce` (hors création). `CONFORMITE_FFTT.md` non modifié.
 
 ## Résultat
+
+Jour J v2 livré sur la branche `tache/B037-jour-j-v2` : priorités rouge / orange / vert calculées dans le cœur et testées, joueurs en attente avec chrono, « pourquoi » par joueur, jour suivant, « Lancer un match », « Terminer la rencontre / la poule », « Annuler » avec confirmation, choix d'annonce mémorisé par tournoi. 675 → 708 tests, 0 échec. Validation visuelle à faire par Quentin (captures dans `docs/captures/jour-j-v2/apres/`). Fusion laissée à l'intégrateur.
