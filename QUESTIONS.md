@@ -159,4 +159,29 @@ Format d'une entrée :
 - Recommandation : A.
 - Réponse de Quentin :
 
+### 2026-11-05 — Lien entre `importation` et `persistence.json` (audit d'architecture M1)
+- Contexte : `RAPPORT_ARCHITECTURE.md` (M1, action 3) et PR #2.
+  `importation/LecteurTableur.java` importe `persistence.json.Json` et
+  `JsonParser`, alors que `CLAUDE.md` présente `importation` comme « sans
+  dépendance ». Le rapport demandait d'inscrire ce choix ici ; ajouté par le
+  récapitulatif du 5 novembre.
+- Options : A) documenter ce lien (dans `CLAUDE.md` et la skill
+  d'architecture), sans toucher au code ; B) extraire le lecteur/écrivain JSON
+  dans un package neutre (`com.pingmanager.json`) utilisé par les deux.
+- Choix provisoire : A (rien n'est modifié tant que Quentin n'a pas tranché).
+- Réponse de Quentin :
+
+### 2026-11-05 — GIRPE ou SPIDD pour la remontée des tournois individuels
+- Contexte : `docs/RECHERCHE_FFTT.md` et PR #4. `ETAT_DU_PROJET.md`
+  section 4 dit que la remontée officielle passe par GIRPE ; la recherche
+  indique que GIRPE sert aux rencontres par équipes et que les tournois
+  individuels passent par **SPIDD** (logiciel du juge-arbitre). La PR #4
+  demandait confirmation avant de corriger. Ajouté par le récapitulatif du
+  5 novembre.
+- Options : A) corriger `ETAT_DU_PROJET.md` section 4 (SPIDD) ; B) attendre la
+  réponse de la FFTT au courriel prévu.
+- Recommandation : A (la correction est documentaire et réversible ; le
+  format d'échange reste à obtenir de la FFTT dans les deux cas).
+- Réponse de Quentin :
+
 ## Tranché
