@@ -236,9 +236,7 @@ final class EcranJourJ {
     }
 
     private void afficherPoules(Tableau t, boolean apresTirage) {
-        Button retour = Ui.boutonLien("← Jour J");
-        retour.setOnAction(e -> afficherListe());
-        racine.setCenter(Ui.defilant(Ui.page(860, retour, Ui.titre(t.getNom()),
-                Ui.encartInfo("L'écran des poules arrive dans l'étape suivante."))));
+        racine.setCenter(new EcranPoulesTableau(tournoi, t, this::enregistrer, this::afficherListe,
+                apresTirage).build());
     }
 }
