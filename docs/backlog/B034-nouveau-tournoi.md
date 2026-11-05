@@ -9,7 +9,7 @@ depend-de: []
 fichiers: [ui/ecran (formulaire de création)]
 branche: tache/B034-nouveau-tournoi
 date: 2026-11-05
-pr: 27
+pr: 28
 ---
 
 ## Ce qu'il faut faire
