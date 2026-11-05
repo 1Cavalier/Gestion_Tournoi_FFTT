@@ -9,7 +9,7 @@ depend-de: []
 fichiers: [ui/ecran/PageGestionTournoi]
 branche: tache/B033-gestion-tournois
 date: 2026-11-05
-pr:
+pr: 32
 ---
 
 ## Ce qu'il faut faire
