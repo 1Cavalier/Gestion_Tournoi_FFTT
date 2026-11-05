@@ -234,6 +234,21 @@ class PresentationPhaseFinaleTest {
     }
 
     @Test
+    void message_apres_resultat_selon_le_tour() {
+        TableauElimination elim = new GenerateurTableauElimination().genererTableau(
+                List.of(j("1", 2000), j("2", 1900), j("3", 1800), j("4", 1700)));
+        Match demi = elim.getPremierTour().getMatchs().get(0);
+        demi.definirScore(List.of(new Manche(11, 2), new Manche(11, 2), new Manche(11, 2)));
+        assertEquals("Résultat enregistré : Prenom1 NOM1 passe au tour suivant.",
+                PresentationPhaseFinale.messageResultat(demi, elim));
+        Match finale = ServicePhaseFinale.matchFinale(elim);
+        finale.remplacerJoueurs(j("1", 2000), j("2", 1900));
+        finale.definirScore(List.of(new Manche(2, 11), new Manche(2, 11), new Manche(2, 11)));
+        assertEquals("Résultat enregistré : Prenom2 NOM2 remporte le tableau.",
+                PresentationPhaseFinale.messageResultat(finale, elim));
+    }
+
+    @Test
     void match_dont_un_joueur_est_inconnu_n_est_pas_saisissable() {
         Match m = new Match(j("A", 1000), Joueur.aDeterminer());
         assertFalse(PresentationPhaseFinale.estSaisissable(m));

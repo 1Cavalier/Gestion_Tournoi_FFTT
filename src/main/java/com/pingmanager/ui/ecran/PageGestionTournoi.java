@@ -150,7 +150,12 @@ public final class PageGestionTournoi {
                 ? "Compléter" : r.mode == com.pingmanager.model.ModePreparation.IMPORT ? "Ouvrir" : "Choisir le mode");
         completer.setOnAction(e -> afficherCompletion(r.fichier));
 
-        return Ui.ligneListe(infos, Ui.espace(), completer);
+        // PROVISOIRE : point d'entrée de test de la phase finale, à remplacer par la page Jour J
+        Button phaseFinale = Ui.boutonLien("Phase finale (provisoire)");
+        phaseFinale.setOnAction(e -> racine.setCenter(
+                AccesPhaseFinaleProvisoire.creer(contexte, r.fichier, this::afficherAccueil)));
+
+        return Ui.ligneListe(infos, Ui.espace(), phaseFinale, completer);
     }
 
     // ==================================================================

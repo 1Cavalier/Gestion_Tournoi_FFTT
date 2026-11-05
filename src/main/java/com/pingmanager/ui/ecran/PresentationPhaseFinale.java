@@ -29,7 +29,7 @@ final class PresentationPhaseFinale {
     /** Libellé d'un joueur exempté (bye) : pas d'adversaire à ce tour. */
     static final String LIBELLE_EXEMPT = "Exempt";
     /** Explication d'un exempt, sous le nom du joueur. */
-    static final String AIDE_EXEMPT = "Pas d'adversaire à ce tour : qualifié d'office.";
+    static final String AIDE_EXEMPT = "Sans adversaire : qualifié d'office.";
     /** Libellé d'une place encore inconnue (vainqueur d'un match non joué). */
     static final String A_DETERMINER = "À déterminer";
 
@@ -321,6 +321,18 @@ final class PresentationPhaseFinale {
         }
         Joueur v = m.getVainqueur();
         return v != null && v.equals(joueurA ? m.getJoueurA() : m.getJoueurB());
+    }
+
+    /** Message après l'enregistrement d'un résultat : qui gagne, et ce que cela donne. */
+    static String messageResultat(Match m, TableauElimination elimination) {
+        String vainqueur = nomJoueur(m.getVainqueur());
+        if (m == ServicePhaseFinale.matchFinale(elimination)) {
+            return "Résultat enregistré : " + vainqueur + " remporte le tableau.";
+        }
+        if (m == matchPetiteFinale(elimination)) {
+            return "Résultat enregistré : " + vainqueur + " prend la 3e place.";
+        }
+        return "Résultat enregistré : " + vainqueur + " passe au tour suivant.";
     }
 
     /** Libellé d'une issue de match (pas de switch sur l'énumération). */
