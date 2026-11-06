@@ -3,6 +3,7 @@ package com.pingmanager.ordonnancement;
 import com.pingmanager.model.Joueur;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Résultat détaillé d'une opération sur une table de la salle : envoyer un
@@ -27,6 +28,8 @@ public final class ResultatAffectationTable {
         TABLE_HORS_LIMITES,
         /** Un autre match est déjà en cours sur cette table. */
         TABLE_OCCUPEE,
+        /** La table est réservée à d'autres tableaux (plan de la salle, B024). */
+        TABLE_RESERVEE,
         /** Le match n'appartient à aucun tableau en cours de jeu du tournoi. */
         MATCH_INCONNU,
         /** Le tournoi est annulé : la salle est fermée. */
@@ -51,24 +54,38 @@ public final class ResultatAffectationTable {
     private final int numeroTable;
     private final Joueur joueurBloquant;
     private final Integer tableDuJoueurBloquant;
+    private final Set<String> tableauxAdmis;
 
     private ResultatAffectationTable(Motif motif, int numeroTable, Joueur joueurBloquant,
-                                     Integer tableDuJoueurBloquant) {
+                                     Integer tableDuJoueurBloquant, Set<String> tableauxAdmis) {
         this.motif = Objects.requireNonNull(motif, "motif");
         this.numeroTable = numeroTable;
         this.joueurBloquant = joueurBloquant;
         this.tableDuJoueurBloquant = tableDuJoueurBloquant;
+        this.tableauxAdmis = tableauxAdmis == null ? Set.of()
+                : java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(tableauxAdmis));
     }
 
     /** Réussite ou refus simple, sans joueur bloquant. */
     public static ResultatAffectationTable de(Motif motif, int numeroTable) {
-        return new ResultatAffectationTable(motif, numeroTable, null, null);
+        return new ResultatAffectationTable(motif, numeroTable, null, null, null);
     }
 
     /** Refus parce qu'un joueur du match joue déjà sur une table. */
     public static ResultatAffectationTable joueurEnJeu(int numeroTable, Joueur joueur, int tableDuJoueur) {
         return new ResultatAffectationTable(Motif.JOUEUR_DEJA_EN_JEU, numeroTable,
-                Objects.requireNonNull(joueur, "joueur"), tableDuJoueur);
+                Objects.requireNonNull(joueur, "joueur"), tableDuJoueur, null);
+    }
+
+    /** Refus parce que la table est réservée à d'autres tableaux (B024). */
+    public static ResultatAffectationTable tableReservee(int numeroTable, Set<String> tableauxAdmis) {
+        return new ResultatAffectationTable(Motif.TABLE_RESERVEE, numeroTable, null, null,
+                new java.util.TreeSet<>(tableauxAdmis));
+    }
+
+    /** @return les tableaux admis sur la table (motif {@link Motif#TABLE_RESERVEE}), sinon vide. */
+    public Set<String> getTableauxAdmis() {
+        return tableauxAdmis;
     }
 
     public Motif getMotif() {

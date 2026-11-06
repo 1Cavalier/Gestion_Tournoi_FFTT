@@ -63,6 +63,8 @@ public final class Tournoi {
     private final List<AffectationJugeArbitre> jugesArbitres = new ArrayList<>();
     private final List<AffectationArbitre> arbitres = new ArrayList<>();
     private final List<LotTables> lotsTables = new ArrayList<>();
+    /** Salles et plans (B024) ; vide pour un tournoi sans plan (ancien fichier). */
+    private final List<SalleTournoi> salles = new ArrayList<>();
 
     /**
      * Statut du tournoi dans son cycle de vie (voir {@link StatutTournoi}).
@@ -291,6 +293,48 @@ public final class Tournoi {
     /** Mémorise la stratégie choisie par le club ; {@code null} revient à la stratégie par défaut. */
     public void setStrategieOrdonnancement(StrategieOrdonnancement strategie) {
         this.strategieOrdonnancement = strategie;
+    }
+
+    /**
+     * @return les salles du tournoi et leur plan (B024), dans l'ordre choisi ;
+     *         vide si le club n'a pas préparé de plan (une seule salle implicite)
+     */
+    public List<SalleTournoi> getSalles() {
+        return Collections.unmodifiableList(salles);
+    }
+
+    /** @return vrai si le club a préparé au moins une salle avec son plan. */
+    public boolean aUnPlanDeSalle() {
+        return !salles.isEmpty();
+    }
+
+    /**
+     * Remplace les salles du tournoi (B024). Deux salles ne portent pas le même
+     * nom (sans tenir compte de la casse) et une table n'est que dans une salle.
+     *
+     * @throws IllegalArgumentException si deux salles ont le même nom ou un numéro de table en commun
+     */
+    public void setSalles(List<SalleTournoi> nouvelles) {
+        List<SalleTournoi> copie = new ArrayList<>();
+        java.util.Set<String> noms = new java.util.HashSet<>();
+        java.util.Set<Integer> numeros = new java.util.HashSet<>();
+        if (nouvelles != null) {
+            for (SalleTournoi s : nouvelles) {
+                Objects.requireNonNull(s, "salle");
+                if (!noms.add(s.getNom().toLowerCase(java.util.Locale.ROOT))) {
+                    throw new IllegalArgumentException("Deux salles s'appellent « " + s.getNom() + " ».");
+                }
+                for (ElementPlan.TablePlan t : s.getPlan().getTables()) {
+                    if (!numeros.add(t.numero())) {
+                        throw new IllegalArgumentException("La table " + t.numero()
+                                + " figure dans deux salles.");
+                    }
+                }
+                copie.add(s);
+            }
+        }
+        salles.clear();
+        salles.addAll(copie);
     }
 
     public RegleTableauxParJour getRegleTableauxParJour() {

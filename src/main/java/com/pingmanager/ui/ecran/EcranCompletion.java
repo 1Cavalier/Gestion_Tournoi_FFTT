@@ -110,13 +110,19 @@ final class EcranCompletion {
         titreDossier.getStyleClass().add("titre-dossier");
         if (presentation.deuxiemeVersion()) {
             // Deuxième version (B035) : les nouvelles parties en haut, le dossier et le règlement en bas.
+            if (presentation.afficheSalle()) {
+                contenu.getChildren().add(cartePlanSalle());
+            }
             if (presentation.afficheStrategie()) {
                 contenu.getChildren().add(carteStrategie());
             }
             if (presentation.afficheRemplissageEtFinances()) {
                 contenu.getChildren().add(carteRemplissageFinances());
             }
-            contenu.getChildren().addAll(cartesAVenir(), carteEtapes(), titreDossier);
+            if (!presentation.cartesBientot().isEmpty()) {
+                contenu.getChildren().add(cartesAVenir());
+            }
+            contenu.getChildren().addAll(carteEtapes(), titreDossier);
             for (int i = 0; i < sections.size(); i++) {
                 contenu.getChildren().add(carteSection(i, sections.get(i)));
             }
@@ -272,6 +278,37 @@ final class EcranCompletion {
         }
         VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
         return bloc;
+    }
+
+    /**
+     * Carte « Plan de la salle » (B024) : salles et tables placées, alertes de
+     * cohérence, accès à l'éditeur de plan.
+     */
+    private Node cartePlanSalle() {
+        com.pingmanager.core.ServicePlanSalle service = new com.pingmanager.core.ServicePlanSalle();
+        HBox entete = Ui.ligne(10, Ui.iconeTuile(Icones.SALLE, false),
+                Ui.titreCarte(PresentationPlanSalle.TITRE_CARTE));
+        entete.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        Label phrase = Ui.gras(PresentationPlanSalle.phraseCarte(tournoi, service));
+        phrase.setWrapText(true);
+        VBox carte = Ui.carte(entete, phrase);
+        if (tournoi.aUnPlanDeSalle()) {
+            for (String alerte : PresentationPlanSalle.alertes(service.verifier(tournoi))) {
+                Label l = Ui.discret(alerte);
+                l.setWrapText(true);
+                carte.getChildren().add(l);
+            }
+        } else {
+            Label aide = Ui.discret("Placez les tables, les allées et les repères (table d'arbitrage, entrée, WC…), "
+                    + "sur une ou plusieurs salles, et réservez des tables à un tableau.");
+            aide.setWrapText(true);
+            carte.getChildren().add(aide);
+        }
+        Button ouvrir = Ui.boutonSecondaire(tournoi.aUnPlanDeSalle() ? "Modifier le plan" : "Préparer le plan");
+        ouvrir.setOnAction(e -> racine.setCenter(
+                new EcranPlanSalle(contexte, fichier, this::afficherApercu).build()));
+        carte.getChildren().add(Ui.actions(ouvrir));
+        return carte;
     }
 
     /**

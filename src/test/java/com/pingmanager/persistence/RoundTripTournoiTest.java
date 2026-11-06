@@ -432,6 +432,50 @@ class RoundTripTournoiTest {
         assertFalse(DepotTournoi.charger(fichier).getTournoi().strategieOrdonnancementChoisie());
     }
 
+    /** B024 : salles, plans (tables, allées, repères) et réservations relus à l'identique. */
+    @Test
+    void plan_de_salle_memorise_relu_et_ancien_fichier_sans_plan() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("plan_salle", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        assertFalse(Files.readString(fichier).contains("\"salles\""), "rien d'écrit sans plan : ancien format");
+        Tournoi sansPlan = DepotTournoi.charger(fichier).getTournoi();
+        assertFalse(sansPlan.aUnPlanDeSalle());
+        assertEquals(1, new com.pingmanager.core.ServicePlanSalle().salles(sansPlan).size(),
+                "ancien tournoi = une salle, tables en grille");
+
+        com.pingmanager.model.PlanSalle gymnase = com.pingmanager.core.PlansTypesSalle
+                .generer(com.pingmanager.core.PlansTypesSalle.PlanType.DEUX_RANGEES, 4)
+                .tourner(2).getPlan().reserver(3, "Dames").getPlan()
+                .ajouter(new com.pingmanager.model.ElementPlan.ReperePlan(com.pingmanager.model.TypeRepere.WC,
+                        "WC hommes", 3, 0, 1, 1)).getPlan();
+        com.pingmanager.model.PlanSalle dojo = com.pingmanager.core.PlansTypesSalle.generer(1, 2, 5);
+        original.setSalles(List.of(
+                new com.pingmanager.model.SalleTournoi("Gymnase", 0, gymnase, java.util.Set.of(),
+                        java.util.Set.of("Open")),
+                new com.pingmanager.model.SalleTournoi("Dojo", 1, dojo, java.util.Set.of("Dames"),
+                        java.util.Set.of())));
+        DepotTournoi.sauvegarder(original, fichier);
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+        assertEquals(original.getSalles(), relu.getSalles());
+        assertEquals(com.pingmanager.model.OrientationTable.VERTICALE,
+                relu.getSalles().get(0).getPlan().table(2).orElseThrow().orientation());
+        assertEquals("Dames", relu.getSalles().get(0).getPlan().table(3).orElseThrow().tableauReserve());
+        assertEquals(1, relu.getSalles().get(1).getEtage());
+
+        // Fichier d'une version plus récente ou abîmé : type de repère inconnu → « Autre », élément
+        // d'un genre inconnu écarté, salle en double écartée ; le fichier s'ouvre toujours.
+        String json = Files.readString(fichier);
+        Files.writeString(fichier, json.replace("\"WC\"", "\"FONTAINE\"")
+                .replace("\"allee\"", "\"tribune\"")
+                .replace("\"Dojo\"", "\"gymnase\""));
+        Tournoi abime = DepotTournoi.charger(fichier).getTournoi();
+        assertEquals(1, abime.getSalles().size());
+        assertEquals(com.pingmanager.model.TypeRepere.AUTRE,
+                abime.getSalles().get(0).getPlan().getReperes().get(2).type());
+        assertTrue(abime.getSalles().get(0).getPlan().getAllees().isEmpty());
+    }
+
     /** Jour J (B037) : la façon d'annoncer les rencontres est mémorisée avec le tournoi. */
     @Test
     void mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode() throws Exception {

@@ -3620,3 +3620,111 @@
 .tuile-cle-valeur.prevision-alerte {
     -fx-text-fill: -erreur;
 }
+
+/* === Plan de la salle (B024) : éditeur et vue Salle du jour J === */
+
+.plan-grille {
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure;
+    -fx-border-width: 1;
+}
+
+.plan-case {
+    -fx-border-color: -surface-2;
+    -fx-border-width: 0 1 1 0;
+    -fx-cursor: hand;
+}
+
+.plan-case:hover {
+    -fx-background-color: -primaire-doux;
+}
+
+.plan-element {
+    -fx-alignment: center;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.plan-table {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+    -fx-border-width: 2;
+    -fx-background-insets: 2;
+    -fx-border-insets: 2;
+}
+
+.plan-table-verticale {
+    -fx-border-width: 2 6 2 6;
+}
+
+.plan-table-horizontale {
+    -fx-border-width: 6 2 6 2;
+}
+
+.plan-table-reservee {
+    -fx-border-color: -accent;
+}
+
+.plan-element-texte {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.plan-allee {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 0;
+}
+
+.plan-repere {
+    -fx-background-color: -attention-doux;
+    -fx-text-fill: -attention-texte;
+    -fx-border-color: -attention;
+    -fx-border-width: 1;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.plan-element-selectionne {
+    -fx-border-color: -primaire-fort;
+    -fx-border-width: 3;
+}
+
+.plan-table-hors {
+    -fx-background-color: -neutre-doux;
+    -fx-text-fill: -neutre-texte;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.plan-panneau {
+    -fx-padding: 12;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 10;
+}
+
+.plan-mini-carte {
+    -fx-padding: 4 0 4 0;
+}
+
+.plan-mini-etage {
+    -fx-font-weight: bold;
+}
+
+.plan-mini-salle {
+    -fx-padding: 8 12 8 12;
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-cursor: hand;
+}
+
+.plan-mini-salle:hover {
+    -fx-background-color: -surface-2;
+}
+
+.plan-mini-salle.plan-mini-salle-active {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}

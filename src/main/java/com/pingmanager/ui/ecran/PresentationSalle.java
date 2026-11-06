@@ -123,6 +123,13 @@ final class PresentationSalle {
                     ? "La table " + table + " n'existe pas : la salle compte les tables 1 à " + nombreDeTables + "."
                     : "Le nombre de tables du tournoi n'est pas renseigné (Informations sportives et techniques).";
         }
+        if (motif == ResultatAffectationTable.Motif.TABLE_RESERVEE) {
+            List<String> admis = new ArrayList<>(r.getTableauxAdmis());
+            return admis.isEmpty()
+                    ? "La table " + table + " est réservée à d'autres tableaux (plan de la salle)."
+                    : "La table " + table + " est réservée " + (admis.size() > 1 ? "aux tableaux " : "au tableau ")
+                    + listeLisible(admis) + " (plan de la salle).";
+        }
         if (motif == ResultatAffectationTable.Motif.TABLE_OCCUPEE) {
             return "La table " + table + " est occupée : terminez ou annulez d'abord le match en cours.";
         }
@@ -174,6 +181,10 @@ final class PresentationSalle {
         }
         if (motif == ResultatPropositionSalle.Motif.AUCUN_MATCH_PRET) {
             return "Aucun match prêt : les joueurs attendus sont déjà en jeu, ou il ne reste rien à jouer.";
+        }
+        if (motif == ResultatPropositionSalle.Motif.TABLES_LIBRES_RESERVEES) {
+            return "Des matchs sont prêts, mais les tables libres sont réservées à d'autres tableaux "
+                    + "(plan de la salle).";
         }
         if (motif == ResultatPropositionSalle.Motif.SALLE_SANS_TABLE) {
             return "Le nombre de tables du tournoi n'est pas renseigné (Informations sportives et techniques).";

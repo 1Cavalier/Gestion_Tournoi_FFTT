@@ -45,6 +45,9 @@ public final class Ordonnanceur {
     /** Table (1..N) → match en cours dessus, ou null si libre. */
     private final Map<Integer, MatchOrdonnancable> occupationTables = new HashMap<>();
 
+    /** Tables réservées et préférences des tableaux (B024) ; aucune par défaut. */
+    private ReservationsTables reservations = ReservationsTables.AUCUNE;
+
     public Ordonnanceur(int nombreDeTables) {
         this(nombreDeTables, new PoidsOrdonnancement());
     }
@@ -81,6 +84,20 @@ public final class Ordonnanceur {
     /** @return les poids de scoring utilisés par l'ordonnanceur (pour la persistance/le réglage). */
     public PoidsOrdonnancement getPoids() {
         return poids;
+    }
+
+    /** @return les réservations de tables respectées par l'ordonnanceur (B024). */
+    public ReservationsTables getReservations() {
+        return reservations;
+    }
+
+    /**
+     * Pose les réservations de tables (B024) : une table restreinte ne reçoit que
+     * ses tableaux, ni par « Proposer » ni par un choix manuel ; un tableau va
+     * d'abord sur ses tables préférées.
+     */
+    public void setReservations(ReservationsTables reservations) {
+        this.reservations = Objects.requireNonNull(reservations, "reservations");
     }
 
     /** Tables actuellement libres (numéros croissants). */
@@ -180,10 +197,13 @@ public final class Ordonnanceur {
         // joueurs déjà engagés dans cette vague pour ne pas les mettre 2 fois.
         List<PropositionLancement> propositions = new ArrayList<>();
         Set<String> joueursReserves = new HashSet<>(ctx.occupes);
-        int indexTable = 0;
+        // B024 : chaque match prend la table libre qui lui convient le mieux (table
+        // préférée de son tableau, sinon table ordinaire), jamais une table réservée
+        // à d'autres tableaux. Sans réservation : les tables libres dans l'ordre.
+        List<Integer> restantes = new ArrayList<>(libres);
 
         for (MatchOrdonnancable mo : jouables) {
-            if (indexTable >= libres.size()) {
+            if (restantes.isEmpty()) {
                 break;
             }
             Match m = mo.getMatch();
@@ -192,7 +212,11 @@ public final class Ordonnanceur {
             if (joueursReserves.contains(a) || joueursReserves.contains(b)) {
                 continue; // un joueur déjà pris dans cette vague
             }
-            int table = libres.get(indexTable++);
+            int index = meilleureTable(restantes, mo.getIdentifiantTableau());
+            if (index < 0) {
+                continue; // aucune table libre n'accepte ce tableau
+            }
+            int table = restantes.remove(index);
             double score = scores.get(mo);
             String explication = expliquer(mo, maintenant, ctx);
             propositions.add(new PropositionLancement(mo, table, score, explication));
@@ -200,6 +224,23 @@ public final class Ordonnanceur {
             joueursReserves.add(b);
         }
         return propositions;
+    }
+
+    /** Index, dans les tables libres (croissantes), de la meilleure table pour ce tableau, ou -1. */
+    private int meilleureTable(List<Integer> libres, String tableau) {
+        int meilleur = -1;
+        int meilleurRang = Integer.MAX_VALUE;
+        for (int i = 0; i < libres.size(); i++) {
+            int rang = reservations.rang(libres.get(i), tableau);
+            if (rang >= 0 && rang < meilleurRang) {
+                meilleur = i;
+                meilleurRang = rang;
+                if (rang == 0) {
+                    break;
+                }
+            }
+        }
+        return meilleur;
     }
 
     /** Comme {@link #estJouableMaintenant}, avec l'ensemble des joueurs occupés déjà calculé. */
@@ -456,6 +497,9 @@ public final class Ordonnanceur {
         }
         if (occupationTables.get(table) != null) {
             return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_OCCUPEE, table);
+        }
+        if (!reservations.admet(table, mo.getIdentifiantTableau())) {
+            return ResultatAffectationTable.tableReservee(table, reservations.tableauxAdmis(table));
         }
         return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, table);
     }

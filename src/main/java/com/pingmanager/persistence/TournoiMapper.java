@@ -206,6 +206,8 @@ public final class TournoiMapper {
         if (t.strategieOrdonnancementChoisie()) {
             o.set("strategieOrdonnancement", ecrireEnum(t.getStrategieOrdonnancement()));
         }
+        // B024 : salles et plans, écrits seulement si le club a préparé un plan.
+        PlanSalleMapper.ecrire(t, o);
 
         // Tableaux.
         Json tableaux = Json.tableau();
@@ -618,6 +620,7 @@ public final class TournoiMapper {
         t.setTablesEchauffement(Math.max(0, o.getInt("tablesEchauffement", 0)));
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
+        PlanSalleMapper.lire(o, t);
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
             for (Json l : o.get("lotsTables").elements()) {
