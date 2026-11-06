@@ -4,10 +4,10 @@ titre: Rendu graphique v2 : préparation du tournoi
 type: charte
 priorite: P1
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ui/ecran/EcranCompletion, ui/ecran/FormulairesSection, ui/ecran/EcranTableaux, ui/ecran/FormulaireTableau, ui/ecran/EcranSportif, ui/ecran/EcranComplementaire, ui/ecran/CarteReglesInscription, theme.css]
-branche:
+branche: tache/B012-rendu-v2-pre-tournoi (2026-11-06)
 pr:
 ---
 
