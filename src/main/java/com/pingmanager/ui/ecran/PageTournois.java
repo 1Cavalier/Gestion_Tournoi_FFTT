@@ -1,13 +1,11 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.CalendrierTournoi;
 import com.pingmanager.core.CatalogueTournois;
 import com.pingmanager.core.Territoires;
 import com.pingmanager.core.reglement.Formats;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.ui.ContexteApplication;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -18,15 +16,16 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.nio.file.Path;
@@ -38,8 +37,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Onglet <b>Tournois</b> : trouver un tournoi (carte + liste + filtres synchronisés),
- * sa fiche, l'inscription en ligne, et « Mes tournois ».
+ * Onglet <b>Tournois</b> : « Carte des tournois » (filtres à gauche, deux présentations
+ * au choix : carte + liste avec « Voir plus », ou agenda par jour), la fiche,
+ * l'inscription en ligne, et « Mes tournois ». Chaque tournoi porte l'un des quatre
+ * statuts de {@link com.pingmanager.core.StatutCarteTournoi} (pastille + couleur + texte) ;
+ * sa fiche s'ouvre toujours, même sans inscription possible.
  *
  * <p>Les tournois auxquels le joueur ne peut pas participer (IX.101 / IX.102) restent
  * visibles, grisés, avec le motif en rouge ; l'interrupteur « Seulement ceux auxquels
@@ -62,6 +64,9 @@ public final class PageTournois {
     private CarteTournois carte;
     private Label compteur;
     private boolean ajusterCarte = true;
+    private VBox agenda;
+    private PresentationCarteTournois.Vue vue = PresentationCarteTournois.Vue.CARTE;
+    private Runnable basculerVue;
 
     public PageTournois(ContexteApplication contexte) {
         this.contexte = contexte;
@@ -89,7 +94,7 @@ public final class PageTournois {
 
     private void afficherAccueil() {
         ToggleGroup g = new ToggleGroup();
-        ToggleButton trouver = new ToggleButton("Trouver un tournoi");
+        ToggleButton trouver = new ToggleButton(PresentationCarteTournois.TITRE_ONGLET);
         ToggleButton mes = new ToggleButton("Mes tournois");
         HBox segment = Ui.segment(g, trouver, mes);
         (mesTournois ? mes : trouver).setSelected(true);
@@ -107,7 +112,7 @@ public final class PageTournois {
         BorderPane corps = new BorderPane();
         corps.setTop(entete);
         if (mesTournois) {
-            corps.setCenter(new MesTournois(contexte, tous, this::ouvrirFiche).build());
+            corps.setCenter(new MesTournois(contexte, tous, this::ouvrirFiche, this::revoirTournoi).build());
         } else {
             if (explorateur == null) {
                 explorateur = construireExplorateur();
@@ -119,27 +124,27 @@ public final class PageTournois {
     }
 
     // ==================================================================
-    // Explorateur : filtres, liste, carte
+    // Carte des tournois : filtres à gauche, présentation carte ou agenda par jour
     // ==================================================================
 
     private Node construireExplorateur() {
-        // --- Filtres ---
+        // --- Filtres (colonne de gauche) ---
         TextField texte = Ui.champ("Nom, ville, club, département…");
-        texte.setPrefWidth(240);
         texte.textProperty().addListener((o, a, b) -> { criteres = criteres.avecTexte(b); ajusterCarte = true; appliquerFiltres(); });
 
         DatePicker du = new DatePicker();
         du.setPromptText("Du");
-        du.setPrefWidth(128);
+        du.setMaxWidth(Double.MAX_VALUE);
         DatePicker au = new DatePicker();
         au.setPromptText("Au");
-        au.setPrefWidth(128);
+        au.setMaxWidth(Double.MAX_VALUE);
         Runnable periode = () -> { criteres = criteres.avecPeriode(du.getValue(), au.getValue()); ajusterCarte = true; appliquerFiltres(); };
         du.valueProperty().addListener((o, a, b) -> periode.run());
         au.valueProperty().addListener((o, a, b) -> periode.run());
 
         MenuButton niveaux = new MenuButton("Tous niveaux");
         niveaux.getStyleClass().add("filtre-menu");
+        niveaux.setMaxWidth(Double.MAX_VALUE);
         EnumSet<NiveauTournoi> choisis = EnumSet.noneOf(NiveauTournoi.class);
         for (NiveauTournoi n : NiveauTournoi.values()) {
             CheckMenuItem item = new CheckMenuItem(n.getLibelle());
@@ -162,7 +167,7 @@ public final class PageTournois {
         Map<String, String[]> zones = zones();
         zone.getItems().addAll(zones.keySet());
         zone.setValue("Toute la France");
-        zone.setPrefWidth(200);
+        zone.setMaxWidth(Double.MAX_VALUE);
         zone.valueProperty().addListener((o, a, b) -> {
             String[] z = zones.getOrDefault(b, new String[] {null, null});
             criteres = criteres.avecDepartement(z[0]).avecLigue(z[1]);
@@ -173,6 +178,7 @@ public final class PageTournois {
         ComboBox<String> distance = new ComboBox<>();
         distance.getItems().addAll("Toutes distances", "≤ 25 km", "≤ 50 km", "≤ 100 km", "≤ 200 km", "≤ 400 km");
         distance.setValue("Toutes distances");
+        distance.setMaxWidth(Double.MAX_VALUE);
         distance.setDisable(contexte.positionDuJoueur() == null);
         distance.valueProperty().addListener((o, a, b) -> {
             Integer km = b == null || b.startsWith("Toutes") ? null : Integer.valueOf(b.replaceAll("\\D", ""));
@@ -188,13 +194,14 @@ public final class PageTournois {
         places.selectedProperty().addListener((o, a, b) -> { criteres = criteres.avecPlaces(b); appliquerFiltres(); });
         CheckBox accessibles = new CheckBox("Seulement ceux auxquels je peux participer");
         accessibles.getStyleClass().add("interrupteur");
+        accessibles.setWrapText(true);
         accessibles.selectedProperty().addListener((o, a, b) -> {
             criteres = criteres.avecSeulementAccessibles(b);
             ajusterCarte = true;
             appliquerFiltres();
         });
 
-        Button reinit = Ui.boutonLien("Réinitialiser");
+        Button reinit = Ui.boutonLien("Réinitialiser les filtres");
         reinit.setOnAction(e -> {
             texte.clear();
             du.setValue(null);
@@ -207,17 +214,45 @@ public final class PageTournois {
             accessibles.setSelected(false);
         });
 
-        FlowPane ligne1 = new FlowPane(10, 10, texte, du, au, niveaux, zone, distance);
-        FlowPane ligne2 = new FlowPane(18, 8, accessibles, aMesPoints, places, reinit);
-        ligne2.setAlignment(Pos.CENTER_LEFT);
-        VBox filtres = new VBox(10, ligne1, ligne2);
-        filtres.getStyleClass().add("barre-filtres");
+        VBox legende = new VBox(6);
+        legende.getStyleClass().add("legende-statuts-carte");
+        legende.getChildren().add(Ui.libelleChamp("Statuts"));
+        for (PresentationCarteTournois.Pastille p : PresentationCarteTournois.legende()) {
+            legende.getChildren().add(pastille(p));
+        }
 
-        // --- Liste ---
+        VBox filtres = new VBox(12,
+                Ui.titreCarte("Filtres"),
+                Ui.champEtiquete("Recherche", texte),
+                Ui.champEtiquete("Période", new VBox(6, du, au)),
+                Ui.champEtiquete("Niveau", niveaux),
+                Ui.champEtiquete("Zone", zone),
+                Ui.champEtiquete("Distance", distance),
+                accessibles, aMesPoints, places, reinit, legende);
+        filtres.getStyleClass().addAll("barre-filtres", "filtres-carte-tournois");
+        filtres.setPrefWidth(270);
+        filtres.setMinWidth(240);
+        filtres.setMaxWidth(290);
+        ScrollPane colonneFiltres = new ScrollPane(filtres);
+        colonneFiltres.setFitToWidth(true);
+        colonneFiltres.getStyleClass().add("defilant-filtres-carte");
+        colonneFiltres.setMinWidth(250);
+        colonneFiltres.setPrefWidth(290);
+        colonneFiltres.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        // --- Bascule des deux présentations ---
+        ToggleGroup gVue = new ToggleGroup();
+        ToggleButton bCarte = new ToggleButton(PresentationCarteTournois.libelleVue(PresentationCarteTournois.Vue.CARTE));
+        ToggleButton bAgenda = new ToggleButton(PresentationCarteTournois.libelleVue(PresentationCarteTournois.Vue.AGENDA));
+        HBox segmentVue = Ui.segment(gVue, bCarte, bAgenda);
         compteur = Ui.gras("");
+        HBox barre = Ui.ligne(12, compteur, Ui.espace(), segmentVue);
+        barre.getStyleClass().add("barre-vue-carte-tournois");
+
+        // --- Présentation carte : liste avec « Voir plus » + carte ---
         liste = new ListView<>();
         liste.getStyleClass().add("liste-tournois");
-        liste.setPlaceholder(Ui.discret("Aucun tournoi ne correspond à ces filtres."));
+        liste.setPlaceholder(Ui.discret(PresentationCarteTournois.AUCUN_RESULTAT));
         liste.setCellFactory(x -> new CelluleTournoi());
         liste.getSelectionModel().selectedItemProperty().addListener((o, a, e) -> {
             if (e != null) {
@@ -235,27 +270,129 @@ public final class PageTournois {
             }
         });
         VBox.setVgrow(liste, Priority.ALWAYS);
-        Label astuce = Ui.aide("Double-clic ou Entrée : ouvrir la fiche. Un clic sur un marqueur de la carte l'ouvre aussi.");
-        VBox colonne = new VBox(8, compteur, liste, astuce);
-        colonne.setPrefWidth(430);
-        colonne.setMinWidth(380);
+        Label astuce = Ui.aide("« Voir plus » ouvre la fiche, même si vous ne pouvez pas vous inscrire. "
+                + "Un clic sur un marqueur de la carte l'ouvre aussi.");
+        astuce.setWrapText(true);
+        VBox colonne = new VBox(8, liste, astuce);
+        colonne.setPrefWidth(400);
+        colonne.setMinWidth(340);
 
-        // --- Carte ---
         carte = new CarteTournois(this::ouvrirFiche, id -> catalogue.stream()
                 .filter(e -> e.id().equals(id)).findFirst()
                 .ifPresent(e -> liste.getSelectionModel().select(e)));
         Node vueCarte = carte.noeud();
-        HBox.setHgrow(vueCarte, Priority.ALWAYS);
         VBox cadreCarte = new VBox(vueCarte);
         VBox.setVgrow(vueCarte, Priority.ALWAYS);
         cadreCarte.getStyleClass().add("cadre-carte");
         HBox.setHgrow(cadreCarte, Priority.ALWAYS);
+        HBox presentationCarte = new HBox(16, colonne, cadreCarte);
 
-        HBox corps = new HBox(16, colonne, cadreCarte);
-        VBox.setVgrow(corps, Priority.ALWAYS);
-        VBox explo = new VBox(14, filtres, corps);
-        explo.getStyleClass().add("explorateur");
+        // --- Présentation agenda : un bloc par jour ---
+        agenda = new VBox(16);
+        agenda.getStyleClass().add("agenda-tournois");
+        ScrollPane presentationAgenda = new ScrollPane(agenda);
+        presentationAgenda.setFitToWidth(true);
+        presentationAgenda.getStyleClass().add("defilant-agenda-tournois");
+
+        StackPane contenu = new StackPane(presentationCarte, presentationAgenda);
+        VBox.setVgrow(contenu, Priority.ALWAYS);
+        basculerVue = () -> {
+            boolean enAgenda = vue == PresentationCarteTournois.Vue.AGENDA;
+            presentationCarte.setVisible(!enAgenda);
+            presentationAgenda.setVisible(enAgenda);
+            (enAgenda ? bAgenda : bCarte).setSelected(true);
+            Ui.apparition(enAgenda ? presentationAgenda : presentationCarte);
+        };
+        bCarte.setOnAction(e -> choisirVue(PresentationCarteTournois.Vue.CARTE));
+        bAgenda.setOnAction(e -> choisirVue(PresentationCarteTournois.Vue.AGENDA));
+        basculerVue.run();
+
+        VBox droite = new VBox(12, barre, contenu);
+        HBox.setHgrow(droite, Priority.ALWAYS);
+        HBox explo = new HBox(16, colonneFiltres, droite);
+        VBox.setVgrow(explo, Priority.ALWAYS);
+        explo.getStyleClass().addAll("explorateur", "carte-des-tournois");
         return explo;
+    }
+
+    /** Affiche la présentation choisie (carte ou agenda par jour) ; aussi pour le harnais. */
+    void choisirVue(PresentationCarteTournois.Vue v) {
+        vue = v;
+        if (basculerVue != null) {
+            basculerVue.run();
+        }
+    }
+
+    /** Pastille d'un statut de la carte (couleur de la charte + classe propre au statut). */
+    private static Label pastille(PresentationCarteTournois.Pastille p) {
+        Label l = Ui.pastille(p.texte(), p.couleur());
+        l.getStyleClass().addAll("pastille-statut-carte", p.classeCss());
+        // Puce devant le texte : le statut se lit aussi sans la couleur de fond.
+        l.setGraphic(Ui.puce("puce-statut-carte"));
+        l.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        return l;
+    }
+
+    /** Motif du statut : rouge si non accessible, discret si complet ou hors niveau. */
+    private static Label motif(PresentationCarteTournois.CarteTournoi c) {
+        Label l = Ui.label(c.motif(), PresentationCarteTournois.classeMotif(c));
+        l.setWrapText(true);
+        return l;
+    }
+
+    /** Bouton « Voir plus » : ouvre la fiche, quel que soit le statut. */
+    private Button voirPlus(String id) {
+        Button b = Ui.boutonSecondaire(PresentationCarteTournois.VOIR_PLUS);
+        b.getStyleClass().add("bouton-voir-plus");
+        b.setOnAction(ev -> ouvrirFiche(id));
+        b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        return b;
+    }
+
+    /** Remplit la présentation agenda (un bloc par jour). */
+    private void remplirAgenda(List<CatalogueTournois.Entree> res) {
+        agenda.getChildren().clear();
+        List<PresentationCarteTournois.Jour> jours = PresentationCarteTournois.agenda(res, java.time.LocalDate.now());
+        if (jours.isEmpty()) {
+            agenda.getChildren().add(Ui.etatVideCompact(PresentationCarteTournois.AUCUN_RESULTAT));
+            return;
+        }
+        for (PresentationCarteTournois.Jour j : jours) {
+            Label titre = Ui.label(j.titre(), "agenda-jour-titre");
+            VBox bloc = new VBox(0);
+            bloc.getStyleClass().add("agenda-jour-liste");
+            boolean premiere = true;
+            for (PresentationCarteTournois.CarteTournoi c : j.tournois()) {
+                bloc.getChildren().add(ligneTournoi(c, premiere));
+                premiere = false;
+            }
+            VBox jour = new VBox(8, titre, bloc);
+            jour.getStyleClass().add("agenda-jour");
+            if (j.aujourdhui()) {
+                jour.getStyleClass().add("agenda-jour-aujourdhui");
+            }
+            agenda.getChildren().add(jour);
+        }
+    }
+
+    /** Une ligne de tournoi de l'agenda : pastille, nom, niveau et lieu, places, motif, « Voir plus ». */
+    private VBox ligneTournoi(PresentationCarteTournois.CarteTournoi c, boolean premiere) {
+        HBox l = Ui.ligneElement(pastille(c.pastille()), c.nom(),
+                c.niveau() + " · " + c.dateLieu() + " · " + c.places(), voirPlus(c.id()));
+        if (premiere) {
+            l.getStyleClass().add("ligne-element-premiere");
+        }
+        VBox v = new VBox(4, l);
+        if (c.motif() != null) {
+            v.getChildren().add(motif(c));
+        } else if (c.remarque() != null) {
+            v.getChildren().add(Ui.aide(c.remarque()));
+        }
+        v.getStyleClass().add("agenda-ligne-tournoi");
+        if (c.grise()) {
+            v.getStyleClass().add("tournoi-grise");
+        }
+        return v;
     }
 
     /** Zones proposées : toute la France, mon département, ma ligue, puis chaque ligue. */
@@ -281,18 +418,17 @@ public final class PageTournois {
         List<CatalogueTournois.Entree> res = CatalogueTournois.filtrer(catalogue, criteres);
         CatalogueTournois.Entree avant = liste.getSelectionModel().getSelectedItem();
         liste.getItems().setAll(res);
-        long grises = res.stream().filter(e -> e.acces().estRefuse()).count();
-        compteur.setText(res.size() + (res.size() > 1 ? " tournois" : " tournoi")
-                + (grises > 0 ? " · " + grises + " non accessible" + (grises > 1 ? "s" : "") : ""));
+        compteur.setText(PresentationCarteTournois.compteur(res));
         carte.afficher(res, ajusterCarte);
         ajusterCarte = false;
+        remplirAgenda(res);
         if (avant != null) {
             res.stream().filter(e -> e.id().equals(avant.id())).findFirst()
                     .ifPresent(e -> liste.getSelectionModel().select(e));
         }
     }
 
-    /** Une ligne de la liste : nom, date et lieu, niveau, places, distance ; grisée avec motif si non accessible. */
+    /** Une carte de tournoi : nom et pastille de statut, niveau, date et lieu, places, motif, « Voir plus ». */
     private final class CelluleTournoi extends ListCell<CatalogueTournois.Entree> {
         CelluleTournoi() {
             // Largeur = celle de la liste (pas de défilement horizontal) ; le texte se replie.
@@ -308,39 +444,27 @@ public final class PageTournois {
                 setGraphic(null);
                 return;
             }
-            Label nom = Ui.gras(e.tournoi().getNom());
+            PresentationCarteTournois.CarteTournoi c = PresentationCarteTournois.carte(e);
+            Label nom = Ui.gras(c.nom());
             nom.setWrapText(true);
-            Label niveau = Ui.badge(e.tournoi().getNiveau() == null ? "?" : e.tournoi().getNiveau().getLibelle());
-            HBox l1 = Ui.ligne(8, nom, Ui.espace(), niveau);
-            if (e.moment() == CalendrierTournoi.Moment.EN_COURS) {
-                Label enCours = Ui.badge("En cours");
-                enCours.getStyleClass().add("badge-en-cours");
-                l1.getChildren().add(2, enCours);
-            }
-            String date = BlocsInscriptions.periode(e.tournoi());
-            String lieu = e.tournoi().getAdresse() == null ? "" : e.tournoi().getAdresse().getVille()
-                    + (e.departement() == null ? "" : " (" + e.departement().code() + ")");
-            Label l2 = Ui.discret(date + " · " + lieu);
-            String placesTxt = e.placesRestantes() < 0 ? "Places illimitées"
-                    : e.placesRestantes() == 0 ? "Complet (liste d'attente)"
-                    : e.placesRestantes() + " places restantes sur " + e.placesTotales();
-            String dist = e.distanceKm() == null ? "" : " · ≈ " + Math.round(e.distanceKm()) + " km";
-            Label l3 = Ui.discret(placesTxt + dist + (e.tableauAMesPoints() ? "" : " · aucun tableau à vos points"));
-            VBox v = new VBox(3, l1, l2, l3);
-            if (e.acces().estRefuse()) {
-                getStyleClass().add("tournoi-grise");
-                Label motif = new Label(e.acces().motif());
-                motif.setWrapText(true);
-                motif.getStyleClass().add("motif-refus");
-                v.getChildren().add(motif);
-            } else if (e.acces().remarque() != null) {
-                v.getChildren().add(Ui.aide(e.acces().remarque()));
-            }
-            l2.setWrapText(true);
-            l3.setWrapText(true);
             nom.setMinWidth(0);
             HBox.setHgrow(nom, Priority.SOMETIMES);
-            niveau.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            HBox l1 = Ui.ligne(8, nom, Ui.espace(), pastille(c.pastille()));
+            Label l2 = Ui.discret(c.niveau() + " · " + c.dateLieu());
+            l2.setWrapText(true);
+            Label l3 = Ui.discret(c.places());
+            l3.setWrapText(true);
+            VBox v = new VBox(3, l1, l2, l3);
+            if (c.motif() != null) {
+                v.getChildren().add(motif(c));
+            } else if (c.remarque() != null) {
+                v.getChildren().add(Ui.aide(c.remarque()));
+            }
+            if (c.grise()) {
+                getStyleClass().add("tournoi-grise");
+            }
+            HBox bas = Ui.ligne(8, Ui.espace(), voirPlus(c.id()));
+            v.getChildren().add(bas);
             v.setMaxWidth(Double.MAX_VALUE);
             v.setMinWidth(0);
             setGraphic(v);
@@ -359,6 +483,15 @@ public final class PageTournois {
             afficherAccueil();
         }, this::ouvrirFiche);
         racine.setCenter(fiche.build());
+    }
+
+    /** « Mes tournois », tournoi passé : poules, scores et tableau final en lecture seule (B031). */
+    private void revoirTournoi(String id) {
+        Path f = Path.of(id);
+        racine.setCenter(new EcranSuiviTournoi(contexte, f, () -> {
+            recharger();
+            afficherAccueil();
+        }, () -> ouvrirFiche(id)).enArchive().build(contexte.chargerTournoi(f)));
     }
 
     /** Pour le harnais de captures : ouvre la fiche d'un tournoi par son nom. */

@@ -135,8 +135,9 @@ final class CarteTournois {
                     .append(",lon:").append(String.format(Locale.ROOT, "%.6f", e.position().longitude()))
                     .append(",nom:").append(js(e.tournoi().getNom()))
                     .append(",sous:").append(js(sousTitre(e)))
-                    .append(",acces:").append(!e.acces().estRefuse())
-                    .append(",motif:").append(e.acces().estRefuse() ? js(e.acces().motif()) : "null")
+                    // Marqueur grisé pour les deux statuts bloquants (non accessible, complet ou hors niveau).
+                    .append(",acces:").append(!e.statut().estBloquant())
+                    .append(",motif:").append(e.statut().estBloquant() ? js(e.statut().motif()) : "null")
                     .append(",approx:").append(e.positionApprochee())
                     .append(",enCours:").append(e.moment() == CalendrierTournoi.Moment.EN_COURS)
                     .append('}');

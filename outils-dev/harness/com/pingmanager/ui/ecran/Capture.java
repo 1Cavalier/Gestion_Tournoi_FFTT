@@ -44,6 +44,8 @@ public class Capture extends Application {
     static boolean jourj;
     static boolean profil;
     static boolean b035;
+    static boolean prepa;
+    static boolean mesTournois;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -61,6 +63,8 @@ public class Capture extends Application {
         jourj = java.util.Arrays.asList(a).contains("jourj");
         profil = java.util.Arrays.asList(a).contains("profil");
         b035 = java.util.Arrays.asList(a).contains("b035");
+        prepa = java.util.Arrays.asList(a).contains("prepa");
+        mesTournois = java.util.Arrays.asList(a).contains("mestournois");
         launch(a);
     }
 
@@ -109,6 +113,13 @@ public class Capture extends Application {
         stage.show();
 
         Coquille[] coq = new Coquille[1];
+        if (mesTournois) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesMesTournois(coq);
+            lancer(0);
+            return;
+        }
         if (jourj) {
             stage.setWidth(1440);
             stage.setHeight(900);
@@ -120,6 +131,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesB035(coq);
+            lancer(0);
+            return;
+        }
+        if (prepa) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesPrepa(coq);
             lancer(0);
             return;
         }
@@ -478,6 +496,37 @@ public class Capture extends Application {
         }, "profil-joueur-confirme");
     }
 
+    /** B012 : écrans de préparation du tournoi à 1440 px (vue d'ensemble, Général, Tableaux, Sportif, Complémentaire). */
+    void etapesPrepa(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("gestion");
+            cliquer("Compléter");
+        }, "p01-vue-ensemble");
+        etape(() -> defiler(1.0), "p01b-vue-ensemble-bas");
+        etape(() -> { defiler(0); cliquer("Modifier"); }, "p02-general");
+        etape(() -> defiler(0.5), "p02b-general-milieu");
+        etape(() -> {
+            List<TextField> champs = new ArrayList<>();
+            collect(scene.getRoot(), TextField.class, champs::add);
+            champs.stream().filter(f -> "jj/mm/aaaa".equals(f.getPromptText())).findFirst().orElseThrow().setText("13-03-27");
+            cliquer("Enregistrer");
+            defiler(1.0);
+        }, "p02c-general-erreur");
+        etape(() -> { coq[0].afficher("gestion"); cliquer("Compléter"); cliquer("Gérer les tableaux"); }, "p03-tableaux");
+        etape(() -> defiler(1.0), "p03b-tableaux-bas");
+        etape(() -> cliquer("Ajouter un tableau"), "p04-nouveau-tableau");
+        etape(() -> defiler(0.5), "p04b-nouveau-tableau-milieu");
+        etape(() -> cliquer("Valider le tableau"), "p04c-erreur-tableau");
+        etape(() -> { cliquer("Annuler"); cliquer("← Vue d'ensemble"); }, null);
+        etape(() -> cliquer("Gérer"), "p05-sportif");
+        etape(() -> defiler(0.5), "p05b-sportif-milieu");
+        etape(() -> cliquer("← Vue d'ensemble"), null);
+        etape(() -> cliquerN("Gérer", 1), "p06-complementaire");
+        etape(() -> defiler(1.0), "p06b-complementaire-bas");
+    }
+
     /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
     void etapesV2(Coquille[] coq) {
         etape(() -> scene.setRoot(new EcranConnexion(ctx, () -> { }).build()), "connexion");
@@ -502,6 +551,7 @@ public class Capture extends Application {
         }, "jour-j");
         etape(() -> coq[0].afficher("stats"), "page-a-venir");
         etape(() -> coq[0].afficher("tournois"), "tournois-carte", 2500);
+        etape(() -> PageTournois.derniere.choisirVue(PresentationCarteTournois.Vue.AGENDA), "tournois-agenda");
     }
 
     /**
@@ -647,6 +697,44 @@ public class Capture extends Application {
     }
 
     /** B027 : fiche du tournoi du jour J en mode suivi (lecture seule), navigation entre tableaux. */
+    /** B031 : Mes tournois (en cours, inscriptions et agenda, passés), puis un tournoi passé revu. */
+    void etapesMesTournois(Coquille[] coq) {
+        // Inscription préalable (Créteil, tableau B) pour montrer une carte « Mes inscriptions ».
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("tournois");
+            PageTournois.derniere.ouvrirFicheParNom("Tournoi régional de Créteil");
+        }, null, 800);
+        etape(() -> { defiler(1.0); cliquer("S'inscrire"); }, null);
+        etape(() -> { cases().get(1).fire(); cliquer("Continuer"); }, null);
+        etape(() -> {
+            List<javafx.scene.control.CheckBox> c = cases();
+            c.get(c.size() - 1).fire();
+            cliquer("Confirmer l'inscription");
+        }, null);
+        etape(() -> cliquerSiPresent("Continuer"), null);
+        etape(() -> {
+            coq[0].afficher("tournois");
+            cliquer("Mes tournois");
+        }, "m01-mes-tournois", 1000);
+        etape(() -> {
+            List<TextField> champs = new ArrayList<>();
+            collect(scene.getRoot(), TextField.class, champs::add);
+            champs.stream().filter(f -> f.getPromptText() != null && f.getPromptText().startsWith("Titre"))
+                    .findFirst().ifPresent(f -> f.setText("Stage de Toussaint"));
+            champs.stream().filter(f -> f.getPromptText() != null && f.getPromptText().startsWith("Heure"))
+                    .findFirst().ifPresent(f -> f.setText("9h30"));
+            List<javafx.scene.control.DatePicker> dates = new ArrayList<>();
+            collect(scene.getRoot(), javafx.scene.control.DatePicker.class, dates::add);
+            dates.forEach(d -> d.setValue(LocalDate.now().plusDays(10)));
+            cliquer("Ajouter la date");
+        }, "m02-agenda-date-ajoutee");
+        etape(() -> defiler(1.0), "m03-mes-tournois-bas");
+        etape(() -> { defiler(0.0); cliquerSiPresent("Me désinscrire"); defiler(0.3); }, "m04-desinscription");
+        etape(() -> cliquerSiPresent("Revoir poule et tableau"), "m05-tournoi-passe", 1000);
+    }
+
     void etapesSuivi(Coquille[] coq) {
         etape(() -> {
             coq[0] = new Coquille(ctx, () -> { });
@@ -876,7 +964,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || b035) ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || b035 || prepa) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

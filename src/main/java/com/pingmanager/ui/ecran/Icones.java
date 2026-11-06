@@ -40,4 +40,16 @@ final class Icones {
     /** Remplissage et finances : pile de pièces et jauge montante. */
     static final String FINANCES = "M1.5 11.5 L8.5 11.5 L8.5 14 L1.5 14 Z M2.5 8 L9.5 8 L9.5 10.5 L2.5 10.5 Z "
             + "M1.5 4.5 L8.5 4.5 L8.5 7 L1.5 7 Z M11 9 L13 9 L13 14 L11 14 Z M11 2 L13 2 L13 7.5 L11 7.5 Z";
+
+    /** Fiche (section Général) : feuille et trois lignes de texte. */
+    static final String FICHE = "M3 1 L13 1 L13 15 L3 15 Z M4.5 2.5 L4.5 13.5 L11.5 13.5 L11.5 2.5 Z "
+            + "M6 5 L10 5 L10 6.2 L6 6.2 Z M6 7.7 L10 7.7 L10 8.9 L6 8.9 Z M6 10.4 L8.8 10.4 L8.8 11.6 L6 11.6 Z";
+    /** Grille de quatre cases (section Tableaux et inscriptions). */
+    static final String TABLEAUX = "M1.5 1.5 L7 1.5 L7 7 L1.5 7 Z M9 1.5 L14.5 1.5 L14.5 7 L9 7 Z "
+            + "M1.5 9 L7 9 L7 14.5 L1.5 14.5 Z M9 9 L14.5 9 L14.5 14.5 L9 14.5 Z";
+    /** Raquette : palette ronde et manche vers le bas (section Informations sportives). */
+    static final String RAQUETTE = "M8 0.5 A5.25 5.25 0 1 1 7.99 0.5 Z M6.75 11.4 L9.25 11.4 L9.25 15.5 L6.75 15.5 Z";
+    /** Document au coin replié (section Complémentaire). */
+    static final String DOCUMENT = "M3 1 L10 1 L13.5 4.5 L13.5 15 L3 15 Z M4.5 2.5 L4.5 13.5 L12 13.5 L12 5.5 "
+            + "L9 5.5 L9 2.5 Z";
 }

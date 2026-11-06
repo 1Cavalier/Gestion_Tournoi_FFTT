@@ -426,7 +426,10 @@ final class FormulairesSection {
         if (motifVerrou != null) {
             enTete.getChildren().add(Ui.bandeauVerrou(motifVerrou));
         }
-        return Ui.page(720, enTete, Ui.legende(dependances), Ui.carteNue(corps), erreur,
+        // Chaque groupe de champs devient sa propre carte (règles B012 de theme.css).
+        Node cartes = Ui.carteNue(corps);
+        cartes.getStyleClass().add("formulaire-cartes");
+        return Ui.page(760, enTete, Ui.legende(dependances), cartes, erreur,
                 Ui.actions(enregistrer, annuler));
     }
 
