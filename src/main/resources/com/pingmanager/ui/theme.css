@@ -2929,6 +2929,11 @@
    Mon profil (B029) : bloc personnel, bloc Club séparé, alerte de liaison
    ===================================================================== */
 
+/* Classes repères sans règle propre, posées par PageCompte pour la mise en page
+   et les tests : profil-bloc-personnel (les deux cartes du haut) et
+   profil-tableau-membres (tableau des membres du club, mis en forme par
+   .profil-tableau-cellule). */
+
 /* Bloc « Club » : bandeau teinté, bien distinct du bloc personnel. */
 .profil-bloc-club {
     -fx-background-color: -bordure, -primaire-doux;
