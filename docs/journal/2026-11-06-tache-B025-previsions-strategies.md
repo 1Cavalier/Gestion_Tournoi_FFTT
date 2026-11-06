@@ -3,7 +3,7 @@
 - Branche : `tache/B025-previsions-strategies`
 - Agent : `developpeur` (premier maillon de la chaîne)
 - Pull Request : (complété à l'étape 5)
-- Statut : en attente des agents suivants puis de l'intégrateur
+- Statut : en attente de l'intégrateur (développement, vérification, relecture et documentation faits ; validation visuelle de Quentin à faire)
 
 ## Pour Quentin
 
@@ -95,5 +95,11 @@ les matchs pour chaque comparaison du tri (de l'ordre de N² log N par vague).
 
 ## Chiffres
 
-- Tests : 940 → 969 (mesurés par `mvn -B test`)
+- Tests : 940 → 983 (mesurés par `mvn -B test`, 0 échec ; 969 après le `developpeur`, +14 limites du `verificateur-modele`)
 - Version de la démo : inchangée
+
+## Relecture de la chaîne (6 novembre 2026)
+
+- `verificateur-modele` : 0 défaut bloquant ; 14 tests aux limites ajoutés.
+- `relecteur-code` : 0 point bloquant. Non bloquant, à reprendre au prochain passage sur l'écran : `javafx.geometry.Pos` écrit en nom complet dans `EcranCompletion.carteStrategie` (import à la place).
+- Non vérifié visuellement (session cloud) : écran « Prévisions et stratégie », thème clair et sombre.
