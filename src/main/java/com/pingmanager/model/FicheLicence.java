@@ -55,24 +55,24 @@ public final class FicheLicence {
     }
 
     private FicheLicence(Builder b) {
-        this.numeroLicence = exigerNonVide(b.numeroLicence, "numeroLicence");
-        this.nom = exigerNonVide(b.nom, "nom");
-        this.prenom = exigerNonVide(b.prenom, "prenom");
+        this.numeroLicence = Textes.obligatoire(b.numeroLicence, "numeroLicence");
+        this.nom = Textes.obligatoire(b.nom, "nom");
+        this.prenom = Textes.obligatoire(b.prenom, "prenom");
         this.sexe = b.sexe;
-        this.numeroClub = normaliser(b.numeroClub);
-        this.nomClub = normaliser(b.nomClub);
+        this.numeroClub = Textes.optionnel(b.numeroClub);
+        this.nomClub = Textes.optionnel(b.nomClub);
         this.points = b.points;
         this.pointsMensuels = b.pointsMensuels;
-        this.classement = normaliser(b.classement);
-        this.categorie = normaliser(b.categorie);
+        this.classement = Textes.optionnel(b.classement);
+        this.categorie = Textes.optionnel(b.categorie);
         this.dateNaissance = b.dateNaissance;
-        this.nationalite = normaliser(b.nationalite);
-        this.typeLicence = normaliser(b.typeLicence);
-        this.saison = normaliser(b.saison);
-        this.statut = normaliser(b.statut);
-        this.arbitre = normaliser(b.arbitre);
-        this.jugeArbitre = normaliser(b.jugeArbitre);
-        this.technique = normaliser(b.technique);
+        this.nationalite = Textes.optionnel(b.nationalite);
+        this.typeLicence = Textes.optionnel(b.typeLicence);
+        this.saison = Textes.optionnel(b.saison);
+        this.statut = Textes.optionnel(b.statut);
+        this.arbitre = Textes.optionnel(b.arbitre);
+        this.jugeArbitre = Textes.optionnel(b.jugeArbitre);
+        this.technique = Textes.optionnel(b.technique);
     }
 
     public String getNumeroLicence() {
@@ -279,22 +279,5 @@ public final class FicheLicence {
         public FicheLicence build() {
             return new FicheLicence(this);
         }
-    }
-
-    // ------------------------------------------------------------------
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
-    }
-
-    private static String normaliser(String valeur) {
-        if (valeur == null) {
-            return null;
-        }
-        String v = valeur.trim();
-        return v.isEmpty() ? null : v;
     }
 }

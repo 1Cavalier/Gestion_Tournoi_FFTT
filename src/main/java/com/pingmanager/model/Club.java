@@ -50,11 +50,11 @@ public final class Club {
      */
     public Club(String numero, String nom, String departement, String ville,
                 String emailOfficiel) {
-        this.numero = exigerNonVide(numero, "numero");
-        this.nom = exigerNonVide(nom, "nom");
-        this.departement = exigerNonVide(departement, "departement");
-        this.ville = exigerNonVide(ville, "ville");
-        this.emailOfficiel = exigerNonVide(emailOfficiel, "emailOfficiel");
+        this.numero = Textes.obligatoire(numero, "numero");
+        this.nom = Textes.obligatoire(nom, "nom");
+        this.departement = Textes.obligatoire(departement, "departement");
+        this.ville = Textes.obligatoire(ville, "ville");
+        this.emailOfficiel = Textes.obligatoire(emailOfficiel, "emailOfficiel");
     }
 
     public String getNumero() {
@@ -66,7 +66,7 @@ public final class Club {
     }
 
     public void setNom(String nom) {
-        this.nom = exigerNonVide(nom, "nom");
+        this.nom = Textes.obligatoire(nom, "nom");
     }
 
     public String getDepartement() {
@@ -82,7 +82,7 @@ public final class Club {
     }
 
     public void setAdresse1(String adresse1) {
-        this.adresse1 = normaliserOptionnel(adresse1);
+        this.adresse1 = Textes.optionnel(adresse1);
     }
 
     public String getCodePostal() {
@@ -90,7 +90,7 @@ public final class Club {
     }
 
     public void setCodePostal(String codePostal) {
-        this.codePostal = normaliserOptionnel(codePostal);
+        this.codePostal = Textes.optionnel(codePostal);
     }
 
     public String getAdresse2() {
@@ -98,7 +98,7 @@ public final class Club {
     }
 
     public void setAdresse2(String adresse2) {
-        this.adresse2 = normaliserOptionnel(adresse2);
+        this.adresse2 = Textes.optionnel(adresse2);
     }
 
     public String getEmailOfficiel() {
@@ -110,7 +110,7 @@ public final class Club {
     }
 
     public void setResponsableNom(String responsableNom) {
-        this.responsableNom = normaliserOptionnel(responsableNom);
+        this.responsableNom = Textes.optionnel(responsableNom);
     }
 
     public String getResponsablePrenom() {
@@ -118,7 +118,7 @@ public final class Club {
     }
 
     public void setResponsablePrenom(String responsablePrenom) {
-        this.responsablePrenom = normaliserOptionnel(responsablePrenom);
+        this.responsablePrenom = Textes.optionnel(responsablePrenom);
     }
 
     // -------------------------------------------------------------------------
@@ -144,24 +144,5 @@ public final class Club {
     @Override
     public String toString() {
         return nom + " (" + numero + ", " + ville + ")";
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
-    }
-
-    private static String normaliserOptionnel(String valeur) {
-        if (valeur == null) {
-            return null;
-        }
-        String nettoye = valeur.trim();
-        return nettoye.isEmpty() ? null : nettoye;
     }
 }

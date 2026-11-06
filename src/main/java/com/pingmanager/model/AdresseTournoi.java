@@ -40,12 +40,12 @@ public final class AdresseTournoi {
             this.codePostal = exigerNonVide(codePostal, "codePostal");
             this.ville = exigerNonVide(ville, "ville");
         } else {
-            this.voie = normaliser(voie);
-            this.codePostal = normaliser(codePostal);
-            this.ville = normaliser(ville);
+            this.voie = Textes.optionnel(voie);
+            this.codePostal = Textes.optionnel(codePostal);
+            this.ville = Textes.optionnel(ville);
         }
-        this.residenceBatiment = normaliser(residenceBatiment);
-        this.lieuDit = normaliser(lieuDit);
+        this.residenceBatiment = Textes.optionnel(residenceBatiment);
+        this.lieuDit = Textes.optionnel(lieuDit);
     }
 
     /**
@@ -151,14 +151,6 @@ public final class AdresseTournoi {
             throw new IllegalArgumentException("Le champ d'adresse « " + champ + " » est obligatoire.");
         }
         return valeur.trim();
-    }
-
-    private static String normaliser(String v) {
-        if (v == null) {
-            return null;
-        }
-        String t = v.trim();
-        return t.isEmpty() ? null : t;
     }
 
     private static boolean estVide(String s) {

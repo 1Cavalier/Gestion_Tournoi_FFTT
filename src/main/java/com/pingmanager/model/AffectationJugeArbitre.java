@@ -45,10 +45,10 @@ public final class AffectationJugeArbitre {
                                   String telephone, RoleJugeArbitre role) {
         this.nom = exigerNonVide(nom, "nom");
         this.prenom = exigerNonVide(prenom, "prenom");
-        this.email = normaliserOptionnel(email);
+        this.email = Textes.optionnel(email);
         this.numeroLicence = exigerNonVide(numeroLicence, "numeroLicence");
         this.grade = Objects.requireNonNull(grade, "grade");
-        this.telephone = normaliserOptionnel(telephone);
+        this.telephone = Textes.optionnel(telephone);
         this.role = role == null ? RoleJugeArbitre.PRINCIPAL : role;
     }
 
@@ -120,13 +120,5 @@ public final class AffectationJugeArbitre {
             throw new IllegalArgumentException("Le champ « " + champ + " » du juge-arbitre est obligatoire.");
         }
         return valeur.trim();
-    }
-
-    private static String normaliserOptionnel(String valeur) {
-        if (valeur == null) {
-            return null;
-        }
-        String t = valeur.trim();
-        return t.isEmpty() ? null : t;
     }
 }
