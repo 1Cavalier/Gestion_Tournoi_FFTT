@@ -248,7 +248,20 @@ class PresentationPreparationTournoiTest {
         assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
         PresentationPreparationTournoi pr = p(t);
         assertTrue(pr.afficheRemplissageEtFinances());
-        assertEquals(List.of("B024", "B025"),
+        // B025 livré : la carte « Stratégie d'ordonnancement » remplace aussi sa carte « bientôt ».
+        assertEquals(List.of("B024"),
                 pr.cartesBientot().stream().map(PresentationPreparationTournoi.CarteAVenir::tache).toList());
+    }
+
+    @Test
+    void strategie_d_ordonnancement_remplace_sa_carte_bientot_apres_acceptation() {
+        Tournoi t = enDemande();
+        assertFalse(p(t).afficheStrategie());
+        assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
+        PresentationPreparationTournoi pr = p(t);
+        assertTrue(pr.afficheStrategie());
+        assertTrue(pr.cartesBientot().stream().noneMatch(c -> c.tache().equals("B025")));
+        assertTrue(pr.cartesAVenir().stream().anyMatch(c -> c.tache().equals("B025")),
+                "la liste des parties de la deuxième version reste complète");
     }
 }

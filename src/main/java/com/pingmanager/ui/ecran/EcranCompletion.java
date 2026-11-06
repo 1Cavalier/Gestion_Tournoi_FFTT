@@ -110,6 +110,9 @@ final class EcranCompletion {
         titreDossier.getStyleClass().add("titre-dossier");
         if (presentation.deuxiemeVersion()) {
             // Deuxième version (B035) : les nouvelles parties en haut, le dossier et le règlement en bas.
+            if (presentation.afficheStrategie()) {
+                contenu.getChildren().add(carteStrategie());
+            }
             if (presentation.afficheRemplissageEtFinances()) {
                 contenu.getChildren().add(carteRemplissageFinances());
             }
@@ -269,6 +272,24 @@ final class EcranCompletion {
         }
         VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
         return bloc;
+    }
+
+    /**
+     * Carte « Stratégie d'ordonnancement » (B025) : stratégie appliquée et son
+     * explication, accès à l'écran « Prévisions et stratégie ».
+     */
+    private Node carteStrategie() {
+        HBox entete = Ui.ligne(10, Ui.iconeTuile(Icones.STRATEGIE, false),
+                Ui.titreCarte(PresentationPrevisions.TITRE_CARTE));
+        entete.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        Label phrase = Ui.gras(PresentationPrevisions.phraseStrategie(tournoi));
+        phrase.setWrapText(true);
+        Label explication = Ui.discret(tournoi.getStrategieOrdonnancement().getExplication());
+        explication.setWrapText(true);
+        Button ouvrir = Ui.boutonSecondaire("Choisir la stratégie et prévoir la journée");
+        ouvrir.setOnAction(e -> racine.setCenter(
+                new EcranPrevisions(contexte, fichier, this::afficherApercu).build()));
+        return Ui.carte(entete, phrase, explication, Ui.actions(ouvrir));
     }
 
     /**

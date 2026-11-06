@@ -3582,3 +3582,41 @@
 .finances-dotation {
     -fx-font-size: 12px;
 }
+
+/* === Prévisions et stratégie d'ordonnancement (B025) === */
+
+.choix-strategie {
+    -fx-padding: 12 14 12 14;
+    -fx-background-color: -surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+
+.choix-strategie:hover {
+    -fx-background-color: -surface-2;
+}
+
+.choix-strategie.choix-strategie-active {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}
+
+.choix-strategie-titre {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.prevision-grille {
+    -fx-padding: 8 0 0 0;
+}
+
+.prevision-meilleure {
+    -fx-text-fill: -primaire;
+}
+
+.tuile-cle-valeur.prevision-alerte {
+    -fx-text-fill: -erreur;
+}
