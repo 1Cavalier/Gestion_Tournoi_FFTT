@@ -112,7 +112,7 @@ public final class PageTournois {
         BorderPane corps = new BorderPane();
         corps.setTop(entete);
         if (mesTournois) {
-            corps.setCenter(new MesTournois(contexte, tous, this::ouvrirFiche).build());
+            corps.setCenter(new MesTournois(contexte, tous, this::ouvrirFiche, this::revoirTournoi).build());
         } else {
             if (explorateur == null) {
                 explorateur = construireExplorateur();
@@ -483,6 +483,15 @@ public final class PageTournois {
             afficherAccueil();
         }, this::ouvrirFiche);
         racine.setCenter(fiche.build());
+    }
+
+    /** « Mes tournois », tournoi passé : poules, scores et tableau final en lecture seule (B031). */
+    private void revoirTournoi(String id) {
+        Path f = Path.of(id);
+        racine.setCenter(new EcranSuiviTournoi(contexte, f, () -> {
+            recharger();
+            afficherAccueil();
+        }, () -> ouvrirFiche(id)).enArchive().build(contexte.chargerTournoi(f)));
     }
 
     /** Pour le harnais de captures : ouvre la fiche d'un tournoi par son nom. */

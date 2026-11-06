@@ -43,6 +43,19 @@ final class PresentationSuiviTournoi {
         return SuiviTournoi.estEnSuivi(tournoi);
     }
 
+    /** Badge d'en-tête : « En cours », ou « Terminé » pour un tournoi passé revu depuis « Mes tournois ». */
+    static String texteBadge(boolean archive) {
+        return archive ? "Terminé" : "En cours";
+    }
+
+    static String classeBadge(boolean archive) {
+        return archive ? "badge-termine" : "badge-en-cours";
+    }
+
+    static String textePastille(boolean archive) {
+        return archive ? "Résultats · lecture seule" : "Suivi en direct · lecture seule";
+    }
+
     // ------------------------------------------------------------------
     // Liste des tableaux
     // ------------------------------------------------------------------

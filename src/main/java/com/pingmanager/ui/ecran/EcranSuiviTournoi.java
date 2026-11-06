@@ -60,6 +60,8 @@ final class EcranSuiviTournoi {
     private String messageErreur;
     private LocalTime derniereLecture = LocalTime.now();
     private ScrollPane defilementPage;
+    /** Tournoi passé revu depuis « Mes tournois » (B031) : pas de relecture automatique. */
+    private boolean archive;
 
     /**
      * @param onRetour retour à la liste des tournois
@@ -75,12 +77,19 @@ final class EcranSuiviTournoi {
         minuterie.setCycleCount(Animation.INDEFINITE);
         // La relecture automatique ne tourne que tant que l'écran est affiché.
         racine.sceneProperty().addListener((o, avant, apres) -> {
-            if (apres == null) {
+            if (apres == null || archive) {
                 minuterie.stop();
             } else {
                 minuterie.play();
             }
         });
+    }
+
+    /** Mode « tournoi passé » : résultats en lecture seule, sans relecture automatique. */
+    EcranSuiviTournoi enArchive() {
+        archive = true;
+        minuterie.stop();
+        return this;
     }
 
     /** Construit l'écran à partir du tournoi déjà chargé. */
@@ -128,7 +137,7 @@ final class EcranSuiviTournoi {
             Ui.erreur(message, messageErreur);
             page.getChildren().add(message);
         }
-        Node moi = carteProchainePartie(licence);
+        Node moi = archive ? null : carteProchainePartie(licence);
         if (moi != null) {
             page.getChildren().add(moi);
         }
@@ -147,16 +156,20 @@ final class EcranSuiviTournoi {
         retour.setOnAction(e -> onRetour.run());
         Label titre = Ui.titre(tournoi.getNom());
         titre.setWrapText(true);
-        Label enCours = Ui.badge("En cours");
-        enCours.getStyleClass().add("badge-en-cours");
-        HBox badges = Ui.ligne(8, enCours, Ui.pastille("Suivi en direct · lecture seule", Ui.ETAT_RECOMMANDE));
+        Label enCours = Ui.badge(PresentationSuiviTournoi.texteBadge(archive));
+        enCours.getStyleClass().add(PresentationSuiviTournoi.classeBadge(archive));
+        HBox badges = Ui.ligne(8, enCours, Ui.pastille(PresentationSuiviTournoi.textePastille(archive),
+                Ui.ETAT_RECOMMANDE));
+        Button fiche = Ui.boutonLien("Informations du tournoi");
+        fiche.setOnAction(e -> onFiche.run());
+        if (archive) {
+            return Ui.enteteAvecActions(new VBox(6, retour, titre, badges), fiche);
+        }
         Label miseAJour = Ui.discret(PresentationSuiviTournoi.texteMiseAJour(derniereLecture));
         VBox titres = new VBox(6, retour, titre, badges, miseAJour);
 
         Button actualiser = Ui.boutonSecondaire("Actualiser");
         actualiser.setOnAction(e -> actualiser());
-        Button fiche = Ui.boutonLien("Informations du tournoi");
-        fiche.setOnAction(e -> onFiche.run());
         return Ui.enteteAvecActions(titres, fiche, actualiser);
     }
 
