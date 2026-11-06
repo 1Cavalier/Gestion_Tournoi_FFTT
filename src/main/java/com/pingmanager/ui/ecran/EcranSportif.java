@@ -108,7 +108,7 @@ final class EcranSportif {
         Button valider = Ui.boutonPrimaire("Enregistrer le matériel et l'aire de jeu");
         valider.setOnAction(e -> enregistrerMateriel(message));
 
-        VBox page = Ui.page(860, enTete,
+        VBox page = Ui.page(900, enTete,
                 Ui.legende(EnumSet.of(Niveau.OBLIGATOIRE_HOMOLOGATION, Niveau.OBLIGATOIRE_PUBLICATION,
                         Niveau.RECOMMANDE, Niveau.OPTIONNEL)),
                 carteJugesArbitres(), carteArbitres(), carteMateriel(), carteRappel(),
@@ -346,6 +346,7 @@ final class EcranSportif {
             g.getColumnConstraints().add(cc);
             Label l = Ui.enteteColonne(colonnes[c]);
             l.getStyleClass().add("cellule-entete");
+            l.setMaxWidth(Double.MAX_VALUE);   // bande d'en-tête continue
             g.add(l, c, 0);
         }
         int r = 1;
@@ -757,7 +758,7 @@ final class EcranSportif {
     private void signaler(String texte) {
         Label l = new Label(texte);
         l.setWrapText(true);
-        l.getStyleClass().add("rappel-attention");
+        l.getStyleClass().addAll("rappel-attention", "rappel-doux");
         if (racine.getCenter() instanceof javafx.scene.control.ScrollPane sp
                 && sp.getContent() instanceof VBox page) {
             page.getChildren().add(1, l);

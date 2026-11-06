@@ -144,7 +144,7 @@ public final class Coquille {
         general.add(new Entree("accueil", "Accueil", Icones.ACCUEIL,
                 () -> new PageAccueil(contexte, this::afficher).build()));
         general.add(new Entree("profil", "Mon profil", Icones.PROFIL,
-                () -> new PageCompte(contexte, this::rafraichirNavigation).build()));
+                () -> new PageCompte(contexte, this::rafraichirNavigation, this::afficher).build()));
         general.add(new Entree("tournois", "Tournois", Icones.TOURNOIS,
                 () -> new PageTournois(contexte).build()));
         general.add(new Entree("agenda", "Agenda", Icones.AGENDA,

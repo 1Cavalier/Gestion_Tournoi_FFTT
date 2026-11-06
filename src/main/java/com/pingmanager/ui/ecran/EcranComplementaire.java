@@ -129,7 +129,7 @@ final class EcranComplementaire {
             }
         });
 
-        VBox page = Ui.page(820, enTete,
+        VBox page = Ui.page(900, enTete,
                 Ui.legende(EnumSet.of(Niveau.OBLIGATOIRE_PUBLICATION, Niveau.RECOMMANDE, Niveau.OPTIONNEL)),
                 reglementOuLien(message), carteImage(), carteConditions(), carteSite(), cartePaiement(),
                 message, Ui.actions(valider));
@@ -228,6 +228,7 @@ final class EcranComplementaire {
         });
 
         etatReglement.setWrapText(true);
+        menuArticles.getStyleClass().add("menu-ajout");
         VBox blocGenere = new VBox(12,
                 etatReglement,
                 Ui.note("Le texte reprend automatiquement les sections Général, Tableaux et Informations sportives "
@@ -418,7 +419,7 @@ final class EcranComplementaire {
         if (!tournoi.reglementModifiable()) {
             return; // règlement figé : pas de carte d'édition
         }
-        etatReglement.getStyleClass().removeAll("message-succes", "rappel-attention");
+        etatReglement.getStyleClass().removeAll("message-succes", "rappel-attention", "rappel-doux");
         OptionsReglement o;
         try {
             o = lireOptions();
@@ -433,7 +434,7 @@ final class EcranComplementaire {
         } else {
             etatReglement.setText(trous + (trous > 1 ? " passages restent" : " passage reste")
                     + " à compléter, surlignés en orange dans l'aperçu.");
-            etatReglement.getStyleClass().add("rappel-attention");
+            etatReglement.getStyleClass().addAll("rappel-attention", "rappel-doux");
         }
     }
 
@@ -617,7 +618,7 @@ final class EcranComplementaire {
         etapes.getStyleClass().addAll("encart-regles", "etapes");
 
         alerteLien.setWrapText(true);
-        alerteLien.getStyleClass().add("rappel-attention");
+        alerteLien.getStyleClass().addAll("rappel-attention", "rappel-doux");
         Runnable maj = () -> {
             String l = lienPaiement.getText() == null ? "" : lienPaiement.getText().trim();
             boolean alerte = !l.isEmpty() && !l.toLowerCase().contains("helloasso.");
