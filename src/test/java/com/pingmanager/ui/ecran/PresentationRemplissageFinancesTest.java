@@ -46,6 +46,8 @@ class PresentationRemplissageFinancesTest {
         assertEquals(Tonalite.NEGATIF, c.get(3).tonalite());
         assertEquals("finances-negatif", c.get(3).tonalite().classeCss());
         assertEquals("Aucune inscription pour l'instant.", pr.phraseRemplissage());
+        assertEquals(Formats.montant(8) + " l'inscription", pr.lignes().get(0).argent());
+        assertEquals("solde : encaissé − dotation", c.get(3).libelle());
     }
 
     @Test

@@ -17,6 +17,8 @@
 - Compte de démo : un tournoi homologué ou publié (Brunoy une fois homologué).
 - Chemin : Gestion des tournois → le tournoi → écran du tournoi (deuxième version).
 - Ce qu'il faut regarder (thème clair et sombre) : la carte « Remplissage et finances » en haut, ses quatre chiffres clés, la jauge, la liste des tableaux ; solde en rouge s'il est négatif.
+- Captures (harnais `b035`, tournoi homologué sans inscrit) : `docs/captures/B036/apres/` (clair et sombre). Non capturé : un tournoi avec inscrits, liste d'attente et paiements (à regarder à l'écran après publication).
+- Ordre retenu : la carte se place au-dessus des deux cartes « bientôt » restantes (Salle, Stratégie), en pleine largeur.
 
 ## Questions pour Quentin
 

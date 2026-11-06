@@ -3546,3 +3546,39 @@
     -fx-background-color: -neutre-doux;
     -fx-text-fill: -neutre-texte;
 }
+
+/* =====================================================================
+   B036 : carte « Remplissage et finances » (deuxième version du tournoi)
+   ===================================================================== */
+
+/* Solde : rouge s'il est négatif, vert s'il est positif (texte, pas d'aplat). */
+.tuile-cle-valeur.finances-negatif {
+    -fx-text-fill: -erreur;
+}
+
+.tuile-cle-valeur.finances-positif {
+    -fx-text-fill: -succes;
+}
+
+/* Lignes par tableau : filet entre deux lignes, pas au-dessus de la première. */
+.finances-lignes {
+    -fx-padding: 4 0 0 0;
+}
+
+.finances-ligne {
+    -fx-padding: 10 4 10 4;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.finances-ligne.finances-ligne-premiere {
+    -fx-border-color: transparent;
+}
+
+.finances-remplissage {
+    -fx-font-size: 13px;
+}
+
+.finances-dotation {
+    -fx-font-size: 12px;
+}

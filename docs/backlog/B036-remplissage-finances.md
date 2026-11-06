@@ -28,4 +28,8 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- `developpeur` (6/11) : cœur `ServiceRemplissageFinances` → `BilanRemplissageFinances` (tarif en ligne réutilisé, dotation fixe + % des inscriptions, solde, liste d'attente gratuite), présentation `PresentationRemplissageFinances` et carte dans `EcranCompletion` (deuxième version), CSS « B036 », captures `docs/captures/B036/apres/`. Tests verts.
+  Pas d'évolution dans le temps : aucune date de paiement dans le modèle (format JSON inchangé) ; 4 questions d'argent dans le journal.
+  À relire : `PresentationPreparationTournoi.cartesBientot()` (la carte B036 n'est plus « bientôt », `cartesAVenir()` inchangée).
+
 ## Résultat

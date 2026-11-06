@@ -72,7 +72,7 @@ final class PresentationRemplissageFinances {
         res.add(new Chiffre(Formats.montant(bilan.encaisse()),
                 "encaissés sur " + Formats.montant(bilan.recettesAttendues()) + " attendus", Tonalite.NEUTRE));
         res.add(new Chiffre(Formats.montant(bilan.dotationPromise()), libelleDotation(), Tonalite.NEUTRE));
-        res.add(new Chiffre(signe(bilan.solde()), "solde (encaissé − dotation promise)", tonalite(bilan.solde())));
+        res.add(new Chiffre(signe(bilan.solde()), "solde : encaissé − dotation", tonalite(bilan.solde())));
         return res;
     }
 
@@ -116,6 +116,7 @@ final class PresentationRemplissageFinances {
                     : l.inscrits() + " / " + l.places() + " · " + pourcent(l.taux());
             String attente = l.enAttente() == 0 ? "" : l.enAttente() + " en attente";
             String argent = l.tarif() == 0 ? "Gratuit"
+                    : l.inscrits() == 0 ? Formats.montant(l.tarif()) + " l'inscription"
                     : Formats.montant(l.encaisse()) + " / " + Formats.montant(l.recettesAttendues()) + " encaissés";
             res.add(new Ligne(l.nom(), remplissage, l.sansLimite() ? -1 : l.taux(), attente, argent,
                     dotation(l)));
