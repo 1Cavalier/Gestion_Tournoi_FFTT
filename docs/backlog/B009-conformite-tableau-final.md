@@ -4,10 +4,10 @@ titre: Vérifier le tableau final (I.304, I.305, petite finale, exempts)
 type: regle
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [CONFORMITE_FFTT.md, src/test]
-branche:
+branche: tache/B009-tableau-final
 pr:
 ---
 
