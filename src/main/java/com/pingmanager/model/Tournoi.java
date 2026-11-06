@@ -141,6 +141,8 @@ public final class Tournoi {
     private ConditionsMaintien conditionsMaintien = ConditionsMaintien.aucune();
     private PolitiqueForfaits politiqueForfaits = PolitiqueForfaits.nonDefinie();
     private Paiement paiement = Paiement.aucun();
+    /** Refus d'homologation successifs, du plus ancien au plus récent. */
+    private final List<RefusHomologation> refusHomologation = new ArrayList<>();
 
     /**
      * Crée un tournoi d'un seul jour. Pour un tournoi sur plusieurs jours,
@@ -349,6 +351,32 @@ public final class Tournoi {
     /** Retire un juge-arbitre (par numéro de licence). @return vrai s'il était affecté. */
     public boolean retirerJugeArbitre(String numeroLicence) {
         return jugesArbitres.removeIf(a -> a.getNumeroLicence().equals(numeroLicence));
+    }
+
+    /**
+     * Remplace l'affectation d'un juge-arbitre (repéré par sa licence) en gardant
+     * sa place dans la liste.
+     *
+     * @throws IllegalArgumentException si aucun juge-arbitre n'a cette licence, ou
+     *         si la nouvelle licence est déjà celle d'un autre juge-arbitre
+     */
+    public void remplacerJugeArbitre(String numeroLicence, AffectationJugeArbitre nouvelle) {
+        Objects.requireNonNull(nouvelle, "nouvelle");
+        int i = -1;
+        for (int k = 0; k < jugesArbitres.size(); k++) {
+            if (jugesArbitres.get(k).getNumeroLicence().equals(numeroLicence)) {
+                i = k;
+            }
+        }
+        if (i < 0) {
+            throw new IllegalArgumentException("Ce juge-arbitre n'est pas affecté au tournoi.");
+        }
+        for (int k = 0; k < jugesArbitres.size(); k++) {
+            if (k != i && jugesArbitres.get(k).getNumeroLicence().equals(nouvelle.getNumeroLicence())) {
+                throw new IllegalArgumentException("Ce juge-arbitre est déjà affecté au tournoi.");
+            }
+        }
+        jugesArbitres.set(i, nouvelle);
     }
 
     /** @return le juge-arbitre principal, s'il y en a un. */
@@ -723,6 +751,39 @@ public final class Tournoi {
 
     public StatutTournoi getStatut() {
         return statut;
+    }
+
+    /**
+     * Vrai dès la demande d'homologation (demande, homologué, publié) : les
+     * champs du dossier ({@link ChampHomologation}) ne sont plus modifiables.
+     * Un brouillon, ou un tournoi annulé (comme pour le règlement figé, B010),
+     * reste modifiable.
+     */
+    public boolean champsHomologationVerrouilles() {
+        return statut == StatutTournoi.DEMANDE_HOMOLOGATION
+                || statut == StatutTournoi.HOMOLOGUE
+                || statut == StatutTournoi.PUBLIE;
+    }
+
+    /** @return les refus d'homologation, du plus ancien au plus récent (lecture seule). */
+    public List<RefusHomologation> getRefusHomologation() {
+        return Collections.unmodifiableList(refusHomologation);
+    }
+
+    /** @return le dernier refus d'homologation, s'il y en a eu un. */
+    public java.util.Optional<RefusHomologation> getDernierRefusHomologation() {
+        return refusHomologation.isEmpty()
+                ? java.util.Optional.empty()
+                : java.util.Optional.of(refusHomologation.get(refusHomologation.size() - 1));
+    }
+
+    /**
+     * Ajoute un refus à l'historique. Ne change pas le statut : la transition est
+     * portée par le service de cycle de vie ; la persistance s'en sert aussi
+     * pour relire l'historique.
+     */
+    public void enregistrerRefusHomologation(RefusHomologation refus) {
+        refusHomologation.add(Objects.requireNonNull(refus, "refus"));
     }
 
     public InfosReglement getInfosReglement() {

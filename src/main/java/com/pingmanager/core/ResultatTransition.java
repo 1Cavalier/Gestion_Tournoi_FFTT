@@ -24,7 +24,9 @@ public final class ResultatTransition {
         /** La transition a été appliquée : le tournoi a changé de statut. */
         EFFECTUEE,
         /** Refus : des éléments obligatoires manquent (voir {@link #getManquants()}). */
-        DOSSIER_INCOMPLET
+        DOSSIER_INCOMPLET,
+        /** Refus d'homologation sans motif : le motif est obligatoire. */
+        MOTIF_REFUS_ABSENT
     }
 
     private final Motif motif;
@@ -45,12 +47,19 @@ public final class ResultatTransition {
         return new ResultatTransition(Motif.DOSSIER_INCOMPLET, manquants);
     }
 
+    /** Le refus d'homologation n'a pas été enregistré : aucun motif saisi. */
+    public static ResultatTransition motifRefusAbsent() {
+        return new ResultatTransition(Motif.MOTIF_REFUS_ABSENT,
+                List.of("motif du refus d'homologation"));
+    }
+
     public Motif getMotif() {
         return motif;
     }
 
     /**
-     * @return les éléments manquants (motif {@link Motif#DOSSIER_INCOMPLET}) ;
+     * @return les éléments manquants (motifs {@link Motif#DOSSIER_INCOMPLET} et
+     *         {@link Motif#MOTIF_REFUS_ABSENT}) ;
      *         liste vide sinon. Jamais {@code null}.
      */
     public List<String> getManquants() {
@@ -66,6 +75,6 @@ public final class ResultatTransition {
     public String toString() {
         return motif == Motif.EFFECTUEE
                 ? "ResultatTransition[EFFECTUEE]"
-                : "ResultatTransition[DOSSIER_INCOMPLET, manquants=" + manquants + "]";
+                : "ResultatTransition[" + motif.name() + ", manquants=" + manquants + "]";
     }
 }

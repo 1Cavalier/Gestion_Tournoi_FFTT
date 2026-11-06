@@ -347,6 +347,60 @@ class RoundTripTournoiTest {
         assertEquals(Long.valueOf(1L), relu.getGrainePoules());
     }
 
+    /** Refus d'homologation (B035) : motifs et dates relus dans l'ordre, tournoi revenu au brouillon. */
+    @Test
+    void refus_d_homologation_relus_a_l_identique() throws Exception {
+        Tournoi t = new Tournoi("Open refusé", "PingClub", LocalDate.of(2026, 3, 14));
+        t.enregistrerRefusHomologation(new com.pingmanager.model.RefusHomologation(
+                java.time.Instant.parse("2026-10-01T08:00:00Z"), "Dates en conflit"));
+        t.enregistrerRefusHomologation(new com.pingmanager.model.RefusHomologation(
+                java.time.Instant.parse("2026-11-05T10:15:30Z"), "Juge-arbitre indisponible"));
+
+        Path fichier = Files.createTempFile("refus_homologation", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, fichier);
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+
+        assertEquals(StatutTournoi.BROUILLON, relu.getStatut());
+        assertEquals(t.getRefusHomologation(), relu.getRefusHomologation());
+        assertEquals("Juge-arbitre indisponible", relu.getDernierRefusHomologation().orElseThrow().motif());
+    }
+
+    /** Un fichier écrit avant B035 (sans refus) se relit : aucun refus. */
+    @Test
+    void ancien_fichier_sans_refus_d_homologation_relu() throws Exception {
+        Tournoi original = new Tournoi("Open ancien", "PingClub", LocalDate.of(2026, 3, 14));
+        Path fichier = Files.createTempFile("ancien_sans_refus", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+        assertFalse(json.contains("refusHomologation"), "rien n'est écrit sans refus");
+
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+        assertTrue(relu.getRefusHomologation().isEmpty());
+        assertTrue(relu.getDernierRefusHomologation().isEmpty());
+    }
+
+    /** Une entrée de refus corrompue est ignorée, les autres sont relues. */
+    @Test
+    void refus_d_homologation_corrompu_ignore() {
+        Tournoi t = new Tournoi("Open corrompu", "PingClub", LocalDate.of(2026, 3, 14));
+        com.pingmanager.persistence.json.Json doc = TournoiMapper.ecrireDocument(t, new RegistreDisciplinaire());
+        com.pingmanager.persistence.json.Json refus = com.pingmanager.persistence.json.Json.tableau();
+        com.pingmanager.persistence.json.Json corrompu = com.pingmanager.persistence.json.Json.objet();
+        corrompu.set("date", "pas une date");
+        corrompu.set("motif", "illisible");
+        refus.add(corrompu);
+        com.pingmanager.persistence.json.Json sansMotif = com.pingmanager.persistence.json.Json.objet();
+        sansMotif.set("date", "2026-10-01T08:00:00Z");
+        refus.add(sansMotif);
+        com.pingmanager.persistence.json.Json valable = com.pingmanager.persistence.json.Json.objet();
+        valable.set("date", "2026-10-02T08:00:00Z");
+        valable.set("motif", "Motif valable");
+        refus.add(valable);
+        doc.get("tournoi").set("refusHomologation", refus);
+
+        Tournoi relu = TournoiMapper.lire(doc).getTournoi();
+        assertEquals(1, relu.getRefusHomologation().size());
+        assertEquals("Motif valable", relu.getRefusHomologation().get(0).motif());
     /** Jour J (B037) : la façon d'annoncer les rencontres est mémorisée avec le tournoi. */
     @Test
     void mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode() throws Exception {

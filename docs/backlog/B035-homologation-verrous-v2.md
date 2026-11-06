@@ -4,10 +4,11 @@ titre: Homologation : verrous, refus, et deuxième version de l'écran du tourno
 type: idee
 priorite: P1
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [core/ServiceCycleTournoi, core/ServiceCompletudeTournoi, model/Tournoi, ui/ecran/EcranCompletion, ui/ecran/FormulairesSection]
-branche:
+branche: tache/B035-homologation-verrous
+date: 2026-11-05
 pr:
 ---
 
@@ -28,5 +29,8 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 6. (1) **Cœur** : dès l
 Voir le cahier des charges v0.
 
 ## Passations
+
+- developpeur (cœur, 05/11) : verrous du dossier 🔴 dès la demande (`ServiceVerrousHomologation`, refus détaillé `ResultatModificationTournoi`), refus d'homologation avec motif → brouillon (`ServiceCycleTournoi.refuserHomologation`, JSON `refusHomologation` rétrocompatible). Tests 697 → 742.
+- Pour l'écran : passer toutes les modifications des champs 🔴 par `ServiceVerrousHomologation` (les setters ne refusent rien) ; griser via `champsVerrouilles`/`motifVerrou` ; bouton « Homologation refusée » (saisie du motif) en demande ; afficher `getDernierRefusHomologation()` sur le brouillon.
 
 ## Résultat
