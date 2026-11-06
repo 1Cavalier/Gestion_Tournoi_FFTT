@@ -37,6 +37,9 @@ Voir le cahier des charges v0.
 - `mvn -B test` : 823 tests, 0 échec, avec LANG=C et LANG=C.UTF-8.
 
 ## Résultat
+- Livré : onglet « Mes tournois » en trois parties (tournoi en cours, mes inscriptions et agenda avec export .ics, tournois passés en lecture seule avec mes performances). Partie « organisés par le club » retirée. Journal : `docs/journal/2026-11-06-tache-B031-mes-tournois.md`.
+- Question ouverte pour Quentin : abandon et forfait comptés en victoires/défaites et signalés à part (option appliquée) ou exclus. Défaut connu non bloquant : « Informations du tournoi » depuis un tournoi passé ouvre le suivi en direct.
+- Javadoc présente sur `PerformancesJoueur`, `PresentationMesTournois` et `MesTournois`. Tests : 812 → 830, 0 échec. Démo inchangée.
 - verificateur-modele : `PerformancesJoueur` +5 tests (poule seule, abandon/refus/disqualification, liste d'attente, petite finale, nulls) et `DesinscriptionEnLigneContexteTest` (2 tests : tournoi et agenda relus à froid, refus sans effet). Aucun défaut.
 - Règle d'or : aucun import interdit ajouté dans model/core/ordonnancement. Note : pas de « double forfait » dans le modèle (un seul fautif par match).
 - `mvn -B test` : 830 tests, 0 échec.
