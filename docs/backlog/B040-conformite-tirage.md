@@ -26,4 +26,8 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- Contrôleur de conformité (2026-11-06) : audit I.302 / I.304 / I.305 fait ; `ConformiteTirageI302I305Test` ajouté (12 tests dont 4 rouges volontaires = 4 écarts certains) ; `CONFORMITE_FFTT.md` à jour.
+- Pour le correcteur : liste exacte des 4 corrections dans `docs/journal/2026-11-06-tache-B040-conformite-tirage.md` (poules ordonnées, têtes de poule, vainqueurs par numéro de poule, club au 1er tour) ; ne pas toucher aux tests rouges, les faire passer.
+- Questions pour Quentin (journal) : vainqueurs par numéro de poule ou force, source du tirage des 2es par blocs, tableau sans poules ; exempts déjà dans `QUESTIONS.md`.
+
 ## Résultat
