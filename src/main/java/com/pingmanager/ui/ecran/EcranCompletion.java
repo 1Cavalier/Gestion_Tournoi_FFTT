@@ -110,6 +110,9 @@ final class EcranCompletion {
         titreDossier.getStyleClass().add("titre-dossier");
         if (presentation.deuxiemeVersion()) {
             // Deuxième version (B035) : les nouvelles parties en haut, le dossier et le règlement en bas.
+            if (presentation.afficheRemplissageEtFinances()) {
+                contenu.getChildren().add(carteRemplissageFinances());
+            }
             contenu.getChildren().addAll(cartesAVenir(), carteEtapes(), titreDossier);
             for (int i = 0; i < sections.size(); i++) {
                 contenu.getChildren().add(carteSection(i, sections.get(i)));
@@ -252,7 +255,7 @@ final class EcranCompletion {
         javafx.scene.layout.GridPane tuiles = new javafx.scene.layout.GridPane();
         tuiles.setHgap(16);
         tuiles.getStyleClass().add("cartes-a-venir");
-        List<PresentationPreparationTournoi.CarteAVenir> cartes = presentation.cartesAVenir();
+        List<PresentationPreparationTournoi.CarteAVenir> cartes = presentation.cartesBientot();
         for (int i = 0; i < cartes.size(); i++) {
             PresentationPreparationTournoi.CarteAVenir c = cartes.get(i);
             VBox carte = Ui.carteBientot(iconeAVenir(c.tache()), c.titre(), c.description(), c.tache());
@@ -266,6 +269,96 @@ final class EcranCompletion {
         }
         VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
         return bloc;
+    }
+
+    /**
+     * Carte « Remplissage et finances » (B036) : chiffres clés (remplissage,
+     * encaissé, dotation promise, solde), jauge globale et une ligne par tableau.
+     * Les mots et les couleurs viennent de {@link PresentationRemplissageFinances}.
+     */
+    private Node carteRemplissageFinances() {
+        PresentationRemplissageFinances p = new PresentationRemplissageFinances(
+                new com.pingmanager.core.ServiceRemplissageFinances().calculer(tournoi));
+        HBox entete = Ui.ligne(10, Ui.iconeTuile(Icones.FINANCES, false),
+                Ui.titreCarte(PresentationRemplissageFinances.TITRE));
+        VBox carte = Ui.carte(entete);
+        carte.getStyleClass().add("carte-finances");
+        if (p.vide()) {
+            carte.getChildren().add(Ui.etatVideCompact(p.messageVide()));
+            return carte;
+        }
+        List<PresentationRemplissageFinances.Chiffre> chiffres = p.chiffres();
+        Node[] tuiles = new Node[chiffres.size()];
+        for (int i = 0; i < chiffres.size(); i++) {
+            PresentationRemplissageFinances.Chiffre c = chiffres.get(i);
+            VBox tuile = Ui.tuileChiffre(c.valeur(), c.libelle());
+            if (!c.tonalite().classeCss().isEmpty()) {
+                tuile.getChildren().get(0).getStyleClass().add(c.tonalite().classeCss());
+            }
+            tuiles[i] = tuile;
+        }
+        javafx.scene.control.ProgressBar jauge = new javafx.scene.control.ProgressBar(p.jaugeGlobale());
+        jauge.getStyleClass().add("jauge");
+        jauge.setMaxWidth(Double.MAX_VALUE);
+        Label remplissage = Ui.discret(p.phraseRemplissage());
+        remplissage.setWrapText(true);
+        Label solde = Ui.discret(p.phraseSolde());
+        solde.setWrapText(true);
+        VBox lignes = new VBox();
+        lignes.getStyleClass().add("finances-lignes");
+        List<PresentationRemplissageFinances.Ligne> ls = p.lignes();
+        for (int i = 0; i < ls.size(); i++) {
+            lignes.getChildren().add(ligneFinances(ls.get(i), i == 0));
+        }
+        carte.getChildren().addAll(Ui.rangeeTuiles(tuiles), jauge, remplissage, solde, lignes);
+        return carte;
+    }
+
+    /** Une ligne de tableau : nom, jauge, remplissage, attente, argent, dotation. */
+    private static Node ligneFinances(PresentationRemplissageFinances.Ligne l, boolean premiere) {
+        Label nom = Ui.gras(l.nom());
+        nom.getStyleClass().add("finances-nom");
+        nom.setMinWidth(150);
+        nom.setPrefWidth(150);
+        Node jauge;
+        if (l.jauge() < 0) {
+            Region vide = new Region();
+            vide.setPrefWidth(110);
+            vide.setMinWidth(110);
+            jauge = vide;
+        } else {
+            javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(l.jauge());
+            barre.getStyleClass().add("jauge");
+            if (l.jauge() >= 1) {
+                barre.getStyleClass().add("jauge-complete");
+            }
+            barre.setPrefWidth(110);
+            barre.setMinWidth(110);
+            jauge = barre;
+        }
+        Label remplissage = Ui.texte(l.remplissage());
+        remplissage.getStyleClass().add("finances-remplissage");
+        remplissage.setMinWidth(Region.USE_PREF_SIZE);
+        HBox ligne = Ui.ligne(12, nom, jauge, remplissage);
+        if (!l.attente().isEmpty()) {
+            Label attente = Ui.pastille(l.attente(), StatutPastille.INFO);
+            attente.setMinWidth(Region.USE_PREF_SIZE);
+            ligne.getChildren().add(attente);
+        }
+        Label argent = Ui.discret(l.argent());
+        argent.setMinWidth(Region.USE_PREF_SIZE);
+        argent.setPrefWidth(170);
+        Label dotation = Ui.discret(l.dotation());
+        dotation.setWrapText(true);
+        dotation.setPrefWidth(280);
+        dotation.setMinWidth(200);
+        dotation.getStyleClass().add("finances-dotation");
+        ligne.getChildren().addAll(Ui.espace(), argent, dotation);
+        ligne.getStyleClass().add("finances-ligne");
+        if (premiere) {
+            ligne.getStyleClass().add("finances-ligne-premiere");
+        }
+        return ligne;
     }
 
     /** Icône de chaque carte à venir, d'après sa tâche (chaîne de if, pas de switch). */
