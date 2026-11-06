@@ -239,4 +239,16 @@ class PresentationPreparationTournoiTest {
                 pr.cartesAVenir().stream().map(PresentationPreparationTournoi.CarteAVenir::tache).toList());
         assertEquals("Dossier du tournoi et règlement", pr.titreDossier());
     }
+
+    @Test
+    void remplissage_et_finances_remplace_sa_carte_bientot_apres_acceptation() {
+        Tournoi t = enDemande();
+        assertFalse(p(t).afficheRemplissageEtFinances());
+        assertTrue(p(t).cartesBientot().isEmpty());
+        assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
+        PresentationPreparationTournoi pr = p(t);
+        assertTrue(pr.afficheRemplissageEtFinances());
+        assertEquals(List.of("B024", "B025"),
+                pr.cartesBientot().stream().map(PresentationPreparationTournoi.CarteAVenir::tache).toList());
+    }
 }

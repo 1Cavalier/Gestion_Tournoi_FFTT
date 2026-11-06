@@ -113,9 +113,13 @@ public record BilanRemplissageFinances(List<LigneTableau> tableaux) {
         if (places == 0) {
             return 0;
         }
-        int occupes = tableaux.stream().filter(l -> !l.sansLimite())
+        return placesOccupees() / (double) places;
+    }
+
+    /** @return les places occupées des tableaux limités (numérateur du taux global). */
+    public int placesOccupees() {
+        return tableaux.stream().filter(l -> !l.sansLimite())
                 .mapToInt(l -> Math.min(l.inscrits(), l.places())).sum();
-        return occupes / (double) places;
     }
 
     // --- Argent, au total ----------------------------------------------------

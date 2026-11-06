@@ -171,6 +171,7 @@ class ServiceRemplissageFinancesTest {
         assertEquals(12, b.inscrits());
         assertEquals(10, b.places(), "le tableau sans limite n'ajoute pas de places");
         assertEquals(1, b.tableauxSansLimite());
+        assertEquals(5, b.placesOccupees());
         assertEquals(0.5, b.taux(), 1e-9, "taux sur les seuls tableaux limités");
         BilanRemplissageFinances.LigneTableau l = b.tableaux().stream()
                 .filter(x -> x.nom().equals("Libre")).findFirst().orElseThrow();

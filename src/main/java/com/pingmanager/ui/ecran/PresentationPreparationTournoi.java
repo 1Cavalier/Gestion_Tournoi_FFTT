@@ -124,6 +124,19 @@ final class PresentationPreparationTournoi {
                                 + "budget du tournoi, qui part du négatif.", "B036"));
     }
 
+    /** Tâches de la deuxième version déjà livrées : leur vraie carte remplace la carte « bientôt ». */
+    static final List<String> PARTIES_LIVREES = List.of("B036");
+
+    /** @return vrai si la carte « Remplissage et finances » (B036) s'affiche. */
+    boolean afficheRemplissageEtFinances() {
+        return deuxiemeVersion();
+    }
+
+    /** @return les cartes encore « bientôt » : celles de {@link #cartesAVenir()} non livrées. */
+    List<CarteAVenir> cartesBientot() {
+        return cartesAVenir().stream().filter(c -> !PARTIES_LIVREES.contains(c.tache())).toList();
+    }
+
     /** @return le titre du bloc des sections du dossier. */
     String titreDossier() {
         return deuxiemeVersion() ? "Dossier du tournoi et règlement" : "Préparation du dossier";
