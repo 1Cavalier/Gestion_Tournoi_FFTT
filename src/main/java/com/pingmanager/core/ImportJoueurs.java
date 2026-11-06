@@ -1,6 +1,7 @@
 package com.pingmanager.core;
 
 import com.pingmanager.model.CategorieAge;
+import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.HorairesTableau;
 import com.pingmanager.model.Joueur;
@@ -385,6 +386,8 @@ public final class ImportJoueurs {
     // 2. Plan (sans rien modifier)
     // ==================================================================
 
+    private static final ServiceVerrousHomologation VERROUS = new ServiceVerrousHomologation();
+
     public static Plan planifier(Tournoi tournoi, Analyse a, Options o) {
         return planifier(tournoi, a, o, List.of());
     }
@@ -398,10 +401,17 @@ public final class ImportJoueurs {
         Map<String, PlanTableau> plans = new LinkedHashMap<>();
         List<Probleme> sansTableau = new ArrayList<>();
         List<Probleme> remarques = new ArrayList<>();
+        // B035 : la liste des tableaux fait partie du dossier d'homologation ; une fois
+        // verrouillée, l'import n'inscrit que sur les tableaux existants.
+        String verrou = VERROUS.motifVerrou(tournoi, List.of(ChampHomologation.LISTE_TABLEAUX));
         for (ImportTableaux.Definition d : definitions) {
             Tableau deja = trouver(tournoi, d.nom());
             if (deja != null) {
                 remarques.add(new Probleme(d.ligne(), "tableau « " + d.nom() + " » déjà présent : il est conservé tel quel"));
+                continue;
+            }
+            if (verrou != null) {
+                remarques.add(new Probleme(d.ligne(), "tableau « " + d.nom() + " » non créé : " + verrou));
                 continue;
             }
             PlanTableau p = new PlanTableau(d.nom(), null);
@@ -436,6 +446,10 @@ public final class ImportJoueurs {
                 if (p == null) {
                     if (existant == null && !o.creerTableaux()) {
                         sansTableau.add(new Probleme(l.ligne(), "tableau « " + nomCible + " » inconnu (création désactivée)"));
+                        continue;
+                    }
+                    if (existant == null && verrou != null) {
+                        sansTableau.add(new Probleme(l.ligne(), "tableau « " + nomCible + " » inconnu, création impossible : " + verrou));
                         continue;
                     }
                     p = new PlanTableau(cle, existant);
@@ -558,8 +572,12 @@ public final class ImportJoueurs {
         int crees = 0;
         int inscrits = 0;
         int attente = 0;
+        boolean listeVerrouillee = VERROUS.estVerrouille(tournoi, ChampHomologation.LISTE_TABLEAUX);
         for (PlanTableau p : plan.tableaux().values()) {
             Tableau t = p.existant();
+            if (t == null && listeVerrouillee) {
+                continue; // B035 : plan établi avant le verrou, aucun tableau créé
+            }
             if (t == null && p.definition != null) {
                 ImportTableaux.Definition d = p.definition;
                 t = ImportTableaux.construire(d, d.places() != null ? d.places() : Math.max(1, p.inscrits().size()), tournoi);
