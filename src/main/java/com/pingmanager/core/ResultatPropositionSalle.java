@@ -17,6 +17,8 @@ public final class ResultatPropositionSalle {
         AUCUNE_TABLE_LIBRE,
         /** Aucun match n'est jouable (rien à jouer, ou joueurs tous déjà en jeu). */
         AUCUN_MATCH_PRET,
+        /** Des matchs sont prêts, mais les tables libres sont réservées à d'autres tableaux (B024). */
+        TABLES_LIBRES_RESERVEES,
         /** Le nombre de tables du tournoi n'est pas renseigné. */
         SALLE_SANS_TABLE,
         /** Le tournoi est annulé. */

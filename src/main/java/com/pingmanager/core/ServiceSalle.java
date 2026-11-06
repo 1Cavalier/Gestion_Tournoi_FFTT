@@ -143,7 +143,11 @@ public final class ServiceSalle {
         }
         List<PropositionLancement> propositions = salle.ordonnanceur.proposerLancements(salle.maintenant);
         if (propositions.isEmpty()) {
-            return ResultatPropositionSalle.aucun(ResultatPropositionSalle.Motif.AUCUN_MATCH_PRET);
+            boolean pretsBloquesParReservation = !salle.ordonnanceur.getReservations().estVide()
+                    && salle.ordre.stream().anyMatch(salle.ordonnanceur::estJouableMaintenant);
+            return ResultatPropositionSalle.aucun(pretsBloquesParReservation
+                    ? ResultatPropositionSalle.Motif.TABLES_LIBRES_RESERVEES
+                    : ResultatPropositionSalle.Motif.AUCUN_MATCH_PRET);
         }
         List<ResultatPropositionSalle.Lancement> lances = new ArrayList<>();
         for (PropositionLancement p : propositions) {
@@ -223,6 +227,8 @@ public final class ServiceSalle {
             // carte n'est montrée et toute affectation est refusée (hors limites).
             this.ordonnanceur = new Ordonnanceur(Math.max(1, nombreDeTables),
                     poids != null ? poids : PoidsOrdonnancement.pour(tournoi.getStrategieOrdonnancement()));
+            // B024 : tables et salles réservées, préférences des tableaux (aucune sans plan).
+            this.ordonnanceur.setReservations(new ServicePlanSalle().reservations(tournoi));
             recenser();
             restaurerOccupation();
             poserAttentes();
