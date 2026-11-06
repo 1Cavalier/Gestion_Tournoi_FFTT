@@ -327,6 +327,8 @@ public final class PageTournois {
     private static Label pastille(PresentationCarteTournois.Pastille p) {
         Label l = Ui.pastille(p.texte(), p.couleur());
         l.getStyleClass().addAll("pastille-statut-carte", p.classeCss());
+        // Puce devant le texte : le statut se lit aussi sans la couleur de fond.
+        l.setGraphic(Ui.puce("puce-statut-carte"));
         l.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         return l;
     }

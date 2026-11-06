@@ -2812,7 +2812,9 @@
 
 .icone-tuile.accueil-club-tuile .icone-tuile-trace {
     -fx-fill: -sur-primaire;
+}
 
+/* =====================================================================
    Gestion des tournois (B033) : gros bouton de création, frise verticale
    ===================================================================== */
 
@@ -2940,6 +2942,89 @@
 .scroll-pane.defilant-filtres-carte > .viewport,
 .scroll-pane.defilant-agenda-tournois > .viewport {
     -fx-background-color: transparent;
+}
+
+/* --- Charte v2 (designer) : pastilles des quatre statuts ---
+   Chaque statut se distingue par trois indices : la couleur de fond
+   (bleu / vert / rouge / gris, variables -…-doux et -…-texte des deux
+   thèmes, contraste ≥ 4,5:1), le texte, et la forme de la puce
+   (pleine pour « en cours » et « non accessible », anneau pour
+   « à venir » et « complet / pas à votre niveau »). */
+.badge.pastille-statut-carte {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10 3 8;
+    -fx-graphic-text-gap: 6;
+}
+
+.puce-statut-carte {
+    -fx-stroke-width: 1.6;
+}
+
+.statut-carte-en-cours .puce-statut-carte {
+    -fx-fill: -info-texte;
+    -fx-stroke: -info-texte;
+}
+
+.statut-carte-a-venir .puce-statut-carte {
+    -fx-fill: transparent;
+    -fx-stroke: -succes-texte;
+}
+
+.statut-carte-non-accessible .puce-statut-carte {
+    -fx-fill: -erreur-texte;
+    -fx-stroke: -erreur-texte;
+}
+
+.statut-carte-complet .puce-statut-carte {
+    -fx-fill: transparent;
+    -fx-stroke: -neutre-texte;
+}
+
+/* Légende des statuts : séparée des filtres par un filet. */
+.legende-statuts-carte {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 0 0 0;
+}
+
+/* Barre au-dessus des résultats : compteur un peu plus présent. */
+.barre-vue-carte-tournois {
+    -fx-padding: 0 0 4 0;
+}
+
+/* « Voir plus » : bouton secondaire compact, texte bleu. */
+.button.bouton-voir-plus {
+    -fx-text-fill: -primaire;
+    -fx-font-size: 13px;
+    -fx-padding: 6 14 6 14;
+}
+
+.button.bouton-voir-plus:hover {
+    -fx-text-fill: -primaire-fort;
+}
+
+/* Agenda : pastilles de largeur fixe pour aligner les noms des tournois. */
+.agenda-ligne-tournoi .badge.pastille-statut-carte {
+    -fx-min-width: 132px;
+    -fx-pref-width: 132px;
+}
+
+/* Le détail (niveau, date, lieu, places, distance) passe à la ligne
+   plutôt que d'être tronqué. */
+.agenda-ligne-tournoi .ligne-element-detail {
+    -fx-wrap-text: true;
+}
+
+.agenda-jour-aujourdhui .agenda-jour-liste {
+    -fx-border-color: -primaire;
+    -fx-border-width: 1.5;
+}
+
+.agenda-ligne-tournoi .motif-refus,
+.agenda-ligne-tournoi .motif-complet,
+.agenda-ligne-tournoi .aide {
+    -fx-padding: 0 10 8 156;
 }
 
 /* La pastille de statut reste lisible sur une carte grisée. */
