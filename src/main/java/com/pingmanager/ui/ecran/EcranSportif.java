@@ -369,7 +369,7 @@ final class EcranSportif {
             g.add(l, c, 0);
         }
         int r = 1;
-        g.add(filet(), 0, r++, colonnes.length, 1);
+        g.add(Ui.filet(), 0, r++, colonnes.length, 1);
         for (T t : new ArrayList<>(lignes)) {
             String[] v = valeurs.apply(t);
             for (int c = 0; c < v.length; c++) {
@@ -386,18 +386,9 @@ final class EcranSportif {
                 g.add(retirerBtn, colonnes.length - 1, r);
             }
             r++;
-            g.add(filet(), 0, r++, colonnes.length, 1);
+            g.add(Ui.filet(), 0, r++, colonnes.length, 1);
         }
         return g;
-    }
-
-    private static Region filet() {
-        Region f = new Region();
-        f.getStyleClass().add("filet-ligne");
-        f.setMinHeight(1);
-        f.setPrefHeight(1);
-        f.setMaxHeight(1);
-        return f;
     }
 
     // ==================================================================
@@ -469,7 +460,7 @@ final class EcranSportif {
         majTotal();
         VBox tables = new VBox(10,
                 titreGroupe("Tables", false),
-                Ui.ligne(6, Ui.puceDependance(P), labelChamp("Tables de compétition : nombre, marque et couleur")),
+                Ui.ligne(6, Ui.puceDependance(P), Ui.libelleChamp("Tables de compétition : nombre, marque et couleur")),
                 boiteTables, ajouterLot,
                 Ui.champEtiquete("Salle d'échauffement : nombre de tables", tablesEchauffement, Niveau.OPTIONNEL),
                 totalTables);
@@ -505,7 +496,7 @@ final class EcranSportif {
         }
         majRefusees();
         VBox v = new VBox(8,
-                labelChamp("Balles refusées (liste noire)"),
+                Ui.libelleChamp("Balles refusées (liste noire)"),
                 Ui.note("Les joueurs apportent leurs balles : indiquez les marques, matières ou modèles que "
                         + "vous n'acceptez pas. Ce bloc disparaît si le club fournit les balles."),
                 listeRefusees,
@@ -805,7 +796,7 @@ final class EcranSportif {
     }
 
     private static VBox choix(String libelle, Niveau n, ToggleGroup g, RadioButton... options) {
-        HBox entete = Ui.ligne(6, Ui.puceDependance(n), labelChamp(libelle));
+        HBox entete = Ui.ligne(6, Ui.puceDependance(n), Ui.libelleChamp(libelle));
         HBox boutons = Ui.ligne(18, options);
         Label etat = Ui.badgeEtat(n, g.getSelectedToggle() != null);
         g.selectedToggleProperty().addListener((o, a, x) -> {
@@ -823,12 +814,6 @@ final class EcranSportif {
         if (!premier) {
             l.getStyleClass().add("groupe-titre-separe");
         }
-        return l;
-    }
-
-    private static Label labelChamp(String texte) {
-        Label l = new Label(texte);
-        l.getStyleClass().add("libelle-champ");
         return l;
     }
 

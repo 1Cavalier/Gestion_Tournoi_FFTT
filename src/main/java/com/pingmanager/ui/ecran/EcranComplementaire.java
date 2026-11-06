@@ -243,8 +243,8 @@ final class EcranComplementaire {
         blocGenere.getStyleClass().add("liste-depliee");
 
         Runnable majMode = () -> {
-            visible(blocGenere, modeGenere.isSelected());
-            visible(blocDepose, modeDepose.isSelected());
+            Ui.afficherSi(blocGenere, modeGenere.isSelected());
+            Ui.afficherSi(blocDepose, modeDepose.isSelected());
         };
         mode.selectedToggleProperty().addListener((obs, a, n) -> majMode.run());
         majMode.run();
@@ -532,7 +532,7 @@ final class EcranComplementaire {
     private void majImage() {
         if (cheminImage == null) {
             vignette.setImage(null);
-            visible(vignette, false);
+            Ui.afficherSi(vignette, false);
             libelleImage.setText("Aucune image choisie.");
             return;
         }
@@ -540,9 +540,9 @@ final class EcranComplementaire {
         libelleImage.setText(f.getName());
         if (f.isFile()) {
             vignette.setImage(new Image(f.toURI().toString(), 260, 160, true, true, true));
-            visible(vignette, true);
+            Ui.afficherSi(vignette, true);
         } else {
-            visible(vignette, false);
+            Ui.afficherSi(vignette, false);
             libelleImage.setText(f.getName() + " (fichier introuvable)");
         }
     }
@@ -624,7 +624,7 @@ final class EcranComplementaire {
             boolean alerte = !l.isEmpty() && !l.toLowerCase().contains("helloasso.");
             alerteLien.setText("Ce lien ne semble pas être une page HelloAsso. Vérifiez que vous avez collé le lien "
                     + "de la billetterie.");
-            visible(alerteLien, alerte);
+            Ui.afficherSi(alerteLien, alerte);
         };
         lienPaiement.textProperty().addListener((o, a, n) -> maj.run());
         maj.run();
@@ -716,10 +716,5 @@ final class EcranComplementaire {
 
     private static String valeur(String s) {
         return s == null ? "" : s;
-    }
-
-    private static void visible(Node n, boolean v) {
-        n.setVisible(v);
-        n.setManaged(v);
     }
 }

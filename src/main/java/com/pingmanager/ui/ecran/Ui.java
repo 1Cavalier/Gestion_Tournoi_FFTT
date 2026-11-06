@@ -376,6 +376,17 @@ final class Ui {
         return l;
     }
 
+    /** Filet horizontal d'un pixel séparant les lignes d'une grille. */
+    static Region filet() {
+        Region f = new Region();
+        f.getStyleClass().add("filet-ligne");
+        f.setMinHeight(1);
+        f.setPrefHeight(1);
+        f.setMaxHeight(1);
+        f.setMaxWidth(Double.MAX_VALUE); // valeur calculée par défaut d'une Region, explicitée
+        return f;
+    }
+
     /** Région extensible qui pousse la suite d'une HBox vers la droite. */
     static Region espace() {
         Region r = new Region();
@@ -831,5 +842,11 @@ final class Ui {
     static void cacher(Node n) {
         n.setVisible(false);
         n.setManaged(false);
+    }
+
+    /** Montre ou cache le nœud (visible et pris en compte dans la mise en page, ou ni l'un ni l'autre). */
+    static void afficherSi(Node n, boolean visible) {
+        n.setVisible(visible);
+        n.setManaged(visible);
     }
 }
