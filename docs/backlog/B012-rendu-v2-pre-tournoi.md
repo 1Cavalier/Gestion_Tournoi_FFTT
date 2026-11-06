@@ -4,11 +4,11 @@ titre: Rendu graphique v2 : préparation du tournoi
 type: charte
 priorite: P1
 taille: M
-statut: a-relire
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/EcranCompletion, ui/ecran/FormulairesSection, ui/ecran/EcranTableaux, ui/ecran/FormulaireTableau, ui/ecran/EcranSportif, ui/ecran/EcranComplementaire, ui/ecran/CarteReglesInscription, theme.css]
 branche: tache/B012-rendu-v2-pre-tournoi (2026-11-06)
-pr:
+pr: 41
 ---
 
 ## Ce qu'il faut faire
@@ -32,3 +32,4 @@ Aucune pour l'instant.
 - À regarder : `CarteReglesInscription` n'a reçu que les règles CSS communes (grille, rappels), pas de modification Java ; rendu Windows et mise à l'échelle non vérifiés.
 
 ## Résultat
+Rendu v2 appliqué aux six écrans, PR #41, 798 tests verts. Voir le journal `docs/journal/2026-11-06-tache-B012-rendu-v2-pre-tournoi.md`. Vérification visuelle réelle à faire par Quentin.

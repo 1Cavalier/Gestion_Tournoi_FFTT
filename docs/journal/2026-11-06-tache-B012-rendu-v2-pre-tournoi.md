@@ -2,8 +2,8 @@
 
 - Branche : `tache/B012-rendu-v2-pre-tournoi`
 - Agent : `designer-interface`, `relecteur-code`, `integrateur`
-- Pull Request : #PR (complété à l'étape 5)
-- Statut : voir PR
+- Pull Request : #41
+- Statut : fusionné
 
 ## Pour Quentin
 
