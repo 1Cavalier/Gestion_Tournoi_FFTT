@@ -27,5 +27,5 @@ Voir la section Chiffres ; résultat de `verifier-fusion.py` consigné ci-dessou
 
 ## Chiffres
 
-- Tests : mesurés par `bash outils-dev/tests.sh` (Maven Central inaccessible) ; GitHub Actions fait foi.
+- Tests : 1042 réussis, 0 échec (`bash outils-dev/tests.sh`, après synchronisation avec main) ; verifier-fusion.py : OK, aucun conflit.
 - Version de la démo : inchangée
