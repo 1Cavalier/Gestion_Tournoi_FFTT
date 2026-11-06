@@ -2922,3 +2922,58 @@
 .ligne-element.ligne-tournoi-cliquable {
     -fx-cursor: hand;
 }
+
+/* =====================================================================
+   Onglet Tournois : carte des tournois (B030) — filtres à gauche,
+   présentations carte / agenda par jour, quatre statuts. Style minimal,
+   à affiner par le designer.
+   Classes posées : filtres-carte-tournois, defilant-filtres-carte,
+   legende-statuts-carte, barre-vue-carte-tournois, bouton-voir-plus,
+   pastille-statut-carte + statut-carte-en-cours / -a-venir /
+   -non-accessible / -complet, agenda-tournois, defilant-agenda-tournois,
+   agenda-jour, agenda-jour-aujourdhui, agenda-jour-titre,
+   agenda-jour-liste, agenda-ligne-tournoi (+ tournoi-grise).
+   ===================================================================== */
+
+.scroll-pane.defilant-filtres-carte,
+.scroll-pane.defilant-agenda-tournois,
+.scroll-pane.defilant-filtres-carte > .viewport,
+.scroll-pane.defilant-agenda-tournois > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* La pastille de statut reste lisible sur une carte grisée. */
+.list-cell.tournoi-grise .badge.pastille-statut-carte {
+    -fx-opacity: 1;
+}
+
+.agenda-jour-titre {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.agenda-jour-aujourdhui .agenda-jour-titre {
+    -fx-text-fill: -primaire;
+}
+
+.agenda-jour-liste {
+    -fx-background-color: -surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 12;
+    -fx-padding: 4 8 4 8;
+}
+
+.agenda-ligne-tournoi.tournoi-grise .ligne-element-titre,
+.agenda-ligne-tournoi.tournoi-grise .ligne-element-detail {
+    -fx-opacity: 0.6;
+}
+
+/* Motif du quatrième statut (complet ou pas à son niveau) : distinct du rouge du refus. */
+.motif-complet {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}

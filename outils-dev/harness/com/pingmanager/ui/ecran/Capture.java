@@ -399,6 +399,7 @@ public class Capture extends Application {
         }, "jour-j");
         etape(() -> coq[0].afficher("stats"), "page-a-venir");
         etape(() -> coq[0].afficher("tournois"), "tournois-carte", 2500);
+        etape(() -> PageTournois.derniere.choisirVue(PresentationCarteTournois.Vue.AGENDA), "tournois-agenda");
     }
 
     /**

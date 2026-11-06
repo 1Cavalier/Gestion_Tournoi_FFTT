@@ -28,4 +28,8 @@ Voir le cahier des charges v0.
 
 ## Passations
 
+- developpeur-interface (2026-11-06) : statut calculé dans le cœur (`core.StatutCarteTournoi`, 4 cas, + `Entree.tableauxAMonNiveauComplets`, testé) ; `PresentationCarteTournois` (pastilles, cartes, compteur, agenda par jour, testée) ; `PageTournois` : segment « Carte des tournois » / « Mes tournois » (B031 non touché), filtres à gauche, bascule Carte / Agenda par jour, « Voir plus » sur chaque tournoi, marqueurs grisés pour les 2 statuts bloquants.
+- Classes CSS posées (section « carte des tournois (B030) » en fin de theme.css, minimale) : pastille-statut-carte + statut-carte-en-cours/-a-venir/-non-accessible/-complet, bouton-voir-plus, filtres-carte-tournois, legende-statuts-carte, agenda-jour(-aujourdhui/-titre/-liste), agenda-ligne-tournoi, motif-complet. Captures clair/sombre : docs/captures/B030/.
+- Pour le suivant : le harnais v2 casse avant la carte (boutons « Créer un tournoi » / « Suivre le tournoi » introuvables, et compiler avec LANG=C.UTF-8) ; captures faites avec une copie du harnais qui saute l'étape en échec. Erreur CSS préexistante theme.css ligne 2816 (« Expected COLON »).
+
 ## Résultat

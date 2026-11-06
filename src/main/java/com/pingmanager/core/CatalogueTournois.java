@@ -33,7 +33,13 @@ public final class CatalogueTournois {
     public record Entree(String id, Tournoi tournoi, Coordonnees position, boolean positionApprochee,
                          Territoires.Departement departement, EligibiliteTournoi.Acces acces,
                          Double distanceKm, int placesRestantes, int placesTotales,
-                         boolean tableauAMesPoints, CalendrierTournoi.Moment moment, String texteRecherche) {
+                         boolean tableauAMesPoints, CalendrierTournoi.Moment moment, String texteRecherche,
+                         boolean tableauxAMonNiveauComplets) {
+
+        /** @return le statut affiché sur la carte et dans l'agenda (quatre cas, voir {@link StatutCarteTournoi}). */
+        public StatutCarteTournoi.Verdict statut() {
+            return StatutCarteTournoi.de(this);
+        }
     }
 
     /**
@@ -140,6 +146,9 @@ public final class CatalogueTournois {
         boolean illimite = false;
         Joueur j = fiche == null ? null : JoueurDepuisLicence.creer(fiche, t);
         boolean aMesPoints = j == null;
+        // Tableaux ouverts au joueur (tous si aucune licence liée) : sont-ils tous complets ?
+        int tableauxAMonNiveau = 0;
+        int tableauxAMonNiveauComplets = 0;
         for (Tableau tab : t.getTableaux()) {
             int cap = tab.getConfiguration().getPlacesMax();
             if (cap <= 0) {
@@ -152,12 +161,21 @@ public final class CatalogueTournois {
                     && (j.getCategorie() == null || tab.getConfiguration().categorieAutorisee(j.getCategorie()))) {
                 aMesPoints = true;
             }
+            boolean ouvertAuJoueur = j == null || (tab.getConfiguration().joueurEligible(j)
+                    && (j.getCategorie() == null || tab.getConfiguration().categorieAutorisee(j.getCategorie())));
+            if (ouvertAuJoueur) {
+                tableauxAMonNiveau++;
+                if (cap > 0 && tab.getInscrits().size() >= cap) {
+                    tableauxAMonNiveauComplets++;
+                }
+            }
         }
         String texte = normaliser(t.getNom() + " " + (t.getClubOrganisateur() == null ? "" : t.getClubOrganisateur())
                 + " " + (t.getAdresse() == null ? "" : t.getAdresse().getVille() + " " + t.getAdresse().getCodePostal())
                 + " " + (dep == null ? "" : dep.nom()));
         return new Entree(id, t, pos, approchee, dep, eligibilite.evaluer(t, fiche), distance,
-                illimite ? -1 : restantes, totales, aMesPoints, moment, texte);
+                illimite ? -1 : restantes, totales, aMesPoints, moment, texte,
+                tableauxAMonNiveau > 0 && tableauxAMonNiveauComplets == tableauxAMonNiveau);
     }
 
     /** @return les entrées qui satisfont tous les critères, dans l'ordre d'entrée. */
