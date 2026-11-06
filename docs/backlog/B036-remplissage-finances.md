@@ -4,12 +4,12 @@ titre: Remplissage et finances du tournoi
 type: idee
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: [B035]
 fichiers: [core (finances), ui/ecran (carte Remplissage et finances)]
 branche: tache/B036-remplissage-finances
 date: 2026-11-06
-pr:
+pr: 46
 ---
 
 ## Ce qu'il faut faire
@@ -20,7 +20,7 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 6. Tableau de bord : par 
 
 - [x] calculs testés (dotation en % comprise)
 - [x] carte affichée après homologation
-- [ ] `mvn -B test` à 0 échec
+- [x] `mvn -B test` à 0 échec (940 tests)
 
 ## Contraintes / décisions de Quentin
 
