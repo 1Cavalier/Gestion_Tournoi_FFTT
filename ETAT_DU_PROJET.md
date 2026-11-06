@@ -65,6 +65,138 @@ Détails : `docs/passation/PASSATION_CHOIX_ET_CLASSEUR.md` (dernier lot), `docs/
 **Phase suivante** : brancher la phase finale sur la page Jour J (et retirer le point d'entrée provisoire), corriger le lot 1 de sécurité (comptes de démo et données réelles), puis J-1 (tableau de bord de la veille, listes de pointage imprimables, mise à jour des points). Plus tard : paiement HelloAsso, désinscription par le joueur, écrans adaptés aux petites tailles.
 
 ---
+- **Reports des journaux du 5-6 novembre 2026 (nuit de travail)** :
+- **Journal 2026-11-05-tache-B001-switch-enumerations** :
+  `ConfigurationTableau`, `RegleTableauxParJour`, `Ordonnanceur` (×2), `JsonWriter`,
+  `TournoiMapper` : plus de `switch` d'énumération. Les 3 `switch` restants
+  portent sur des String / int. Format de sauvegarde et démo inchangés.
+- **Journal 2026-11-05-tache-B010-reglement-apres-publication** :
+  - Classes principales : `model.DocumentReglement` (déplacé depuis `core.reglement`),
+    `model.Tournoi` (garde `reglementModifiable()`, `MOTIF_REGLEMENT_FIGE`, copies
+    figées posées par `ServiceCycleTournoi.publier`),
+    `core.reglement.ServiceReglementTournoi` (figer, reglement, feuilleEngagement,
+    modifierOptions, deposer), `core.reglement.ResultatModificationReglement`,
+    `persistence.DocumentReglementMapper`, `ui.ecran.VueReglementFige`.
+  - Format de sauvegarde : deux champs facultatifs dans le JSON du tournoi,
+    `reglementFige` et `feuilleEngagementFigee` (copies du PDF, encodées par
+    `DocumentReglementMapper`). Un fichier publié sans copie les reçoit à la
+    relecture. Une copie illisible est ignorée et régénérée à partir des données
+    actuelles (elle peut donc différer de l'original).
+    Anciens fichiers relus sans changement (`ReglementFigeRoundTripTest`).
+  - Démo : inchangée, pas de `.demo-brunoy-vN` à incrémenter.
+- **Journal 2026-11-05-tache-B011-jour-j-simplifie** :
+  - Défauts non bloquants restants : classes CSS `avancement-etape` / `avancement-jauge` sans règle ; `PresentationSalle.salleOuverte` utilisée seulement en test.
+  - Interface vue uniquement en captures Xvfb ; validation à l'écran par Quentin.
+
+  - Page Jour J = écran principal unique (`EcranJourJ` construit `EcranSalle` avec un bandeau) ; l'ancienne liste des tableaux et la carte « Salle et tables » disparaissent, les écrans de pointage, poules et arbre restent des vues secondaires ouvertes depuis le bandeau.
+  - Logique sans JavaFX : `PresentationAvancement` (étape, texte, jauge, vue de détail, tour en cours du tableau final, exemptions non comptées) ; `PresentationSalle.resumeLigne`, `suiteSurTable`, `premiereTableLibre`.
+  - Ordonnanceur et cœur inchangés ; format JSON inchangé ; démo inchangée (elle montre déjà toutes les étapes).
+- **Journal 2026-11-05-tache-B027-suivre-tableaux** :
+  - Classes principales : `core.SuiviTournoi` (bascule, ordre des tableaux, matchs
+    en cours, prochaine partie) ; `ui.ecran.PresentationSuiviTournoi` (logique
+    d'affichage, testée sans JavaFX) ; `ui.ecran.EcranSuiviTournoi` (écran en lecture
+    seule). `FicheTournoi` et `MesTournois` gagnent le lien vers le suivi ;
+    `VuePhaseFinale` extrait son arbre en lecture seule (`arbreLectureSeule`,
+    comportement inchangé).
+  - Format de sauvegarde : inchangé.
+  - Démo : inchangée (`ContexteApplication.VERSION_DEMO` reste `.demo-brunoy-v15`).
+  - Feuille de route : B027 en cours ; B011 (page Jour J) non touchée.
+- **Journal 2026-11-05-tache-B028-accueil-hub** :
+  - Classes principales : `ui.ecran.PresentationAccueil` (contenu des cartes et règle « section club seulement si club relié », sans JavaFX, 9 tests dans `PresentationAccueilTest`), `ui.ecran.PageAccueil` (vue mince ; le constructeur à un seul argument ne sert qu'aux tests), `ui.ecran.Coquille` (nouvelle entrée « Agenda » provisoire), `ui.ecran.Ui.iconeTuile` (tuile d'icône commune), `ui.ecran.Icones.AGENDA`.
+  - CSS : section « B028 » en fin de `theme.css` (57 lignes, variables de thème uniquement).
+  - Harnais de captures : `Capture` (dossier `harness`, hors `src/main`) étendu pour la page d'accueil.
+  - Format de sauvegarde : inchangé. Démo : inchangée.
+  - Défaut non bloquant (relecture) : le constructeur à un argument de `PageAccueil` n'est utilisé que par les tests.
+  - JavaFX non vérifié en session cloud : validation à l'écran par Quentin (captures comprises).
+- **Journal 2026-11-05-tache-B032-agenda** :
+  - Nouvelles classes principales : `model.AgendaCompte`, `model.EvenementAgenda`,
+    `model.OrigineEvenement` ; `core.ServiceAgenda`, `core.ExportIcs`,
+    `core.ResultatAgenda` ; `ServiceInscriptionEnLigne.desinscrire` ;
+    `persistence.DepotApplication.agendaDe` ; `ui.ecran.PresentationAgenda` (sans JavaFX).
+  - Format de sauvegarde : ajout facultatif `agendas` dans le fichier applicatif.
+    Les anciens fichiers se relisent sans changement (tests `AgendaRoundTripTest`,
+    `AgendaRoundTripLimitesTest`).
+  - Aucun écran n'appelle encore `desinscrire` ni `ExportIcs` (prévu : Accueil, Mes tournois).
+  - Clé d'agenda d'un tournoi : n° d'homologation, sinon nom | premier jour | club.
+    Renommer un tournoi non homologué crée une nouvelle entrée (le modèle `Tournoi`
+    n'a pas d'identifiant stable).
+  - Démo : inchangée.
+- **Journal 2026-11-05-tache-B033-gestion-tournois** :
+  - Classes principales : `ui.ecran.AccueilGestionTournois` (vue : carte « Tournoi actuel », frise, bouton, historique), `ui.ecran.PresentationGestionTournois` (choix du tournoi actuel, étapes, libellés de l'historique, sans JavaFX, 10 tests). `ui.ecran.PageGestionTournoi` ne fait plus que déléguer.
+  - Frise : quatre étapes calées sur `StatutTournoi` (aucune étape manquante). Règles CSS en fin de `theme.css`, section B033.
+  - Entrée « Historique » de la `Coquille` : toujours un espace réservé ; le lien de l'accueil est fonctionnel.
+  - Défauts non bloquants (relecture) : classe CSS `carte-actuel-vide` sans règle ; quelques noms de classes Java pleinement qualifiés au lieu d'être importés.
+  - Format de sauvegarde : inchangé. Démo : inchangée.
+  - JavaFX non vérifié visuellement en session : validation à l'écran par Quentin.
+- **Journal 2026-11-05-tache-B034-nouveau-tournoi** :
+  - Classes principales : `ui.ecran.FormulaireNouveauTournoi` (vue, extraite de `PageGestionTournoi`), `ui.ecran.PresentationNouveauTournoi` (libellés, vérification de date en mode strict, résumé de période, sans JavaFX).
+  - Saisie des dates : sélecteur `DatePicker` (classe `selecteur-calendrier`), règles CSS en fin de `theme.css` (section B034). Le tracé de l'icône calendrier est recopié dans le CSS (le CSS ne lit pas `Icones.GESTION`).
+  - Format de sauvegarde : inchangé. Démo : inchangée.
+  - Défauts non bloquants (relecture) : classes CSS `nouveau-tournoi` et `nouveau-tournoi-explication` sans règle (accroches) ; `PresentationNouveauTournoi.formater` utilisée seulement par le test ; nom complet du DatePicker dans `Ui.java`.
+  - JavaFX non vérifié visuellement en session : validation à l'écran par Quentin.
+- **Journal 2026-11-05-tache-B035-homologation-verrous** :
+  - Cœur : `model.ChampHomologation` (champs du dossier 🔴), `model.RefusHomologation` (date, motif) ; `Tournoi.champsHomologationVerrouilles()`, `getRefusHomologation()`, `getDernierRefusHomologation()`, `remplacerJugeArbitre(licence, nouveau)`.
+  - `core.ServiceVerrousHomologation` : lecture (`champsVerrouilles`, `estVerrouille`, `motifVerrou`, `verifier`) et modifications gardées (`modifierNom`, `modifierCategorie`, `modifierClubOrganisateur`, `modifierNumeroAffiliation`, `modifierAdresse`, `modifierPeriode`, `modifierCorrespondant`, `ajouter/retirer/remplacerJugeArbitre`, `ajouter/retirer/remplacerTableau`) → `core.ResultatModificationTournoi` (`APPLIQUEE` / `CHAMP_VERROUILLE`, champs, message).
+  - `ServiceCycleTournoi.refuserHomologation(tournoi, motif)` : demande → brouillon ; `ResultatTransition.Motif.MOTIF_REFUS_ABSENT` si le motif est vide ; constructeur avec `Horloge`.
+  - Import : `ImportJoueurs` ne crée plus de tableaux sur un tournoi verrouillé (`planifier` et garde dans `appliquer`).
+  - Format de sauvegarde : champ facultatif `refusHomologation` (liste `{date, motif}`), absent des anciens fichiers. Relecture des anciens fichiers couverte par `RoundTripTournoiTest`.
+  - Écrans : `PresentationPreparationTournoi` (logique, 15 tests), `Ui.verrouiller` / `bandeauVerrou` / `carteBientot`, section CSS « B035 » dans `theme.css`. Les formulaires `FormulairesSection` et `FormulaireTableau`, ainsi que `EcranCompletion` et `EcranTableaux`, passent par ces verrous.
+  - Les setters du modèle ne lèvent pas d'exception (contrairement à B010) : les écrans passent par `ServiceVerrousHomologation`. Choix prudent pour ne pas casser les formulaires, la démo et le géocodage existants.
+  - Défauts restants, non bloquants :
+    - `ServiceCycleTournoi.annuler(tournoi)` renvoie `void`, alors que les transitions voisines renvoient un `ResultatTransition` (asymétrie relevée par le vérificateur).
+    - La classe `cartes-a-venir` (conteneur des cartes « bientôt ») n'a pas de règle CSS ; la carte `carte-bientot` est stylée.
+    - Rendu Windows et mise à l'échelle non vérifiés.
+- **Journal 2026-11-05-tache-B037-jour-j-v2** :
+  - Cœur : `core.ReglePrioriteSalle` (rouge / orange / vert, `NiveauPriorite`), `TableauDeBordSalle.getJoueursEnAttente()` (chrono : fin du dernier match, sinon début du tableau dans la salle, sinon heure prévue si passée ; raisons `RaisonAttente` PRET / ADVERSAIRE_EN_JEU / ADVERSAIRE_INCONNU ; matchs de la poule ou du tour) ; `MatchSalle` porte `niveau`, `motifNiveau`, `attente` ; `core.AnnonceRencontre` (texte de l'annonce, envois réels à brancher avec B017 / B019 par un port).
+  - Modèle : `model.ModeAnnonce`, `Tournoi.modeAnnonce` (null = demander). JSON : champ facultatif `modeAnnonce` (écrit seulement s'il est choisi, absent ou inconnu → null) ; test `RoundTripTournoiTest.mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode`.
+  - Écran : `EcranSalle` (couleurs, joueurs en attente, « pourquoi », « Lancer un match », « Terminer la rencontre / la poule », « Annuler » avec confirmation, choix et affichage de l'annonce, « Salle ») ; `EcranJourJ` (journée du jour, jour précédent / suivant, ouverture d'un tableau depuis « pourquoi ») ; logique dans `PresentationSalle` et `PresentationAvancement` (test `PresentationJourJV2Test`). CSS : section « Jour J v2 (B037) » en fin de `theme.css`.
+  - La liste « Bloqués » n'est plus affichée (toujours calculée par `TableauDeBordSalle.getBloques()`, utilisée par « Lancer un match »). `PresentationSalle.resumeLigne` (B011) n'est plus utilisée par l'écran, remplacée par `resumeSalle`.
+  - Démo inchangée (un seul jour : « Jour suivant » non visible ; aucune attente de 20 min, donc pas de rouge à l'ouverture).
+  - Défauts mineurs restants (aucun bloquant) :
+    - classes CSS de repère posées dans `theme.css` (section « Jour J v2 (B037) ») sans règle associée ;
+    - `PresentationSalle.resumeLigne` (B011) inutilisée depuis l'écran : à supprimer lors d'un prochain nettoyage ;
+    - un tour de 2 parties réelles ou moins passe en rouge à 10 min, y compris le premier tour à byes : à affiner si Quentin le juge trop sévère (voir la question sur les seuils).
+- **Journal 2026-11-06-tache-B012-rendu-v2-pre-tournoi** :
+  - Section B012 en fin de `theme.css` (équilibré 512/512), 4 icônes ajoutées à `Icones`, mode capture `prepa` dans le harnais.
+  - Règles de grille partagées avec `ApercuReglement` et `CarteReglesInscription` (CSS seulement).
+  - Largeurs de pages élargies : à valider.
+  - Non bloquant, préexistant et hors périmètre (relève de B001) : `switch` sur `type.getValue()` (énumération probable, interdit par CLAUDE.md) dans `FormulaireTableau.java` l.469 et 490.
+  - Démo inchangée.
+- **Journal 2026-11-06-tache-B029-mon-profil** :
+  - Classes principales : `ui.ecran.PageCompte` (refaite, deux blocs), `ui.ecran.PresentationProfil` (texte et règles, sans JavaFX, testée par `PresentationProfilTest`, 10 tests), `Ui.encartAlerte` (composant commun d'alerte).
+  - Changement de format de sauvegarde : aucun.
+  - Démo : inchangée (pas de `VERSION_DEMO` touché).
+  - Harnais : mode `profil` ajouté à `outils-dev/run.sh` (voir `outils-dev/LISEZMOI.md`).
+  - Réparation de `theme.css` : une fusion entre B028 et B033 avait perdu une accolade et une ouverture de commentaire sur `main`. Rétablies ; la règle `.icone-tuile.accueil-club-tuile` et la section B033 sont de nouveau appliquées.
+- **Journal 2026-11-06-tache-B030-carte-tournois** :
+  - Classes principales :
+    - `core.StatutCarteTournoi` : les 4 statuts et le motif, testés (`StatutCarteTournoiTest`).
+    - `core.CatalogueTournois` : ajout de `Entree.tableauxAMonNiveauComplets`.
+    - `ui.ecran.PresentationCarteTournois` : pastilles, cartes, légende, agenda par jour (testée, `PresentationCarteTournoisTest`).
+    - `ui.ecran.PageTournois` : segments « Carte des tournois » / « Mes tournois », filtres, bascule Carte / Agenda par jour, « Voir plus ».
+    - `ui.theme.css` : section « carte des tournois (B030) » en fin de fichier, plus la correction de la ligne 2816.
+  - Format de sauvegarde : inchangé.
+  - Démo Brunoy : inchangée (`ContexteApplication.VERSION_DEMO` non modifié, `TournoiDemoBrunoy` non touché).
+- **Journal 2026-11-06-tache-B031-mes-tournois** :
+  - Classes principales :
+    - `core.PerformancesJoueur` : victoires, défaites et forfaits/abandons par tableau et au total, testée (`PerformancesJoueurTest`).
+    - `ui.ecran.PresentationMesTournois` : textes, règles d'affichage et désinscription de l'onglet, testée (`PresentationMesTournoisTest`).
+    - `ui.ecran.MesTournois` : vue mince qui pose les composants (en cours, inscriptions et agenda, passés).
+    - `ui.ecran.EcranSuiviTournoi` : mode lecture seule pour un tournoi passé (`enArchive()`).
+    - `ui.ContexteApplication` : `desinscrireEnLigne` (enregistre tournoi et dépôt).
+    - `ui.theme.css` : section « Mes tournois (B031) » en fin de fichier, et réparation de la fusion B030 (voir Remarques).
+  - Format de sauvegarde : inchangé.
+  - Démo Brunoy : inchangée (`ContexteApplication.VERSION_DEMO` non modifié, `TournoiDemoBrunoy` non touché).
+- **Journal 2026-11-06-tache-B036-remplissage-finances** :
+  - `core/ServiceRemplissageFinances` → `core/BilanRemplissageFinances` (immuable : lignes par tableau et totaux ; tarif de `RemplissageTableaux.tarifEnLigne`, grille via `LibellesTableau.totalArgent` / `partInscriptions`).
+  - Carte « Remplissage et finances » dans `EcranCompletion` (deuxième version), présentation `ui/ecran/PresentationRemplissageFinances` testée hors JavaFX ; section CSS « B036 » en fin de `theme.css`.
+  - Format de sauvegarde : inchangé. Démo : inchangée.
+  - Limites connues (défauts restants, non bloquants) :
+    - Paiement binaire : pas de paiement partiel ni de trop-payé (le modèle ne connaît que « payé » ou non).
+    - Taux de remplissage global : ne compte que les tableaux limités ; un tableau sans limite de places est affiché sans taux (voulu, test `tableau_sans_limite_de_places_hors_du_taux_global`).
+    - Réduction de dotation (conditions de maintien) non appliquée : dotation pleine affichée (question ci-dessus).
+    - Classes CSS `carte-finances` et `finances-nom` posées dans `EcranCompletion` sans règle dans `theme.css` : sans effet visuel aujourd'hui, à régler si un style propre est voulu.
+    - Quelques noms de classes complets au lieu d'imports dans les fichiers de la carte : style seulement.
 
 ## 1. En une phrase
 
