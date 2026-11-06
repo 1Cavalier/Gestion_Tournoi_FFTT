@@ -4,10 +4,10 @@ titre: Organiser la salle : plusieurs salles, plan des tables
 type: idee
 priorite: P2
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: [B011, B035]
 fichiers: [model (salle, plan), ordonnancement/Ordonnanceur, core/ServiceSalle, persistence, ui/ecran/EcranSalle (nouvel éditeur de plan)]
-branche:
+branche: tache/B024-plan-de-salle (prise le 2026-11-06)
 pr:
 ---
 
