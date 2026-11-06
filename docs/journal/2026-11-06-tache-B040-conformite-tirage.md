@@ -3,7 +3,7 @@
 - Branche : `tache/B040-conformite-tirage`
 - Agent : `controleur-conformite`
 - Pull Request : #<n> (complété à l'étape 5)
-- Statut : en attente de relecture (4 tests rouges volontaires, à faire passer par le `correcteur`)
+- Statut : en attente de relecture (4 écarts corrigés par le `correcteur`, 0 test rouge)
 
 ## Pour Quentin
 
@@ -52,6 +52,30 @@ Aussi à corriger (documentation) : `GenerateurTableauElimination.ordreDuCadre`
 annonce `[1,4,3,2]` et `[1,8,5,4,3,6,7,2]` ; le code produit `[1,4,2,3]` et
 `[1,8,4,5,2,7,3,6]` (le placement est correct, seul le commentaire est faux).
 
+## Corrections (correcteur, 2026-11-06)
+
+1. **I.302, poules ordonnées** : après chaque échange, les deux poules sont
+   retriées par points (tri stable) et la poule est reparcourue (chaque échange
+   supprime un doublon sans en créer : la boucle se termine).
+2. **I.302, têtes de poule** : `clubEnDouble` ne regarde que les joueurs mieux
+   classés placés avant : c'est le moins bien classé du doublon qui part ; la
+   tête de la poule cible n'est proposée qu'en dernier recours.
+3. **I.305.2** : corrigé, le texte (« Le vainqueur de la poule 1 en haut du
+   tableau », « les vainqueurs des poules 3 et 4 dans un groupe 3e-4e ») désigne
+   sans ambiguïté le numéro de poule. Les vainqueurs sont pris dans l'ordre des
+   poules (A = 1). La question ci-dessous reste ouverte pour confirmation.
+4. **I.304.1 / I.305.1** : 2es puis 3es tirés avec retour arrière (contrainte
+   stricte au 1er tour, préférence pour le 2e tour si le tableau a réellement des
+   exempts, `n < cadre`) ; budget de 200 000 essais, puis repli sur le tirage
+   glouton historique. Le tirage glouton (repli, rangs > 3) n'applique plus le
+   critère du 2e tour sur un tableau complet.
+5. Commentaire de `ordreDuCadre` corrigé (`[1,4,2,3]`, `[1,8,4,5,2,7,3,6]`).
+
+Effet de bord : pour une même graine, le tirage obtenu n'est plus le même
+qu'avant (l'aléa est consommé dans un autre ordre). La reproductibilité (même
+graine → même tirage) est conservée. Un tableau déjà tiré et enregistré n'est
+pas retiré.
+
 ## Questions pour Quentin
 
 ### 2026-11-06 — Vainqueurs de poule : numéro de poule ou force ?
@@ -63,7 +87,8 @@ annonce `[1,4,3,2]` et `[1,8,5,4,3,6,7,2]` ; le code produit `[1,4,2,3]` et
 - Options : A) suivre le texte à la lettre (numéro de poule, la poule 1 étant
   celle du n°1 du serpentin) ; B) garder la force des vainqueurs (pratique
   courante possible, non écrite dans les règlements fournis).
-- Choix provisoire de l'agent : A (texte explicite), test rouge `i305_2_ECART_…`.
+- Choix provisoire de l'agent : A (texte explicite), appliqué par le correcteur
+  (test `i305_2_ECART_…` vert). Si B, revenir au tri par points.
 - Réponse de Quentin :
 
 ### 2026-11-06 — Origine du « tirage des 2es par blocs »
@@ -96,7 +121,7 @@ test écrit tant que la réponse n'est pas donnée.
 ## Réserves relevées (sans test rouge)
 
 - I.305.1 : le critère du 2e tour est appliqué même si le tableau est complet
-  (cf. cause probable de l'écart 4) ; effet à vérifier après correction.
+  (cf. cause probable de l'écart 4) ; corrigé avec l'écart 4 (`n < cadre`).
 - I.305.4 : si le quart opposé est plein, le 3e est placé dans tout le demi (repli
   silencieux qui viole « le quart opposé »). Jamais constaté sur 4 et 8 poules
   (tests verts), cas d'un tableau très incomplet non couvert.
@@ -108,8 +133,9 @@ test écrit tant que la réponse n'est pas donnée.
 
 ## Notes pour l'état du projet
 
-Nouveau test `ConformiteTirageI302I305Test` (4 rouges volontaires). Aucune
-classe de production modifiée.
+Nouveau test `ConformiteTirageI302I305Test` (12 tests, tous verts après
+correction). Classes modifiées : `GenerateurPoules`, `PlacementQualifiesService`,
+`GenerateurTableauElimination` (commentaire seulement).
 
 ## Fusion
 
@@ -117,5 +143,5 @@ classe de production modifiée.
 
 ## Chiffres
 
-- Tests : 1043 → 1051 (dont 4 rouges signalés pour le correcteur)
+- Tests : 1043 → 1051 (4 rouges corrigés : 1051 / 1051 verts)
 - Version de la démo : inchangée

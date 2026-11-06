@@ -122,13 +122,13 @@ public final class PlacementQualifiesService {
         int cadre = generateur.puissanceDeDeuxSuperieureOuEgale(n);
         Joueur[] parSeed = new Joueur[cadre + 1];
 
-        // Placement des 1ers (têtes de série) selon I.304.2 / I.305.2 :
-        //  - le meilleur (seed 1) en haut, le 2e (seed 2) en bas, à position fixe ;
-        //  - les suivants sont regroupés par blocs (3-4, 5-8, 9-16, …) et, à
-        //    l'intérieur de chaque bloc, TIRÉS AU SORT entre les positions du bloc.
-        // On ne suppose donc pas que le 3e meilleur occupe forcément le seed 3.
+        // Placement des 1ers selon I.305.2 : « Le vainqueur de la poule 1 en haut
+        // du tableau, le vainqueur de la poule 2 en bas » ; « les vainqueurs des
+        // poules 3 et 4 dans un groupe 3e-4e », 5 à 8, 9 à 16… Le texte désigne
+        // le NUMÉRO de poule, pas la force du vainqueur : les 1ers sont donc pris
+        // dans l'ordre des poules (ordre de la liste des qualifiés, poule A = 1),
+        // puis tirés au sort à l'intérieur de chaque groupe.
         List<Qualifie> premiers = filtrerParRang(qualifies, 1);
-        premiers.sort((x, y) -> Integer.compare(y.joueur().getPoints(), x.joueur().getPoints()));
 
         java.util.Map<String, Integer> seedDuPremierParPoule = new java.util.HashMap<>();
         int nbPremiers = premiers.size();
@@ -167,16 +167,34 @@ public final class PlacementQualifiesService {
 
         // Placement des 2es : demi opposé à leur 1er. On mémorise le seed attribué
         // à chaque 2e, par poule, pour pouvoir contraindre les 3es ensuite.
+        // I.304.1 / I.305.1 : le 2e tour ne compte que si le tableau est
+        // réellement incomplet (exempts), pas parce que des places restent à
+        // remplir pendant le tirage.
+        boolean incomplet = n < cadre;
         java.util.Map<String, Integer> seedDuDeuxiemeParPoule = new java.util.HashMap<>();
-        List<Qualifie> deuxiemes = filtrerParRang(qualifies, 2);
-        placerDeuxiemes(deuxiemes, parSeed, seedDuPremierParPoule, seedEnHaut,
-                cadre, rng, seedDuDeuxiemeParPoule);
+        List<Qualifie> deuxiemes = ordreDeTirageDesDeuxiemes(filtrerParRang(qualifies, 2), rng);
+        List<Qualifie> troisiemes = new ArrayList<>(filtrerParRang(qualifies, 3));
+        Collections.shuffle(troisiemes, rng);
 
-        // Placement des 3es : même demi que leur 2e, mais dans le quart opposé
-        // à celui de leur 2e (règle I.305).
-        List<Qualifie> troisiemes = filtrerParRang(qualifies, 3);
-        placerTroisiemes(troisiemes, parSeed, seedDuDeuxiemeParPoule, seedEnHaut,
-                quartParSeed, cadre, rng);
+        // I.305.1 : tirage des 2es puis des 3es avec retour arrière, pour
+        // garantir qu'aucun joueur ne rencontre au 1er tour un joueur de son
+        // association quand une telle répartition existe. À défaut (impossible
+        // ou recherche trop longue), tirage glouton historique.
+        Joueur[] avantTirage = parSeed.clone();
+        List<Qualifie> aTirer = new ArrayList<>(deuxiemes);
+        aTirer.addAll(troisiemes);
+        int[] budget = {BUDGET_RETOUR_ARRIERE};
+        if (!placerAvecRetourArriere(aTirer, 0, parSeed, seedDuPremierParPoule,
+                seedDuDeuxiemeParPoule, seedEnHaut, quartParSeed, cadre, incomplet, rng, budget)) {
+            System.arraycopy(avantTirage, 0, parSeed, 0, parSeed.length);
+            seedDuDeuxiemeParPoule.clear();
+            placerDeuxiemes(deuxiemes, parSeed, seedDuPremierParPoule, seedEnHaut,
+                    cadre, incomplet, rng, seedDuDeuxiemeParPoule);
+            // Placement des 3es : même demi que leur 2e, mais dans le quart
+            // opposé à celui de leur 2e (règle I.305.4).
+            placerTroisiemes(troisiemes, parSeed, seedDuDeuxiemeParPoule, seedEnHaut,
+                    quartParSeed, cadre, incomplet, rng);
+        }
 
         List<Qualifie> autres = new ArrayList<>();
         for (Qualifie q : qualifies) {
@@ -184,9 +202,107 @@ public final class PlacementQualifiesService {
                 autres.add(q);
             }
         }
-        placerSurPositionsLibres(autres, parSeed, cadre, rng);
+        placerSurPositionsLibres(autres, parSeed, cadre, incomplet, rng);
 
         return parSeed;
+    }
+
+    /** Nombre maximal de places essayées par la recherche avec retour arrière. */
+    private static final int BUDGET_RETOUR_ARRIERE = 200_000;
+
+    /**
+     * Place récursivement {@code aTirer[k..]} (2es puis 3es) en respectant
+     * I.305.3 / I.305.4 (demi opposé au 1er ; 3e dans le demi du 2e, quart
+     * opposé) et, strictement, I.305.1 au 1er tour. Si le tableau est incomplet,
+     * les places sans conflit au 2e tour sont essayées en premier. Retourne
+     * false si aucune répartition n'existe ou si le budget est épuisé.
+     */
+    private boolean placerAvecRetourArriere(List<Qualifie> aTirer, int k, Joueur[] parSeed,
+                                            java.util.Map<String, Integer> seedDuPremierParPoule,
+                                            java.util.Map<String, Integer> seedDuDeuxiemeParPoule,
+                                            boolean[] seedEnHaut, int[] quartParSeed, int cadre,
+                                            boolean incomplet, Random rng, int[] budget) {
+        if (k == aTirer.size()) {
+            return true;
+        }
+        if (--budget[0] < 0) {
+            return false;
+        }
+        Qualifie q = aTirer.get(k);
+        List<Integer> candidats;
+        if (q.rangDansPoule() == 2) {
+            Integer seedPremier = seedDuPremierParPoule.get(q.nomPoule());
+            boolean premierEnHaut = (seedPremier != null) && seedEnHaut[seedPremier];
+            candidats = seedsLibresDansDemi(parSeed, seedEnHaut, cadre, !premierEnHaut);
+        } else {
+            candidats = placesDuTroisieme(q, parSeed, seedDuDeuxiemeParPoule, seedEnHaut,
+                    quartParSeed, cadre);
+        }
+        Collections.shuffle(candidats, rng);
+        // 1er tour : contrainte stricte ; 2e tour (tableau incomplet) : préférence.
+        List<Integer> essais = new ArrayList<>();
+        List<Integer> essaisConflit2eTour = new ArrayList<>();
+        for (int seed : candidats) {
+            if (conflitPremierTour(seed, q.joueur(), parSeed, cadre)) {
+                continue;
+            }
+            if (incomplet && conflitDeuxiemeTour(seed, q.joueur(), parSeed, cadre)) {
+                essaisConflit2eTour.add(seed);
+            } else {
+                essais.add(seed);
+            }
+        }
+        essais.addAll(essaisConflit2eTour);
+        for (int seed : essais) {
+            parSeed[seed] = q.joueur();
+            if (q.rangDansPoule() == 2) {
+                seedDuDeuxiemeParPoule.put(q.nomPoule(), seed);
+            }
+            if (placerAvecRetourArriere(aTirer, k + 1, parSeed, seedDuPremierParPoule,
+                    seedDuDeuxiemeParPoule, seedEnHaut, quartParSeed, cadre, incomplet, rng, budget)) {
+                return true;
+            }
+            parSeed[seed] = null;
+            if (q.rangDansPoule() == 2) {
+                seedDuDeuxiemeParPoule.remove(q.nomPoule());
+            }
+            if (budget[0] < 0) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Places possibles d'un 3e (I.305.4) : même demi que son 2e, quart opposé ;
+     * repli sur tout le demi si ce quart est plein (comme le tirage glouton),
+     * sur toute place libre si son 2e n'est pas placé.
+     */
+    private List<Integer> placesDuTroisieme(Qualifie q, Joueur[] parSeed,
+                                            java.util.Map<String, Integer> seedDuDeuxiemeParPoule,
+                                            boolean[] seedEnHaut, int[] quartParSeed, int cadre) {
+        Integer seedDeuxieme = seedDuDeuxiemeParPoule.get(q.nomPoule());
+        List<Integer> candidats = new ArrayList<>();
+        if (seedDeuxieme == null) {
+            for (int seed = 1; seed <= cadre; seed++) {
+                if (parSeed[seed] == null) {
+                    candidats.add(seed);
+                }
+            }
+            return candidats;
+        }
+        boolean demiCible = seedEnHaut[seedDeuxieme];
+        int quartCible = quartOppose(quartParSeed[seedDeuxieme]);
+        for (int seed = 1; seed <= cadre; seed++) {
+            if (parSeed[seed] == null && seedEnHaut[seed] == demiCible
+                    && quartParSeed[seed] == quartCible) {
+                candidats.add(seed);
+            }
+        }
+        if (candidats.isEmpty()) {
+            candidats = seedsLibresDansDemi(parSeed, seedEnHaut, cadre, demiCible);
+        }
+        return candidats;
     }
 
     /**
@@ -269,10 +385,30 @@ public final class PlacementQualifiesService {
      * blocs se réduit à un tirage simple dans le demi opposé, ce qui reste
      * conforme.</p>
      */
-    private void placerDeuxiemes(List<Qualifie> deuxiemes, Joueur[] parSeed,
+    private void placerDeuxiemes(List<Qualifie> deuxiemesOrdonnes, Joueur[] parSeed,
                                  java.util.Map<String, Integer> seedDuPremierParPoule,
-                                 boolean[] seedEnHaut, int cadre, Random rng,
+                                 boolean[] seedEnHaut, int cadre, boolean incomplet, Random rng,
                                  java.util.Map<String, Integer> seedDuDeuxiemeParPoule) {
+        for (Qualifie q : deuxiemesOrdonnes) {
+            Integer seedPremier = seedDuPremierParPoule.get(q.nomPoule());
+            boolean premierEnHaut = (seedPremier != null) && seedEnHaut[seedPremier];
+            boolean cibleHaut = !premierEnHaut; // demi opposé au 1er
+
+            List<Integer> candidats = seedsLibresDansDemi(parSeed, seedEnHaut, cadre, cibleHaut);
+            int seedChoisi = choisirSeedEvitantClub(candidats, q.joueur(), parSeed, cadre, incomplet, rng);
+            if (seedChoisi > 0) {
+                parSeed[seedChoisi] = q.joueur();
+                seedDuDeuxiemeParPoule.put(q.nomPoule(), seedChoisi);
+            }
+        }
+    }
+
+    /**
+     * Ordre de tirage des 2es : blocs de force (moitié du nombre de 2es),
+     * ordre tiré au sort à l'intérieur de chaque bloc (voir {@link #placerDeuxiemes}).
+     */
+    private List<Qualifie> ordreDeTirageDesDeuxiemes(List<Qualifie> deuxiemes, Random rng) {
+        List<Qualifie> ordre = new ArrayList<>();
         // Trie les 2es par force décroissante pour constituer les blocs.
         List<Qualifie> parForce = new ArrayList<>(deuxiemes);
         parForce.sort((x, y) -> Integer.compare(y.joueur().getPoints(), x.joueur().getPoints()));
@@ -288,20 +424,9 @@ public final class PlacementQualifiesService {
             List<Qualifie> bloc = new ArrayList<>(parForce.subList(debut, fin));
             // Ordre de tirage aléatoire à l'intérieur du bloc (reproductible).
             Collections.shuffle(bloc, rng);
-
-            for (Qualifie q : bloc) {
-                Integer seedPremier = seedDuPremierParPoule.get(q.nomPoule());
-                boolean premierEnHaut = (seedPremier != null) && seedEnHaut[seedPremier];
-                boolean cibleHaut = !premierEnHaut; // demi opposé au 1er
-
-                List<Integer> candidats = seedsLibresDansDemi(parSeed, seedEnHaut, cadre, cibleHaut);
-                int seedChoisi = choisirSeedEvitantClub(candidats, q.joueur(), parSeed, cadre, rng);
-                if (seedChoisi > 0) {
-                    parSeed[seedChoisi] = q.joueur();
-                    seedDuDeuxiemeParPoule.put(q.nomPoule(), seedChoisi);
-                }
-            }
+            ordre.addAll(bloc);
         }
+        return ordre;
     }
 
     /**
@@ -313,15 +438,13 @@ public final class PlacementQualifiesService {
     private void placerTroisiemes(List<Qualifie> troisiemes, Joueur[] parSeed,
                                   java.util.Map<String, Integer> seedDuDeuxiemeParPoule,
                                   boolean[] seedEnHaut, int[] quartParSeed,
-                                  int cadre, Random rng) {
-        List<Qualifie> aPlacer = new ArrayList<>(troisiemes);
-        Collections.shuffle(aPlacer, rng);
-
-        for (Qualifie q : aPlacer) {
+                                  int cadre, boolean incomplet, Random rng) {
+        // Ordre de tirage déjà mélangé par l'appelant.
+        for (Qualifie q : troisiemes) {
             Integer seedDeuxieme = seedDuDeuxiemeParPoule.get(q.nomPoule());
             if (seedDeuxieme == null) {
                 // Pas de 2e placé (cas dégénéré) : repli sur positions libres.
-                placerSurPositionsLibres(List.of(q), parSeed, cadre, rng);
+                placerSurPositionsLibres(List.of(q), parSeed, cadre, incomplet, rng);
                 continue;
             }
             boolean demiCible = seedEnHaut[seedDeuxieme];         // même demi que le 2e
@@ -342,7 +465,7 @@ public final class PlacementQualifiesService {
                 candidats = seedsLibresDansDemi(parSeed, seedEnHaut, cadre, demiCible);
             }
 
-            int seedChoisi = choisirSeedEvitantClub(candidats, q.joueur(), parSeed, cadre, rng);
+            int seedChoisi = choisirSeedEvitantClub(candidats, q.joueur(), parSeed, cadre, incomplet, rng);
             if (seedChoisi > 0) {
                 parSeed[seedChoisi] = q.joueur();
             }
@@ -366,7 +489,7 @@ public final class PlacementQualifiesService {
 
     /** Place des qualifiés sur n'importe quelle position libre (dernier recours). */
     private void placerSurPositionsLibres(List<Qualifie> rang, Joueur[] parSeed,
-                                          int cadre, Random rng) {
+                                          int cadre, boolean incomplet, Random rng) {
         List<Qualifie> aPlacer = new ArrayList<>(rang);
         Collections.shuffle(aPlacer, rng);
         for (Qualifie q : aPlacer) {
@@ -376,7 +499,7 @@ public final class PlacementQualifiesService {
                     libres.add(seed);
                 }
             }
-            int seedChoisi = choisirSeedEvitantClub(libres, q.joueur(), parSeed, cadre, rng);
+            int seedChoisi = choisirSeedEvitantClub(libres, q.joueur(), parSeed, cadre, incomplet, rng);
             if (seedChoisi > 0) {
                 parSeed[seedChoisi] = q.joueur();
             }
@@ -402,13 +525,13 @@ public final class PlacementQualifiesService {
      * alors inévitable). Retourne -1 si la liste est vide.
      */
     private int choisirSeedEvitantClub(List<Integer> candidats, Joueur joueur,
-                                       Joueur[] parSeed, int cadre, Random rng) {
+                                       Joueur[] parSeed, int cadre, boolean incomplet, Random rng) {
         if (candidats.isEmpty()) {
             return -1;
         }
         List<Integer> sansConflit = new ArrayList<>();
         for (int seed : candidats) {
-            if (!creeConflitClub(seed, joueur, parSeed, cadre)) {
+            if (!creeConflitClub(seed, joueur, parSeed, cadre, incomplet)) {
                 sansConflit.add(seed);
             }
         }
@@ -425,37 +548,37 @@ public final class PlacementQualifiesService {
      * contre un joueur du même club, au premier tour, ou — <b>si le tableau est
      * incomplet (présence d'exemptés)</b> — au deuxième tour (I.304.1 / I.305.1).
      */
-    private boolean creeConflitClub(int seed, Joueur joueur, Joueur[] parSeed, int cadre) {
+    private boolean creeConflitClub(int seed, Joueur joueur, Joueur[] parSeed, int cadre,
+                                    boolean incomplet) {
+        return conflitPremierTour(seed, joueur, parSeed, cadre)
+                || (incomplet && conflitDeuxiemeTour(seed, joueur, parSeed, cadre));
+    }
+
+    /** Adversaire direct de 1er tour du même club (I.305.1). */
+    private boolean conflitPremierTour(int seed, Joueur joueur, Joueur[] parSeed, int cadre) {
         String club = joueur.getClub();
         if (club == null || club.isBlank()) {
             return false;
         }
-        // Conflit au 1er tour : adversaire direct.
         int adversaire = seedAdversairePremierTour(seed, cadre);
         Joueur autre = (adversaire >= 1 && adversaire <= cadre) ? parSeed[adversaire] : null;
-        if (autre != null && club.equalsIgnoreCase(autre.getClub())) {
-            return true;
-        }
-
-        // Conflit potentiel au 2e tour, uniquement si le tableau est incomplet
-        // (au moins un bye). On regarde les seeds du même « groupe de 4 » (ceux
-        // qui se rejoignent au 2e tour) : si l'un est un joueur du même club ET
-        // que le rapprochement au 2e tour est possible, on évite ce placement.
-        if (tableauIncomplet(parSeed, cadre)) {
-            for (int autreSeed : seedsDeuxiemeTour(seed, cadre)) {
-                Joueur j2 = (autreSeed >= 1 && autreSeed <= cadre) ? parSeed[autreSeed] : null;
-                if (j2 != null && club.equalsIgnoreCase(j2.getClub())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return autre != null && club.equalsIgnoreCase(autre.getClub());
     }
 
-    /** @return true si au moins une position du cadre est vide (bye) → tableau incomplet. */
-    private boolean tableauIncomplet(Joueur[] parSeed, int cadre) {
-        for (int s = 1; s <= cadre; s++) {
-            if (parSeed[s] == null) {
+    /**
+     * Adversaire possible au 2e tour du même club : les deux autres places du
+     * « groupe de 4 ». À n'utiliser que si le tableau est incomplet (I.305.1 :
+     * « Si le tableau est incomplet, il faut prendre également en compte le
+     * deuxième tour »).
+     */
+    private boolean conflitDeuxiemeTour(int seed, Joueur joueur, Joueur[] parSeed, int cadre) {
+        String club = joueur.getClub();
+        if (club == null || club.isBlank()) {
+            return false;
+        }
+        for (int autreSeed : seedsDeuxiemeTour(seed, cadre)) {
+            Joueur j2 = (autreSeed >= 1 && autreSeed <= cadre) ? parSeed[autreSeed] : null;
+            if (j2 != null && club.equalsIgnoreCase(j2.getClub())) {
                 return true;
             }
         }

@@ -24,9 +24,9 @@ la mesure du possible », sinon rencontre au 1er tour (deux) ou le plus tôt pos
 (trois ou plus).
 - Serpentin exact (poules de 3, 12 joueurs : A 1-8-9, B 2-7-10…), départage
   aléatoire reproductible des ex æquo (graine) : ✅ testé.
-- Séparation des clubs : ⚠️ ÉCART. L'échange place le joueur déplacé en fin de
-  poule (poule non ordonnée par points) et peut déplacer le n°1 hors de la tête de
-  sa poule. Tests rouges `i302_ECART_*` (`ConformiteTirageI302I305Test`).
+- Séparation des clubs : ✅ (corrigé B040). Le moins bien classé du doublon est
+  déplacé, une tête de poule n'est échangée qu'en dernier recours, les poules
+  restent ordonnées par points. Tests `i302_ECART_*` (`ConformiteTirageI302I305Test`).
 - Rencontre précoce si séparation impossible : ✅ (`GenerateurMatchsPoule`).
 - Source des points (qualificatifs, licence, mensuelle) : clause configurable de
   l'organisateur, hors tirage.
@@ -53,13 +53,14 @@ Audit B040 (2026-11-06) :
   le 2e mais le quart opposé (I.305.4) : ✅ testé sur 4 et 8 poules (200 tirages).
   Réserve : repli sur tout le demi si le quart est plein. Le tirage « par blocs »
   des 2es s'appuie sur un manuel absent des textes fournis : non vérifiable.
-- Vainqueurs de poule (I.305.2) : ❌ ÉCART. Le texte parle des vainqueurs des
-  poules 1, 2, 3-4, 5-8 ; le code les classe par points. Test rouge
-  `i305_2_ECART_*`.
-- Séparation des clubs au 1er tour (I.305.1) : ❌ ÉCART. 137 tirages sur 200
-  donnent un conflit au 1er tour sur un tableau de 16 alors qu'une solution
-  existe. Test rouge `i305_1_…`. Le 2e tour des tableaux incomplets est traité
-  (test existant), avec une réserve sur sa priorité.
+- Vainqueurs de poule (I.305.2) : ✅ (corrigé B040). Placés selon le numéro
+  de poule (poule A = 1 en haut, B = 2 en bas, groupes 3-4, 5-8… tirés au sort),
+  comme le dit le texte. Test `i305_2_ECART_*`. Question de confirmation posée
+  dans le journal B040.
+- Séparation des clubs au 1er tour (I.305.1) : ✅ (corrigé B040). Tirage des 2es
+  et 3es avec retour arrière : aucun conflit au 1er tour quand une répartition
+  existe (sinon tirage glouton historique). Le 2e tour n'est pris en compte que si
+  le tableau a réellement des exempts, et il passe après le 1er tour. Test `i305_1_…`.
 
 ---
 
