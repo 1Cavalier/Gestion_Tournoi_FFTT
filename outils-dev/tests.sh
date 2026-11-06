@@ -1,5 +1,6 @@
 #!/bin/bash
-SP=${SP:-/tmp/pingmanager-dev}; mkdir -p $SP
+# Dossier de travail privé par défaut : deux sessions parallèles ne s'écrasent plus.
+SP=${SP:-$(mktemp -d /tmp/pingmanager-dev.XXXXXX)}; mkdir -p $SP
 SRC=${SRC:-$(cd "$(dirname "$0")/.." && pwd)}
 J=/usr/share/java/junit-platform-console-standalone.jar
 FX=/usr/share/java/javafx-base.jar:/usr/share/java/javafx-controls.jar:/usr/share/java/javafx-graphics.jar:/usr/share/java/javafx-web.jar:/usr/share/java/javafx-media.jar

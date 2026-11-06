@@ -82,6 +82,11 @@ final class CarteTournois {
         } else {
             partagee.pont.onOuvrir = onOuvrir;
             partagee.pont.onSurvol = onSurvol;
+            // Nouvelle page : rien n'est sélectionné dans sa liste, la carte non plus.
+            partagee.selectionEnAttente = null;
+            if (partagee.prete) {
+                partagee.executer("selectionner(null, false)");
+            }
         }
         return partagee;
     }
