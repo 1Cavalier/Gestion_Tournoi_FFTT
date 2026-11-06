@@ -1,6 +1,9 @@
 package com.pingmanager.persistence;
 
 import com.pingmanager.model.AccesClub;
+import com.pingmanager.model.AgendaCompte;
+import com.pingmanager.model.EvenementAgenda;
+import com.pingmanager.model.OrigineEvenement;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteOrganisateur;
 import com.pingmanager.model.CompteUtilisateur;
@@ -162,5 +165,72 @@ final class ApplicationMapper {
             c.lierLicence(licence);
         }
         return c;
+    }
+
+    // ------------------------------------------------------------------
+    // AgendaCompte (champ « agendas », facultatif : anciens fichiers relus sans)
+    // ------------------------------------------------------------------
+
+    static Json ecrireAgenda(AgendaCompte a) {
+        Json o = Json.objet();
+        o.set("email", a.getEmail());
+        Json evts = Json.tableau();
+        for (EvenementAgenda e : a.evenements()) {
+            Json j = Json.objet();
+            j.set("id", e.getId());
+            j.set("titre", e.getTitre());
+            j.set("date", e.getDate().toString());
+            if (e.estSurPlusieursJours()) {
+                j.set("dateFin", e.getDateFin().toString());
+            }
+            if (e.getHeure() != null) {
+                j.set("heure", e.getHeure().toString());
+            }
+            if (e.getLieu() != null) {
+                j.set("lieu", e.getLieu());
+            }
+            if (e.getNote() != null) {
+                j.set("note", e.getNote());
+            }
+            j.set("origine", e.getOrigine().name());
+            if (e.getCleTournoi() != null) {
+                j.set("cleTournoi", e.getCleTournoi());
+            }
+            evts.add(j);
+        }
+        o.set("evenements", evts);
+        return o;
+    }
+
+    static AgendaCompte lireAgenda(Json o) {
+        AgendaCompte a = new AgendaCompte(o.get("email").asString());
+        if (o.has("evenements")) {
+            for (Json j : o.get("evenements").elements()) {
+                String fin = j.getString("dateFin", null);
+                String heure = j.getString("heure", null);
+                String cle = j.getString("cleTournoi", null);
+                OrigineEvenement origine = lireOrigine(j.getString("origine", null), cle);
+                a.enregistrer(EvenementAgenda.builder()
+                        .id(j.get("id").asString())
+                        .titre(j.get("titre").asString())
+                        .date(java.time.LocalDate.parse(j.get("date").asString()))
+                        .dateFin(fin == null ? null : java.time.LocalDate.parse(fin))
+                        .heure(heure == null ? null : java.time.LocalTime.parse(heure))
+                        .lieu(j.getString("lieu", null))
+                        .note(j.getString("note", null))
+                        .origine(origine)
+                        .cleTournoi(cle)
+                        .construire());
+            }
+        }
+        return a;
+    }
+
+    /** Origine inconnue ou date de tournoi sans clé : relue comme date personnelle. */
+    private static OrigineEvenement lireOrigine(String valeur, String cle) {
+        if ("TOURNOI".equals(valeur) && cle != null && !cle.isBlank()) {
+            return OrigineEvenement.TOURNOI;
+        }
+        return OrigineEvenement.PERSONNEL;
     }
 }

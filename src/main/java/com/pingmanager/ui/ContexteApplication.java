@@ -717,12 +717,21 @@ public final class ContexteApplication {
      * tournoi. Le paiement reste « à régler » (phase de paiement ultérieure).
      */
     public ServiceInscriptionEnLigne.Bilan inscrireEnLigne(Path fichier, Tournoi t, java.util.Collection<Tableau> selection) {
+        com.pingmanager.model.AgendaCompte agenda = agendaDuCompte();
         ServiceInscriptionEnLigne.Bilan b = inscriptionEnLigne.inscrire(t, ficheLicenceLiee().orElse(null), selection,
-                java.time.LocalDateTime.now());
+                java.time.LocalDateTime.now(), agenda);
         if (b.estValide()) {
             DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            if (agenda != null) {
+                sauvegarder(); // tournoi ajouté automatiquement à l'agenda (B032)
+            }
         }
         return b;
+    }
+
+    /** Agenda du compte connecté (créé vide au besoin), ou {@code null} hors connexion. */
+    public com.pingmanager.model.AgendaCompte agendaDuCompte() {
+        return compteConnecte == null ? null : depot.agendaDe(compteConnecte.getEmail());
     }
 
     /** Tournois où la licence liée est inscrite ou en liste d'attente (tous statuts sauf brouillon). */

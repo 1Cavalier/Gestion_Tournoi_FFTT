@@ -2,6 +2,7 @@ package com.pingmanager.persistence;
 
 import com.pingmanager.core.RegistreClubs;
 import com.pingmanager.model.AccesClub;
+import com.pingmanager.model.AgendaCompte;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteOrganisateur;
 import com.pingmanager.model.CompteUtilisateur;
@@ -59,6 +60,7 @@ public final class DepotApplication implements RegistreClubs {
     private final Map<String, CompteOrganisateur> comptesParEmail = new LinkedHashMap<>();
     private final Map<String, CompteUtilisateur> comptesUtilisateursParEmail = new LinkedHashMap<>();
     private final Map<String, AccesClub> accesParCle = new LinkedHashMap<>();
+    private final Map<String, AgendaCompte> agendasParEmail = new LinkedHashMap<>();
 
     /** Tournois récemment ouverts, du plus récent au plus ancien. */
     private final List<ProjetTournoi> recents = new ArrayList<>();
@@ -210,6 +212,32 @@ public final class DepotApplication implements RegistreClubs {
     }
 
     // ==================================================================
+    // Agendas des comptes
+    // ==================================================================
+
+    /**
+     * Agenda du compte de cet email ; créé vide (et retenu) au premier appel. Les
+     * modifications faites sur l'agenda renvoyé sont sauvegardées avec le dépôt.
+     */
+    public AgendaCompte agendaDe(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("email obligatoire");
+        }
+        return agendasParEmail.computeIfAbsent(cleEmail(email), AgendaCompte::new);
+    }
+
+    /** Enregistre (ou remplace) l'agenda d'un compte. */
+    public DepotApplication enregistrerAgenda(AgendaCompte agenda) {
+        Objects.requireNonNull(agenda, "agenda");
+        agendasParEmail.put(cleEmail(agenda.getEmail()), agenda);
+        return this;
+    }
+
+    public List<AgendaCompte> tousLesAgendas() {
+        return new ArrayList<>(agendasParEmail.values());
+    }
+
+    // ==================================================================
     // Tournois récents
     // ==================================================================
 
@@ -300,6 +328,14 @@ public final class DepotApplication implements RegistreClubs {
         }
         doc.set("acces", acces);
 
+        Json agendas = Json.tableau();
+        for (AgendaCompte a : agendasParEmail.values()) {
+            if (!a.estVide()) {
+                agendas.add(ApplicationMapper.ecrireAgenda(a));
+            }
+        }
+        doc.set("agendas", agendas);
+
         Json rec = Json.tableau();
         for (ProjetTournoi p : recents) {
             Json o = Json.objet();
@@ -338,6 +374,11 @@ public final class DepotApplication implements RegistreClubs {
         if (doc.has("acces")) {
             for (Json o : doc.get("acces").elements()) {
                 depot.enregistrerAcces(ApplicationMapper.lireAcces(o));
+            }
+        }
+        if (doc.has("agendas")) { // absent des fichiers antérieurs à l'agenda
+            for (Json o : doc.get("agendas").elements()) {
+                depot.enregistrerAgenda(ApplicationMapper.lireAgenda(o));
             }
         }
         if (doc.has("recents")) {
