@@ -37,3 +37,6 @@ Voir le cahier des charges v0.
 - `mvn -B test` : 823 tests, 0 échec, avec LANG=C et LANG=C.UTF-8.
 
 ## Résultat
+- verificateur-modele : `PerformancesJoueur` +5 tests (poule seule, abandon/refus/disqualification, liste d'attente, petite finale, nulls) et `DesinscriptionEnLigneContexteTest` (2 tests : tournoi et agenda relus à froid, refus sans effet). Aucun défaut.
+- Règle d'or : aucun import interdit ajouté dans model/core/ordonnancement. Note : pas de « double forfait » dans le modèle (un seul fautif par match).
+- `mvn -B test` : 830 tests, 0 échec.

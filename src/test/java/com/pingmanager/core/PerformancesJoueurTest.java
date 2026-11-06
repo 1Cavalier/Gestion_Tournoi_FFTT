@@ -201,4 +201,93 @@ class PerformancesJoueurTest {
         assertEquals(decides, defaites);
         assertTrue(decides > 0);
     }
+
+    @Test
+    void poule_seule_sans_tableau_final_compte_les_matchs_de_poule() {
+        Tournoi t = publie();
+        Tableau a = tableauLance(t, "A", 9, joueurs("A", 4));
+        assertNull(a.getPhaseFinale(), "tableau final non construit");
+        Poule poule = a.getPoules().get(0);
+        Joueur moi = poule.getJoueurs().get(0);
+        List<Match> miens = matchsDe(poule, moi);
+        miens.forEach(m -> gagner(m, moi));
+        PerformancesJoueur.BilanTableau b = PerformancesJoueur.calculerTableau(a, moi.getNumeroLicence());
+        assertEquals(miens.size(), b.victoires());
+        assertEquals(0, b.defaites());
+    }
+
+    @Test
+    void abandon_refus_et_disqualification_comptent_et_sont_signales() {
+        Tournoi t = publie();
+        Tableau a = tableauLance(t, "A", 9, joueurs("A", 5));
+        Poule poule = a.getPoules().get(0);
+        Joueur moi = poule.getJoueurs().get(0);
+        List<Match> miens = matchsDe(poule, moi);
+        assertTrue(miens.size() >= 3);
+        miens.get(0).declarerIssue(IssueMatch.ABANDON, moi);
+        miens.get(1).declarerIssue(IssueMatch.REFUS_DE_JOUER, moi);
+        miens.get(2).declarerIssue(IssueMatch.DISQUALIFICATION, miens.get(2).getJoueurA().equals(moi)
+                ? miens.get(2).getJoueurB() : miens.get(2).getJoueurA());
+        PerformancesJoueur.Bilan b = PerformancesJoueur.calculer(t, moi.getNumeroLicence());
+        assertEquals(1, b.victoires());
+        assertEquals(2, b.defaites());
+        assertEquals(3, b.forfaitsEtAbandons());
+    }
+
+    @Test
+    void joueur_en_liste_d_attente_n_a_aucune_performance() {
+        Tournoi t = publie();
+        Tableau a = tableauLance(t, "A", 9, joueurs("A", 4));
+        Joueur attente = j("ATT", 400);
+        a.inscrire(attente);
+        PerformancesJoueur.Bilan b = PerformancesJoueur.calculer(t, "ATT");
+        assertTrue(b.estVide());
+        assertTrue(b.tableaux().isEmpty());
+    }
+
+    @Test
+    void petite_finale_et_finale_comptent_une_fois_chacune() {
+        Tournoi t = publie();
+        Tableau a = tableauLance(t, "A", 9, joueurs("A", 12));
+        a.getPoules().forEach(p -> p.getMatchs().forEach(m -> gagner(m, m.getJoueurA())));
+        ServicePhaseFinale service = new ServicePhaseFinale();
+        assertTrue(service.construire(a, 42L).estConstruit());
+        for (Tour tour : a.getPhaseFinale().getTours()) {
+            for (Match m : tour.getMatchs()) {
+                if (!m.estBye() && m.getJoueurA() != null
+                        && m.getJoueurB() != null && !m.getJoueurA().estADeterminer()
+                        && !m.getJoueurB().estADeterminer() && m.getStatut() != StatutMatch.TERMINE) {
+                    List<Manche> manches = new ArrayList<>();
+                    for (int i = 0; i < m.getNombreManchesGagnantes(); i++) {
+                        manches.add(new Manche(11, 6));
+                    }
+                    assertTrue(service.saisirScore(a, m, manches).estValide());
+                }
+            }
+        }
+        // Chaque match décidé (petite finale incluse) donne exactement une victoire et une défaite.
+        int decides = 0;
+        int vues = 0;
+        for (SuiviTournoi.Partie p : SuiviTournoi.parties(a)) {
+            if (!p.match().estBye() && p.match().getVainqueur() != null) {
+                decides++;
+            }
+        }
+        for (Joueur joueur : a.getInscrits()) {
+            PerformancesJoueur.BilanTableau b = PerformancesJoueur.calculerTableau(a, joueur.getNumeroLicence());
+            vues += b.victoires();
+            assertEquals(b.victoires() + b.defaites(), b.matchsDecides());
+        }
+        assertEquals(decides, vues);
+    }
+
+    @Test
+    void licence_nulle_ou_tableau_sans_match_donne_un_bilan_a_zero() {
+        Tournoi t = publie();
+        Tableau a = tableauLance(t, "A", 9, joueurs("A", 4));
+        PerformancesJoueur.BilanTableau b = PerformancesJoueur.calculerTableau(a, null);
+        assertEquals(0, b.matchsDecides());
+        assertThrows(NullPointerException.class, () -> PerformancesJoueur.calculerTableau(null, "X"));
+        assertTrue(PerformancesJoueur.calculer(new Tournoi("Vide", "Club", JOUR), "X").estVide());
+    }
 }
