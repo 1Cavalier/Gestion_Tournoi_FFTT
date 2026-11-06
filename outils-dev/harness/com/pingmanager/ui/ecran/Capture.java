@@ -43,6 +43,7 @@ public class Capture extends Application {
     static boolean suivi;
     static boolean jourj;
     static boolean profil;
+    static boolean prepa;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -59,6 +60,7 @@ public class Capture extends Application {
         suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
         profil = java.util.Arrays.asList(a).contains("profil");
+        prepa = java.util.Arrays.asList(a).contains("prepa");
         launch(a);
     }
 
@@ -111,6 +113,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (prepa) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesPrepa(coq);
             lancer(0);
             return;
         }
@@ -408,6 +417,37 @@ public class Capture extends Application {
                     ((javafx.scene.control.CheckBox) n).setSelected(true));
             defiler(1.0);
         }, "profil-joueur-confirme");
+    }
+
+    /** B012 : écrans de préparation du tournoi à 1440 px (vue d'ensemble, Général, Tableaux, Sportif, Complémentaire). */
+    void etapesPrepa(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("gestion");
+            cliquer("Compléter");
+        }, "p01-vue-ensemble");
+        etape(() -> defiler(1.0), "p01b-vue-ensemble-bas");
+        etape(() -> { defiler(0); cliquer("Modifier"); }, "p02-general");
+        etape(() -> defiler(0.5), "p02b-general-milieu");
+        etape(() -> {
+            List<TextField> champs = new ArrayList<>();
+            collect(scene.getRoot(), TextField.class, champs::add);
+            champs.stream().filter(f -> "jj/mm/aaaa".equals(f.getPromptText())).findFirst().orElseThrow().setText("13-03-27");
+            cliquer("Enregistrer");
+            defiler(1.0);
+        }, "p02c-general-erreur");
+        etape(() -> { coq[0].afficher("gestion"); cliquer("Compléter"); cliquer("Gérer les tableaux"); }, "p03-tableaux");
+        etape(() -> defiler(1.0), "p03b-tableaux-bas");
+        etape(() -> cliquer("Ajouter un tableau"), "p04-nouveau-tableau");
+        etape(() -> defiler(0.5), "p04b-nouveau-tableau-milieu");
+        etape(() -> cliquer("Valider le tableau"), "p04c-erreur-tableau");
+        etape(() -> { cliquer("Annuler"); cliquer("← Vue d'ensemble"); }, null);
+        etape(() -> cliquer("Gérer"), "p05-sportif");
+        etape(() -> defiler(0.5), "p05b-sportif-milieu");
+        etape(() -> cliquer("← Vue d'ensemble"), null);
+        etape(() -> cliquerN("Gérer", 1), "p06-complementaire");
+        etape(() -> defiler(1.0), "p06b-complementaire-bas");
     }
 
     /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
@@ -808,7 +848,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil) ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || prepa) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
