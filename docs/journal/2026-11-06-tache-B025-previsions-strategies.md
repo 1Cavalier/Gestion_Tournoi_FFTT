@@ -2,7 +2,7 @@
 
 - Branche : `tache/B025-previsions-strategies`
 - Agent : `developpeur` (premier maillon de la chaîne)
-- Pull Request : (complété à l'étape 5)
+- Pull Request : #49
 - Statut : en attente de l'intégrateur (développement, vérification, relecture et documentation faits ; validation visuelle de Quentin à faire)
 
 ## Pour Quentin
