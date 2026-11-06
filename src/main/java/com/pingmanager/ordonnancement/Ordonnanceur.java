@@ -160,20 +160,26 @@ public final class Ordonnanceur {
             return List.of();
         }
 
-        // Matchs jouables, triés par score décroissant.
+        // Index calculés une seule fois pour toute la vague (B025 : performance
+        // sur 400 joueurs et 15 tableaux) ; résultat identique au calcul match par match.
+        Contexte ctx = new Contexte(maintenant);
+
+        // Matchs jouables, triés par score décroissant (tri stable : à score égal,
+        // l'ordre d'ajout est conservé).
         List<MatchOrdonnancable> jouables = new ArrayList<>();
+        Map<MatchOrdonnancable, Double> scores = new HashMap<>();
         for (MatchOrdonnancable mo : matchs) {
-            if (estJouableMaintenant(mo)) {
+            if (estJouable(mo, ctx.occupes)) {
                 jouables.add(mo);
+                scores.put(mo, score(mo, maintenant, ctx));
             }
         }
-        jouables.sort(Comparator.comparingDouble((MatchOrdonnancable mo) ->
-                scorePriorite(mo, maintenant)).reversed());
+        jouables.sort(Comparator.comparingDouble((MatchOrdonnancable mo) -> scores.get(mo)).reversed());
 
         // Affectation gloutonne : on descend la liste triée, en réservant les
         // joueurs déjà engagés dans cette vague pour ne pas les mettre 2 fois.
         List<PropositionLancement> propositions = new ArrayList<>();
-        Set<String> joueursReserves = new HashSet<>(joueursOccupes());
+        Set<String> joueursReserves = new HashSet<>(ctx.occupes);
         int indexTable = 0;
 
         for (MatchOrdonnancable mo : jouables) {
@@ -187,8 +193,8 @@ public final class Ordonnanceur {
                 continue; // un joueur déjà pris dans cette vague
             }
             int table = libres.get(indexTable++);
-            double score = scorePriorite(mo, maintenant);
-            String explication = expliquer(mo, maintenant);
+            double score = scores.get(mo);
+            String explication = expliquer(mo, maintenant, ctx);
             propositions.add(new PropositionLancement(mo, table, score, explication));
             joueursReserves.add(a);
             joueursReserves.add(b);
@@ -196,11 +202,29 @@ public final class Ordonnanceur {
         return propositions;
     }
 
+    /** Comme {@link #estJouableMaintenant}, avec l'ensemble des joueurs occupés déjà calculé. */
+    private static boolean estJouable(MatchOrdonnancable mo, Set<String> occupes) {
+        Match m = mo.getMatch();
+        if (m.getStatut() != StatutMatch.A_JOUER || m.estBye()) {
+            return false;
+        }
+        Joueur a = m.getJoueurA();
+        Joueur b = m.getJoueurB();
+        if (a == null || b == null || a.estADeterminer() || b.estADeterminer()) {
+            return false;
+        }
+        return !occupes.contains(a.getNumeroLicence()) && !occupes.contains(b.getNumeroLicence());
+    }
+
     /**
      * Calcule le score de priorité d'un match jouable. Plus il est élevé, plus
      * le match doit être lancé tôt.
      */
     public double scorePriorite(MatchOrdonnancable mo, LocalDateTime maintenant) {
+        return score(mo, maintenant, null);
+    }
+
+    private double score(MatchOrdonnancable mo, LocalDateTime maintenant, Contexte ctx) {
         double score = 0.0;
 
         // 1) Avancement par vagues : POULE > 1er tour > tours suivants.
@@ -223,10 +247,34 @@ public final class Ordonnanceur {
         // 3) Déblocage : si un joueur de ce match est engagé dans d'autres matchs
         //    encore à jouer (typiquement inscrit à deux tableaux), le lancer
         //    libère plus vite la suite. On compte ces engagements.
-        int engagements = compterEngagementsAilleurs(mo);
+        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
         score += poids.getPoidsDeblocage() * engagements;
 
+        // 4) Tableau commencé tôt (B025) : minutes depuis le premier match lancé
+        //    du tableau. Inactif avec les poids par défaut.
+        if (poids.getPoidsTableauCommence() != 0.0) {
+            long minutesTableau = ctx == null ? minutesDepuisDebutTableau(mo, maintenant)
+                    : ctx.minutesDepuisDebutTableau(mo);
+            score += poids.getPoidsTableauCommence() * minutesTableau;
+        }
+
         return score;
+    }
+
+    /**
+     * Minutes écoulées depuis le lancement du premier match du tableau de ce
+     * match (0 si le tableau n'a encore rien lancé).
+     */
+    long minutesDepuisDebutTableau(MatchOrdonnancable mo, LocalDateTime maintenant) {
+        LocalDateTime debut = null;
+        for (MatchOrdonnancable autre : matchs) {
+            LocalDateTime l = autre.getMatch().getInstantLancement();
+            if (l != null && autre.getIdentifiantTableau().equals(mo.getIdentifiantTableau())
+                    && (debut == null || l.isBefore(debut))) {
+                debut = l;
+            }
+        }
+        return debut == null ? 0 : Math.max(0, Duration.between(debut, maintenant).toMinutes());
     }
 
     /**
@@ -252,8 +300,12 @@ public final class Ordonnanceur {
         return count;
     }
 
-    /** Explication lisible de la priorité d'un match (phase, attente, déblocage). */
+    /** Explication lisible de la priorité d'un match (phase, attente, déblocage, tableau commencé). */
     public String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant) {
+        return expliquer(mo, maintenant, null);
+    }
+
+    private String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant, Contexte ctx) {
         List<String> raisons = new ArrayList<>();
         raisons.add(switch (mo.getPhase().name()) {
             case "POULE" -> "poule";
@@ -267,9 +319,16 @@ public final class Ordonnanceur {
                 raisons.add("attend " + min + " min");
             }
         }
-        int engagements = compterEngagementsAilleurs(mo);
+        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
         if (engagements > 0) {
             raisons.add("débloque " + engagements + " match(s)");
+        }
+        if (poids.getPoidsTableauCommence() != 0.0) {
+            long minutesTableau = ctx == null ? minutesDepuisDebutTableau(mo, maintenant)
+                    : ctx.minutesDepuisDebutTableau(mo);
+            if (minutesTableau > 0) {
+                raisons.add("tableau commencé depuis " + minutesTableau + " min");
+            }
         }
         return String.join(", ", raisons);
     }
@@ -464,5 +523,81 @@ public final class Ordonnanceur {
             matchs.add(mo);
         }
         occupationTables.put(table, mo);
+    }
+
+    // -------------------------------------------------------------------------
+    // Index d'une vague de propositions (B025 : performance)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Index calculés une fois par vague : joueurs occupés, nombre de matchs
+     * restants par joueur et par paire de joueurs, premier lancement de chaque
+     * tableau. Donne exactement les mêmes valeurs que
+     * {@link #compterEngagementsAilleurs} et {@link #minutesDepuisDebutTableau},
+     * en temps constant par match au lieu d'un parcours de tous les matchs.
+     */
+    private final class Contexte {
+        private final LocalDateTime maintenant;
+        private final Set<String> occupes = joueursOccupes();
+        private final Map<String, Integer> restantsParJoueur = new HashMap<>();
+        private final Map<String, Integer> restantsParPaire = new HashMap<>();
+        private final Set<MatchOrdonnancable> restants = new HashSet<>();
+        private final Map<String, LocalDateTime> debutTableau = new HashMap<>();
+
+        Contexte(LocalDateTime maintenant) {
+            this.maintenant = maintenant;
+            for (MatchOrdonnancable mo : matchs) {
+                Match m = mo.getMatch();
+                LocalDateTime l = m.getInstantLancement();
+                if (l != null) {
+                    debutTableau.merge(mo.getIdentifiantTableau(), l, (x, y) -> x.isBefore(y) ? x : y);
+                }
+                if (m.getStatut() == StatutMatch.TERMINE || m.estBye()) {
+                    continue;
+                }
+                restants.add(mo);
+                String x = licence(m.getJoueurA());
+                String y = licence(m.getJoueurB());
+                if (x != null) {
+                    restantsParJoueur.merge(x, 1, Integer::sum);
+                }
+                if (y != null && !y.equals(x)) {
+                    restantsParJoueur.merge(y, 1, Integer::sum);
+                }
+                if (x != null && y != null && !x.equals(y)) {
+                    restantsParPaire.merge(paire(x, y), 1, Integer::sum);
+                }
+            }
+        }
+
+        int engagementsAilleurs(MatchOrdonnancable mo) {
+            Match ref = mo.getMatch();
+            String a = licence(ref.getJoueurA());
+            String b = licence(ref.getJoueurB());
+            int union;
+            if (a == null && b == null) {
+                return 0;
+            } else if (a == null || b == null || a.equals(b)) {
+                union = restantsParJoueur.getOrDefault(a == null ? b : a, 0);
+            } else {
+                union = restantsParJoueur.getOrDefault(a, 0) + restantsParJoueur.getOrDefault(b, 0)
+                        - restantsParPaire.getOrDefault(paire(a, b), 0);
+            }
+            // Le match lui-même figure dans l'union s'il est encore à jouer.
+            return restants.contains(mo) ? union - 1 : union;
+        }
+
+        long minutesDepuisDebutTableau(MatchOrdonnancable mo) {
+            LocalDateTime debut = debutTableau.get(mo.getIdentifiantTableau());
+            return debut == null ? 0 : Math.max(0, Duration.between(debut, maintenant).toMinutes());
+        }
+    }
+
+    private static String licence(Joueur j) {
+        return j == null ? null : j.getNumeroLicence();
+    }
+
+    private static String paire(String x, String y) {
+        return x.compareTo(y) < 0 ? x + "\u0000" + y : y + "\u0000" + x;
     }
 }

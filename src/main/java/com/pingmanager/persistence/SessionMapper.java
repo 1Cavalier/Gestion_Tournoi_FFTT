@@ -187,6 +187,10 @@ final class SessionMapper {
         o.set("poidsAttente", p.getPoidsAttente());
         o.set("poidsDeblocage", p.getPoidsDeblocage());
         o.set("pointsParMinuteAttente", p.getPointsParMinuteAttente());
+        // B025 : écrit seulement s'il sert, pour ne pas changer les sessions existantes.
+        if (p.getPoidsTableauCommence() != 0.0) {
+            o.set("poidsTableauCommence", p.getPoidsTableauCommence());
+        }
         return o;
     }
 
@@ -199,6 +203,8 @@ final class SessionMapper {
         p.setPoidsAttente(o.getDouble("poidsAttente", 2.0));
         p.setPoidsDeblocage(o.getDouble("poidsDeblocage", 3.0));
         p.setPointsParMinuteAttente(o.getDouble("pointsParMinuteAttente", 1.0));
+        // B025 : absent des anciennes sessions → critère inactif.
+        p.setPoidsTableauCommence(o.getDouble("poidsTableauCommence", 0.0));
         return p;
     }
 }

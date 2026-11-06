@@ -5,6 +5,7 @@ import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.Carton;
 import com.pingmanager.model.CouleurCarton;
 import com.pingmanager.model.ModeAnnonce;
+import com.pingmanager.model.StrategieOrdonnancement;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.EchelonHomologation;
 import com.pingmanager.model.NiveauTournoi;
@@ -200,6 +201,10 @@ public final class TournoiMapper {
         // Jour J (B037) : annonce des rencontres mémorisée ; absent des anciens fichiers.
         if (t.getModeAnnonce() != null) {
             o.set("modeAnnonce", ecrireEnum(t.getModeAnnonce()));
+        }
+        // B025 : stratégie d'ordonnancement, écrite seulement si le club l'a choisie.
+        if (t.strategieOrdonnancementChoisie()) {
+            o.set("strategieOrdonnancement", ecrireEnum(t.getStrategieOrdonnancement()));
         }
 
         // Tableaux.
@@ -527,6 +532,22 @@ public final class TournoiMapper {
         return null;
     }
 
+    /**
+     * Stratégie relue ; absente (ancien fichier), non textuelle ou inconnue (fichier
+     * plus récent) : aucun choix, la stratégie par défaut s'applique.
+     */
+    private static StrategieOrdonnancement lireStrategie(Json j) {
+        if (j == null || j.getType() != Json.Type.CHAINE) {
+            return null;
+        }
+        for (StrategieOrdonnancement s : StrategieOrdonnancement.values()) {
+            if (s.name().equals(j.asString())) {
+                return s;
+            }
+        }
+        return null;
+    }
+
     private static Tournoi lireTournoi(Json o, ContexteSerialisation ctx) {
         List<LocalDate> jours = new ArrayList<>();
         for (Json j : o.get("jours").elements()) {
@@ -596,6 +617,7 @@ public final class TournoiMapper {
         }
         t.setTablesEchauffement(Math.max(0, o.getInt("tablesEchauffement", 0)));
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
+        t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
             for (Json l : o.get("lotsTables").elements()) {
