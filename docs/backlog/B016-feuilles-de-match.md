@@ -4,10 +4,10 @@ titre: Impression des feuilles de match, de poule et du tableau final
 type: jour-j
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [core/reglement (nouveaux générateurs), ui/ecran/EcranPoulesTableau, ui/ecran/VuePhaseFinale]
-branche:
+branche: tache/B016-feuilles-de-match
 pr:
 ---
 
