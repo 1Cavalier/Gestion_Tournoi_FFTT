@@ -34,4 +34,6 @@ Aucune pour l'instant.
 
 ## Passations
 
+- 2026-11-06, `developpeur` : stratégies (modèle, poids, persistance), simulateur reproductible et comparaison, tests de charge mesurés, écran « Prévisions et stratégie » branché dans la 2e version ; la salle (couleurs B037) suit la stratégie du tournoi. 969 tests verts. Détails et questions : `docs/journal/2026-11-06-tache-B025-previsions-strategies.md`.
+
 ## Résultat
