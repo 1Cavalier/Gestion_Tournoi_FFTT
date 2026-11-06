@@ -36,6 +36,12 @@ Aucune pour l'instant.
 
 ## Passations
 
-- 2026-11-06 `developpeur` : modèle (PlanSalle, SalleTournoi), cœur (PlansTypesSalle, ServicePlanSalle, EditionPlanSalles), réservations dans l'Ordonnanceur, JSON `salles` rétrocompatible, EcranPlanSalle + vue Salle sur le plan réel, captures `docs/captures/b024/`. 1022 tests verts. Questions dans le journal.
+- 2026-11-06 `developpeur` : modèle (PlanSalle, SalleTournoi), cœur (PlansTypesSalle, ServicePlanSalle, EditionPlanSalles), réservations dans l'Ordonnanceur et ServiceSalle, JSON `salles` facultatif, EcranPlanSalle depuis EcranCompletion, vue Salle du jour J sur le plan réel, captures `docs/captures/b024/`.
+  Restes : défilement horizontal au-delà de 7 tables par rangée au jour J ; glisser-déposer non vérifié ; SimulateurTournoi ignore les réservations. 1022 tests verts.
+- 2026-11-06 `verificateur-modele` : +20 tests limites (PlanSalleLimitesTest, OrdonnanceurReservationsLimitesTest, PlanSalleMapperLimitesTest), 1042 verts, 0 bloquant.
+  Mineurs : table réservée à un tableau absent jamais utilisée (signalée seulement par `ServicePlanSalle.verifier`) ; `Tournoi.setSalles(null)` = « sans plan » non documenté.
+- 2026-11-06 `relecteur-code` : 0 bloquant. Non bloquant : classe `plan-grille-jourj` (EcranSalle.java:427) sans règle CSS.
 
 ## Résultat
+
+En attente de fusion (intégrateur). Plan de salle persisté et relu (`salles` facultatif, rétrocompatible), réservations de tables et de salles respectées par l'ordonnanceur, éditeur et vue Salle du jour J sur le plan réel, captures `docs/captures/b024/`. `mvn -B test` : 1042 tests, 0 échec. Validation visuelle et glisser-déposer à faire par Quentin (voir le journal).

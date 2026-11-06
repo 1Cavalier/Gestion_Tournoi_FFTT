@@ -3,7 +3,7 @@
 - Branche : `tache/B024-plan-de-salle`
 - Agent : `developpeur` (étape de pipeline)
 - Pull Request : (complété par l'intégrateur)
-- Statut : en attente de la chaîne de relecture
+- Statut : en attente de l'intégrateur (relecture passée : `verificateur-modele` 0 bloquant, `relecteur-code` 0 bloquant ; points mineurs ci-dessous)
 
 ## Pour Quentin
 
@@ -66,6 +66,10 @@ salle), au lieu de la grille habituelle. Un tournoi sans plan ne change pas.
 - `REGLES_CREATION_TOURNOI.md` : ligne « Salles et plan » ajoutée sous « Tables ».
 - Attendu de test modifié (validé d'avance par Quentin) : `PresentationPreparationTournoiTest.remplissage_et_finances_remplace_sa_carte_bientot_apres_acceptation` attend `[]` au lieu de `[B024]`. Aucun autre attendu changé.
 - Démo : inchangée (Brunoy et jour J non touchés).
+- Points non bloquants relevés par la relecture (à traiter dans une tâche dédiée si besoin) :
+  - `verificateur-modele` : une table réservée à un tableau absent (supprimé ou renommé) n'est jamais utilisée par l'ordonnanceur ; seul `ServicePlanSalle.verifier` le signale (éditeur et carte). Voir la question « Réservations par nom de tableau ».
+  - `verificateur-modele` : `Tournoi.setSalles(null)` veut dire « sans plan » (le tournoi redevient une salle implicite en grille). Ce comportement n'est pas encore écrit dans la Javadoc de `Tournoi`.
+  - `relecteur-code` : la classe `plan-grille-jourj` (`EcranSalle.java`, ligne 427) n'a pas encore de règle dans `theme.css` ; elle ne sert qu'à repérer le plan réel au jour J.
 
 ## Fusion
 
@@ -73,5 +77,5 @@ salle), au lieu de la grille habituelle. Un tournoi sans plan ne change pas.
 
 ## Chiffres
 
-- Tests : 983 → 1022 (mesurés par `mvn -B test`, 0 échec)
+- Tests : 983 → 1042 (mesurés par `mvn -B test`, 0 échec ; 1022 à la fin du développement, +20 tests limites ajoutés par `verificateur-modele`)
 - Version de la démo : inchangée
