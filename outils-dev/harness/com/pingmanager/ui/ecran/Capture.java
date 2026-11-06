@@ -44,6 +44,7 @@ public class Capture extends Application {
     static boolean jourj;
     static boolean profil;
     static boolean prepa;
+    static boolean mesTournois;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -61,6 +62,7 @@ public class Capture extends Application {
         jourj = java.util.Arrays.asList(a).contains("jourj");
         profil = java.util.Arrays.asList(a).contains("profil");
         prepa = java.util.Arrays.asList(a).contains("prepa");
+        mesTournois = java.util.Arrays.asList(a).contains("mestournois");
         launch(a);
     }
 
@@ -109,6 +111,13 @@ public class Capture extends Application {
         stage.show();
 
         Coquille[] coq = new Coquille[1];
+        if (mesTournois) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesMesTournois(coq);
+            lancer(0);
+            return;
+        }
         if (jourj) {
             stage.setWidth(1440);
             stage.setHeight(900);
@@ -620,6 +629,44 @@ public class Capture extends Application {
     }
 
     /** B027 : fiche du tournoi du jour J en mode suivi (lecture seule), navigation entre tableaux. */
+    /** B031 : Mes tournois (en cours, inscriptions et agenda, passés), puis un tournoi passé revu. */
+    void etapesMesTournois(Coquille[] coq) {
+        // Inscription préalable (Créteil, tableau B) pour montrer une carte « Mes inscriptions ».
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("tournois");
+            PageTournois.derniere.ouvrirFicheParNom("Tournoi régional de Créteil");
+        }, null, 800);
+        etape(() -> { defiler(1.0); cliquer("S'inscrire"); }, null);
+        etape(() -> { cases().get(1).fire(); cliquer("Continuer"); }, null);
+        etape(() -> {
+            List<javafx.scene.control.CheckBox> c = cases();
+            c.get(c.size() - 1).fire();
+            cliquer("Confirmer l'inscription");
+        }, null);
+        etape(() -> cliquerSiPresent("Continuer"), null);
+        etape(() -> {
+            coq[0].afficher("tournois");
+            cliquer("Mes tournois");
+        }, "m01-mes-tournois", 1000);
+        etape(() -> {
+            List<TextField> champs = new ArrayList<>();
+            collect(scene.getRoot(), TextField.class, champs::add);
+            champs.stream().filter(f -> f.getPromptText() != null && f.getPromptText().startsWith("Titre"))
+                    .findFirst().ifPresent(f -> f.setText("Stage de Toussaint"));
+            champs.stream().filter(f -> f.getPromptText() != null && f.getPromptText().startsWith("Heure"))
+                    .findFirst().ifPresent(f -> f.setText("9h30"));
+            List<javafx.scene.control.DatePicker> dates = new ArrayList<>();
+            collect(scene.getRoot(), javafx.scene.control.DatePicker.class, dates::add);
+            dates.forEach(d -> d.setValue(LocalDate.now().plusDays(10)));
+            cliquer("Ajouter la date");
+        }, "m02-agenda-date-ajoutee");
+        etape(() -> defiler(1.0), "m03-mes-tournois-bas");
+        etape(() -> { defiler(0.0); cliquerSiPresent("Me désinscrire"); defiler(0.3); }, "m04-desinscription");
+        etape(() -> cliquerSiPresent("Revoir poule et tableau"), "m05-tournoi-passe", 1000);
+    }
+
     void etapesSuivi(Coquille[] coq) {
         etape(() -> {
             coq[0] = new Coquille(ctx, () -> { });

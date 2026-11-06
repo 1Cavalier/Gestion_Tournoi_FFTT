@@ -729,6 +729,25 @@ public final class ContexteApplication {
         return b;
     }
 
+    /**
+     * Désinscrit la licence liée des tableaux choisis (« Mes tournois », B031),
+     * enregistre aussitôt le tournoi, puis l'agenda du compte (date retirée à la
+     * désinscription complète).
+     */
+    public ServiceInscriptionEnLigne.BilanDesinscription desinscrireEnLigne(Path fichier, Tournoi t,
+                                                                            java.util.Collection<Tableau> tableaux) {
+        com.pingmanager.model.AgendaCompte agenda = agendaDuCompte();
+        ServiceInscriptionEnLigne.BilanDesinscription b = inscriptionEnLigne.desinscrire(t,
+                ficheLicenceLiee().orElse(null), tableaux, agenda);
+        if (b.estValide()) {
+            DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            if (agenda != null) {
+                sauvegarder();
+            }
+        }
+        return b;
+    }
+
     /** Agenda du compte connecté (créé vide au besoin), ou {@code null} hors connexion. */
     public com.pingmanager.model.AgendaCompte agendaDuCompte() {
         return compteConnecte == null ? null : depot.agendaDe(compteConnecte.getEmail());

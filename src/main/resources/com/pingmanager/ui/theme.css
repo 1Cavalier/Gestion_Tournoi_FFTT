@@ -3034,6 +3034,36 @@
 
 .agenda-jour-titre {
     -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.agenda-jour-aujourdhui .agenda-jour-titre {
+    -fx-text-fill: -primaire;
+}
+
+.agenda-jour-liste {
+    -fx-background-color: -surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 12;
+    -fx-padding: 4 8 4 8;
+}
+
+.agenda-ligne-tournoi.tournoi-grise .ligne-element-titre,
+.agenda-ligne-tournoi.tournoi-grise .ligne-element-detail {
+    -fx-opacity: 0.6;
+}
+
+/* Motif du quatrième statut (complet ou pas à son niveau) : distinct du rouge du refus. */
+.motif-complet {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}
+
+/* =====================================================================
    Mon profil (B029) : bloc personnel, bloc Club séparé, alerte de liaison
    ===================================================================== */
 
@@ -3064,29 +3094,6 @@
     -fx-text-fill: -texte;
 }
 
-.agenda-jour-aujourdhui .agenda-jour-titre {
-    -fx-text-fill: -primaire;
-}
-
-.agenda-jour-liste {
-    -fx-background-color: -surface;
-    -fx-background-radius: 12;
-    -fx-border-color: -bordure;
-    -fx-border-radius: 12;
-    -fx-padding: 4 8 4 8;
-}
-
-.agenda-ligne-tournoi.tournoi-grise .ligne-element-titre,
-.agenda-ligne-tournoi.tournoi-grise .ligne-element-detail {
-    -fx-opacity: 0.6;
-}
-
-/* Motif du quatrième statut (complet ou pas à son niveau) : distinct du rouge du refus. */
-.motif-complet {
-    -fx-text-fill: -texte-doux;
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-    -fx-wrap-text: true;
 .profil-bloc-club-intro {
     -fx-text-fill: -texte-doux;
     -fx-font-size: 13.5px;
@@ -3229,4 +3236,76 @@
 
 .menu-button.menu-ajout:hover {
     -fx-background-color: -bordure-forte, -surface-2;
+}
+
+/* ==================================================================
+   Mes tournois (B031) : tournoi en cours, inscriptions et agenda,
+   tournois passés. Classes posées par MesTournois : mes-tournois (page),
+   mes-tournois-partie (+ mes-tournois-en-cours, -inscriptions, -agenda,
+   -passes), mes-tournois-carte (+ mes-tournois-carte-en-cours,
+   mes-tournois-carte-passe), mes-tournois-performances, mes-agenda-liste,
+   mes-agenda-ligne, mes-agenda-etiquette-tournoi / -perso,
+   mes-agenda-formulaire. Badge « Terminé » du suivi revu : badge-termine.
+   Charte v2 : variables existantes uniquement (clair et sombre).
+   ================================================================== */
+.mes-tournois {
+    -fx-spacing: 28;
+}
+
+.mes-tournois-partie {
+    -fx-spacing: 10;
+}
+
+/* Le tournoi en cours ressort : liseré primaire et filet épais à gauche. */
+.carte.mes-tournois-carte-en-cours {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 1 1 1 5;
+    -fx-background-radius: 12, 11;
+}
+
+/* Tournoi passé : bloc date neutre, la couleur reste aux tournois à venir. */
+.mes-tournois-carte-passe .bloc-date {
+    -fx-background-color: -neutre-doux;
+}
+
+.mes-tournois-carte-passe .bloc-date .bloc-date-jour,
+.mes-tournois-carte-passe .bloc-date .bloc-date-mois {
+    -fx-text-fill: -neutre-texte;
+}
+
+/* Performances : petit retrait sous la période. */
+.mes-tournois-performances {
+    -fx-padding: 4 0 0 0;
+}
+
+/* Agenda : lignes filetées, étiquettes de même largeur pour aligner les titres. */
+.mes-agenda-ligne {
+    -fx-padding: 10 6 10 6;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.badge.mes-agenda-etiquette-tournoi,
+.badge.mes-agenda-etiquette-perso {
+    -fx-min-width: 118px;
+    -fx-alignment: center;
+}
+
+.badge.mes-agenda-etiquette-tournoi {
+    -fx-background-color: -info-doux;
+    -fx-text-fill: -info-texte;
+}
+
+.badge.mes-agenda-etiquette-perso {
+    -fx-background-color: -neutre-doux;
+    -fx-text-fill: -neutre-texte;
+}
+
+.mes-agenda-formulaire {
+    -fx-padding: 16 0 0 0;
+}
+
+.badge.badge-termine {
+    -fx-background-color: -neutre-doux;
+    -fx-text-fill: -neutre-texte;
 }
