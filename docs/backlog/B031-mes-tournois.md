@@ -40,3 +40,5 @@ Voir le cahier des charges v0.
 - verificateur-modele : `PerformancesJoueur` +5 tests (poule seule, abandon/refus/disqualification, liste d'attente, petite finale, nulls) et `DesinscriptionEnLigneContexteTest` (2 tests : tournoi et agenda relus à froid, refus sans effet). Aucun défaut.
 - Règle d'or : aucun import interdit ajouté dans model/core/ordonnancement. Note : pas de « double forfait » dans le modèle (un seul fautif par match).
 - `mvn -B test` : 830 tests, 0 échec.
+- relecteur-code : liaisons OK (export .ics FileChooser vers ExportIcs, désinscription suivie de sauvegarde tournoi + agenda, réouverture en lecture seule via enArchive, partie club retirée de MesTournois, pas de switch, pas d'import interdit). Aucun défaut bloquant.
+- Remarques mineures : « Informations du tournoi » depuis un tournoi passé repasse par FicheTournoi.build, donc suivi direct « En cours » avec relecture auto (lecture seule, non bloquant) ; `mesTournoisClub` n'est plus utilisé que par un test et `.intertitre-groupe` du CSS plus que par du CSS ; classes marqueurs sans règle CSS (mes-tournois-en-cours, -inscriptions, -passes, -agenda, mes-agenda-liste).
