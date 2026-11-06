@@ -33,5 +33,7 @@ Voir le cahier des charges v0.
 - designer-interface : réparation de theme.css vérifiée règle par règle contre B029 (b8e03ff) et B030 (7e49663) : 0 règle perdue, 0 doublon, accolades équilibrées, aucune erreur CSS au harnais.
 - Charte v2 (section B031, variables existantes, clair et sombre) : liseré primaire complet + filet gauche pour le tournoi en cours, bloc date neutre pour les passés, étiquettes d'agenda de même largeur (titres alignés), espacements. Harnais : inscription préalable à Créteil (carte « Mes inscriptions » et désinscription capturées) ; captures avant/après dans docs/captures/B031/.
 - Non capturé : carte « Tournoi en cours » (aucun tournoi de démo à la date du jour) et badge « Terminé ». Attention : `PresentationMesTournoisTest` échoue si la locale n'est pas UTF-8 (fichier « Passé.json ») ; vert avec LANG=C.UTF-8.
+- correcteur : dépendance à la locale corrigée dans le test (helper `tf` : nom de fichier ASCII, `Path.of` refusait « Passé.json » sous LANG=C) ; titre du tournoi « Passé » inchangé.
+- `mvn -B test` : 823 tests, 0 échec, avec LANG=C et LANG=C.UTF-8.
 
 ## Résultat

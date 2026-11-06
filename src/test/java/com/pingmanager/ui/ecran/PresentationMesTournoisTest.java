@@ -35,7 +35,8 @@ class PresentationMesTournoisTest {
     }
 
     private static TournoiFichier tf(Tournoi t) {
-        return new TournoiFichier(Path.of(t.getNom() + ".json"), t);
+        // Nom de fichier ASCII : Path.of refuse les accents sans locale UTF-8 (LANG=C, CI).
+        return new TournoiFichier(Path.of(t.getNom().replaceAll("[^A-Za-z0-9]", "_") + ".json"), t);
     }
 
     private static Tableau tableau(Tournoi t, String nom) {
