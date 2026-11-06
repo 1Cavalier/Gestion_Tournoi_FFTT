@@ -4,10 +4,10 @@ titre: Approfondir l'échange avec la FFTT : joueurs, clubs, résultats
 type: recherche
 priorite: P1
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [docs/RECHERCHE_FFTT.md]
-branche:
+branche: tache/B022-api-fftt
 pr:
 ---
 
