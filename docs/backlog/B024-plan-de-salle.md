@@ -4,11 +4,11 @@ titre: Organiser la salle : plusieurs salles, plan des tables
 type: idee
 priorite: P2
 taille: L
-statut: en-cours
+statut: fait
 depend-de: [B011, B035]
 fichiers: [model (salle, plan), ordonnancement/Ordonnanceur, core/ServiceSalle, persistence, ui/ecran/EcranSalle (nouvel éditeur de plan)]
 branche: tache/B024-plan-de-salle (prise le 2026-11-06)
-pr:
+pr: PR B024 (voir GitHub, branche tache/B024-plan-de-salle)
 ---
 
 ## Ce qu'il faut faire
@@ -44,4 +44,4 @@ Aucune pour l'instant.
 
 ## Résultat
 
-En attente de fusion (intégrateur). Plan de salle persisté et relu (`salles` facultatif, rétrocompatible), réservations de tables et de salles respectées par l'ordonnanceur, éditeur et vue Salle du jour J sur le plan réel, captures `docs/captures/b024/`. `mvn -B test` : 1042 tests, 0 échec. Validation visuelle et glisser-déposer à faire par Quentin (voir le journal).
+Fusionné. Plan de salle persisté et relu (`salles` facultatif, rétrocompatible), réservations de tables et de salles respectées par l'ordonnanceur, éditeur et vue Salle du jour J sur le plan réel, captures `docs/captures/b024/`. `mvn -B test` : 1042 tests, 0 échec. Validation visuelle et glisser-déposer à faire par Quentin (voir le journal).

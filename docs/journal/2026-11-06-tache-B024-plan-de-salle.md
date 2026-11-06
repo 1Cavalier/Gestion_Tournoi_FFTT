@@ -73,9 +73,12 @@ salle), au lieu de la grille habituelle. Un tournoi sans plan ne change pas.
 
 ## Fusion
 
-(à compléter par l'intégrateur)
+Fusion de `origin/main` sans conflit ; `verifier-fusion.py` : OK.
+
+Attendu modifié : `PresentationPreparationTournoiTest` passe de [B024] à [] (carte « bientôt » retirée). Changement validé explicitement par Quentin avant le développement : ne bloque pas la fusion.
 
 ## Chiffres
 
 - Tests : 983 → 1042 (mesurés par `mvn -B test`, 0 échec ; 1022 à la fin du développement, +20 tests limites ajoutés par `verificateur-modele`)
+- Après synchronisation avec main : 1043 tests, 0 échec
 - Version de la démo : inchangée
