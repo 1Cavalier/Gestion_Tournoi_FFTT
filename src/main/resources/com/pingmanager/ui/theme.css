@@ -2765,3 +2765,153 @@
 .ligne-element.ligne-tournoi-cliquable {
     -fx-cursor: hand;
 }
+
+/* =====================================================================
+   Homologation (B035) : verrous du dossier, refus, parcours, cartes
+   « bientôt » de la deuxième version (à affiner par le designer)
+   ===================================================================== */
+
+/* Champ du dossier d'homologation verrouillé : grisé, non modifiable. */
+.champ-verrouille,
+.text-field.champ-verrouille,
+.combo-box.champ-verrouille {
+    -fx-background-color: -bordure, -surface-2;
+    -fx-text-fill: -texte-doux;
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.bandeau-verrou {
+    -fx-text-fill: -info-texte;
+    -fx-background-color: -info-doux;
+    -fx-background-radius: 6;
+    -fx-padding: 8 12 8 12;
+}
+
+.label.pastille.pastille-verrou {
+    -fx-text-fill: -neutre-texte;
+    -fx-background-color: -neutre-doux;
+}
+
+/* Rappel du dernier refus d'homologation, en tête du brouillon. */
+.carte-refus-homologation {
+    -fx-background-color: -erreur-doux;
+    -fx-border-color: -erreur;
+    -fx-border-width: 0 0 0 4;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 14 16 14 16;
+}
+
+.carte-refus-homologation .label {
+    -fx-text-fill: -erreur-texte;
+}
+
+.button.bouton-refus {
+    -fx-text-fill: -erreur-texte;
+    -fx-border-color: -erreur;
+}
+
+.saisie-refus {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}
+
+/* Parcours en quatre étapes (préparation → publication). */
+.parcours {
+    -fx-alignment: center-left;
+    -fx-padding: 4 0 4 0;
+}
+
+.parcours-etape {
+    -fx-alignment: top-center;
+    -fx-padding: 8 6 8 6;
+    -fx-background-radius: 10;
+}
+
+.parcours-numero {
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-alignment: center;
+    -fx-background-radius: 999;
+    -fx-font-weight: bold;
+}
+
+.parcours-titre {
+    -fx-font-size: 12px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+.parcours-trait {
+    -fx-min-height: 2;
+    -fx-max-height: 2;
+    -fx-background-color: -bordure;
+    -fx-translate-y: -10;
+}
+
+.parcours-etape-faite .parcours-numero {
+    -fx-background-color: -succes;
+    -fx-text-fill: -sur-primaire;
+}
+
+.parcours-etape-faite .parcours-titre {
+    -fx-text-fill: -succes-texte;
+}
+
+.parcours-etape-en-cours {
+    -fx-background-color: -primaire-doux;
+}
+
+.parcours-etape-en-cours .parcours-numero {
+    -fx-background-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+.parcours-etape-en-cours .parcours-titre {
+    -fx-text-fill: -primaire-fort;
+    -fx-font-weight: bold;
+}
+
+.parcours-etape-a-venir .parcours-numero {
+    -fx-background-color: -surface-2;
+    -fx-text-fill: -texte-doux;
+}
+
+.parcours-etape-a-venir .parcours-titre {
+    -fx-text-fill: -texte-doux;
+}
+
+.progress-bar.jauge.jauge-dossier {
+    -fx-pref-height: 12;
+}
+
+.progress-bar.jauge.jauge-section {
+    -fx-pref-height: 6;
+}
+
+.jauge-dossier-pourcent {
+    -fx-text-fill: -primaire-fort;
+    -fx-min-width: 48;
+}
+
+.titre-dossier {
+    -fx-padding: 8 0 0 0;
+}
+
+/* Deuxième version : parties à venir (salle, stratégie, remplissage et finances). */
+.carte.carte-bientot {
+    -fx-pref-width: 240;
+    -fx-border-color: -bordure;
+    -fx-border-style: segments(6, 4);
+    -fx-border-radius: 10;
+}
+
+.pastille-bientot {
+    -fx-text-fill: -info-texte;
+    -fx-background-color: -info-doux;
+    -fx-background-radius: 999;
+    -fx-padding: 2 10 2 10;
+    -fx-font-size: 11.5px;
+}

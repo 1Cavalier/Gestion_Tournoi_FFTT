@@ -1,6 +1,8 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
+import com.pingmanager.core.ServiceVerrousHomologation;
+import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.model.AffectationArbitre;
 import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.AireDeJeu;
@@ -66,6 +68,7 @@ final class EcranSportif {
     private final Runnable enregistrer;
     private final Runnable retour;
     private final BorderPane racine = new BorderPane();
+    private final ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
 
     // Matériel (lu à l'enregistrement)
     private final ToggleGroup provenance = new ToggleGroup();
@@ -122,6 +125,7 @@ final class EcranSportif {
     // ==================================================================
 
     private Node carteJugesArbitres() {
+        boolean jaFige = verrous.estVerrouille(tournoi, ChampHomologation.JUGES_ARBITRES);
         NiveauTournoi niveau = tournoi.getNiveau();
         Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
         Niveau R = Niveau.RECOMMANDE;
@@ -176,14 +180,25 @@ final class EcranSportif {
                 : tableauPersonnes(new String[] {"Nom", "Prénom", "Rôle", "Grade", ""},
                 tournoi.getJugesArbitres(), a -> new String[] {a.getNom(), a.getPrenom(),
                         a.getRole().getLibelle(), a.getGrade().getLibelle()},
-                a -> {
-                    tournoi.retirerJugeArbitre(a.getNumeroLicence());
+                jaFige ? null : a -> {
+                    // B035 : par la méthode gardée (dossier d'homologation verrouillé dès la demande).
+                    String refus = PresentationPreparationTournoi.messageModification(
+                            verrous.retirerJugeArbitre(tournoi, a.getNumeroLicence()));
+                    if (refus != null) {
+                        Ui.erreur(message, refus);
+                        return;
+                    }
                     enregistrer.run();
                     afficher();
                 });
 
         Node entete = Ui.enteteAvecActions(Ui.ligne(8, Ui.puceDependance(H), Ui.titreCarte("Juge-arbitre")),
                 Ui.badgeEtat(H, !tournoi.getJugesArbitres().isEmpty()));
+        if (jaFige) {
+            // Dossier d'homologation verrouillé : ni ajout ni retrait, le motif est affiché.
+            return Ui.carte(entete, Ui.bandeauVerrou(new PresentationPreparationTournoi(tournoi)
+                    .motifVerrouSection(PresentationPreparationTournoi.SECTION_SPORTIF)), regles, message, liste);
+        }
         return Ui.carte(entete, regles, ligneRecherche, message, liste);
     }
 
@@ -227,8 +242,12 @@ final class EcranSportif {
                             + "avec l'avis préalable de la commission d'arbitrage (IX.104).";
                 }
             }
-            tournoi.ajouterJugeArbitre(new AffectationJugeArbitre(f.getNom(), f.getPrenom(), null,
-                    f.getNumeroLicence(), grade, null, role));
+            String refus = PresentationPreparationTournoi.messageModification(verrous.ajouterJugeArbitre(tournoi,
+                    new AffectationJugeArbitre(f.getNom(), f.getPrenom(), null, f.getNumeroLicence(), grade,
+                            null, role)));
+            if (refus != null) {
+                throw new IllegalArgumentException(refus);
+            }
             enregistrer.run();
             afficher();
             if (avertissement != null) {
@@ -359,10 +378,12 @@ final class EcranSportif {
                 GridPane.setValignment(l, VPos.CENTER);
                 g.add(l, c, r);
             }
-            Button retirerBtn = Ui.boutonLien("Retirer");
-            retirerBtn.getStyleClass().addAll("lien-danger", "cellule");
-            retirerBtn.setOnAction(e -> retirer.accept(t));
-            g.add(retirerBtn, colonnes.length - 1, r);
+            if (retirer != null) {
+                Button retirerBtn = Ui.boutonLien("Retirer");
+                retirerBtn.getStyleClass().addAll("lien-danger", "cellule");
+                retirerBtn.setOnAction(e -> retirer.accept(t));
+                g.add(retirerBtn, colonnes.length - 1, r);
+            }
             r++;
             g.add(filet(), 0, r++, colonnes.length, 1);
         }

@@ -545,6 +545,44 @@ final class Ui {
         return t;
     }
 
+    /**
+     * Verrouille un contrôle (champ du dossier d'homologation, B035) : grisé,
+     * non modifiable, avec le motif en infobulle.
+     */
+    static void verrouiller(javafx.scene.control.Control c, String motif) {
+        if (c instanceof javafx.scene.control.TextInputControl t) {
+            t.setEditable(false);
+            t.setFocusTraversable(false);
+        } else {
+            c.setDisable(true);
+        }
+        c.getStyleClass().add("champ-verrouille");
+        if (motif != null) {
+            c.setTooltip(new javafx.scene.control.Tooltip(motif));
+        }
+    }
+
+    /** Carte d'une partie annoncée mais pas encore disponible (pastille « Bientôt »). */
+    static VBox carteBientot(String titre, String description, String tache) {
+        Label pastille = label("Bientôt", "pastille-bientot");
+        Label d = discret(description);
+        d.setWrapText(true);
+        VBox v = new VBox(8, ligne(8, titreCarte(titre), espace(), pastille), d);
+        v.getStyleClass().addAll("carte", "carte-bientot");
+        if (tache != null) {
+            v.setAccessibleHelp("Tâche " + tache);
+        }
+        return v;
+    }
+
+    /** Bandeau expliquant pourquoi des champs sont verrouillés (dossier d'homologation, B035). */
+    static Label bandeauVerrou(String motif) {
+        Label l = label(motif, "bandeau-verrou");
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
+        return l;
+    }
+
     /** Petite note explicative sous un groupe de champs. */
     static Label note(String texte) {
         Label l = label(texte, "note-groupe");

@@ -1,7 +1,10 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.OrdonnancementTableaux;
+import com.pingmanager.core.ResultatModificationTournoi;
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
+import com.pingmanager.core.ServiceVerrousHomologation;
+import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.core.reglement.LibellesTableau;
 import com.pingmanager.model.CategorieAge;
 import com.pingmanager.model.ConfigurationTableau;
@@ -53,6 +56,7 @@ final class EcranTableaux {
     private final Runnable enregistrer;
     private final Runnable retour;
     private final BorderPane racine = new BorderPane();
+    private final ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
 
     /**
      * @param enregistrer persiste le tournoi (appelé après chaque modification validée)
@@ -350,7 +354,13 @@ final class EcranTableaux {
     private Node carteTableaux() {
         Button ajouter = Ui.boutonPrimaire("Ajouter un tableau");
         ajouter.setOnAction(e -> ouvrirFormulaire(null));
-        Node entete = Ui.enteteAvecActions(Ui.titreAvecCompteur("Tableaux", tournoi.getTableaux().size()), ajouter);
+        // B035 : liste des tableaux verrouillée dès la demande d'homologation (ni ajout ni retrait).
+        boolean listeFigee = verrous.estVerrouille(tournoi, ChampHomologation.LISTE_TABLEAUX);
+        Node entete = listeFigee
+                ? Ui.enteteAvecActions(Ui.titreAvecCompteur("Tableaux", tournoi.getTableaux().size()))
+                : Ui.enteteAvecActions(Ui.titreAvecCompteur("Tableaux", tournoi.getTableaux().size()), ajouter);
+        String motifVerrou = new PresentationPreparationTournoi(tournoi)
+                .motifVerrouSection(PresentationPreparationTournoi.SECTION_TABLEAUX);
 
         boolean dames = tournoi.getTableaux().stream()
                 .anyMatch(t -> t.getConfiguration().getSexeRequis() == Sexe.FEMME);
@@ -366,9 +376,11 @@ final class EcranTableaux {
                     Ui.discret("Ajoutez-en un avec « Ajouter un tableau » : nom, joueurs admis, jour "
                             + "et horaires, places, prix et récompenses."));
             vide.getStyleClass().add("grille-vide");
-            return Ui.carte(entete, regleDames, vide);
+            return motifVerrou == null ? Ui.carte(entete, regleDames, vide)
+                    : Ui.carte(entete, Ui.bandeauVerrou(motifVerrou), regleDames, vide);
         }
-        return Ui.carte(entete, regleDames, grille());
+        return motifVerrou == null ? Ui.carte(entete, regleDames, grille())
+                : Ui.carte(entete, Ui.bandeauVerrou(motifVerrou), regleDames, grille());
     }
 
     private static final String[] COLONNES = {"Nom", "Jour", "Début", "Points", "Public", "Places", "Prix", "Récompenses", ""};
@@ -448,7 +460,12 @@ final class EcranTableaux {
         retirer.getStyleClass().add("lien-danger");
         retirer.setOnAction(e -> {
             try {
-                tournoi.retirerTableau(t);
+                ResultatModificationTournoi r = verrous.retirerTableau(tournoi, t);
+                if (!r.estAppliquee()) {
+                    retirer.setDisable(true);
+                    retirer.setTooltip(new javafx.scene.control.Tooltip(r.getMessage()));
+                    return;
+                }
                 enregistrer.run();
                 afficherListe();
             } catch (IllegalStateException ex) {
@@ -459,6 +476,9 @@ final class EcranTableaux {
         boolean fige = !t.getInscrits().isEmpty() || !t.getFileAttente().isEmpty();
         modifier.setDisable(fige);
         retirer.setDisable(fige);
+        if (verrous.estVerrouille(tournoi, ChampHomologation.LISTE_TABLEAUX)) {
+            Ui.cacher(retirer);
+        }
         if (fige) {
             // Avec des inscrits, les règles du tableau sont figées, mais pas son créneau
             // (utile après un import : jour, heure et pointage restent à poser).
@@ -510,6 +530,15 @@ final class EcranTableaux {
                     throw new IllegalArgumentException("Le pointage doit finir au plus tard au début du tableau.");
                 }
                 LocalDate j = jour.getValue();
+                // B035 : le jour et l'heure de début font partie du dossier d'homologation.
+                LocalDateTime ancienDebut = t.getHoraires() == null ? null : t.getHoraires().getDebutMatchs();
+                if (!j.atTime(deb).equals(ancienDebut)) {
+                    String refus = PresentationPreparationTournoi.messageModification(
+                            verrous.verifier(tournoi, ChampHomologation.TABLEAU_DEBUT));
+                    if (refus != null) {
+                        throw new IllegalArgumentException(refus);
+                    }
+                }
                 t.setHoraires(new com.pingmanager.model.HorairesTableau(dp == null ? null : j.atTime(dp),
                         fp == null ? null : j.atTime(fp), j.atTime(deb), h.getFinTheorique() == null ? null
                         : j.atTime(h.getFinTheorique().toLocalTime())));
@@ -535,11 +564,12 @@ final class EcranTableaux {
     private void ouvrirFormulaire(Tableau existant) {
         FormulaireTableau f = new FormulaireTableau(tournoi, existant,
                 nouveau -> {
+                    // B035 : par les méthodes gardées ; un refus remonte au formulaire (motif affiché).
                     if (existant == null) {
-                        tournoi.ajouterTableau(nouveau);
+                        exigerAppliquee(verrous.ajouterTableau(tournoi, nouveau));
                     } else {
                         String ancien = existant.getNom();
-                        tournoi.remplacerTableau(existant, nouveau);
+                        exigerAppliquee(verrous.remplacerTableau(tournoi, existant, nouveau));
                         // Le tableau exigé pour le surplus des joueuses suit le renommage.
                         if (ancien.equals(tournoi.getQuotasTableaux().getTableauBonusJoueuses())
                                 && !ancien.equals(nouveau.getNom())) {
@@ -552,6 +582,13 @@ final class EcranTableaux {
                 },
                 this::afficherListe);
         poser(f.build());
+    }
+
+    /** @throws IllegalStateException avec le motif si la modification est refusée par un verrou */
+    private static void exigerAppliquee(ResultatModificationTournoi r) {
+        if (!r.estAppliquee()) {
+            throw new IllegalStateException(r.getMessage());
+        }
     }
 
     // ==================================================================

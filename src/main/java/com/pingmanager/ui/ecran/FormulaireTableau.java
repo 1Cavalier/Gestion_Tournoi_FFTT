@@ -138,9 +138,33 @@ final class FormulaireTableau {
                 Ui.titre(existant == null ? "Nouveau tableau" : "Tableau « " + existant.getNom() + " »"),
                 Ui.discret("Une fois validé, le tableau rejoint la grille de la section. "
                         + "Rien n'est enregistré avant la validation."));
+        verrouillerDossier(enTete);
 
         return Ui.page(760, enTete, Ui.legende(EnumSet.of(H, P, R, O)), Ui.carteNue(corps),
                 erreur, Ui.actions(valider, annuler));
+    }
+
+    /**
+     * B035 : dès la demande d'homologation, nom, catégorie de points, public et
+     * début des matchs d'un tableau ne sont plus modifiables (grisés, motif en
+     * tête) ; format, places, tarifs et récompenses restent libres.
+     */
+    private void verrouillerDossier(VBox enTete) {
+        com.pingmanager.core.ServiceVerrousHomologation verrous = new com.pingmanager.core.ServiceVerrousHomologation();
+        if (existant == null || !verrous.estVerrouille(tournoi, com.pingmanager.model.ChampHomologation.TABLEAU_NOM)) {
+            return;
+        }
+        String motif = verrous.motifVerrou(tournoi, List.of(com.pingmanager.model.ChampHomologation.TABLEAU_NOM,
+                com.pingmanager.model.ChampHomologation.TABLEAU_CATEGORIE_POINTS,
+                com.pingmanager.model.ChampHomologation.TABLEAU_PUBLIC,
+                com.pingmanager.model.ChampHomologation.TABLEAU_DEBUT));
+        enTete.getChildren().add(Ui.bandeauVerrou(motif));
+        for (javafx.scene.control.Control c : List.of(nom, parTranche, pointMax, toutesSeries, pointsMin, pointsMaxi,
+                sexe, jour, debutMatchs)) {
+            if (c != null) {
+                Ui.verrouiller(c, motif);
+            }
+        }
     }
 
     private static VBox groupe(String titre, boolean premier, Node... contenu) {
