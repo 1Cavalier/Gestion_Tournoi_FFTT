@@ -4,10 +4,10 @@ titre: Convocations par message (SMS)
 type: idee
 priorite: P2
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [model/Joueur ou FicheLicence (portable), core (convocations), ui/ecran (réglages et consentement), persistence]
-branche:
+branche: tache/B019-convocations-sms
 pr:
 ---
 
