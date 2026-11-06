@@ -304,6 +304,22 @@ final class Ui {
         return p;
     }
 
+    /**
+     * Icône dans une tuile carrée de 36 px à fond teinté (en-têtes de cartes de section).
+     * {@code neutre} : tuile grise, pour une section pas encore disponible.
+     */
+    static StackPane iconeTuile(String trace, boolean neutre) {
+        StackPane p = new StackPane(icone(trace, "icone-tuile-trace"));
+        p.getStyleClass().add("icone-tuile");
+        if (neutre) {
+            p.getStyleClass().add("icone-tuile-neutre");
+        }
+        p.setMinSize(36, 36);
+        p.setPrefSize(36, 36);
+        p.setMaxSize(36, 36);
+        return p;
+    }
+
     /** Durée des transitions d'ouverture (charte : 150 à 200 ms, jamais plus). */
     static final Duration DUREE_APPARITION = Duration.millis(180);
 
@@ -333,6 +349,22 @@ final class Ui {
         l.getStyleClass().add("texte");
         VBox v = new VBox(10, l, actions(confirmer, renoncer));
         v.getStyleClass().add("encart-confirmation");
+        return v;
+    }
+
+    /**
+     * Encart d'alerte bien visible (fond et filet d'attention) : un titre en
+     * gras puis le texte, à placer <b>avant</b> une action engageante.
+     */
+    static VBox encartAlerte(String titre, String texte) {
+        Label t = label(titre, "encart-alerte-titre");
+        t.setWrapText(true);
+        Label l = label(texte, "encart-alerte-texte");
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
+        VBox v = new VBox(6, t, l);
+        v.getStyleClass().add("encart-alerte");
+        v.setMaxWidth(Double.MAX_VALUE);
         return v;
     }
 

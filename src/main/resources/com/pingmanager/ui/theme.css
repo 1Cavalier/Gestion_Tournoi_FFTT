@@ -2623,6 +2623,108 @@
     -fx-font-size: 12px;
 }
 
+/* ==================================================================
+   Jour J v2 (B037) : priorités en couleur, joueurs en attente et
+   « pourquoi », gros bouton « Terminer », « Annuler » rouge, annonce.
+   Tokens uniquement : valables en thème clair et sombre.
+   ================================================================== */
+
+/* Match proposé : filet de couleur à gauche selon la priorité. */
+.salle-pret.priorite-urgent,
+.salle-pret.priorite-important,
+.salle-pret.priorite-normal {
+    -fx-border-width: 1 0 0 5;
+    -fx-padding: 10 6 10 10;
+}
+
+.salle-pret.priorite-urgent {
+    -fx-border-color: -bordure transparent transparent -erreur;
+}
+
+.salle-pret.priorite-important {
+    -fx-border-color: -bordure transparent transparent -attention;
+}
+
+.salle-pret.priorite-normal {
+    -fx-border-color: -bordure transparent transparent -succes;
+}
+
+/* Joueurs en attente : chrono lisible de loin, rouge au-delà de 20 min. */
+.jourj-joueur-attente {
+    -fx-alignment: center-left;
+}
+
+.jourj-chrono {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.jourj-chrono.jourj-chrono-long {
+    -fx-text-fill: -erreur;
+}
+
+/* « Pourquoi » : poule ou tour du joueur, son nom surligné. */
+.jourj-pourquoi {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 0 4 0;
+}
+
+.jourj-groupe {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
+}
+
+.jourj-groupe-titre {
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 4 0;
+}
+
+.jourj-groupe-ligne {
+    -fx-padding: 2 0 2 0;
+}
+
+.label.jourj-surligne {
+    -fx-background-color: -attention;
+    -fx-text-fill: -sur-attention;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 0 4 0 4;
+}
+
+/* Table occupée : gros bouton « Terminer la rencontre / la poule ». */
+.button.bouton-primaire.jourj-terminer {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-min-height: 40px;
+    -fx-pref-height: 40px;
+}
+
+.button.bouton-lien.jourj-annuler {
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+}
+
+.button.bouton-secondaire.jourj-danger {
+    -fx-text-fill: -erreur;
+}
+
+/* Annonce de la rencontre, affichée à l'écran (lue au micro). */
+.jourj-annonce {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 18;
+}
+
+.label.jourj-annonce-texte {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
 /* =====================================================================
    Nouveau tournoi (B034) : texte explicatif, cartes v2, icône calendrier
    ===================================================================== */
@@ -2653,6 +2755,63 @@
 
 .label.nouveau-tournoi-resume {
     -fx-text-fill: -primaire;
+}
+
+/* =====================================================================
+   Accueil « home » (B028) : cartes de section, section club séparée
+   ===================================================================== */
+
+.carte.accueil-carte {
+    -fx-min-height: 180px;
+}
+
+/* Tuile d'icône des en-têtes de cartes : fond bleu doux, tracé bleu ;
+   grise pour une section « Bientôt ». (Composant commun Ui.iconeTuile.) */
+.icone-tuile {
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 10;
+}
+
+.icone-tuile .icone-tuile-trace {
+    -fx-fill: -primaire;
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+.icone-tuile.icone-tuile-neutre {
+    -fx-background-color: -neutre-doux;
+}
+
+.icone-tuile.icone-tuile-neutre .icone-tuile-trace {
+    -fx-fill: -neutre-texte;
+}
+
+/* « Gestion de votre club » : bandeau teinté bleu, bien distinct des cartes
+   personnelles ; les cartes blanches ressortent dessus. */
+.accueil-section-club {
+    -fx-background-color: -bordure, -primaire-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 16, 15;
+    -fx-padding: 24;
+}
+
+/* Tuile du titre de section : bleu plein, tracé clair. */
+.icone-tuile.accueil-club-tuile {
+    -fx-background-color: -primaire;
+}
+
+.accueil-section-club-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.accueil-section-club-intro {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13.5px;
+}
+
+.icone-tuile.accueil-club-tuile .icone-tuile-trace {
+    -fx-fill: -sur-primaire;
 }
 
 /* =====================================================================
@@ -2764,4 +2923,80 @@
 
 .ligne-element.ligne-tournoi-cliquable {
     -fx-cursor: hand;
+}
+
+/* =====================================================================
+   Mon profil (B029) : bloc personnel, bloc Club séparé, alerte de liaison
+   ===================================================================== */
+
+/* Classes repères sans règle propre, posées par PageCompte pour la mise en page
+   et les tests : profil-bloc-personnel (les deux cartes du haut) et
+   profil-tableau-membres (tableau des membres du club, mis en forme par
+   .profil-tableau-cellule). */
+
+/* Bloc « Club » : bandeau teinté, bien distinct du bloc personnel. */
+.profil-bloc-club {
+    -fx-background-color: -bordure, -primaire-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 16, 15;
+    -fx-padding: 24;
+}
+
+.icone-tuile.profil-club-tuile {
+    -fx-background-color: -primaire;
+}
+
+.icone-tuile.profil-club-tuile .icone-tuile-trace {
+    -fx-fill: -sur-primaire;
+}
+
+.profil-bloc-club-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.profil-bloc-club-intro {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13.5px;
+}
+
+/* Encart d'alerte (composant commun Ui.encartAlerte) : bien visible. */
+.encart-alerte {
+    -fx-background-color: -attention, -attention-doux;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 20;
+}
+
+.label.encart-alerte-titre {
+    -fx-font-weight: bold;
+    -fx-font-size: 14.5px;
+    -fx-text-fill: -attention-texte;
+}
+
+.label.encart-alerte-texte {
+    -fx-text-fill: -attention-texte;
+}
+
+.check-box.profil-confirmation-liaison {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.profil-tableau-droits {
+    -fx-padding: 4 0 4 0;
+}
+
+/* Tableaux du bloc Club (droits, équipe) : en-tête teinté, lignes filetées. */
+.profil-tableau-cellule {
+    -fx-padding: 9 16 9 10;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.profil-tableau-cellule.profil-tableau-entete {
+    -fx-background-color: -neutre-doux;
+    -fx-padding: 7 16 7 10;
+    -fx-border-color: transparent transparent -bordure-forte transparent;
 }
