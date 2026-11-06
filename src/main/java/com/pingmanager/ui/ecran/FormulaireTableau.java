@@ -257,9 +257,9 @@ final class FormulaireTableau {
         Runnable majMode = () -> {
             boolean tranche = parTranche.isSelected();
             boolean max = pointMax.isSelected();
-            visible(blocMin, tranche);
-            visible(blocMax, tranche || max);
-            visible(blocExcl, !tranche);
+            Ui.afficherSi(blocMin, tranche);
+            Ui.afficherSi(blocMax, tranche || max);
+            Ui.afficherSi(blocExcl, !tranche);
             // En « points maximum », le champ passe dans la colonne de gauche.
             GridPane.setColumnIndex(blocMax, tranche ? 1 : 0);
         };
@@ -317,7 +317,7 @@ final class FormulaireTableau {
         (restreint ? selectionCategories : toutesCategories).setSelected(true);
         Label resume = Ui.note("");
         Runnable majCategories = () -> {
-            visible(liste, selectionCategories.isSelected());
+            Ui.afficherSi(liste, selectionCategories.isSelected());
             long n = categories.values().stream().filter(CheckBox::isSelected).count();
             resume.setText(selectionCategories.isSelected()
                     ? (n == 0 ? "Aucune catégorie cochée pour l'instant." : n + " catégorie(s) cochée(s).")
@@ -328,7 +328,7 @@ final class FormulaireTableau {
         majCategories.run();
 
         VBox blocCategories = new VBox(8,
-                labelChamp("Catégories concernées"),
+                Ui.libelleChamp("Catégories concernées"),
                 Ui.ligne(18, toutesCategories, selectionCategories),
                 resume,
                 liste);
@@ -342,7 +342,7 @@ final class FormulaireTableau {
         }
 
         return new VBox(14,
-                new VBox(8, labelChamp("Catégorie de points"), choix),
+                new VBox(8, Ui.libelleChamp("Catégorie de points"), choix),
                 grillePoints,
                 blocCategories,
                 Ui.champEtiquete("Sexe", sexe, null, null, null));
@@ -562,7 +562,7 @@ final class FormulaireTableau {
         Button ajouter = Ui.boutonLien("+ Ajouter une récompense");
         ajouter.setOnAction(e -> ajouterLigne(null));
         return new VBox(10,
-                Ui.ligne(6, Ui.puceDependance(R), labelChamp("Dotation du tableau")),
+                Ui.ligne(6, Ui.puceDependance(R), Ui.libelleChamp("Dotation du tableau")),
                 lignesRecompenses,
                 ajouter,
                 Ui.note("Argent, part des inscriptions, lot (coupe, matériel…) ou réduction. Une ligne par place "
@@ -771,16 +771,5 @@ final class FormulaireTableau {
             Ui.marquerErreur(champ);
             throw e;
         }
-    }
-
-    private static Label labelChamp(String texte) {
-        Label l = new Label(texte);
-        l.getStyleClass().add("libelle-champ");
-        return l;
-    }
-
-    private static void visible(Node n, boolean v) {
-        n.setVisible(v);
-        n.setManaged(v);
     }
 }

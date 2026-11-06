@@ -129,13 +129,7 @@ public final class VuePhaseFinale {
         contenu.getStyleClass().addAll("page", "pf-page");
         contenu.getChildren().add(entete(diagnostic));
         if (messageSucces != null || messageErreur != null) {
-            Label message = Ui.message();
-            if (messageErreur != null) {
-                Ui.erreur(message, messageErreur);
-            } else {
-                Ui.succes(message, messageSucces);
-            }
-            contenu.getChildren().add(message);
+            contenu.getChildren().add(Ui.message(messageErreur, messageSucces));
             messageSucces = null;
             messageErreur = null;
         }

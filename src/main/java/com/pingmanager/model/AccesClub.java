@@ -36,8 +36,8 @@ public final class AccesClub {
      * @param email      email de la personne habilitée (non vide)
      */
     public AccesClub(String numeroClub, String email) {
-        this.numeroClub = exigerNonVide(numeroClub, "numeroClub");
-        this.email = exigerNonVide(email, "email").toLowerCase();
+        this.numeroClub = Textes.obligatoire(numeroClub, "numeroClub");
+        this.email = Textes.obligatoire(email, "email").toLowerCase();
     }
 
     /**
@@ -48,8 +48,8 @@ public final class AccesClub {
      */
     public AccesClub(String numeroClub, String email, String nom, String prenom) {
         this(numeroClub, email);
-        this.nom = normaliserOptionnel(nom);
-        this.prenom = normaliserOptionnel(prenom);
+        this.nom = Textes.optionnel(nom);
+        this.prenom = Textes.optionnel(prenom);
     }
 
     /**
@@ -91,7 +91,7 @@ public final class AccesClub {
     }
 
     public void setNom(String nom) {
-        this.nom = normaliserOptionnel(nom);
+        this.nom = Textes.optionnel(nom);
     }
 
     public String getPrenom() {
@@ -121,24 +121,5 @@ public final class AccesClub {
     @Override
     public String toString() {
         return "Accès club " + numeroClub + " pour <" + email + ">";
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
-    }
-
-    private static String normaliserOptionnel(String valeur) {
-        if (valeur == null) {
-            return null;
-        }
-        String nettoye = valeur.trim();
-        return nettoye.isEmpty() ? null : nettoye;
     }
 }

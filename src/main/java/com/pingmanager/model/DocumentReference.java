@@ -24,8 +24,8 @@ public final class DocumentReference {
      * @param emplacement chemin ou URL du fichier (non vide)
      */
     public DocumentReference(String libelle, String emplacement) {
-        this.libelle = normaliser(libelle);
-        this.emplacement = exigerNonVide(emplacement, "emplacement");
+        this.libelle = Textes.optionnel(libelle);
+        this.emplacement = Textes.obligatoire(emplacement, "emplacement");
     }
 
     public String getLibelle() {
@@ -56,20 +56,5 @@ public final class DocumentReference {
     @Override
     public String toString() {
         return (libelle != null ? libelle + " " : "") + "(" + emplacement + ")";
-    }
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
-    }
-
-    private static String normaliser(String v) {
-        if (v == null) {
-            return null;
-        }
-        String t = v.trim();
-        return t.isEmpty() ? null : t;
     }
 }

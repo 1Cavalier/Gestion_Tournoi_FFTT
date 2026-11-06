@@ -6,6 +6,7 @@ import com.pingmanager.core.ResultatSaisieMatch;
 import com.pingmanager.core.ResultatVerificationLancement;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.SuiviPoule;
+import com.pingmanager.core.SuiviTournoi;
 import com.pingmanager.core.reglement.Formats;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
@@ -164,10 +165,7 @@ final class PresentationJourJ {
      */
     static Map<LocalDate, List<Tableau>> tableauxParJour(Tournoi tournoi) {
         List<Tableau> tries = new ArrayList<>(tournoi.getTableaux());
-        tries.sort(Comparator
-                .comparing((Tableau t) -> t.getHoraires().getDebutMatchs(),
-                        Comparator.nullsLast(Comparator.<LocalDateTime>naturalOrder()))
-                .thenComparing(Tableau::getNom));
+        tries.sort(SuiviTournoi.ORDRE_DE_LA_JOURNEE);
         Map<LocalDate, List<Tableau>> res = new LinkedHashMap<>();
         for (Tableau t : tries) {
             res.computeIfAbsent(jourDe(t), j -> new ArrayList<>()).add(t);

@@ -564,11 +564,11 @@ public final class Tournoi {
      */
     public void setCorrespondant(String nom, String prenom, String email,
                                  String telephone, String autresInfos) {
-        this.correspondantNom = normaliserOpt(nom);
-        this.correspondantPrenom = normaliserOpt(prenom);
-        this.correspondantEmail = normaliserOpt(email);
-        this.correspondantTelephone = normaliserOpt(telephone);
-        this.correspondantAutresInfos = normaliserOpt(autresInfos);
+        this.correspondantNom = Textes.optionnel(nom);
+        this.correspondantPrenom = Textes.optionnel(prenom);
+        this.correspondantEmail = Textes.optionnel(email);
+        this.correspondantTelephone = Textes.optionnel(telephone);
+        this.correspondantAutresInfos = Textes.optionnel(autresInfos);
     }
 
     public String getSiteWeb() {
@@ -576,7 +576,7 @@ public final class Tournoi {
     }
 
     public void setSiteWeb(String siteWeb) {
-        this.siteWeb = normaliserOpt(siteWeb);
+        this.siteWeb = Textes.optionnel(siteWeb);
     }
 
     public String getNumeroAffiliationClub() {
@@ -584,7 +584,7 @@ public final class Tournoi {
     }
 
     public void setNumeroAffiliationClub(String numeroAffiliationClub) {
-        this.numeroAffiliationClub = normaliserOpt(numeroAffiliationClub);
+        this.numeroAffiliationClub = Textes.optionnel(numeroAffiliationClub);
     }
 
     /**
@@ -790,14 +790,6 @@ public final class Tournoi {
 
     public void setFeuilleEngagement(DocumentReference feuilleEngagement) {
         this.feuilleEngagement = feuilleEngagement;
-    }
-
-    private static String normaliserOpt(String v) {
-        if (v == null) {
-            return null;
-        }
-        String t = v.trim();
-        return t.isEmpty() ? null : t;
     }
 
     // -------------------------------------------------------------------------

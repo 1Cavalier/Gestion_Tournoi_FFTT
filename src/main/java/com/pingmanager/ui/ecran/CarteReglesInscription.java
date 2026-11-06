@@ -166,8 +166,8 @@ final class CarteReglesInscription {
         varie.setSelected(q.varieSelonLeJour() && jours.size() > 1);
         varie.setDisable(jours.size() < 2);
         Runnable maj = () -> {
-            visible(identiques, !varie.isSelected());
-            visible(lignesJours, varie.isSelected());
+            Ui.afficherSi(identiques, !varie.isSelected());
+            Ui.afficherSi(lignesJours, varie.isSelected());
         };
         varie.selectedProperty().addListener((o, a, n) -> {
             if (n) { // on part des valeurs communes
@@ -363,8 +363,8 @@ final class CarteReglesInscription {
         detailAbsents.getStyleClass().add("liste-depliee");
 
         Runnable maj = () -> {
-            visible(detailRemplissage, parRemplissage.isSelected());
-            visible(detailAbsents, parAbsents.isSelected());
+            Ui.afficherSi(detailRemplissage, parRemplissage.isSelected());
+            Ui.afficherSi(detailAbsents, parAbsents.isSelected());
         };
         reduction.selectedToggleProperty().addListener((o, a, n) -> maj.run());
         (m.getReduction() == ModeReduction.REMPLISSAGE ? parRemplissage
@@ -443,7 +443,7 @@ final class CarteReglesInscription {
         }
         Label etat = Ui.discret(regle == null ? "À choisir" : "");
         Runnable maj = () -> {
-            visible(detailPart, partiel.isSelected());
+            Ui.afficherSi(detailPart, partiel.isSelected());
             justif.setDisable(!partiel.isSelected() && !complet.isSelected());
             if (justif.isDisabled()) {
                 justif.setSelected(false);
@@ -554,10 +554,5 @@ final class CarteReglesInscription {
 
     private static String texte(Integer i) {
         return i == null ? "" : String.valueOf(i);
-    }
-
-    private static void visible(Node n, boolean v) {
-        n.setVisible(v);
-        n.setManaged(v);
     }
 }

@@ -325,7 +325,7 @@ final class EcranTableaux {
             g.add(l, c, 0);
         }
         int r = 1;
-        g.add(filet(), 0, r++, cols.length, 1);
+        g.add(Ui.filet(), 0, r++, cols.length, 1);
         for (OrdonnancementTableaux.Creneau cr : creneaux) {
             Node[] cellules = {
                     new Label(Saisie.jourCourt(cr.jour())),
@@ -341,7 +341,7 @@ final class EcranTableaux {
                 g.add(cellules[c], c, r);
             }
             r++;
-            g.add(filet(), 0, r++, cols.length, 1);
+            g.add(Ui.filet(), 0, r++, cols.length, 1);
         }
         return g;
     }
@@ -401,7 +401,7 @@ final class EcranTableaux {
         // bordures de cellules) : ils restent continus et alignés quelle que soit
         // la hauteur de chaque cellule (boutons « Modifier / Retirer » compris).
         int r = 1;
-        g.add(filet(), 0, r++, COLONNES.length, 1);
+        g.add(Ui.filet(), 0, r++, COLONNES.length, 1);
         // Affichage dans l'ordre du planning : jour, puis heure de début (sans horaire en fin).
         List<Tableau> ordre = new java.util.ArrayList<>(tournoi.getTableaux());
         ordre.sort(java.util.Comparator.comparing((Tableau x) -> x.getHoraires() == null
@@ -436,7 +436,7 @@ final class EcranTableaux {
                 g.add(n, c, r);
             }
             r++;
-            g.add(filet(), 0, r++, COLONNES.length, 1);
+            g.add(Ui.filet(), 0, r++, COLONNES.length, 1);
         }
         return g;
     }
@@ -445,16 +445,6 @@ final class EcranTableaux {
     private static Node pastillePublic(ConfigurationTableau cfg) {
         StatutPastille statut = cfg.getSexeRequis() == null ? StatutPastille.NEUTRE : StatutPastille.INFO;
         return Ui.ligne(0, Ui.pastille(publicVise(cfg), statut));
-    }
-
-    private static Region filet() {
-        Region f = new Region();
-        f.getStyleClass().add("filet-ligne");
-        f.setMinHeight(1);
-        f.setPrefHeight(1);
-        f.setMaxHeight(1);
-        f.setMaxWidth(Double.MAX_VALUE);
-        return f;
     }
 
     private HBox actions(Tableau t) {

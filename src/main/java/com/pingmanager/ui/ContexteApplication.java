@@ -630,6 +630,7 @@ public final class ContexteApplication {
     /** Enregistre les modifications d'un tournoi déjà sur disque. */
     public void enregistrerTournoi(Tournoi tournoi, Path fichier) {
         service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
+        cacheLectures.remove(fichier);
     }
 
     private Path cibleBrouillon(Tournoi tournoi) {
@@ -651,14 +652,66 @@ public final class ContexteApplication {
     /** @return tous les tournois lisibles (hors archives), avec leur fichier. */
     public List<TournoiFichier> tousLesTournois() {
         List<TournoiFichier> res = new ArrayList<>();
+        java.util.Set<Path> vus = new java.util.HashSet<>();
         for (Path f : fichiersTournois()) {
-            try {
-                res.add(new TournoiFichier(f, chargerTournoi(f)));
-            } catch (RuntimeException illisible) {
-                // fichier corrompu ou d'un autre format : ignoré
+            vus.add(f);
+            Tournoi t = lectureEnCache(f);
+            if (t != null) {
+                res.add(new TournoiFichier(f, t));
             }
         }
+        cacheLectures.keySet().retainAll(vus);
         return res;
+    }
+
+    /**
+     * Tournois déjà lus, pour les listes en lecture seule (onglet Tournois, accueil,
+     * profil) : un fichier n'est relu que si sa date ou sa taille a changé. Avant, chaque
+     * passage sur l'onglet relisait et réanalysait tous les fichiers JSON. Les écrans qui
+     * modifient un tournoi passent par {@link #chargerTournoi(Path)}, qui relit toujours ;
+     * chaque enregistrement fait par l'application retire le fichier du cache.
+     */
+    private final Map<Path, LectureTournoi> cacheLectures = new java.util.HashMap<>();
+
+    private record LectureTournoi(java.nio.file.attribute.FileTime date, long taille, Tournoi tournoi) {
+    }
+
+    /** @return le tournoi du fichier (relu seulement s'il a changé), ou {@code null} s'il est illisible. */
+    private Tournoi lectureEnCache(Path f) {
+        try {
+            return lireTournoi(f);
+        } catch (RuntimeException illisible) {
+            // fichier absent, corrompu ou d'un autre format : ignoré
+            return null;
+        }
+    }
+
+    /**
+     * Lecture <b>seule</b> d'un tournoi, servie depuis le cache tant que le fichier n'a
+     * changé ni de date ni de taille (listes de gestion, supervision, suivi en direct).
+     * Le tournoi rendu est partagé : ne pas le modifier, passer par
+     * {@link #chargerTournoi(Path)} pour un écran qui enregistre.
+     *
+     * @throws RuntimeException si le fichier est absent ou illisible (mêmes erreurs que
+     *                          {@link #chargerTournoi(Path)})
+     */
+    public Tournoi lireTournoi(Path f) {
+        java.nio.file.attribute.FileTime date;
+        long taille;
+        try {
+            date = java.nio.file.Files.getLastModifiedTime(f);
+            taille = java.nio.file.Files.size(f);
+        } catch (java.io.IOException absent) {
+            cacheLectures.remove(f);
+            return chargerTournoi(f); // lève la même erreur qu'une lecture directe
+        }
+        LectureTournoi l = cacheLectures.get(f);
+        if (l == null || !l.date().equals(date) || l.taille() != taille) {
+            cacheLectures.remove(f);
+            l = new LectureTournoi(date, taille, chargerTournoi(f));
+            cacheLectures.put(f, l);
+        }
+        return l.tournoi();
     }
 
     /**
@@ -712,6 +765,7 @@ public final class ContexteApplication {
                 java.time.LocalDateTime.now(), agenda);
         if (b.estValide()) {
             DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder(); // tournoi ajouté automatiquement à l'agenda (B032)
             }
@@ -731,6 +785,7 @@ public final class ContexteApplication {
                 ficheLicenceLiee().orElse(null), tableaux, agenda);
         if (b.estValide()) {
             DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder();
             }

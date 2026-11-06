@@ -77,7 +77,7 @@ final class AccueilGestionTournois {
         List<Fiche> fiches = new ArrayList<>();
         for (ProjetTournoi projet : contexte.tournoisRecents()) {
             try {
-                Tournoi t = contexte.chargerTournoi(projet.getFichier());
+                Tournoi t = contexte.lireTournoi(projet.getFichier());
                 if (contexte.estTournoiDuCompte(t)) { // seulement les tournois des clubs du compte
                     fiches.add(Fiche.depuis(t, projet.getFichier()));
                 }

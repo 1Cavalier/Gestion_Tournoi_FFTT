@@ -109,7 +109,7 @@ final class ApercuReglement {
             p.add(l, c, 0);
         }
         int r = 1;
-        p.add(filet(), 0, r++, entetes.size(), 1);
+        p.add(Ui.filet(), 0, r++, entetes.size(), 1);
         for (List<String> ligne : g.lignes()) {
             for (int c = 0; c < ligne.size(); c++) {
                 Node n = DocumentReglement.A_COMPLETER.matcher(ligne.get(c)).find()
@@ -125,17 +125,8 @@ final class ApercuReglement {
                 p.add(n, c, r);
             }
             r++;
-            p.add(filet(), 0, r++, entetes.size(), 1);
+            p.add(Ui.filet(), 0, r++, entetes.size(), 1);
         }
         return p;
-    }
-
-    private static Region filet() {
-        Region f = new Region();
-        f.getStyleClass().add("filet-ligne");
-        f.setMinHeight(1);
-        f.setPrefHeight(1);
-        f.setMaxHeight(1);
-        return f;
     }
 }
