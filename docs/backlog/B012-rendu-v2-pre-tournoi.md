@@ -27,4 +27,8 @@ Aucune pour l'instant.
 
 ## Passations
 
+- designer-interface (2026-11-06) : rendu v2 des écrans de préparation : vue d'ensemble en tuiles, sections en cartes à deux colonnes avec jauge et icône ; formulaires Général et tableau en une carte par groupe ; grille des tableaux à bande d'en-tête et pastille de public ; rappels ambre adoucis ; menu « Ajouter un article » en bouton secondaire. CSS dans la section B012 en fin de `theme.css` (équilibre vérifié), 4 icônes ajoutées à `Icones`.
+- Captures avant/après clair et sombre dans `docs/captures/B012/avant/` et `apres/` (mode `prepa` du harnais), relues. `mvn -B -q test` vert. Logique inchangée.
+- À regarder : `CarteReglesInscription` n'a reçu que les règles CSS communes (grille, rappels), pas de modification Java ; rendu Windows et mise à l'échelle non vérifiés.
+
 ## Résultat
