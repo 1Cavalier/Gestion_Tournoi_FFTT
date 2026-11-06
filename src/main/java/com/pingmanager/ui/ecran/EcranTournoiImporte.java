@@ -92,6 +92,7 @@ final class EcranTournoiImporte {
             FormulairesSection.Referentiel ref = new FormulairesSection.Referentiel(
                     contexte.clubsGeres(), contexte::correspondantParDefaut);
             racine.setCenter(Ui.defilant(FormulairesSection.construire(0, "Général", tournoi, ref,
+                    () -> contexte.enregistrerTournoi(tournoi, fichier),
                     () -> {
                         contexte.enregistrerTournoi(tournoi, fichier);
                         afficher();

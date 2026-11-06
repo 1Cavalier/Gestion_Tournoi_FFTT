@@ -577,6 +577,60 @@ final class Ui {
         return t;
     }
 
+    /**
+     * Verrouille un contrôle (champ du dossier d'homologation, B035) : grisé,
+     * non modifiable, avec le motif en infobulle.
+     */
+    static void verrouiller(javafx.scene.control.Control c, String motif) {
+        if (c instanceof javafx.scene.control.TextInputControl t) {
+            t.setEditable(false);
+            t.setFocusTraversable(false);
+        } else {
+            c.setDisable(true);
+        }
+        c.getStyleClass().add("champ-verrouille");
+        if (motif != null) {
+            c.setTooltip(new javafx.scene.control.Tooltip(motif));
+        }
+    }
+
+    /** Carte d'une partie annoncée mais pas encore disponible (pastille « Bientôt »). */
+    static VBox carteBientot(String titre, String description, String tache) {
+        return carteBientot(null, titre, description, tache);
+    }
+
+    /**
+     * Carte « bientôt » avec une icône en tuile : icône et pastille sur la
+     * première ligne, puis le titre et la description (tous deux à la ligne si
+     * besoin), pour tenir dans une colonne étroite.
+     */
+    static VBox carteBientot(String trace, String titre, String description, String tache) {
+        Label pastille = label("Bientôt", "pastille-bientot");
+        pastille.setMinWidth(Region.USE_PREF_SIZE);
+        HBox haut = trace == null ? ligne(8, espace(), pastille) : ligne(8, iconeTuile(trace, false), espace(), pastille);
+        haut.setAlignment(Pos.CENTER_LEFT);
+        Label t = titreCarte(titre);
+        t.setWrapText(true);
+        Label d = discret(description);
+        d.setWrapText(true);
+        VBox v = new VBox(10, haut, t, d);
+        v.getStyleClass().addAll("carte", "carte-bientot");
+        if (tache != null) {
+            v.setAccessibleHelp("Tâche " + tache);
+        }
+        return v;
+    }
+
+    /** Bandeau expliquant pourquoi des champs sont verrouillés (dossier d'homologation, B035). */
+    static Label bandeauVerrou(String motif) {
+        Label l = label(motif, "bandeau-verrou");
+        l.setGraphic(iconeCadree(Icones.CADENAS, "icone-verrou"));
+        l.setGraphicTextGap(10);
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
+        return l;
+    }
+
     /** Petite note explicative sous un groupe de champs. */
     static Label note(String texte) {
         Label l = label(texte, "note-groupe");

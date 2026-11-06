@@ -15,4 +15,5 @@ Ces fichiers ne font pas partie de l'application (non compilés par Maven).
   `FX=$(ls ~/.m2/repository/org/openjfx/javafx-{base,controls,graphics,web,media}/21.0.5/*-linux.jar | paste -sd:)`,
   `PDF=…/pdfbox-2.0.29.jar:…/fontbox-2.0.29.jar:…/commons-logging-1.2.jar`, `ECRAN=1600x1000x24` (écran Xvfb plus large que la fenêtre de 1440).
 - `./run.sh <dossier> profil [sombre]` : Mon profil (B029) à 1440 px, compte relié au club puis joueur non relié (case de confirmation cochée).
+- `./run.sh <dossier> b035 [sombre]` : homologation (B035) à 1440 px : brouillon après refus, demande (saisie du refus, section Général verrouillée), tournoi homologué (deuxième version).
 - `./run.sh <dossier> prepa [sombre]` : écrans de préparation du tournoi (B012) à 1440 px : vue d'ensemble, Général, Tableaux, nouveau tableau, Sportif, Complémentaire.

@@ -1,7 +1,10 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
+import com.pingmanager.core.ResultatModificationTournoi;
+import com.pingmanager.core.ServiceVerrousHomologation;
 import com.pingmanager.model.AdresseTournoi;
+import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.DocumentReference;
 import com.pingmanager.model.EchelonHomologation;
@@ -62,11 +65,15 @@ final class FormulairesSection {
     record Referentiel(List<Club> clubs, Function<String, String[]> correspondant) {
     }
 
+    /**
+     * @param persister enregistre le tournoi sans quitter le formulaire (modifications
+     *                  acceptées quand une autre est refusée par un verrou d'homologation)
+     */
     static Node construire(int index, String titre, Tournoi t, Referentiel ref,
-                           Runnable onSave, Runnable onCancel) {
+                           Runnable persister, Runnable onSave, Runnable onCancel) {
         // Seule la section « Général » reste un formulaire simple ; les autres
         // sections ont leur écran dédié (tableaux, sportif, complémentaire).
-        return general(titre, t, ref, onSave, onCancel);
+        return general(titre, t, ref, persister, onSave, onCancel);
     }
 
     // ------------------------------------------------------------------
@@ -74,7 +81,15 @@ final class FormulairesSection {
     // ------------------------------------------------------------------
 
     private static Node general(String titre, Tournoi t, Referentiel ref,
-                                Runnable onSave, Runnable onCancel) {
+                                Runnable persister, Runnable onSave, Runnable onCancel) {
+        // B035 : dès la demande d'homologation, les champs du dossier ne sont plus modifiables.
+        ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
+        boolean nomFige = verrous.estVerrouille(t, ChampHomologation.NOM);
+        boolean clubFige = verrous.estVerrouille(t, ChampHomologation.CLUB_ORGANISATEUR);
+        boolean adresseFigee = verrous.estVerrouille(t, ChampHomologation.ADRESSE);
+        boolean correspondantFige = verrous.estVerrouille(t, ChampHomologation.CORRESPONDANT);
+        String motifVerrou = new PresentationPreparationTournoi(t)
+                .motifVerrouSection(PresentationPreparationTournoi.SECTION_GENERAL);
         Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
         Niveau P = Niveau.OBLIGATOIRE_PUBLICATION;
         Niveau O = Niveau.OPTIONNEL;
@@ -83,20 +98,21 @@ final class FormulairesSection {
         // --- Club organisateur : repris de la base FFTT, jamais saisi ---
         Club clubInitial = clubDuTournoi(t, ref.clubs());
         Club[] club = {clubInitial};
-        TextField nomClub = Ui.champLecture(clubInitial != null ? clubInitial.getNom() : t.getClubOrganisateur());
-        TextField affiliation = Ui.champLecture(clubInitial != null
+        TextField nomClub = Ui.champLecture(clubInitial != null && !clubFige
+                ? clubInitial.getNom() : t.getClubOrganisateur());
+        TextField affiliation = Ui.champLecture(clubInitial != null && !clubFige
                 ? clubInitial.getNumero() : t.getNumeroAffiliationClub());
 
         // --- Le tournoi ---
         TextField nom = champ(t.getNom());
         String[] proposition = {PropositionsTournoi.nomTournoi(nomClub.getText())};
-        if (valeur(nom) == null) {
+        if (valeur(nom) == null && !nomFige) {
             nom.setText(proposition[0]);
         }
         Button utiliserNom = Ui.boutonLien("");
         Runnable majProposition = () -> {
             utiliserNom.setText("Utiliser « " + proposition[0] + " »");
-            boolean differente = !proposition[0].equals(nom.getText());
+            boolean differente = !nomFige && !proposition[0].equals(nom.getText());
             utiliserNom.setVisible(differente);
             utiliserNom.setManaged(differente);
         };
@@ -150,7 +166,7 @@ final class FormulairesSection {
                 ville.setText(club[0].getVille());
             }
         };
-        if (sansAdresse) {
+        if (sansAdresse && !adresseFigee) {
             adresseDuClub.run();
         }
         Button reprendreAdresse = Ui.boutonLien("Reprendre l'adresse du club");
@@ -176,7 +192,8 @@ final class FormulairesSection {
                 corEmail.setText(c[2]);
             }
         };
-        if (valeur(corNom) == null && valeur(corPrenom) == null && valeur(corEmail) == null) {
+        if (valeur(corNom) == null && valeur(corPrenom) == null && valeur(corEmail) == null
+                && !correspondantFige) {
             adminPrincipal.run();
         }
         Button reprendreAdmin = Ui.boutonLien("Reprendre l'administrateur principal");
@@ -199,6 +216,9 @@ final class FormulairesSection {
                 }
             });
             choix.setValue(clubInitial);
+            if (clubFige) {
+                Ui.verrouiller(choix, motifVerrou);
+            }
             choix.valueProperty().addListener((o, ancien, nouveau) -> {
                 club[0] = nouveau;
                 nomClub.setText(nouveau == null ? "" : nouveau.getNom());
@@ -216,6 +236,30 @@ final class FormulairesSection {
                 .demi(Ui.champEtiquete("Nom du club", nomClub, H))
                 .demi(Ui.champEtiquete("N° d'affiliation", affiliation, H))
                 .large(Ui.note("Repris de la base FFTT du club : non modifiable ici."));
+
+        // --- Verrous du dossier d'homologation (B035) : champs grisés, motif en infobulle ---
+        if (nomFige) {
+            Ui.verrouiller(nom, motifVerrou);
+        }
+        if (verrous.estVerrouille(t, ChampHomologation.CATEGORIE)) {
+            Ui.verrouiller(niveau, motifVerrou);
+        }
+        if (adresseFigee) {
+            Ui.verrouiller(voie, motifVerrou);
+            Ui.verrouiller(cp, motifVerrou);
+            Ui.verrouiller(ville, motifVerrou);
+            Ui.cacher(reprendreAdresse);
+        }
+        if (verrous.estVerrouille(t, ChampHomologation.DATES)) {
+            Ui.verrouiller(debut, motifVerrou);
+            Ui.verrouiller(fin, motifVerrou);
+        }
+        if (correspondantFige) {
+            Ui.verrouiller(corNom, motifVerrou);
+            Ui.verrouiller(corPrenom, motifVerrou);
+            Ui.verrouiller(corEmail, motifVerrou);
+            Ui.cacher(reprendreAdmin);
+        }
 
         Node corps = groupes(
                 new Groupe("Le tournoi")
@@ -248,7 +292,7 @@ final class FormulairesSection {
                         .demi(Ui.champEtiquete("Téléphone", corTel, O))
                         .large(reprendreAdmin));
 
-        return cadre(titre, EnumSet.of(H, P, R, O), corps, onCancel, erreur -> {
+        return cadre(titre, EnumSet.of(H, P, R, O), motifVerrou, corps, onCancel, erreur -> {
             LocalDate dd = parseDate(debut, erreur, "date de début");
             LocalDate df = parseDate(fin, erreur, "date de fin");
             if (erreur.length() > 0) {
@@ -259,20 +303,34 @@ final class FormulairesSection {
                 erreur.append("La date de fin ne peut pas précéder la date de début.");
                 return false;
             }
+            // Champs du dossier d'homologation : par les méthodes gardées du cœur (B035).
+            List<ResultatModificationTournoi> resultats = new java.util.ArrayList<>();
             if (valeur(nom) != null) {
-                t.setNom(valeur(nom));
+                resultats.add(verrous.modifierNom(t, valeur(nom)));
             }
-            t.setNiveau(niveau.getValue());
-            if (club[0] != null) {
-                t.setClubOrganisateur(club[0].getNom());
-                t.setNumeroAffiliationClub(club[0].getNumero());
+            resultats.add(verrous.modifierCategorie(t, niveau.getValue()));
+            if (club[0] != null && !clubFige) {
+                resultats.add(verrous.modifierClubOrganisateur(t, club[0].getNom()));
+                resultats.add(verrous.modifierNumeroAffiliation(t, club[0].getNumero()));
             }
-            t.setPeriode(dd, df);
-            t.setAdresse(adresseGeocodee(adresse(text(voie), text(cp), text(ville)), t.getAdresse()));
-            t.setCorrespondant(text(corNom), text(corPrenom), text(corEmail),
-                    text(corTel), t.getCorrespondantAutresInfos());
+            resultats.add(verrous.modifierPeriode(t, dd, df));
+            AdresseTournoi saisie = adresse(text(voie), text(cp), text(ville));
+            resultats.add(verrous.modifierAdresse(t, adresseFigee && saisie != null && saisie.memeLieu(t.getAdresse())
+                    ? t.getAdresse() : adresseGeocodee(saisie, t.getAdresse())));
+            resultats.add(verrous.modifierCorrespondant(t, text(corNom), text(corPrenom), text(corEmail),
+                    text(corTel), t.getCorrespondantAutresInfos()));
             t.setNumeroHomologation(valeur(homolog));
             t.setPhasePoints(phase.getValue());
+            for (ResultatModificationTournoi r : resultats) {
+                String refus = PresentationPreparationTournoi.messageModification(r);
+                if (refus != null) {
+                    ajouter(erreur, refus);
+                }
+            }
+            if (erreur.length() > 0) {
+                persister.run();   // le reste est enregistré ; le refus reste affiché
+                return false;
+            }
             onSave.run();
             return true;
         });
@@ -344,7 +402,7 @@ final class FormulairesSection {
         boolean appliquer(StringBuilder erreur);
     }
 
-    private static Node cadre(String titre, Set<Niveau> dependances, Node corps,
+    private static Node cadre(String titre, Set<Niveau> dependances, String motifVerrou, Node corps,
                               Runnable onCancel, Applicateur appliquer) {
         Label erreur = Ui.message();
 
@@ -365,6 +423,9 @@ final class FormulairesSection {
                 Ui.titre(titre),
                 Ui.discret("Rien n'est modifié tant que vous n'avez pas enregistré."));
 
+        if (motifVerrou != null) {
+            enTete.getChildren().add(Ui.bandeauVerrou(motifVerrou));
+        }
         // Chaque groupe de champs devient sa propre carte (règles B012 de theme.css).
         Node cartes = Ui.carteNue(corps);
         cartes.getStyleClass().add("formulaire-cartes");

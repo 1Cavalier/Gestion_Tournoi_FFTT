@@ -3,6 +3,7 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.ResultatTransition;
 import com.pingmanager.core.ServiceCompletudeTournoi;
 import com.pingmanager.core.ServiceCycleTournoi;
+import com.pingmanager.core.ServiceVerrousHomologation;
 import com.pingmanager.core.ServiceCompletudeTournoi.Item;
 import com.pingmanager.core.ServiceCompletudeTournoi.Section;
 import com.pingmanager.model.StatutTournoi;
@@ -12,6 +13,8 @@ import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -40,6 +43,8 @@ final class EcranCompletion {
     private Tournoi tournoi;
     private final ServiceCompletudeTournoi completude = new ServiceCompletudeTournoi();
     private final ServiceCycleTournoi cycle = new ServiceCycleTournoi();
+    private final ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
+    private PresentationPreparationTournoi presentation;
 
     private final BorderPane racine = new BorderPane();
 
@@ -67,6 +72,7 @@ final class EcranCompletion {
         // Relu à chaque retour : une inscription en ligne ou un import a pu modifier le fichier
         // entre-temps (toutes les sections enregistrent avant de revenir ici).
         tournoi = contexte.chargerTournoi(fichier);
+        presentation = new PresentationPreparationTournoi(tournoi, completude, verrous);
         boolean supervision = contexte.estUltraAdmin() && !contexte.estTournoiDuCompte(tournoi);
         Button retour = Ui.boutonLien(supervision ? "← Tous les tournois" : "← Gestion des tournois");
         retour.setOnAction(e -> onRetour.run());
@@ -81,7 +87,8 @@ final class EcranCompletion {
         EnumSet<Niveau> presentes = EnumSet.noneOf(Niveau.class);
         sections.forEach(sec -> sec.items().forEach(it -> presentes.add(it.niveau())));
 
-        VBox contenu = Ui.page(1040, new VBox(6, retour, ligneTitre), recap(sections), carteInscriptions(),
+        VBox contenu = Ui.page(1040, new VBox(6, retour, ligneTitre), Ui.carte("Avancement du dossier", parcours()),
+                recap(sections), carteInscriptions(),
                 Ui.legende(presentes));
         if (EcranJourJ.estPropose(tournoi)) {
             contenu.getChildren().add(2, EcranJourJ.carteAcces(tournoi,
@@ -96,10 +103,24 @@ final class EcranCompletion {
             contenu.getChildren().add(1, sup);
         }
 
-        for (int i = 0; i < sections.size(); i++) {
-            contenu.getChildren().add(carteSection(i, sections.get(i)));
+        presentation.titreRefus().ifPresent(titreRefus ->
+                contenu.getChildren().add(1, carteRefus(titreRefus)));
+
+        Label titreDossier = Ui.sousTitre(presentation.titreDossier());
+        titreDossier.getStyleClass().add("titre-dossier");
+        if (presentation.deuxiemeVersion()) {
+            // Deuxième version (B035) : les nouvelles parties en haut, le dossier et le règlement en bas.
+            contenu.getChildren().addAll(cartesAVenir(), carteEtapes(), titreDossier);
+            for (int i = 0; i < sections.size(); i++) {
+                contenu.getChildren().add(carteSection(i, sections.get(i)));
+            }
+        } else {
+            contenu.getChildren().add(titreDossier);
+            for (int i = 0; i < sections.size(); i++) {
+                contenu.getChildren().add(carteSection(i, sections.get(i)));
+            }
+            contenu.getChildren().add(carteEtapes());
         }
-        contenu.getChildren().add(carteEtapes());
         // Tant qu'aucun joueur n'est inscrit, le club peut basculer vers l'import (tournoi préparé ailleurs).
         if (com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(tournoi) == 0
                 && tournoi.getStatut() != StatutTournoi.PUBLIE) {
@@ -181,6 +202,86 @@ final class EcranCompletion {
                 globale);
     }
 
+    /** Frise des quatre étapes : faite (coche), en cours (mise en avant), à venir (grisée). */
+    private Node parcours() {
+        HBox frise = new HBox(6);
+        frise.getStyleClass().add("parcours");
+        List<PresentationPreparationTournoi.Etape> etapes = presentation.parcours();
+        for (int i = 0; i < etapes.size(); i++) {
+            PresentationPreparationTournoi.Etape e = etapes.get(i);
+            Label numero = new Label(e.etat() == PresentationPreparationTournoi.EtatEtape.FAITE
+                    ? "\u2713" : String.valueOf(e.numero()));
+            numero.getStyleClass().add("parcours-numero");
+            Label titre = new Label(e.titre());
+            titre.getStyleClass().add("parcours-titre");
+            titre.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            VBox etape = new VBox(6, numero, titre);
+            etape.setAlignment(javafx.geometry.Pos.TOP_CENTER);
+            etape.getStyleClass().addAll("parcours-etape", e.etat().classeCss());
+            frise.getChildren().add(etape);
+            if (i < etapes.size() - 1) {
+                // Le trait relie les étapes et prend la place libre ; il est coloré une fois l'étape franchie.
+                javafx.scene.layout.Region trait = new javafx.scene.layout.Region();
+                trait.getStyleClass().add("parcours-trait");
+                if (e.etat() == PresentationPreparationTournoi.EtatEtape.FAITE) {
+                    trait.getStyleClass().add("parcours-trait-fait");
+                }
+                trait.setMinWidth(16);
+                HBox.setHgrow(trait, Priority.ALWAYS);
+                frise.getChildren().add(trait);
+            }
+        }
+        return frise;
+    }
+
+    /** Rappel du dernier refus d'homologation, en tête du brouillon. */
+    private Node carteRefus(String titreRefus) {
+        Label titre = Ui.gras(titreRefus);
+        Label motif = new Label("Motif : " + presentation.motifRefus().orElse(""));
+        motif.setWrapText(true);
+        Label conseil = Ui.discret(presentation.conseilApresRefus());
+        conseil.setWrapText(true);
+        VBox v = new VBox(6, titre, motif, conseil);
+        v.getStyleClass().add("carte-refus-homologation");
+        return v;
+    }
+
+    /** Deuxième version : les parties qui arrivent (salle, stratégie, remplissage et finances). */
+    private Node cartesAVenir() {
+        // Grille à colonnes égales : les cartes ont la même largeur et la même hauteur.
+        javafx.scene.layout.GridPane tuiles = new javafx.scene.layout.GridPane();
+        tuiles.setHgap(16);
+        tuiles.getStyleClass().add("cartes-a-venir");
+        List<PresentationPreparationTournoi.CarteAVenir> cartes = presentation.cartesAVenir();
+        for (int i = 0; i < cartes.size(); i++) {
+            PresentationPreparationTournoi.CarteAVenir c = cartes.get(i);
+            VBox carte = Ui.carteBientot(iconeAVenir(c.tache()), c.titre(), c.description(), c.tache());
+            carte.setMaxWidth(Double.MAX_VALUE);
+            carte.setMaxHeight(Double.MAX_VALUE);
+            javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+            col.setPercentWidth(100.0 / cartes.size());
+            col.setHgrow(Priority.ALWAYS);
+            tuiles.getColumnConstraints().add(col);
+            tuiles.add(carte, i, 0);
+        }
+        VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
+        return bloc;
+    }
+
+    /** Icône de chaque carte à venir, d'après sa tâche (chaîne de if, pas de switch). */
+    private static String iconeAVenir(String tache) {
+        if ("B024".equals(tache)) {
+            return Icones.SALLE;
+        }
+        if ("B025".equals(tache)) {
+            return Icones.STRATEGIE;
+        }
+        if ("B036".equals(tache)) {
+            return Icones.FINANCES;
+        }
+        return null;
+    }
+
     private static Node tuileRecap(String etape, int manquants, String siComplet, String siManquant) {
         Label pastille = manquants == 0
                 ? Ui.pastille("Complet", Ui.ETAT_OK)
@@ -242,8 +343,10 @@ final class EcranCompletion {
                 afficherApercu();
             });
             etape1 = etape("1. Demande d'homologation",
-                    "Demande faite. Dès réception, saisissez le numéro d'homologation dans la section Général.",
-                    retirer, Ui.pastille("Demandée", Ui.ETAT_OK));
+                    "Demande faite : le dossier d'homologation n'est plus modifiable. Enregistrez la réponse "
+                            + "dès réception : acceptée (avec le numéro délivré) ou refusée (avec le motif).",
+                    null, Ui.pastille("Demandée", Ui.ETAT_OK));
+            etape1.getChildren().add(reponseHomologation(message, retirer));
         } else {
             etape1 = etape("1. Demande d'homologation",
                     st == StatutTournoi.ANNULE ? "Tournoi annulé." : "Homologation obtenue"
@@ -285,6 +388,66 @@ final class EcranCompletion {
             e.setMaxWidth(Double.MAX_VALUE);
         }
         return Ui.carte("Homologation et publication", etapes, message);
+    }
+
+    /**
+     * Réponse à la demande : « Homologation acceptée » (numéro délivré) ou
+     * « Homologation refusée » (motif obligatoire, retour au brouillon).
+     */
+    private Node reponseHomologation(Label message, Button retirer) {
+        TextField numero = Ui.champ("n° délivré par la FFTT");
+        numero.getStyleClass().add("champ-numero-homologation");
+        if (tournoi.getNumeroHomologation() != null) {
+            numero.setText(tournoi.getNumeroHomologation());
+        }
+        Button accepter = Ui.boutonPrimaire("Homologation acceptée");
+        accepter.setOnAction(e -> {
+            ResultatTransition r = cycle.homologuer(tournoi, numero.getText());
+            if (r.estEffectuee()) {
+                contexte.enregistrerTournoi(tournoi, fichier);
+                afficherApercu();
+            } else {
+                Ui.erreur(message, PresentationPreparationTournoi.messageTransition(r));
+            }
+        });
+        Button refuser = Ui.boutonSecondaire("Homologation refusée");
+        refuser.getStyleClass().add("bouton-refus");
+
+        TextArea motif = new TextArea();
+        motif.setPromptText("Motif du refus, tel que communiqué (obligatoire)");
+        motif.setPrefRowCount(3);
+        motif.setWrapText(true);
+        Button confirmer = Ui.boutonPrimaire("Enregistrer le refus");
+        Button renoncer = Ui.boutonLien("Annuler");
+        VBox saisieRefus = new VBox(8, Ui.champEtiquete("Motif du refus", motif),
+                Ui.discret("Le tournoi revient au brouillon : le dossier redevient modifiable."),
+                Ui.actions(confirmer, renoncer));
+        saisieRefus.getStyleClass().add("saisie-refus");
+        Ui.cacher(saisieRefus);
+        refuser.setOnAction(e -> {
+            Ui.montrer(saisieRefus);
+            motif.requestFocus();
+        });
+        renoncer.setOnAction(e -> {
+            motif.clear();
+            Ui.cacher(saisieRefus);
+            Ui.cacher(message);
+        });
+        confirmer.setOnAction(e -> {
+            ResultatTransition r = cycle.refuserHomologation(tournoi, motif.getText());
+            if (r.estEffectuee()) {
+                contexte.enregistrerTournoi(tournoi, fichier);
+                afficherApercu();
+            } else {
+                Ui.erreur(message, PresentationPreparationTournoi.messageTransition(r));
+                Ui.marquerErreur(motif);
+            }
+        });
+        retirer.getStyleClass().add("lien-aligne-bouton");
+        HBox ligne = Ui.ligne(10, Ui.champEtiquete("Numéro d'homologation", numero), accepter, refuser,
+                Ui.espace(), retirer);
+        ligne.setAlignment(javafx.geometry.Pos.BOTTOM_LEFT);
+        return new VBox(10, ligne, saisieRefus);
     }
 
     private static String manquants(int n) {
@@ -338,8 +501,18 @@ final class EcranCompletion {
 
         Label compte = Ui.discret(renseignes + " / " + s.items().size() + " renseignés");
         Node icone = Ui.iconeTuile(ICONES_SECTIONS[Math.min(index, ICONES_SECTIONS.length - 1)], false);
-        Node entete = Ui.enteteAvecActions(Ui.ligne(12, icone, new VBox(2, Ui.titreCarte(s.titre()), compte)),
-                modifier);
+        HBox titreSection = Ui.ligne(12, icone, new VBox(2, Ui.titreCarte(s.titre()), compte));
+        String verrou = presentation.mentionVerrouSection(index);
+        if (verrou != null) {
+            Label pastille = Ui.pastille(verrou, Ui.CADRE_FACULTATIF);
+            pastille.getStyleClass().add("pastille-verrou");
+            pastille.setGraphic(Ui.iconeCadree(Icones.CADENAS, "icone-verrou"));
+            pastille.setGraphicTextGap(6);
+            pastille.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            pastille.setTooltip(new javafx.scene.control.Tooltip(presentation.motifVerrouSection(index)));
+            titreSection.getChildren().add(pastille);
+        }
+        Node entete = Ui.enteteAvecActions(titreSection, modifier);
         javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(
                 s.items().isEmpty() ? 0 : renseignes / (double) s.items().size());
         barre.getStyleClass().addAll("jauge", "completion-jauge");
@@ -396,6 +569,7 @@ final class EcranCompletion {
                 contexte.clubsGeres(), contexte::correspondantParDefaut);
         Node form = FormulairesSection.construire(
                 index, titreSection, tournoi, ref,
+                () -> contexte.enregistrerTournoi(tournoi, fichier),
                 () -> {                        // à l'enregistrement
                     contexte.enregistrerTournoi(tournoi, fichier);
                     afficherApercu();
