@@ -631,9 +631,22 @@ public class Capture extends Application {
     /** B027 : fiche du tournoi du jour J en mode suivi (lecture seule), navigation entre tableaux. */
     /** B031 : Mes tournois (en cours, inscriptions et agenda, passés), puis un tournoi passé revu. */
     void etapesMesTournois(Coquille[] coq) {
+        // Inscription préalable (Créteil, tableau B) pour montrer une carte « Mes inscriptions ».
         etape(() -> {
             coq[0] = new Coquille(ctx, () -> { });
             scene.setRoot(coq[0].build());
+            coq[0].afficher("tournois");
+            PageTournois.derniere.ouvrirFicheParNom("Tournoi régional de Créteil");
+        }, null, 800);
+        etape(() -> { defiler(1.0); cliquer("S'inscrire"); }, null);
+        etape(() -> { cases().get(1).fire(); cliquer("Continuer"); }, null);
+        etape(() -> {
+            List<javafx.scene.control.CheckBox> c = cases();
+            c.get(c.size() - 1).fire();
+            cliquer("Confirmer l'inscription");
+        }, null);
+        etape(() -> cliquerSiPresent("Continuer"), null);
+        etape(() -> {
             coq[0].afficher("tournois");
             cliquer("Mes tournois");
         }, "m01-mes-tournois", 1000);

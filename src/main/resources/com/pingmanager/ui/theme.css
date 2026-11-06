@@ -3246,26 +3246,49 @@
    mes-tournois-carte-passe), mes-tournois-performances, mes-agenda-liste,
    mes-agenda-ligne, mes-agenda-etiquette-tournoi / -perso,
    mes-agenda-formulaire. Badge « Terminé » du suivi revu : badge-termine.
-   Premier jet, à affiner par le designer.
+   Charte v2 : variables existantes uniquement (clair et sombre).
    ================================================================== */
 .mes-tournois {
-    -fx-spacing: 24;
+    -fx-spacing: 28;
 }
 
 .mes-tournois-partie {
     -fx-spacing: 10;
 }
 
-/* Le tournoi en cours ressort : filet primaire à gauche. */
+/* Le tournoi en cours ressort : liseré primaire et filet épais à gauche. */
 .carte.mes-tournois-carte-en-cours {
     -fx-background-color: -primaire, -surface;
-    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-insets: 0, 1 1 1 5;
+    -fx-background-radius: 12, 11;
 }
 
+/* Tournoi passé : bloc date neutre, la couleur reste aux tournois à venir. */
+.mes-tournois-carte-passe .bloc-date {
+    -fx-background-color: -neutre-doux;
+}
+
+.mes-tournois-carte-passe .bloc-date .bloc-date-jour,
+.mes-tournois-carte-passe .bloc-date .bloc-date-mois {
+    -fx-text-fill: -neutre-texte;
+}
+
+/* Performances : petit retrait sous la période. */
+.mes-tournois-performances {
+    -fx-padding: 4 0 0 0;
+}
+
+/* Agenda : lignes filetées, étiquettes de même largeur pour aligner les titres. */
 .mes-agenda-ligne {
-    -fx-padding: 8 0 8 0;
+    -fx-padding: 10 6 10 6;
     -fx-border-color: transparent transparent -bordure transparent;
     -fx-border-width: 0 0 1 0;
+}
+
+.badge.mes-agenda-etiquette-tournoi,
+.badge.mes-agenda-etiquette-perso {
+    -fx-min-width: 118px;
+    -fx-alignment: center;
 }
 
 .badge.mes-agenda-etiquette-tournoi {
@@ -3279,7 +3302,7 @@
 }
 
 .mes-agenda-formulaire {
-    -fx-padding: 12 0 0 0;
+    -fx-padding: 16 0 0 0;
 }
 
 .badge.badge-termine {
