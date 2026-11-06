@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [ui/ecran/PageTournois, ui/ecran/CarteTournois, ui/ecran/FicheTournoi, ui/carte, core/CatalogueTournois]
 branche: tache/B030-carte-tournois (2026-11-05)
-pr:
+pr: 42
 ---
 
 ## Ce qu'il faut faire
