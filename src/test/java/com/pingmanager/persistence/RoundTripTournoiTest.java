@@ -403,6 +403,35 @@ class RoundTripTournoiTest {
         assertEquals("Motif valable", relu.getRefusHomologation().get(0).motif());
     }
 
+    /** B025 : la stratégie d'ordonnancement choisie par le club est mémorisée ; défaut si absente. */
+    @Test
+    void strategie_d_ordonnancement_memorisee_relue_et_ancien_fichier_sans_strategie() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("strategie", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        assertFalse(Files.readString(fichier).contains("strategieOrdonnancement"), "rien d'écrit sans choix du club");
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+        assertFalse(relu.strategieOrdonnancementChoisie());
+        assertEquals(com.pingmanager.model.StrategieOrdonnancement.PAR_DEFAUT, relu.getStrategieOrdonnancement());
+
+        for (com.pingmanager.model.StrategieOrdonnancement s : com.pingmanager.model.StrategieOrdonnancement.values()) {
+            original.setStrategieOrdonnancement(s);
+            DepotTournoi.sauvegarder(original, fichier);
+            Tournoi t = DepotTournoi.charger(fichier).getTournoi();
+            assertTrue(t.strategieOrdonnancementChoisie());
+            assertEquals(s, t.getStrategieOrdonnancement());
+        }
+
+        // Valeur inconnue (fichier d'une version plus récente) ou non textuelle : stratégie par défaut.
+        String json = Files.readString(fichier);
+        Files.writeString(fichier, json.replace("\"MINIMISER_ATTENTE\"", "\"STRATEGIE_FUTURE\""));
+        Tournoi inconnu = DepotTournoi.charger(fichier).getTournoi();
+        assertFalse(inconnu.strategieOrdonnancementChoisie());
+        assertEquals(com.pingmanager.model.StrategieOrdonnancement.PAR_DEFAUT, inconnu.getStrategieOrdonnancement());
+        Files.writeString(fichier, json.replace("\"MINIMISER_ATTENTE\"", "12"));
+        assertFalse(DepotTournoi.charger(fichier).getTournoi().strategieOrdonnancementChoisie());
+    }
+
     /** Jour J (B037) : la façon d'annoncer les rencontres est mémorisée avec le tournoi. */
     @Test
     void mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode() throws Exception {

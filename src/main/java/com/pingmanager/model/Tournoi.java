@@ -39,6 +39,12 @@ public final class Tournoi {
     private ModeAnnonce modeAnnonce;
 
     /**
+     * Stratégie d'ordonnancement choisie par le club (B025), ou {@code null} tant
+     * qu'aucun choix n'est fait ({@link StrategieOrdonnancement#PAR_DEFAUT} s'applique).
+     */
+    private StrategieOrdonnancement strategieOrdonnancement;
+
+    /**
      * Niveau (catégorie) du tournoi : départemental à international. Optionnel
      * pour l'instant ({@code null} = non renseigné) ; conditionnera le grade de
      * juge-arbitre requis.
@@ -270,6 +276,21 @@ public final class Tournoi {
     /** Mémorise (ou oublie, avec {@code null}) la façon d'annoncer les rencontres. */
     public void setModeAnnonce(ModeAnnonce modeAnnonce) {
         this.modeAnnonce = modeAnnonce;
+    }
+
+    /** @return la stratégie d'ordonnancement applicable : celle du club, sinon la stratégie par défaut. */
+    public StrategieOrdonnancement getStrategieOrdonnancement() {
+        return strategieOrdonnancement == null ? StrategieOrdonnancement.PAR_DEFAUT : strategieOrdonnancement;
+    }
+
+    /** @return vrai si le club a choisi lui-même sa stratégie (sinon la valeur par défaut s'applique). */
+    public boolean strategieOrdonnancementChoisie() {
+        return strategieOrdonnancement != null;
+    }
+
+    /** Mémorise la stratégie choisie par le club ; {@code null} revient à la stratégie par défaut. */
+    public void setStrategieOrdonnancement(StrategieOrdonnancement strategie) {
+        this.strategieOrdonnancement = strategie;
     }
 
     public RegleTableauxParJour getRegleTableauxParJour() {

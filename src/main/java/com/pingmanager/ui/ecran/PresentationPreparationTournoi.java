@@ -125,10 +125,15 @@ final class PresentationPreparationTournoi {
     }
 
     /** Tâches de la deuxième version déjà livrées : leur vraie carte remplace la carte « bientôt ». */
-    static final List<String> PARTIES_LIVREES = List.of("B036");
+    static final List<String> PARTIES_LIVREES = List.of("B025", "B036");
 
     /** @return vrai si la carte « Remplissage et finances » (B036) s'affiche. */
     boolean afficheRemplissageEtFinances() {
+        return deuxiemeVersion();
+    }
+
+    /** @return vrai si la carte « Stratégie d'ordonnancement » (B025) s'affiche. */
+    boolean afficheStrategie() {
         return deuxiemeVersion();
     }
 

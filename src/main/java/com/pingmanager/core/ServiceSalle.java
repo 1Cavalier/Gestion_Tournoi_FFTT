@@ -59,6 +59,7 @@ public final class ServiceSalle {
 
     private final Horloge horloge;
     private final ZoneId zone;
+    /** Poids imposés par l'appelant, ou {@code null} : ceux de la stratégie du tournoi (B025). */
     private final PoidsOrdonnancement poids;
 
     public ServiceSalle() {
@@ -69,10 +70,17 @@ public final class ServiceSalle {
         this(horloge, ZoneId.systemDefault());
     }
 
+    /**
+     * Salle dont la priorité suit la stratégie d'ordonnancement choisie par le
+     * club pour chaque tournoi (B025 ; stratégie par défaut sans choix).
+     */
     public ServiceSalle(Horloge horloge, ZoneId zone) {
-        this(horloge, zone, new PoidsOrdonnancement());
+        this.horloge = Objects.requireNonNull(horloge, "horloge");
+        this.zone = Objects.requireNonNull(zone, "zone");
+        this.poids = null;
     }
 
+    /** Salle avec des poids imposés, quelle que soit la stratégie du tournoi. */
     public ServiceSalle(Horloge horloge, ZoneId zone, PoidsOrdonnancement poids) {
         this.horloge = Objects.requireNonNull(horloge, "horloge");
         this.zone = Objects.requireNonNull(zone, "zone");
@@ -213,7 +221,8 @@ public final class ServiceSalle {
             this.nombreDeTables = Math.max(0, tournoi.getNombreDeTables());
             // L'ordonnanceur exige au moins une table ; sans table renseignée, aucune
             // carte n'est montrée et toute affectation est refusée (hors limites).
-            this.ordonnanceur = new Ordonnanceur(Math.max(1, nombreDeTables), poids);
+            this.ordonnanceur = new Ordonnanceur(Math.max(1, nombreDeTables),
+                    poids != null ? poids : PoidsOrdonnancement.pour(tournoi.getStrategieOrdonnancement()));
             recenser();
             restaurerOccupation();
             poserAttentes();

@@ -62,6 +62,7 @@ class RepriseSessionTest {
 
         PoidsOrdonnancement poids = new PoidsOrdonnancement();
         poids.setPoidsAttente(2.5);
+        poids.setPoidsTableauCommence(1.75); // B025
         Ordonnanceur ord = new Ordonnanceur(6, poids);
         for (Poule p : tab.getPoules()) {
             for (Match m : p.getMatchs()) {
@@ -104,6 +105,7 @@ class RepriseSessionTest {
         assertTrue(s2.aOrdonnancement());
         assertEquals(6, s2.getOrdonnanceur().getNombreDeTables());
         assertEquals(2.5, s2.getOrdonnanceur().getPoids().getPoidsAttente(), 0.001);
+        assertEquals(1.75, s2.getOrdonnanceur().getPoids().getPoidsTableauCommence(), 0.001);
     }
 
     @Test
