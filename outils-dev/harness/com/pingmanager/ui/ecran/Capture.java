@@ -43,6 +43,7 @@ public class Capture extends Application {
     static boolean suivi;
     static boolean jourj;
     static boolean profil;
+    static boolean b035;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -59,6 +60,7 @@ public class Capture extends Application {
         suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
         profil = java.util.Arrays.asList(a).contains("profil");
+        b035 = java.util.Arrays.asList(a).contains("b035");
         launch(a);
     }
 
@@ -111,6 +113,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (b035) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesB035(coq);
             lancer(0);
             return;
         }
@@ -382,6 +391,65 @@ public class Capture extends Application {
             coq[0] = new Coquille(ctx, () -> { });
             scene.setRoot(coq[0].build());
         }, "accueil-sans-licence");
+    }
+
+    /**
+     * Homologation (B035) : brouillon après un refus, demande en cours (dossier
+     * verrouillé), tournoi homologué (deuxième version). Les statuts sont posés
+     * directement sur le tournoi du banc (dossier volontairement incomplet).
+     */
+    void etapesB035(Coquille[] coq) {
+        Path[] f = new Path[1];
+        etape(() -> {
+            f[0] = ctx.tousLesTournois().stream()
+                    .filter(x -> x.tournoi().getNom().equals("Tournoi national de Brunoy")).findFirst().orElseThrow().fichier();
+            Tournoi t = ctx.chargerTournoi(f[0]);
+            t.changerStatut(com.pingmanager.model.StatutTournoi.DEMANDE_HOMOLOGATION);
+            t.enregistrerRefusHomologation(new com.pingmanager.model.RefusHomologation(
+                    java.time.Instant.parse("2026-11-04T10:15:00Z"),
+                    "Grade du juge-arbitre insuffisant pour un tournoi régional : JA2 au minimum."));
+            t.changerStatut(com.pingmanager.model.StatutTournoi.BROUILLON);
+            ctx.enregistrerTournoi(t, f[0]);
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            ouvrirCompletion(coq[0], f[0]);
+        }, "b035-brouillon-refus");
+        etape(() -> defiler(1.0), "b035-brouillon-refus-bas");
+        etape(() -> {
+            Tournoi t = ctx.chargerTournoi(f[0]);
+            t.changerStatut(com.pingmanager.model.StatutTournoi.DEMANDE_HOMOLOGATION);
+            ctx.enregistrerTournoi(t, f[0]);
+            ouvrirCompletion(coq[0], f[0]);
+        }, "b035-demande");
+        etape(() -> defiler(1.0), "b035-demande-bas");
+        etape(() -> { cliquer("Homologation refusée"); defiler(1.0); }, "b035-demande-saisie-refus");
+        etape(() -> {
+            ouvrirCompletion(coq[0], f[0]);
+            cliquer("Modifier");
+        }, "b035-demande-general-verrouille");
+        etape(() -> {
+            Tournoi t = ctx.chargerTournoi(f[0]);
+            t.setNumeroHomologation("R-91-2027-014");
+            t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+            ctx.enregistrerTournoi(t, f[0]);
+            ouvrirCompletion(coq[0], f[0]);
+        }, "b035-homologue");
+        etape(() -> defiler(0.3), "b035-homologue-milieu");
+        etape(() -> defiler(1.0), "b035-homologue-bas");
+    }
+
+    /** Ouvre l'écran de préparation d'un tournoi dans la page Gestion des tournois de la coquille. */
+    void ouvrirCompletion(Coquille c, Path fichier) {
+        c.afficher("gestion");
+        try {
+            java.lang.reflect.Field r = Coquille.class.getDeclaredField("racine");
+            r.setAccessible(true);
+            javafx.scene.layout.BorderPane page = (javafx.scene.layout.BorderPane)
+                    ((javafx.scene.layout.BorderPane) r.get(c)).getCenter();
+            page.setCenter(new EcranCompletion(ctx, fichier, () -> { }).build());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /** Mon profil (B029) : compte relié à un club (Quentin) puis joueur non relié, 1440 px. */
@@ -808,7 +876,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil) ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || b035) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

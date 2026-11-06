@@ -86,7 +86,8 @@ final class EcranCompletion {
         EnumSet<Niveau> presentes = EnumSet.noneOf(Niveau.class);
         sections.forEach(sec -> sec.items().forEach(it -> presentes.add(it.niveau())));
 
-        VBox contenu = Ui.page(780, new VBox(6, retour, ligneTitre), recap(), carteInscriptions(),
+        // Colonne plus large (charte v2, B035) : parcours, cartes à venir et en-têtes de section tiennent sur une ligne.
+        VBox contenu = Ui.page(960, new VBox(6, retour, ligneTitre), recap(), carteInscriptions(),
                 Ui.legende(presentes));
         if (EcranJourJ.estPropose(tournoi)) {
             contenu.getChildren().add(2, EcranJourJ.carteAcces(tournoi,
@@ -204,17 +205,21 @@ final class EcranCompletion {
                     ? "\u2713" : String.valueOf(e.numero()));
             numero.getStyleClass().add("parcours-numero");
             Label titre = new Label(e.titre());
-            titre.setWrapText(true);
             titre.getStyleClass().add("parcours-titre");
-            VBox etape = new VBox(4, numero, titre);
+            titre.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            VBox etape = new VBox(6, numero, titre);
+            etape.setAlignment(javafx.geometry.Pos.TOP_CENTER);
             etape.getStyleClass().addAll("parcours-etape", e.etat().classeCss());
-            etape.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(etape, Priority.ALWAYS);
             frise.getChildren().add(etape);
             if (i < etapes.size() - 1) {
+                // Le trait relie les étapes et prend la place libre ; il est coloré une fois l'étape franchie.
                 javafx.scene.layout.Region trait = new javafx.scene.layout.Region();
                 trait.getStyleClass().add("parcours-trait");
+                if (e.etat() == PresentationPreparationTournoi.EtatEtape.FAITE) {
+                    trait.getStyleClass().add("parcours-trait-fait");
+                }
                 trait.setMinWidth(16);
+                HBox.setHgrow(trait, Priority.ALWAYS);
                 frise.getChildren().add(trait);
             }
         }
@@ -235,13 +240,38 @@ final class EcranCompletion {
 
     /** Deuxième version : les parties qui arrivent (salle, stratégie, remplissage et finances). */
     private Node cartesAVenir() {
-        javafx.scene.layout.TilePane tuiles = new javafx.scene.layout.TilePane(14, 14);
-        tuiles.setPrefColumns(3);
+        // Grille à colonnes égales : les cartes ont la même largeur et la même hauteur.
+        javafx.scene.layout.GridPane tuiles = new javafx.scene.layout.GridPane();
+        tuiles.setHgap(16);
         tuiles.getStyleClass().add("cartes-a-venir");
-        for (PresentationPreparationTournoi.CarteAVenir c : presentation.cartesAVenir()) {
-            tuiles.getChildren().add(Ui.carteBientot(c.titre(), c.description(), c.tache()));
+        List<PresentationPreparationTournoi.CarteAVenir> cartes = presentation.cartesAVenir();
+        for (int i = 0; i < cartes.size(); i++) {
+            PresentationPreparationTournoi.CarteAVenir c = cartes.get(i);
+            VBox carte = Ui.carteBientot(iconeAVenir(c.tache()), c.titre(), c.description(), c.tache());
+            carte.setMaxWidth(Double.MAX_VALUE);
+            carte.setMaxHeight(Double.MAX_VALUE);
+            javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+            col.setPercentWidth(100.0 / cartes.size());
+            col.setHgrow(Priority.ALWAYS);
+            tuiles.getColumnConstraints().add(col);
+            tuiles.add(carte, i, 0);
         }
-        return tuiles;
+        VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
+        return bloc;
+    }
+
+    /** Icône de chaque carte à venir, d'après sa tâche (chaîne de if, pas de switch). */
+    private static String iconeAVenir(String tache) {
+        if ("B024".equals(tache)) {
+            return Icones.SALLE;
+        }
+        if ("B025".equals(tache)) {
+            return Icones.STRATEGIE;
+        }
+        if ("B036".equals(tache)) {
+            return Icones.FINANCES;
+        }
+        return null;
     }
 
     private static Node ligneRecap(String etape, int manquants, String siComplet, String siManquant) {
@@ -352,6 +382,7 @@ final class EcranCompletion {
      */
     private Node reponseHomologation(Label message, Button retirer) {
         TextField numero = Ui.champ("n° délivré par la FFTT");
+        numero.getStyleClass().add("champ-numero-homologation");
         if (tournoi.getNumeroHomologation() != null) {
             numero.setText(tournoi.getNumeroHomologation());
         }
@@ -398,6 +429,7 @@ final class EcranCompletion {
                 Ui.marquerErreur(motif);
             }
         });
+        retirer.getStyleClass().add("lien-aligne-bouton");
         HBox ligne = Ui.ligne(10, Ui.champEtiquete("Numéro d'homologation", numero), accepter, refuser,
                 Ui.espace(), retirer);
         ligne.setAlignment(javafx.geometry.Pos.BOTTOM_LEFT);
@@ -440,11 +472,15 @@ final class EcranCompletion {
 
         PresentationPreparationTournoi.Progression prog = presentation.progressionSection(index);
         Label compte = Ui.discret(prog.libelle());
+        compte.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         HBox titre = Ui.ligne(10, Ui.titreCarte(s.titre()), compte);
         String verrou = presentation.mentionVerrouSection(index);
         if (verrou != null) {
             Label pastille = Ui.pastille(verrou, Ui.CADRE_FACULTATIF);
             pastille.getStyleClass().add("pastille-verrou");
+            pastille.setGraphic(Ui.iconeCadree(Icones.CADENAS, "icone-verrou"));
+            pastille.setGraphicTextGap(6);
+            pastille.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
             pastille.setTooltip(new javafx.scene.control.Tooltip(presentation.motifVerrouSection(index)));
             titre.getChildren().add(pastille);
         }

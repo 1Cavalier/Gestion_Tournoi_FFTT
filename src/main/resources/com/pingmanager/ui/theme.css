@@ -2927,87 +2927,164 @@
 
 /* =====================================================================
    Homologation (B035) : verrous du dossier, refus, parcours, cartes
-   « bientôt » de la deuxième version (à affiner par le designer)
+   « bientôt » de la deuxième version (charte v2, clair et sombre)
    ===================================================================== */
 
-/* Champ du dossier d'homologation verrouillé : grisé, non modifiable. */
+/* Champ du dossier d'homologation verrouillé : fond gris bleuté, bordure fine,
+   texte secondaire ; reste lisible (pas d'opacité réduite). */
 .champ-verrouille,
 .text-field.champ-verrouille,
-.combo-box.champ-verrouille {
+.combo-box.champ-verrouille,
+.date-picker.champ-verrouille {
     -fx-background-color: -bordure, -surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
     -fx-text-fill: -texte-doux;
     -fx-opacity: 1;
     -fx-cursor: default;
+    -fx-effect: null;
 }
 
+.combo-box.champ-verrouille .list-cell,
+.date-picker.champ-verrouille .text-field {
+    -fx-text-fill: -texte-doux;
+    -fx-background-color: transparent;
+}
+
+/* Une liste déroulante verrouillée est désactivée : on garde son texte lisible. */
+.combo-box.champ-verrouille:disabled,
+.combo-box.champ-verrouille:disabled .list-cell,
+.date-picker.champ-verrouille:disabled,
+.date-picker.champ-verrouille:disabled .text-field {
+    -fx-opacity: 1;
+}
+
+.combo-box.champ-verrouille .arrow-button .arrow,
+.date-picker.champ-verrouille .arrow-button .arrow {
+    -fx-background-color: -bordure-forte;
+}
+
+/* Bandeau du motif de verrouillage : bleu doux, filet bleu à gauche, cadenas. */
 .bandeau-verrou {
     -fx-text-fill: -info-texte;
-    -fx-background-color: -info-doux;
-    -fx-background-radius: 6;
-    -fx-padding: 8 12 8 12;
+    -fx-background-color: -primaire, -info-doux;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8;
+    -fx-padding: 10 14 10 16;
+    -fx-line-spacing: 2;
+}
+
+.bandeau-verrou .icone-verrou,
+.pastille-verrou .icone-verrou {
+    -fx-fill: -info-texte;
 }
 
 .label.pastille.pastille-verrou {
-    -fx-text-fill: -neutre-texte;
-    -fx-background-color: -neutre-doux;
+    -fx-text-fill: -info-texte;
+    -fx-background-color: -info-doux;
+    -fx-border-color: transparent;
+}
+
+.label.pastille.pastille-verrou .icone-verrou {
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
 }
 
 /* Rappel du dernier refus d'homologation, en tête du brouillon. */
 .carte-refus-homologation {
-    -fx-background-color: -erreur-doux;
-    -fx-border-color: -erreur;
-    -fx-border-width: 0 0 0 4;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
-    -fx-padding: 14 16 14 16;
+    -fx-background-color: -erreur, -erreur-doux;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 12;
+    -fx-padding: 16 20 16 22;
 }
 
 .carte-refus-homologation .label {
     -fx-text-fill: -erreur-texte;
 }
 
+.carte-refus-homologation .label.gras {
+    -fx-font-size: 15px;
+}
+
+/* « Homologation refusée » : bouton secondaire au texte rouge, survol rouge doux. */
 .button.bouton-refus {
     -fx-text-fill: -erreur-texte;
-    -fx-border-color: -erreur;
+    -fx-background-color: -erreur, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
 }
 
+.button.bouton-refus:hover,
+.button.bouton-refus:focused:hover {
+    -fx-text-fill: -erreur-texte;
+    -fx-background-color: -erreur, -erreur-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+}
+
+.button.bouton-refus:focused {
+    -fx-background-color: -anneau-erreur, -erreur, -surface;
+    -fx-background-insets: -3, 0, 1.5;
+    -fx-background-radius: 11, 8, 6.5;
+}
+
+/* Saisie du motif : sous-carte blanche, posée sur le bloc gris de l'étape. */
 .saisie-refus {
-    -fx-background-color: -surface-2;
-    -fx-background-radius: 8;
-    -fx-padding: 12;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-padding: 14 16 14 16;
 }
 
-/* Parcours en quatre étapes (préparation → publication). */
+/* Lien posé dans une rangée de boutons : même hauteur, texte centré sur eux. */
+.button.bouton-lien.lien-aligne-bouton {
+    -fx-min-height: 36px;
+}
+
+.text-field.champ-numero-homologation {
+    -fx-pref-width: 230;
+    -fx-min-width: 200;
+}
+
+/* Parcours en quatre étapes (préparation → publication), relié par des traits. */
 .parcours {
-    -fx-alignment: center-left;
-    -fx-padding: 4 0 4 0;
+    -fx-alignment: top-left;
+    -fx-padding: 4 0 8 0;
 }
 
 .parcours-etape {
     -fx-alignment: top-center;
-    -fx-padding: 8 6 8 6;
+    -fx-padding: 8 14 10 14;
     -fx-background-radius: 10;
 }
 
 .parcours-numero {
-    -fx-min-width: 28;
-    -fx-min-height: 28;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-max-width: 30;
+    -fx-max-height: 30;
     -fx-alignment: center;
     -fx-background-radius: 999;
     -fx-font-weight: bold;
 }
 
 .parcours-titre {
-    -fx-font-size: 12px;
+    -fx-font-size: 12.5px;
     -fx-text-alignment: center;
     -fx-alignment: center;
 }
 
+/* Le trait passe au niveau du centre des numéros (8 px de marge + 15 px). */
 .parcours-trait {
     -fx-min-height: 2;
     -fx-max-height: 2;
     -fx-background-color: -bordure;
-    -fx-translate-y: -10;
+    -fx-background-radius: 1;
+    -fx-translate-y: 22;
+}
+
+.parcours-trait.parcours-trait-fait {
+    -fx-background-color: -succes;
 }
 
 .parcours-etape-faite .parcours-numero {
@@ -3024,7 +3101,8 @@
 }
 
 .parcours-etape-en-cours .parcours-numero {
-    -fx-background-color: -primaire;
+    -fx-background-color: -anneau, -primaire;
+    -fx-background-insets: -4, 0;
     -fx-text-fill: -sur-primaire;
 }
 
@@ -3034,7 +3112,8 @@
 }
 
 .parcours-etape-a-venir .parcours-numero {
-    -fx-background-color: -surface-2;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1.5;
     -fx-text-fill: -texte-doux;
 }
 
@@ -3043,7 +3122,7 @@
 }
 
 .progress-bar.jauge.jauge-dossier {
-    -fx-pref-height: 12;
+    -fx-pref-height: 10;
 }
 
 .progress-bar.jauge.jauge-section {
@@ -3052,7 +3131,9 @@
 
 .jauge-dossier-pourcent {
     -fx-text-fill: -primaire-fort;
-    -fx-min-width: 48;
+    -fx-font-size: 15px;
+    -fx-min-width: 52;
+    -fx-alignment: center-right;
 }
 
 .titre-dossier {
@@ -3061,18 +3142,24 @@
 
 /* Deuxième version : parties à venir (salle, stratégie, remplissage et finances). */
 .carte.carte-bientot {
-    -fx-pref-width: 240;
-    -fx-border-color: -bordure;
-    -fx-border-style: segments(6, 4);
-    -fx-border-radius: 10;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+    -fx-border-color: transparent;
+    -fx-padding: 18 20 20 20;
+}
+
+.carte.carte-bientot .icone-tuile {
+    -fx-background-color: -primaire-doux;
 }
 
 .pastille-bientot {
     -fx-text-fill: -info-texte;
     -fx-background-color: -info-doux;
     -fx-background-radius: 999;
-    -fx-padding: 2 10 2 10;
+    -fx-padding: 3 10 3 10;
     -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
 }
 
 /* =====================================================================

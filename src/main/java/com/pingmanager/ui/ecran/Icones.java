@@ -28,4 +28,16 @@ final class Icones {
     static final String AGENDA = "M1.5 3 L14.5 3 L14.5 14.5 L1.5 14.5 Z M3 6.5 L3 13 L13 13 L13 6.5 Z "
             + "M4.5 1 L6 1 L6 4.5 L4.5 4.5 Z M10 1 L11.5 1 L11.5 4.5 L10 4.5 Z M4.5 8 L7.5 8 L7.5 11 L4.5 11 Z";
     static final String SUPERVISION = "M8 1 L14 3.5 L14 8 C14 11.4 11.4 14 8 15 C4.6 14 2 11.4 2 8 L2 3.5 Z";
+    /** Cadenas : champ ou dossier verrouillé (homologation demandée, B035). */
+    static final String CADENAS = "M3 7 L13 7 L13 14.5 L3 14.5 Z M5 7 L5 5 C5 1.2 11 1.2 11 5 L11 7 L9.5 7 L9.5 5 "
+            + "C9.5 3.2 6.5 3.2 6.5 5 L6.5 7 Z M7.25 9.5 L8.75 9.5 L8.75 12 L7.25 12 Z";
+    /** Plan de salle : un cadre et quatre tables. */
+    static final String SALLE = "M1.5 2 L14.5 2 L14.5 14 L1.5 14 Z M3 3.5 L3 12.5 L13 12.5 L13 3.5 Z "
+            + "M4.5 5 L7 5 L7 7 L4.5 7 Z M9 5 L11.5 5 L11.5 7 L9 7 Z M4.5 9 L7 9 L7 11 L4.5 11 Z M9 9 L11.5 9 L11.5 11 L9 11 Z";
+    /** Ordonnancement : trois barres décalées, façon planning. */
+    static final String STRATEGIE = "M1.5 2.5 L9 2.5 L9 5 L1.5 5 Z M5 6.75 L13 6.75 L13 9.25 L5 9.25 Z "
+            + "M8 11 L14.5 11 L14.5 13.5 L8 13.5 Z";
+    /** Remplissage et finances : pile de pièces et jauge montante. */
+    static final String FINANCES = "M1.5 11.5 L8.5 11.5 L8.5 14 L1.5 14 Z M2.5 8 L9.5 8 L9.5 10.5 L2.5 10.5 Z "
+            + "M1.5 4.5 L8.5 4.5 L8.5 7 L1.5 7 Z M11 9 L13 9 L13 14 L11 14 Z M11 2 L13 2 L13 7.5 L11 7.5 Z";
 }
