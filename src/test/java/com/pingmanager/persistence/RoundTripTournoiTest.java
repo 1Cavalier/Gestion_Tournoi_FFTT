@@ -401,6 +401,8 @@ class RoundTripTournoiTest {
         Tournoi relu = TournoiMapper.lire(doc).getTournoi();
         assertEquals(1, relu.getRefusHomologation().size());
         assertEquals("Motif valable", relu.getRefusHomologation().get(0).motif());
+    }
+
     /** Jour J (B037) : la façon d'annoncer les rencontres est mémorisée avec le tournoi. */
     @Test
     void mode_d_annonce_memorise_relu_et_ancien_fichier_sans_mode() throws Exception {

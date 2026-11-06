@@ -4,7 +4,7 @@ titre: Mes tournois : tournoi en cours, inscriptions et agenda, tournois passés
 type: interface
 priorite: P1
 taille: M
-statut: en-cours
+statut: fait
 depend-de: [B032]
 fichiers: [ui/ecran/MesTournois]
 branche: tache/B031-mes-tournois (2026-11-06)
