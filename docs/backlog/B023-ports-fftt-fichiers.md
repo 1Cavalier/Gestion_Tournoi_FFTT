@@ -4,10 +4,10 @@ titre: Ports d'échange FFTT et import / export par fichier
 type: idee
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: [B022]
 fichiers: [core (ports), importation, persistence]
-branche:
+branche: tache/B023-ports-fftt
 pr:
 ---
 
