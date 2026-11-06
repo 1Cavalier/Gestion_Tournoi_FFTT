@@ -4,12 +4,12 @@ titre: Homologation : verrous, refus, et deuxième version de l'écran du tourno
 type: idee
 priorite: P1
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [core/ServiceCycleTournoi, core/ServiceCompletudeTournoi, model/Tournoi, ui/ecran/EcranCompletion, ui/ecran/FormulairesSection]
 branche: tache/B035-homologation-verrous
 date: 2026-11-05
-pr:
+pr: 45
 ---
 
 ## Ce qu'il faut faire
