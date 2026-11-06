@@ -18,11 +18,11 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 6. (1) **Cœur** : dès l
 
 ## Critères de fin
 
-- [ ] verrous testés champ par champ
-- [ ] refus → brouillon testé
-- [ ] deuxième version affichée après homologation
-- [ ] captures regardées
-- [ ] `mvn -B test` à 0 échec
+- [x] verrous testés champ par champ (`ServiceVerrousHomologationTest`, 365 lignes)
+- [x] refus → brouillon testé (`RefusHomologationTest`, `CycleHomologationVerrousTest`)
+- [x] deuxième version affichée après homologation (logique testée par `PresentationPreparationTournoiTest` ; rendu à valider à l'écran par Quentin)
+- [x] captures regardées (`docs/captures/B035/`, clair et sombre)
+- [x] `mvn -B test` à 0 échec (879 tests, rapporté par le correcteur)
 
 ## Contraintes / décisions de Quentin
 
@@ -38,6 +38,14 @@ Voir le cahier des charges v0.
 - correcteur (07/11) : `ImportJoueurs` contournait le verrou LISTE_TABLEAUX (création de tableaux à l'import en demande/homologué). Corrigé dans `planifier` (définitions et tableaux inconnus non retenus, motif `motifVerrou` dans `remarques`/`sansTableau`) et garde dans `appliquer` (plan établi avant la demande).
 - `ImportTableaux` ne crée rien lui-même (`construire` sans ajout au tournoi) : rien à corriger. L'écran d'import affiche déjà `sansTableau` (bloquants) et `remarques` (à vérifier), le motif y remonte sans modification.
 - Tests : `core/ImportJoueursVerrousHomologationTest` (3), total 879, 0 échec.
-- Trou signalé : l'import de joueurs (`ImportJoueurs`, option « créer les tableaux ») peut encore ajouter des tableaux à un tournoi en demande/homologué sans passer par les verrous (cœur, non traité ici).
+- Trou signalé (résolu par le correcteur ci-dessus) : l'import de joueurs pouvait ajouter des tableaux à un tournoi en demande/homologué ; désormais bloqué.
+- verificateur (relecture du cœur) : 18 tests de verrous et de refus contrôlés ; défaut de l'import confirmé (corrigé par le correcteur). Asymétrie notée, non bloquante : `ServiceCycleTournoi.annuler(tournoi)` renvoie `void`, alors que les transitions voisines renvoient un `ResultatTransition`. Rien d'autre à corriger.
+- relecteur (nouveau code et liaisons) : aucun point bloquant. Non bloquant : la classe `cartes-a-venir` (conteneur des cartes « bientôt » dans `EcranCompletion`) n'a pas de règle CSS ; la carte elle-même (`carte-bientot`) est stylée. Architecture vérifiée : aucun import interdit dans `model`, `core`, `ordonnancement`.
 
 ## Résultat
+
+- Cœur : verrous des champs 🔴 dès la demande d'homologation (`ServiceVerrousHomologation`, refus détaillé avec motif), refus d'homologation avec motif → brouillon (`ServiceCycleTournoi.refuserHomologation`), historique des refus enregistré dans le JSON (champ facultatif `refusHomologation`, anciens fichiers relus).
+- Écran : formulaires Général, tableaux et juges-arbitres verrouillés (grisés, bandeau avec motif) ; boutons « Homologation acceptée » / « Homologation refusée » ; parcours en 4 étapes et jauges ; deuxième version de la vue du tournoi après homologation (cartes « bientôt » Salle, Stratégie, Remplissage et finances ; règlement en bas).
+- Import de joueurs : ne crée plus de tableaux sur un tournoi verrouillé.
+- Captures avant/après regardées (clair et sombre) dans `docs/captures/B035/`. Validation à l'écran restée à Quentin.
+- Documentation : `docs/passation/REGLES_CREATION_TOURNOI.md` décrit les verrous et le refus.
