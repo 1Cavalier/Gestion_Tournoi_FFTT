@@ -4,10 +4,11 @@ titre: Remplissage et finances du tournoi
 type: idee
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: [B035]
 fichiers: [core (finances), ui/ecran (carte Remplissage et finances)]
-branche:
+branche: tache/B036-remplissage-finances
+date: 2026-11-06
 pr:
 ---
 
