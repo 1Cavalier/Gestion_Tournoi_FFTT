@@ -4,10 +4,10 @@ titre: Choisir un service d'envoi de SMS
 type: recherche
 priorite: P2
 taille: S
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [docs/RECHERCHE_SMS.md]
-branche:
+branche: tache/B020-prestataire-sms
 pr:
 ---
 
