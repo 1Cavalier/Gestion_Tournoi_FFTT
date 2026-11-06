@@ -34,3 +34,5 @@ Voir le cahier des charges v0.
 - Pour le relecteur : I.305.2 corrigé car le texte dit « vainqueur de la poule 1 » sans ambiguïté sur le critère ; la question à Quentin reste ouverte pour confirmation (poule A = poule 1). Les tirages d'une graine donnée changent (ordre aléatoire consommé différemment).
 
 ## Résultat
+- Contrôleur (relecture 2026-11-06) : corrections `aaa62da` revérifiées contre I.302, I.304, I.305.1 à I.305.4 (vainqueurs par numéro de poule, clubs au 1er tour, 2es opposés au 1er, 3es même demi et quart opposé, serpentin et têtes de poule conservés) : conformes, `CONFORMITE_FFTT.md` cohérent.
+- Tests : 1051 / 1051 verts (`SP=/tmp/pm-B040b bash outils-dev/tests.sh`). Question ouverte pour Quentin inchangée : poule A = poule 1 pour I.305.2.
