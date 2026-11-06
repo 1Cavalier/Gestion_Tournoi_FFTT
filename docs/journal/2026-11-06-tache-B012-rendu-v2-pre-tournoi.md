@@ -38,9 +38,9 @@ pastille de public, rappels ambre adoucis. La logique est inchangée.
 
 ## Fusion
 
-Voir ci-dessous (complété après synchronisation).
+main déjà intégré (merge : Already up to date). `verifier-fusion.py` : OK, rien à signaler. theme.css équilibré 512/512.
 
 ## Chiffres
 
-- Tests : voir ci-dessous
+- Tests : 798, 0 échec (`mvn -B test`)
 - Version de la démo : inchangée
