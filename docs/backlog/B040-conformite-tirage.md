@@ -4,10 +4,10 @@ titre: Conformité du tirage au sort avec la pratique FFTT
 type: regle
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [CONFORMITE_FFTT.md, src/test]
-branche:
+branche: tache/B040-conformite-tirage
 pr:
 ---
 
