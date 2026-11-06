@@ -188,12 +188,7 @@ final class EcranSalle {
         VBox contenu = Ui.page(Double.MAX_VALUE, retour, entete());
 
         if (messageSucces != null || messageErreur != null) {
-            Label message = Ui.message();
-            if (messageErreur != null) {
-                Ui.erreur(message, messageErreur);
-            } else {
-                Ui.succes(message, messageSucces);
-            }
+            Label message = Ui.message(messageErreur, messageSucces);
             HBox ligneMessage = Ui.ligne(16, message);
             Node suite = boutonSuite();
             if (suite != null && messageErreur == null) {

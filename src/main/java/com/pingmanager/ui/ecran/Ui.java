@@ -649,6 +649,17 @@ final class Ui {
         return l;
     }
 
+    /** Message affiché : l'erreur si elle existe, sinon le succès (au moins l'un des deux est non nul). */
+    static Label message(String erreur, String succes) {
+        Label l = message();
+        if (erreur != null) {
+            erreur(l, erreur);
+        } else {
+            succes(l, succes);
+        }
+        return l;
+    }
+
     static void erreur(Label l, String texte) {
         l.getStyleClass().removeAll("message-succes", "message-erreur");
         l.getStyleClass().add("message-erreur");
