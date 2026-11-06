@@ -82,7 +82,7 @@ final class EcranTableaux {
         btnRetour.setOnAction(e -> retour.run());
 
         VBox enTete = new VBox(6, btnRetour, Ui.titre("Tableaux et inscriptions"));
-        poser(Ui.page(900, enTete,
+        poser(Ui.page(1040, enTete,
                 Ui.legende(EnumSet.of(Niveau.OBLIGATOIRE_HOMOLOGATION, Niveau.OBLIGATOIRE_PUBLICATION,
                         Niveau.RECOMMANDE, Niveau.OPTIONNEL)),
                 carteEcheances(), carteTableaux(), new CarteReglesInscription(tournoi, enregistrer).build(),
@@ -165,7 +165,7 @@ final class EcranTableaux {
         if (d == null || f == null) {
             Label l = Ui.texte("Les dates du tournoi ne sont pas encore renseignées (section Général). "
                     + "Renseignez-les d'abord : chaque tableau doit se jouer pendant le tournoi.");
-            l.getStyleClass().add("rappel-attention");
+            l.getStyleClass().addAll("rappel-attention", "rappel-doux");
             return l;
         }
         Label debut = Ui.gras(Saisie.jourLong(d));
@@ -321,6 +321,7 @@ final class EcranTableaux {
             Label l = Ui.enteteColonne(cols[c]);
             l.getStyleClass().add("cellule-entete");
             l.setMinWidth(Region.USE_PREF_SIZE);
+            l.setMaxWidth(Double.MAX_VALUE);   // bande d'en-tête continue
             g.add(l, c, 0);
         }
         int r = 1;
@@ -385,6 +386,7 @@ final class EcranTableaux {
             Label l = Ui.enteteColonne(COLONNES[c]);
             l.getStyleClass().add("cellule-entete");
             l.setMinWidth(Region.USE_PREF_SIZE);
+            l.setMaxWidth(Double.MAX_VALUE);   // bande d'en-tête continue
             g.add(l, c, 0);
         }
         // Les filets sont des lignes pleine largeur entre les rangées (et non des
@@ -405,7 +407,7 @@ final class EcranTableaux {
                     texteOuTiret(h == null ? null : Saisie.jourCourt(h.getJour())),
                     texteOuTiret(h == null || h.getDebutMatchs() == null ? null : Saisie.heure(h.getDebutMatchs().toLocalTime())),
                     new Label(points(cfg)),
-                    new Label(publicVise(cfg)),
+                    pastillePublic(cfg),
                     new Label(places(cfg)),
                     new Label(prix(cfg.getTarif())),
                     new Label(recompenses(cfg.getRecompenses())),
@@ -429,6 +431,12 @@ final class EcranTableaux {
             g.add(filet(), 0, r++, COLONNES.length, 1);
         }
         return g;
+    }
+
+    /** Public du tableau en pastille : bleue pour un tableau réservé, grise sinon. */
+    private static Node pastillePublic(ConfigurationTableau cfg) {
+        StatutPastille statut = cfg.getSexeRequis() == null ? StatutPastille.NEUTRE : StatutPastille.INFO;
+        return Ui.ligne(0, Ui.pastille(publicVise(cfg), statut));
     }
 
     private static Region filet() {

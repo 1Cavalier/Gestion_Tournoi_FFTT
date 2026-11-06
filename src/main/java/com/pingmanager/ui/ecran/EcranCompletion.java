@@ -15,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.nio.file.Path;
@@ -80,7 +81,7 @@ final class EcranCompletion {
         EnumSet<Niveau> presentes = EnumSet.noneOf(Niveau.class);
         sections.forEach(sec -> sec.items().forEach(it -> presentes.add(it.niveau())));
 
-        VBox contenu = Ui.page(780, new VBox(6, retour, ligneTitre), recap(), carteInscriptions(),
+        VBox contenu = Ui.page(1040, new VBox(6, retour, ligneTitre), recap(sections), carteInscriptions(),
                 Ui.legende(presentes));
         if (EcranJourJ.estPropose(tournoi)) {
             contenu.getChildren().add(2, EcranJourJ.carteAcces(tournoi,
@@ -91,7 +92,7 @@ final class EcranCompletion {
                     + (tournoi.getClubOrganisateur() == null ? "" : tournoi.getClubOrganisateur())
                     + ". Vos modifications sont enregistrées directement dans son dossier.");
             sup.setWrapText(true);
-            sup.getStyleClass().add("rappel-attention");
+            sup.getStyleClass().addAll("rappel-attention", "rappel-doux");
             contenu.getChildren().add(1, sup);
         }
 
@@ -147,36 +148,55 @@ final class EcranCompletion {
                         + "inscrits à partir d'un fichier Excel, LibreOffice, CSV ou JSON."));
     }
 
-    /** Deux lignes : où en est le dossier pour l'homologation, puis la publication. */
-    private Node recap() {
+    /**
+     * Tuiles en tête de la vue d'ensemble : ce qui manque pour l'homologation,
+     * pour la publication, puis la complétude globale du dossier.
+     */
+    private Node recap(List<Section> sections) {
         int h = completude.bloquantsHomologation(tournoi);
         int p = completude.bloquantsPublication(tournoi);
-        return Ui.carte("Avancement du dossier",
-                ligneRecap("Demande d'homologation", h,
+        int renseignes = 0;
+        int total = 0;
+        for (Section sec : sections) {
+            for (Item it : sec.items()) {
+                total++;
+                if (it.renseigne()) {
+                    renseignes++;
+                }
+            }
+        }
+        javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(
+                total == 0 ? 0 : renseignes / (double) total);
+        barre.getStyleClass().addAll("jauge", "completion-jauge");
+        barre.setMaxWidth(Double.MAX_VALUE);
+        VBox globale = Ui.tuileChiffre(renseignes + " / " + total, "Éléments du dossier renseignés", barre);
+        globale.getStyleClass().add("tuile-cle-accent");
+        return Ui.rangeeTuiles(
+                tuileRecap("Demande d'homologation", h,
                         "Tout est prêt pour demander l'homologation.",
                         "à renseigner avant de demander l'homologation."),
-                ligneRecap("Publication", p,
+                tuileRecap("Publication", p,
                         "Tout est prêt pour publier et ouvrir les inscriptions.",
-                        "à renseigner avant de publier."));
+                        "à renseigner avant de publier."),
+                globale);
     }
 
-    private static Node ligneRecap(String etape, int manquants, String siComplet, String siManquant) {
+    private static Node tuileRecap(String etape, int manquants, String siComplet, String siManquant) {
         Label pastille = manquants == 0
                 ? Ui.pastille("Complet", Ui.ETAT_OK)
                 : Ui.pastille(manquants + (manquants > 1 ? " manquants" : " manquant"),
                         Ui.ETAT_ATTENTION);
-        // Colonne de largeur fixe : la pastille garde sa taille, les textes restent alignés.
-        HBox colonne = new HBox(pastille);
-        colonne.setMinWidth(92);
-        colonne.setPrefWidth(92);
         String phrase = manquants == 0 ? siComplet
                 : (manquants > 1 ? manquants + " éléments obligatoires " : "1 élément obligatoire ")
                         + siManquant;
-        VBox textes = new VBox(2, Ui.gras(etape), Ui.discret(phrase));
-        HBox.setHgrow(textes, Priority.ALWAYS);
-        HBox l = Ui.ligne(14, colonne, textes);
-        l.getStyleClass().add("recap-ligne");
-        return l;
+        Label titre = Ui.gras(etape);
+        titre.setWrapText(true);
+        Label texte = Ui.discret(phrase);
+        texte.setWrapText(true);
+        VBox v = new VBox(6, titre, Ui.ligne(0, pastille), texte);
+        v.getStyleClass().addAll("tuile-cle", "completion-etape");
+        v.setMaxWidth(Double.MAX_VALUE);
+        return v;
     }
 
     // ------------------------------------------------------------------
@@ -257,7 +277,14 @@ final class EcranCompletion {
                     : "Tout est prêt : la publication ouvre les inscriptions.";
             etape2 = etape("2. Publication", raison, publier);
         }
-        return Ui.carte("Homologation et publication", etape1, etape2, message);
+        HBox etapes = Ui.ligne(16, etape1, etape2);
+        etapes.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+        for (VBox e : List.of(etape1, etape2)) {
+            HBox.setHgrow(e, Priority.ALWAYS);
+            e.setPrefWidth(0);
+            e.setMaxWidth(Double.MAX_VALUE);
+        }
+        return Ui.carte("Homologation et publication", etapes, message);
     }
 
     private static String manquants(int n) {
@@ -273,23 +300,34 @@ final class EcranCompletion {
         }
         VBox v = new VBox(6, entete, t);
         if (action != null) {
-            v.getChildren().add(Ui.actions(action));
+            Region pousse = new Region();
+            VBox.setVgrow(pousse, Priority.ALWAYS);
+            v.getChildren().addAll(pousse, Ui.actions(action));
         }
-        v.getStyleClass().add("bloc-regle");
+        v.getStyleClass().addAll("bloc-regle", "completion-etape-dossier");
         return v;
     }
 
+    private static final String[] ICONES_SECTIONS = {Icones.FICHE, Icones.TABLEAUX, Icones.RAQUETTE, Icones.DOCUMENT};
+
     private Node carteSection(int index, Section s) {
-        VBox lignes = new VBox(7);
+        javafx.scene.layout.GridPane lignes = new javafx.scene.layout.GridPane();
+        lignes.getStyleClass().add("completion-items");
+        for (int c = 0; c < 2; c++) {
+            javafx.scene.layout.ColumnConstraints cc = new javafx.scene.layout.ColumnConstraints();
+            cc.setPercentWidth(50);
+            lignes.getColumnConstraints().add(cc);
+        }
+        int rang = 0;
         int renseignes = 0;
         // Tournoi publié : le règlement est figé, sa ligne laisse place à un lien de lecture.
         boolean reglementFige = index == 3 && !tournoi.reglementModifiable();
         for (Item it : s.items()) {
-            if (reglementFige && it.libelle().startsWith("Règlement du tournoi")) {
-                lignes.getChildren().add(lienReglementFige());
-            } else {
-                lignes.getChildren().add(ligneItem(it));
-            }
+            // Deux colonnes : les éléments se lisent de gauche à droite, ligne par ligne.
+            Node cellule = reglementFige && it.libelle().startsWith("Règlement du tournoi")
+                    ? lienReglementFige() : ligneItem(it);
+            lignes.add(cellule, rang % 2, rang / 2);
+            rang++;
             if (it.renseigne()) {
                 renseignes++;
             }
@@ -299,8 +337,14 @@ final class EcranCompletion {
         modifier.setOnAction(e -> afficherFormulaire(index, s.titre()));
 
         Label compte = Ui.discret(renseignes + " / " + s.items().size() + " renseignés");
-        Node entete = Ui.enteteAvecActions(Ui.ligne(10, Ui.titreCarte(s.titre()), compte), modifier);
-        return Ui.carte(entete, lignes);
+        Node icone = Ui.iconeTuile(ICONES_SECTIONS[Math.min(index, ICONES_SECTIONS.length - 1)], false);
+        Node entete = Ui.enteteAvecActions(Ui.ligne(12, icone, new VBox(2, Ui.titreCarte(s.titre()), compte)),
+                modifier);
+        javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(
+                s.items().isEmpty() ? 0 : renseignes / (double) s.items().size());
+        barre.getStyleClass().addAll("jauge", "completion-jauge");
+        barre.setMaxWidth(Double.MAX_VALUE);
+        return Ui.carte(entete, barre, lignes);
     }
 
     /** Lien vers le règlement figé d'un tournoi publié (lecture seule, téléchargements). */
@@ -317,6 +361,7 @@ final class EcranCompletion {
         libelle.setWrapText(true);
         HBox l = Ui.ligne(10, Ui.puceDependance(it.niveau()), libelle, Ui.espace(),
                 Ui.badgeEtat(it.niveau(), it.renseigne()));
+        l.getStyleClass().add("completion-item");
         return l;
     }
 
