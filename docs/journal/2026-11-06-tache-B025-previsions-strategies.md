@@ -103,3 +103,7 @@ les matchs pour chaque comparaison du tri (de l'ordre de N² log N par vague).
 - `verificateur-modele` : 0 défaut bloquant ; 14 tests aux limites ajoutés.
 - `relecteur-code` : 0 point bloquant. Non bloquant, à reprendre au prochain passage sur l'écran : `javafx.geometry.Pos` écrit en nom complet dans `EcranCompletion.carteStrategie` (import à la place).
 - Non vérifié visuellement (session cloud) : écran « Prévisions et stratégie », thème clair et sombre.
+
+## Validation de Quentin
+
+Le 2026-11-06, Quentin a valide explicitement le changement d attendu de `PresentationPreparationTournoiTest` ([B024, B025] vers [B024]) : carte « bientot » B025 retiree. Fusion autorisee.

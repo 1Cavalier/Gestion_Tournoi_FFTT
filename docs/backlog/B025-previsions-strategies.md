@@ -4,7 +4,7 @@ titre: Prévisions d'ordonnancement et stratégies du club
 type: idee
 priorite: P2
 taille: L
-statut: a-relire (attendu d'un test existant modifié : carte « bientôt » B025 retirée)
+statut: fait (PR #49)
 depend-de: []
 fichiers: [ordonnancement (simulation, stratégies), core, ui/ecran (écran Prévisions)]
 branche: tache/B025-previsions-strategies (prise le 2026-11-06)
