@@ -2,7 +2,7 @@
 
 - Branche : `tache/B020-prestataire-sms`
 - Agent : `chercheur-fftt`
-- Pull Request : #PR
+- Pull Request : #55
 - Statut : fusionné
 
 ## Pour Quentin
@@ -34,9 +34,9 @@ Recherche SMS faite (`docs/RECHERCHE_SMS.md`) ; esquisse d'adaptateur `java.net.
 
 ## Fusion
 
-À compléter après synchronisation.
+OK, rien à signaler (verifier-fusion.py).
 
 ## Chiffres
 
-- Tests : voir ci-dessous (`outils-dev/tests.sh`, Maven Central inaccessible ; GitHub Actions fait foi)
+- Tests : 1042 réussis, 0 échec (outils-dev/tests.sh ; Maven Central inaccessible, GitHub Actions fait foi)
 - Version de la démo : inchangée
