@@ -5,6 +5,15 @@
 > pour l'homologation et la remontée des résultats de tournois individuels.
 > Aucun espace authentifié n'a été consulté, aucun identifiant n'a été essayé.
 > Chaque affirmation renvoie à une source numérotée `[n]` (section 6).
+>
+> **Complément du 6 novembre 2026 (tâche B022)** : détail des services joueurs,
+> licences et clubs (§2.6, §2.7), remontée des résultats (§2.8), proposition
+> précise des ports et des fichiers provisoires pour B023 (§4.1), démarches
+> mises à jour (§5). Sources [42] à [51]. Mêmes règles : pages publiques
+> seulement, aucun identifiant, pas de moissonnage. `www.fftt.com` reste
+> injoignable depuis la session (lecture directe et téléchargement refusés le
+> 6 novembre 2026) : les documents FFTT récents repérés n'ont été vus que par
+> leur titre.
 
 **Méthode et limite à connaître.** Depuis la session de travail, les domaines
 `www2.fftt.com` et `www.pongiste.fr` ne sont pas joignables (refusés par le
@@ -30,6 +39,14 @@ navigateur.
 8. Aucun **fichier public sous licence ouverte** n'a été trouvé pour les licenciés, les points ou les clubs. Seule piste pour les clubs : le numéro FFTT relevé par OpenStreetMap (ODbL) [34].
 9. Les **concurrents** repérés ne se branchent pas à SPID (PlaniTournoi) ou ne disent pas comment ils le font (PingTournoi, Paak) [29][30][31].
 10. **Recommandation** : commencer tout de suite par l'import de fichiers fournis par le club et la coexistence avec SPIDD (sans risque), et en parallèle **écrire à la FFTT** (courriel en section 5) pour obtenir un accord commercial sur l'API et le format de remontée. Le moissonnage du site est exclu.
+
+**Complément B022 en cinq lignes**
+
+1. Les noms exacts des champs des services `xml_licence_b`, `xml_liste_joueur(_o)`, `xml_club_detail`, `xml_club_dep2` sont connus par un client libre maintenu en 2026 [42] : ils servent de base aux colonnes des fichiers provisoires (§4.1).
+2. Ce client récent **ne lit aucun champ « certificat »** : la présence de la situation médicale dans l'API de 2026 reste **inconnue** (elle figurait dans la spécification de 2015 [5]).
+3. Aucun fichier officiel de licenciés ou de clubs n'est public. Côté SPIDD, les licenciés arrivent en « paquets » issus de SPID et réservés aux JA [46] ; un export « liste des licenciés » depuis Mon Espace Club n'a pas été confirmé [?].
+4. Remontée des résultats : SPIDD réimporte dans SPID les résultats saisis [46][20] ; **aucun format n'est public** ; le manuel JA 2026 [44] et les notes de version SPIDD [48] existent mais n'ont pas pu être lus.
+5. Proposition pour B023 : garder `RegistreLicences` et `RegistreClubs`, ajouter le port `ExportResultatsFederaux`, implémenter les trois **par fichier CSV** (colonnes au §4.1) en attendant l'accord de la FFTT.
 
 ---
 
@@ -112,6 +129,90 @@ Légende : **[V]** vérifié (source officielle FFTT ou texte réglementaire, da
 | J7 | Rôles RGPD : le club organisateur est **responsable de traitement** des inscriptions. Quentin est **éditeur**. Il devient **sous-traitant** (contrat art. 28 obligatoire) dès qu'un serveur à lui traite des données (relais API, version web). | [?] (analyse juridique à confirmer) | [35] |
 | J8 | Nom et adresse du **DPO** de la FFTT : non trouvés. | [?] | — |
 
+### 2.6 Joueurs et licences : services détaillés (complément B022)
+
+Méthode : lecture du **code source public** d'un client libre de l'API
+(`alamirault/fftt-api`, PHP, licence libre, dernier commit `3a2b8ab` du
+22 juin 2026) [42], recoupé avec la liste des services du formulaire FFTT
+[4], la spécification de 2015 [5] et les clients C# et Rust [11][43]. Aucun
+appel à l'API n'a été fait. Les noms de champs sont donc **[S]** (source
+secondaire fiable, à confirmer avec la spécification officielle quand la FFTT
+la fournira).
+
+| # | Service | Paramètres d'entrée | Champs renvoyés (noms XML) | Statut | Sources |
+|---|---|---|---|---|---|
+| J-1 | `xml_licence_b` — licence et classement d'un licencié, ou de tous les licenciés d'un club | `licence` (numéro) et/ou `club` (numéro) | `idlicence`, `licence`, `nom`, `prenom`, `type` (T compétition, P loisir/promotionnelle, I découverte, E événementielle), `validation` (date jj/mm/aaaa), `numclub`, `nomclub`, `sexe`, `cat` (catégorie d'âge), `initm` (points initiaux), `point` (points officiels), `pointm` (points mensuels), `apointm` (points mensuels du mois précédent), `echelon` (classé national ou non), `place` (rang national), `natio`, `mutation` (date), `arb`, `ja`, `tech` (qualifications) | [S] | [42][5] |
+| J-2 | `xml_liste_joueur_o` — liste de joueurs de la **base SPID** | `club` (ou nom / prénom) | `licence`, `nclub`, `club`, `nom`, `prenom`, `points` | [S] | [42][4][11] |
+| J-3 | `xml_liste_joueur` — liste de joueurs de la **base classement** | `nom`, `prenom` (ou `club`) | `licence`, `nclub`, `club`, `nom`, `prenom`, `clast` (classement) | [S] | [42][4][11] |
+| J-4 | `xml_joueur` — détail d'un joueur (base classement) | `licence` | Proches de J-1 (points, rang, catégorie) ; détail non relu | [S] | [4][43] |
+| J-5 | `xml_licence` — détail d'un licencié (base SPID) | `licence` | Non relu (le client PHP de 2026 utilise `xml_licence_b` à la place) | [?] | [4] |
+| J-6 | `xml_initialisation` — enregistrement du numéro de série de l'utilisateur, à appeler **une seule fois** | `serie` | Autorisation oui / non | [S] | [11] |
+| J-7 | **Situation du certificat médical** | — | Prévue en 2015 (« Certificat », « Ni entraînement ni compétition », « Quadruple ») [5]. **Absente** du client PHP de 2026 [42]. Présence actuelle inconnue. | [?] | [5][42] |
+| J-8 | **Date de naissance** | — | N'apparaît dans **aucun** des champs relevés : seule la catégorie (`cat`) est donnée. | [S] (absence) | [42] |
+| J-9 | **Adresse et signature** : le client PHP de 2026 appelle `https://www.fftt.com/mobile/pxml/<service>.php?serie=…&tm=…&tmc=…&id=…`, avec `tmc` = HMAC-SHA1(horodatage, MD5(clé)). Un forum cite `apiv2.fftt.com` [6] : les deux adresses coexistent peut-être. | [S] | [42][6] |
+| J-10 | **Limites de débit, quotas, durée de cache autorisée en 2026, conditions commerciales** : non trouvés dans les sources publiques lisibles. | [?] | [3] (non relu en entier) |
+
+**Correspondance avec `model.FicheLicence`** (champ PingManager ← champ API) :
+`numeroLicence` ← `licence` ; `nom` ← `nom` ; `prenom` ← `prenom` ;
+`sexe` ← `sexe` ; `numeroClub` / `nomClub` ← `numclub` / `nomclub` ;
+`points` (début de phase, IV.201.3) ← `point` ; `pointsMensuels` ← `pointm` ;
+`classement` ← `clast` ou dérivé des points ; `categorie` ← `cat` ;
+`nationalite` ← `natio` ; `typeLicence` ← `type` ; `statut` ← `validation`
+(licence validée ou non) ; `arbitre` / `jugeArbitre` / `technique` ← `arb` /
+`ja` / `tech` ; `dateNaissance` : **pas de source API**, à garder facultatif.
+Interprétation de `point` comme « points de début de phase » : **[S]**, à
+confirmer avec la spécification officielle.
+
+**Alternatives sans API** :
+- **Fichier préparé par le club** (classeur d'inscription déjà géré par
+  `importation.ModeleImport`) : le club relève lui-même les points sur son
+  espace ou l'application « FFTT » [40]. Sans risque juridique, mais sans
+  garantie de fraîcheur : le JA garde le contrôle de la licence (II.606.2) [26].
+- **Export depuis SPID (Mon Espace Club)** : aucune source publique ne confirme
+  qu'il existe un export tableur de la liste des licenciés du club, ni son
+  format. **[?]** À demander au club de Brunoy (qui a un accès SPID) : faire
+  un export de sa propre liste et en montrer les **en-têtes de colonnes**,
+  sans les données, pour aligner le format.
+- **Paquet SPIDD** : les licenciés d'une épreuve arrivent dans SPIDD sous forme
+  de « paquets » issus de SPID, réservés aux JA et obtenus auprès du comité ou
+  de la ligue [46] (message de 2007, à confirmer pour SPIDD V2). Format non
+  public. **[?]**
+
+### 2.7 Clubs (complément B022)
+
+| # | Service ou source | Paramètres | Champs (noms XML) | Statut | Sources |
+|---|---|---|---|---|---|
+| C-1 | `xml_club_detail` — détail d'un club | `club` (numéro) | `numero`, `nom`, `nomsalle`, `adressesalle1`, `adressesalle2`, `adressesalle3`, `codepsalle`, `villesalle`, `web`, `nomcor`, `prenomcor`, `mailcor`, `telcor` (correspondant du club), `latitude`, `longitude` | [S] | [42][4] |
+| C-2 | `xml_club_dep2` — clubs d'un département | `dep` (deux chiffres, zéro devant) | `numero`, `nom`, `validation` (date) | [S] | [42] |
+| C-3 | `xml_club_b` — recherche de clubs | `ville` ; recherche par numéro ou code postal aussi possible [11] (noms de ces paramètres non relus) | `numero`, `nom`, `validation` | [S] | [42][11] |
+| C-4 | Le **département** n'est pas un champ de `xml_club_detail`. Il se déduit du code postal de la salle ou de la recherche par département (C-2). Le lien entre numéro de club (8 chiffres, par exemple `08781094`) et département n'est pas documenté publiquement. | [?] | [11] |
+| C-5 | Le courriel donné par l'API est celui du **correspondant** (`mailcor`). Est-ce le « courriel officiel » du club utilisé par PingManager pour le code de vérification (`Club.getEmailOfficiel()`) ? | [?] | [42] |
+| C-6 | Fichier public des clubs sous licence ouverte : **aucun** (voir P1, P5). OSM `ref:FR:FFTT` en complément partiel [34]. | [S] | [34] |
+
+**Correspondance avec `model.Club`** : `numero` ← `numero` ; `nom` ← `nom` ;
+`ville` ← `villesalle` ; `adresse1` ← `nomsalle` + `adressesalle1` ;
+`adresse2` ← `adressesalle2` (+ `adressesalle3`) ; `codePostal` ← `codepsalle` ;
+`departement` ← déduit (C-4) ; `emailOfficiel` ← `mailcor` sous réserve (C-5) ;
+`responsableNom` / `responsablePrenom` ← `nomcor` / `prenomcor`.
+
+### 2.8 Remontée des résultats d'un tournoi (complément B022)
+
+| # | Constat | Statut | Sources |
+|---|---|---|---|
+| R-1 | Le JA prépare l'épreuve dans SPIDD avec des fichiers issus de SPID, puis les **réimporte dans SPID** après la compétition pour valider les résultats. Un accès club à SPID ne donne pas accès à ces fichiers. Une page de comité de 2024 confirme seulement que SPIDD sert aux JA pour les épreuves individuelles [50]. | [S] (forum, décembre 2007 ; comité, 2024) | [46][50] |
+| R-2 | Le JA doit s'assurer, dès la fin de l'épreuve, que les résultats parviennent aux instances, « éventuellement » par la remontée vers SPID. Les modèles de poules et de tableaux existent en fichiers « selon un format compatible avec ce logiciel » (SPIDD). Aucun format n'est nommé. | [S] (manuel JA2-3 v5 de 2019, copie d'une ligue) | [45] |
+| R-3 | Un règlement de ligue charge le **club organisateur** de « procéder à la remontée des résultats saisis sur SPIDD » et prévoit une **amende de 200 €** si des résultats sont remontés sur SPID sans demande d'homologation. | [S] (ligue, 2023-2024) | [20][47] |
+| R-4 | Résultats « dans les huit jours » au « format informatique qui sera donné lors de l'homologation » (IX.107). | [V] | [25] |
+| R-5 | Documents FFTT récents repérés mais **non lus** (domaine injoignable) : manuel JA2-JA3 version 9 du 1er février 2026 [44], notes de version SPIDD 2.3.5.0 de septembre 2025 [48], « SPID V2 – nouveautés juillet-août 2026 » [49], page « Juge-arbitrage – épreuves individuelles » [51]. Ils peuvent décrire l'import / export de SPIDD. | [?] | [44][48][49][51] |
+| R-6 | **Formats** : extension, structure et encodage des fichiers d'import SPIDD (paquet de licenciés) et d'export SPIDD → SPID : **non trouvés**. | [?] | — |
+| R-7 | **Contenu probable** d'une remontée (déduit des besoins du classement mensuel, à confirmer) : identification de l'épreuve (n° d'homologation), tableaux, et pour chaque partie les deux licences, le vainqueur, le score ou la nature d'un forfait ou abandon ; classement final par tableau. | [?] (hypothèse) | [25] |
+| R-8 | Aucun logiciel tiers trouvé qui produise un fichier importable par SPIDD ou SPID. | [S] (recherche négative) | [29][30] |
+
+**Ce qu'il faut demander à la FFTT** (repris dans le courriel, §5) : la
+spécification du fichier d'export SPIDD → SPID (ou d'un fichier importable par
+SPIDD), un fichier d'exemple anonymisé, la règle pour les parties non jouées
+(forfait, abandon, exempt), et la procédure de validation d'un logiciel tiers.
+
 ---
 
 ## 3. Options classées
@@ -176,6 +277,118 @@ au même niveau que `importation` (dépendances : `ui` → `federation` → `cor
 5. Ordre de repli à l'écran : API (si autorisée) → fichier importé → saisie
    manuelle contrôlée par le JA sur présentation de l'attestation.
 
+### 4.1 Proposition détaillée pour B023 (complément B022)
+
+Objectif de B023 : coder les ports et les implémentations **par fichier**,
+sans attendre la FFTT. Les noms ci-dessous sont une proposition ; l'agent
+`gardien-architecture` les vérifie.
+
+**État du code au 6 novembre 2026** (relevé avec Grep) :
+- `core.RegistreLicences` : `Optional<FicheLicence> trouverParLicence(String)`,
+  `default boolean existe(String)`, `default List<FicheLicence> rechercher(String texte, int max)`.
+  Implémentation : `ui.infra.RegistreLicencesFFTT` (démo en mémoire).
+- `core.RegistreClubs` : `Optional<Club> trouverParNumero(String)`,
+  `default boolean existe(String)`. Implémentations : `core.RegistreClubsMemoire`,
+  `persistence.DepotApplication`.
+- Rien pour l'export des résultats. `model.Tournoi` porte déjà
+  `getNumeroHomologation()` ; `model.Match` porte joueurs, manches, issue
+  (`IssueMatch` : `NORMALE`, `FORFAIT`, `ABANDON`, `REFUS_DE_JOUER`,
+  `DISQUALIFICATION`), vainqueur et table.
+
+**1. Ports du cœur (`com.pingmanager.core`)**
+
+| Port | Méthodes | Changement |
+|---|---|---|
+| `RegistreLicences` | inchangées ; ajout facultatif `default List<FicheLicence> listerParClub(String numeroClub)` (vide par défaut ; correspond à `xml_licence_b?club=`) | compatible : méthode par défaut |
+| `RegistreClubs` | inchangées ; ajout facultatif `default List<Club> rechercher(String texte, int max)` (vide par défaut) | compatible : méthode par défaut |
+| **`ExportResultatsFederaux`** (nouveau) | `String nomFormat()` (ex. « CSV provisoire PingManager v1 ») ; `List<FichierExporte> produire(ResultatsTournoi resultats)` | nouveau |
+
+`produire` ne fait **aucune écriture disque** : elle renvoie des fichiers en
+mémoire, que l'interface enregistre. Le cœur reste sans effet de bord et se
+teste sans fichier.
+
+Objets neutres, immuables, avec builder, dans `core` :
+- `FichierExporte` : `nom` (ex. `parties.csv`), `contenu` (`byte[]`), `typeMime`.
+- `ResultatsTournoi` : `numeroHomologation`, `nomTournoi`, `dateDebut`,
+  `dateFin`, `jugeArbitre` (nom, licence), `List<PartieExportee> parties`,
+  `List<ClassementExporte> classements`, `horodatage` (date de l'export).
+- `PartieExportee` : `tableau`, `phase` (`POULE` / `TABLEAU`), `etape`
+  (« Poule 3 », « 1/8 »…), `numeroPartie`, `date`, `heure`, `table`,
+  `licenceA`, `nomA`, `prenomA`, `clubA`, `pointsA`, idem `B`,
+  `manches` (liste de couples de points), `licenceVainqueur`, `issue`
+  (nom de `IssueMatch`), `licenceFautif`.
+- `ClassementExporte` : `tableau`, `rang`, `licence`, `nom`, `prenom`, `club`, `points`.
+- Service pur **`ServiceResultatsFederaux`** : `ResultatPreparationExport construire(Tournoi)`,
+  avec un motif précis si le tournoi n'est pas exportable (tableau non terminé,
+  partie sans résultat, numéro d'homologation absent → **avertissement**, pas blocage).
+- Parties « exempt » (joueur B nul) : **non exportées**.
+
+**2. Implémentations par fichier (hors du cœur)**
+
+Elles vont dans `com.pingmanager.importation`, qui lit et écrit déjà CSV et
+XLSX sans dépendance (`ModeleImport`, `LecteurTableur`). Le futur adaptateur
+API ira dans un paquetage à part (`federation`), créé seulement après l'accord
+de la FFTT.
+
+| Classe | Rôle |
+|---|---|
+| `LecteurLicencesCsv` | `ResultatImportLicences lire(Path)` : fiches valides + anomalies par numéro de ligne (licence absente, doublon, points non numériques…) |
+| `RegistreLicencesFichier implements RegistreLicences` | construit à partir de `ResultatImportLicences` ; recherche sans accents ni casse comme `rechercher` le prévoit ; garde la date « Relevé le » la plus ancienne du fichier |
+| `LecteurClubsCsv` + `RegistreClubsFichier implements RegistreClubs` | même principe pour les clubs |
+| `ExportResultatsCsv implements ExportResultatsFederaux` | produit `parties.csv` et `classements.csv` |
+| Plus tard : `RegistreLicencesApiFftt`, `RegistreClubsApiFftt` (paquetage `federation`, `java.net.http` + XML du JDK) ; `ExportResultatsSpidd` quand le format sera connu | après accord écrit |
+
+**3. Format de fichier provisoire recommandé**
+
+Règles communes : CSV, séparateur **point-virgule**, **UTF-8 avec BOM**
+(comme `ModeleImport`), une ligne d'en-têtes obligatoire, colonnes **lues par
+leur nom** (ordre libre, casse et accents ignorés), colonnes inconnues
+ignorées, dates `jj/mm/aaaa`, heures `hh:mm`. Le nom XML de l'API entre
+parenthèses sert à la correspondance future ; il ne figure pas dans l'en-tête.
+
+`licencies.csv` (import) :
+
+| Colonne | Obligatoire | Contenu (champ API) |
+|---|---|---|
+| `Licence` | oui | numéro de licence (`licence`) |
+| `Nom` | oui | (`nom`) |
+| `Prénom` | oui | (`prenom`) |
+| `Sexe` | oui | `M` ou `F` (`sexe`) |
+| `N° club` | oui | 8 chiffres, zéros conservés (`numclub`) |
+| `Club` | non | nom du club (`nomclub`) |
+| `Points` | oui | points officiels de début de phase (`point`) |
+| `Points mensuels` | non | (`pointm`) ; vide = égal à `Points` |
+| `Catégorie` | non | code ou libellé de catégorie d'âge (`cat`) |
+| `Date de naissance` | non | absente de l'API ; utile pour vérifier la catégorie |
+| `Nationalité` | non | (`natio`) |
+| `Type de licence` | non | `T`, `P`, `I`, `E` (`type`) |
+| `Validation` | non | date de validation de la licence (`validation`) |
+| `Certificat` | non | `EN_REGLE`, `SANS_PRATIQUE`, `INCONNU` ; vide = `INCONNU` (champ API incertain, J-7) |
+| `Relevé le` | non | date à laquelle le club a relevé ces données ; affichée à l'écran J-1 |
+
+`clubs.csv` (import) : `N° club` (oui, `numero`) ; `Nom` (oui, `nom`) ;
+`Département` (non, déduit du code postal si vide) ; `Adresse 1` (`nomsalle`
+/ `adressesalle1`) ; `Adresse 2` (`adressesalle2`) ; `Code postal`
+(`codepsalle`) ; `Ville` (`villesalle`) ; `Courriel officiel` (`mailcor`, C-5) ;
+`Nom du responsable` (`nomcor`) ; `Prénom du responsable` (`prenomcor`).
+
+`parties.csv` (export) : `N° homologation` ; `Tableau` ; `Phase` (`POULE` ou
+`TABLEAU`) ; `Étape` ; `N° partie` ; `Date` ; `Heure` ; `Table` ;
+`Licence A` ; `Nom A` ; `Prénom A` ; `Club A` ; `Points A` ; `Licence B` ;
+`Nom B` ; `Prénom B` ; `Club B` ; `Points B` ; `Score` (manches séparées
+par une espace, du point de vue de A : `11-7 9-11 11-5 11-8`) ; `Manches A` ;
+`Manches B` ; `Vainqueur` (licence) ; `Issue` (`NORMALE`, `FORFAIT`,
+`ABANDON`, `REFUS_DE_JOUER`, `DISQUALIFICATION`) ; `Fautif` (licence, vide si
+issue normale).
+
+`classements.csv` (export) : `N° homologation` ; `Tableau` ; `Rang` ;
+`Licence` ; `Nom` ; `Prénom` ; `Club` ; `Points`.
+
+Ce format est **provisoire** : il sert à la coexistence avec SPIDD (option 2)
+et à la relecture par le JA. Il sera remplacé par le format fédéral dès qu'il
+sera fourni. Données personnelles : ne contient que ce que le tournoi
+contient déjà ; pas de date de naissance ni de certificat dans l'export.
+
 ---
 
 ## 5. Démarches à faire par Quentin
@@ -200,6 +413,26 @@ au même niveau que `importation` (dépendances : `ui` → `federation` → `cor
    options 1 et 2.
 7. Mettre à jour `ETAT_DU_PROJET.md` §4 : remplacer « GIRPE » par « SPIDD » pour
    les tournois individuels (F4, F7).
+
+**Ajouts du 6 novembre 2026 (B022)**, par ordre de priorité :
+
+8. **Lire depuis un navigateur** (domaine injoignable depuis la session) et
+   noter ce qu'ils disent de l'import / export : le manuel JA2-JA3 v9 de
+   février 2026 [44], les notes de version SPIDD 2.3.5.0 [48], « SPID V2 –
+   nouveautés juillet-août 2026 » [49].
+9. **Club de Brunoy** (accès SPID Mon Espace Club) : vérifier s'il existe un
+   export tableur de la liste des licenciés du club et, si oui, transmettre
+   **seulement la ligne d'en-têtes** (aucune donnée de licencié), pour aligner
+   `licencies.csv` (§4.1).
+10. **Juge-arbitre du National B de Brunoy** : demander une démonstration de
+    SPIDD V2 (import du paquet, saisie, remontée) et, si possible, un **fichier
+    d'export anonymisé** ou au moins sa structure (extension, colonnes ou
+    balises).
+11. **Décider** (Quentin) : valider les noms et le format provisoire du §4.1
+    avant que B023 ne commence, en particulier le paquetage `importation` pour
+    les implémentations fichier et le champ `Certificat` facultatif.
+12. Dans le courriel à la FFTT, ajouter les questions ci-dessous (points 9 à
+    11 du brouillon).
 
 ### Brouillon du courriel (prêt à envoyer)
 
@@ -254,7 +487,14 @@ au même niveau que `importation` (dépendances : `ui` → `federation` → `cor
 >    tournoi » joint à la demande d'homologation (article IX.104) ;
 > 8. la procédure éventuelle de **validation ou de reconnaissance** d'un
 >    logiciel tiers par la FFTT (tests, fichier d'essai, environnement de
->    recette).
+>    recette) ;
+> 9. si la situation du licencié vis-à-vis de la certification médicale est
+>    toujours fournie par l'API (elle figurait dans la spécification Smartping
+>    2.0), et sous quelle forme ;
+> 10. un **fichier d'exemple anonymisé** du format de remontée, et la façon de
+>    coder les parties non jouées (forfait, abandon, exempt) ;
+> 11. l'adresse de l'API à utiliser aujourd'hui (`www.fftt.com/mobile/pxml/`
+>    ou `apiv2.fftt.com`) et la version à jour des spécifications techniques.
 >
 > Je reste disponible pour vous présenter le logiciel lors d'un échange ou
 > d'une démonstration. Je m'engage à n'accéder à aucun espace authentifié ni
@@ -320,3 +560,18 @@ publication ou de la mise à jour quand elle est connue.
 39. tennis-de-table.com, « La FFTT publie une nouvelle version de Smartping pour Android » — https://www.tennis-de-table.com/la-fftt-publie-une-nouvelle-version-de-smartping-pour-android/ — ancien.
 40. Application « FFTT » (App Store) — https://apps.apple.com/pg/app/fftt/id1148342433
 41. GitHub, SuperPingPong (outils tiers autour des tournois FFTT) — https://github.com/SuperPingPong
+
+**Sources ajoutées le 6 novembre 2026 (B022)** — consultées ce jour ; « titre
+seul » signifie que le document a été repéré par le moteur de recherche mais
+n'a pas pu être lu (domaine `www.fftt.com` refusé par le réseau de la session).
+
+42. GitHub, `alamirault/fftt-api` (client PHP libre), code source lu après clonage public, commit `3a2b8ab` du 22 juin 2026 : `src/Service/Operation/RetrieveJoueurDetailsOperation.php`, `ListJoueurOperation.php`, `RetrieveClubDetailsOperation.php`, `ListClubOperation.php`, `src/Model/Factory/ClubFactory.php`, `src/Service/UriGenerator.php`, `src/Model/Enums/TypeLicenceEnum.php` — https://github.com/alamirault/fftt-api
+43. docs.rs, `libfftt` 0.2.1 (client Rust), 13 octobre 2026 — https://docs.rs/libfftt
+44. FFTT, « Manuel du juge-arbitre JA2-JA3 », version 9 du 1er février 2026 (titre seul) — https://www.fftt.com/wp-content/uploads/2026/02/manuel_ja2-ja3_2025-2-version-9-01_02_2026.pdf
+45. FFTT, Commission fédérale de l'arbitrage, « Manuel JA2-3 » v5 du 29 juillet 2019, copie de la Ligue du Grand Est (lu ; §II-4 p. 9, introduction « Gestion sportive » p. 10) — https://www.lgett.fr/fileadmin/Documents/Arbitrage/Documents_utiles/JA2/3_31_Manuel_JA2-3_v5__BQ_PR__20190729.pdf
+46. Forum archive tennis-de-table.com, « Utiliser SPIDD », messages du 4 au 6 décembre 2007 (secondaire, ancien) — https://archive.tennis-de-table.com/forums/sujet-26246-1.html
+47. Ligue des Pays de la Loire, réglementation des tournois 2023-2024, sections 1, 8b et 10 (relu le 6 novembre 2026 ; même document que [20]) — https://tennisdetablepaysdelaloire.org/wp-content/uploads/2023/08/reglementation-tournois-version-2023-2024.pdf
+48. FFTT, « SPIDD – Liste des corrections et évolutions – v2.3.5.0 » (septembre 2025, titre seul) — https://www.fftt.com/deploiements/spidd-v2/documents/Liste%20des%20corrections%20et%20%C3%A9volutions%20-%20v2.3.5.0.pdf
+49. FFTT, « SPID V2 – nouveautés juillet-août 2026 » (déposé en septembre 2026, titre seul) — https://www.fftt.com/wp-content/uploads/2026/09/spid-v2-nouveautes-juillet-aout-2026.pdf
+50. CD45 (Loiret), page « Logiciel SPIDD », mise à jour du 18 novembre 2024 — https://cd45tt.fr/index.php/telechargement/spidd
+51. FFTT, ancien site, « Juge-arbitrage – épreuves individuelles » (titre seul) — https://www2.fftt.com/site/extranet/arbitres/juge-arbitrage-epreuves-individuelles
