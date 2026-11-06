@@ -2,7 +2,7 @@
 
 - Branche : `tache/B022-api-fftt`
 - Agent : `chercheur-fftt` puis `integrateur`
-- Pull Request : voir la PR (la #53 n'avait porté que la prise en charge)
+- Pull Request : #56
 - Statut : fusionné après verdict GitHub Actions
 
 ## Pour Quentin
