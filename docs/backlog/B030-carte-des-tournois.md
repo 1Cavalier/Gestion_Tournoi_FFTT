@@ -4,7 +4,7 @@ titre: Carte des tournois : vue carte avec « Voir plus », vue agenda par jour,
 type: interface
 priorite: P1
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [ui/ecran/PageTournois, ui/ecran/CarteTournois, ui/ecran/FicheTournoi, ui/carte, core/CatalogueTournois]
 branche: tache/B030-carte-tournois (2026-11-05)
