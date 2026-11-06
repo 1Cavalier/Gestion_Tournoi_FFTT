@@ -63,6 +63,13 @@ public final class PageTournois {
     private CarteTournois carte;
     private Label compteur;
     private boolean ajusterCarte = true;
+    /** Résultat filtré courant ; la présentation cachée (carte ou agenda) est remplie à la bascule. */
+    private List<CatalogueTournois.Entree> resultat = List.of();
+    private boolean carteAJour;
+    private boolean agendaAJour;
+    /** Saisie du texte : on filtre une fois la frappe posée, pas à chaque lettre. */
+    private final javafx.animation.PauseTransition pauseSaisie =
+            new javafx.animation.PauseTransition(javafx.util.Duration.millis(180));
     private VBox agenda;
     private PresentationCarteTournois.Vue vue = PresentationCarteTournois.Vue.CARTE;
     private Runnable basculerVue;
@@ -129,7 +136,12 @@ public final class PageTournois {
     private Node construireExplorateur() {
         // --- Filtres (colonne de gauche) ---
         TextField texte = Ui.champ("Nom, ville, club, département…");
-        texte.textProperty().addListener((o, a, b) -> { criteres = criteres.avecTexte(b); ajusterCarte = true; appliquerFiltres(); });
+        pauseSaisie.setOnFinished(e -> appliquerFiltres());
+        texte.textProperty().addListener((o, a, b) -> {
+            criteres = criteres.avecTexte(b);
+            ajusterCarte = true;
+            pauseSaisie.playFromStart();
+        });
 
         DatePicker du = new DatePicker();
         du.setPromptText("Du");
@@ -276,7 +288,7 @@ public final class PageTournois {
         colonne.setPrefWidth(400);
         colonne.setMinWidth(340);
 
-        carte = new CarteTournois(this::ouvrirFiche, id -> catalogue.stream()
+        carte = CarteTournois.partagee(this::ouvrirFiche, id -> catalogue.stream()
                 .filter(e -> e.id().equals(id)).findFirst()
                 .ifPresent(e -> liste.getSelectionModel().select(e)));
         Node vueCarte = carte.noeud();
@@ -320,6 +332,7 @@ public final class PageTournois {
         if (basculerVue != null) {
             basculerVue.run();
         }
+        remplirVueVisible();
     }
 
     /** Pastille d'un statut de la carte (couleur de la charte + classe propre au statut). */
@@ -346,6 +359,23 @@ public final class PageTournois {
         b.setOnAction(ev -> ouvrirFiche(id));
         b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         return b;
+    }
+
+    /** Met à jour seulement la présentation affichée (la carte ou l'agenda), si elle a changé. */
+    private void remplirVueVisible() {
+        if (carte == null) {
+            return;
+        }
+        if (vue == PresentationCarteTournois.Vue.AGENDA) {
+            if (!agendaAJour) {
+                remplirAgenda(resultat);
+                agendaAJour = true;
+            }
+        } else if (!carteAJour) {
+            carte.afficher(resultat, ajusterCarte);
+            ajusterCarte = false;
+            carteAJour = true;
+        }
     }
 
     /** Remplit la présentation agenda (un bloc par jour). */
@@ -415,12 +445,13 @@ public final class PageTournois {
             return;
         }
         List<CatalogueTournois.Entree> res = CatalogueTournois.filtrer(catalogue, criteres);
+        resultat = res;
         CatalogueTournois.Entree avant = liste.getSelectionModel().getSelectedItem();
         liste.getItems().setAll(res);
         compteur.setText(PresentationCarteTournois.compteur(res));
-        carte.afficher(res, ajusterCarte);
-        ajusterCarte = false;
-        remplirAgenda(res);
+        carteAJour = false;
+        agendaAJour = false;
+        remplirVueVisible();
         if (avant != null) {
             res.stream().filter(e -> e.id().equals(avant.id())).findFirst()
                     .ifPresent(e -> liste.getSelectionModel().select(e));

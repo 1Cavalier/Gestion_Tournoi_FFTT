@@ -35,10 +35,15 @@
 <script>/*LEAFLET_JS*/</script>
 <script>
   // Pont Java : window.java.ouvrir(id) (posé par CarteTournois une fois la page chargée).
-  var carte = L.map('carte', { zoomControl: true, attributionControl: true, preferCanvas: false,
+  // Rendu canvas : un seul élément dessiné pour tous les marqueurs (le rendu SVG crée un
+  // nœud par marqueur et ralentit nettement la WebView dès quelques dizaines de tournois).
+  var carte = L.map('carte', { zoomControl: true, attributionControl: true, preferCanvas: true,
       zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false })
       .setView([46.6, 2.4], 6);
   var fond = null, couleurs = {}, marqueurs = {}, selection = null, erreursTuiles = 0, tuilesOk = 0;
+  var rendu = L.canvas({ padding: 0.3, tolerance: 4 });
+  var groupe = L.layerGroup().addTo(carte);
+  var attenteFond = null;
 
   // Fonds de carte sans clé : Plan IGN v2 (Géoplateforme, licence ouverte Etalab,
   // usage commercial permis) ; repli automatique sur OpenStreetMap si l'IGN ne répond pas.
@@ -67,6 +72,13 @@
     });
     fond.on('tileload', function () { tuilesOk++; majHorsLigne(); });
     fond.addTo(carte);
+    // Un serveur qui ne répond pas ne déclenche pas d'erreur : la carte restait vide.
+    // Sans aucune tuile au bout de 5 s, on passe à OpenStreetMap (puis on signale).
+    if (attenteFond) { clearTimeout(attenteFond); }
+    attenteFond = setTimeout(function () {
+      if (tuilesOk > 0) { return; }
+      if (fondCourant === 'ign') { poserFond('osm'); } else { erreursTuiles++; majHorsLigne(); }
+    }, 5000);
   }
 
   function initialiser(sombre, c) {
@@ -106,17 +118,20 @@
 
   // donnees : [{id, lat, lon, nom, sous, acces, motif, approx, enCours}]
   function majMarqueurs(donnees, ajuster) {
-    for (var k in marqueurs) { carte.removeLayer(marqueurs[k].couche); }
+    groupe.clearLayers();
     marqueurs = {};
     var bornes = [];
     // Les tournois accessibles par-dessus les grisés.
     donnees.sort(function (a, b) { return (a.acces ? 1 : 0) - (b.acces ? 1 : 0); });
     donnees.forEach(function (m) {
-      var c = L.circleMarker([m.lat, m.lon], style(m, m.id === selection));
-      c.bindTooltip(bulle(m), { direction: 'top', offset: [0, -8] });
+      var o = style(m, m.id === selection);
+      o.renderer = rendu;
+      var c = L.circleMarker([m.lat, m.lon], o);
+      // Bulle construite seulement au survol.
+      c.bindTooltip(function () { return bulle(m); }, { direction: 'top', offset: [0, -8] });
       c.on('click', function () { if (window.java) { window.java.ouvrir(m.id); } });
       c.on('mouseover', function () { if (window.java) { window.java.survol(m.id); } });
-      c.addTo(carte);
+      groupe.addLayer(c);
       marqueurs[m.id] = { couche: c, donnee: m };
       bornes.push([m.lat, m.lon]);
     });
