@@ -33,6 +33,12 @@ public final class Tournoi {
     private int tablesEchauffement;
 
     /**
+     * Façon d'annoncer une rencontre lancée sur une table, mémorisée pour ce
+     * tournoi ({@code null} = demander à chaque lancement).
+     */
+    private ModeAnnonce modeAnnonce;
+
+    /**
      * Niveau (catégorie) du tournoi : départemental à international. Optionnel
      * pour l'instant ({@code null} = non renseigné) ; conditionnera le grade de
      * juge-arbitre requis.
@@ -254,6 +260,16 @@ public final class Tournoi {
             throw new IllegalArgumentException("Le nombre de tables ne peut pas être négatif.");
         }
         this.nombreDeTables = nombreDeTables;
+    }
+
+    /** Façon mémorisée d'annoncer les rencontres, ou {@code null} : demander à chaque lancement. */
+    public ModeAnnonce getModeAnnonce() {
+        return modeAnnonce;
+    }
+
+    /** Mémorise (ou oublie, avec {@code null}) la façon d'annoncer les rencontres. */
+    public void setModeAnnonce(ModeAnnonce modeAnnonce) {
+        this.modeAnnonce = modeAnnonce;
     }
 
     public RegleTableauxParJour getRegleTableauxParJour() {

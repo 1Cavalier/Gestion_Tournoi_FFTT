@@ -1,13 +1,18 @@
 package com.pingmanager.core;
 
+import com.pingmanager.model.AgendaCompte;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.Joueur;
+import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 
@@ -38,12 +43,32 @@ public final class ServiceInscriptionEnLigne {
         }
     }
 
+    /**
+     * Bilan d'une désinscription : refus éventuel (rien n'est alors modifié), tableaux
+     * quittés, joueurs repêchés de la liste d'attente, et mise à jour de l'agenda
+     * ({@code null} si aucun agenda n'est fourni).
+     */
+    public record BilanDesinscription(String refus, List<Tableau> quittes, Map<Tableau, Joueur> repeches,
+                                      boolean desinscriptionComplete, ResultatAgenda agenda) {
+
+        public boolean estValide() {
+            return refus == null;
+        }
+    }
+
     private final ServiceInscription inscription;
     private final EligibiliteTournoi eligibilite;
+    private final ServiceAgenda agenda;
 
     public ServiceInscriptionEnLigne(ServiceInscription inscription, EligibiliteTournoi eligibilite) {
+        this(inscription, eligibilite, ServiceAgenda.parDefaut());
+    }
+
+    public ServiceInscriptionEnLigne(ServiceInscription inscription, EligibiliteTournoi eligibilite,
+                                     ServiceAgenda agenda) {
         this.inscription = Objects.requireNonNull(inscription, "inscription");
         this.eligibilite = Objects.requireNonNull(eligibilite, "eligibilite");
+        this.agenda = Objects.requireNonNull(agenda, "agenda");
     }
 
     /**
@@ -84,6 +109,86 @@ public final class ServiceInscriptionEnLigne {
             return essai;
         }
         return bilan(null, essai.joueur(), inscription.inscrireSelection(t, essai.joueur(), selection));
+    }
+
+    /**
+     * Comme {@link #inscrire(Tournoi, FicheLicence, Collection, LocalDateTime)}, puis
+     * <b>ajoute automatiquement</b> le tournoi à l'agenda du compte (ou le met à jour)
+     * si l'inscription est enregistrée. Un refus ne touche pas l'agenda.
+     */
+    public Bilan inscrire(Tournoi t, FicheLicence fiche, Collection<Tableau> selection, LocalDateTime maintenant,
+                          AgendaCompte agendaCompte) {
+        Bilan b = inscrire(t, fiche, selection, maintenant);
+        if (b.estValide() && agendaCompte != null) {
+            agenda.synchroniserTournoi(agendaCompte, t, fiche.getNumeroLicence());
+        }
+        return b;
+    }
+
+    /**
+     * Désinscrit la licence des tableaux choisis (tout ou rien), qu'elle y soit inscrite
+     * ou en liste d'attente. Une place libérée repêche le premier de la liste d'attente
+     * ({@link Tableau#desinscrire(Joueur)}). Refusé si un tableau n'est plus en phase
+     * d'inscription (le pointage a commencé : c'est alors un désistement, géré par le
+     * juge-arbitre). Si la licence ne participe plus à aucun tableau, le tournoi est
+     * <b>retiré automatiquement</b> de l'agenda fourni ; sinon sa date est mise à jour.
+     *
+     * @param agendaCompte agenda du compte à tenir à jour, ou {@code null}
+     */
+    public BilanDesinscription desinscrire(Tournoi t, FicheLicence fiche, Collection<Tableau> tableaux,
+                                           AgendaCompte agendaCompte) {
+        Objects.requireNonNull(t, "tournoi");
+        if (fiche == null) {
+            return refusDesinscription("Liez votre licence dans « Mon profil » pour gérer vos inscriptions.");
+        }
+        if (tableaux == null || tableaux.isEmpty()) {
+            return refusDesinscription("Choisissez au moins un tableau.");
+        }
+        // Un tableau cité deux fois n'est désinscrit qu'une fois.
+        tableaux = new LinkedHashSet<>(tableaux);
+        String licence = fiche.getNumeroLicence();
+        for (Tableau tab : tableaux) {
+            if (!t.getTableaux().contains(tab)) {
+                return refusDesinscription("Le tableau " + tab.getNom() + " n'appartient pas à ce tournoi.");
+            }
+            if (present(tab, licence) == null) {
+                return refusDesinscription("Vous n'êtes pas inscrit au tableau " + tab.getNom() + ".");
+            }
+            if (tab.getStatut() != StatutTableau.INSCRIPTION) {
+                return refusDesinscription("Le pointage du tableau " + tab.getNom()
+                        + " a commencé : adressez-vous au juge-arbitre.");
+            }
+        }
+        List<Tableau> quittes = new ArrayList<>();
+        Map<Tableau, Joueur> repeches = new LinkedHashMap<>();
+        for (Tableau tab : tableaux) {
+            Joueur promu = tab.desinscrire(present(tab, licence));
+            quittes.add(tab);
+            if (promu != null) {
+                repeches.put(tab, promu);
+            }
+        }
+        boolean complete = RemplissageTableaux.participant(t, licence).isEmpty();
+        ResultatAgenda maj = agendaCompte == null ? null : agenda.synchroniserTournoi(agendaCompte, t, licence);
+        return new BilanDesinscription(null, List.copyOf(quittes), repeches, complete, maj);
+    }
+
+    private static BilanDesinscription refusDesinscription(String motif) {
+        return new BilanDesinscription(motif, List.of(), Map.of(), false, null);
+    }
+
+    private static Joueur present(Tableau tab, String licence) {
+        for (Joueur j : tab.getInscrits()) {
+            if (j.getNumeroLicence().equals(licence)) {
+                return j;
+            }
+        }
+        for (Joueur j : tab.getFileAttente()) {
+            if (j.getNumeroLicence().equals(licence)) {
+                return j;
+            }
+        }
+        return null;
     }
 
     /**
