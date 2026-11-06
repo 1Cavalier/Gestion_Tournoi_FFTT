@@ -1,7 +1,7 @@
 # Remplissage et finances du tournoi — 2026-11-06
 
 - Branche : `tache/B036-remplissage-finances`
-- Agent : chaîne `developpeur` (étape de pipeline)
+- Agent : chaîne `developpeur` (étape de pipeline), puis `verificateur-modele`, `relecteur-code`, `documentaliste`
 - Pull Request : aucune à ce stade (complété à l'étape `integrateur`)
 - Statut : en attente de fusion (`integrateur`)
 
@@ -11,6 +11,7 @@
 - Remplissage : inscrits sur places et taux de remplissage, au total et tableau par tableau, avec la liste d'attente.
 - Argent : recettes attendues (tarif × inscrits), déjà encaissé (joueurs marqués « payé »), dotation promise (fixe + part des inscriptions) et solde, négatif au départ, plus le solde si tous les inscrits règlent.
 - La liste d'attente ne compte pas dans l'argent : on ne paie qu'une fois la place obtenue.
+- Ce qui n'est pas encore pris en compte : un paiement partiel ou un trop-payé (un joueur est soit « payé », soit non), et la réduction de dotation prévue par certains règlements (voir les questions).
 
 ## À tester à l'écran
 
@@ -50,11 +51,24 @@
 - Choix provisoire de l'agent : B pour l'instant (pas de changement du format de sauvegarde sans nécessité) ; la carte se recalcule à chaque ouverture.
 - Réponse de Quentin :
 
+### 2026-11-06 — Total arrondi une fois : écart possible de 0,01 € avec les lignes affichées
+- Contexte : chaque ligne (tableau) est arrondie au centime, puis le total est la somme de ces lignes arrondies, arrondie une nouvelle fois. À la lecture du code, la somme affichée et le total concordent : l'écart de 0,01 € ne devrait pas apparaître, car chaque ligne est déjà un nombre de centimes. Il resterait possible seulement si l'affichage arrondissait autrement qu'au centime.
+- Article FFTT : aucun.
+- Options : A) accepter (recommandé : aucun écart attendu, pas de calcul en centimes entiers à refaire) ; B) passer tous les montants en centimes entiers pour supprimer tout doute (changement du cœur, sans effet visible prévu).
+- Choix provisoire de l'agent : A.
+- Réponse de Quentin :
+
 ## Notes pour l'état du projet
 
 - `core/ServiceRemplissageFinances` → `core/BilanRemplissageFinances` (immuable : lignes par tableau et totaux ; tarif de `RemplissageTableaux.tarifEnLigne`, grille via `LibellesTableau.totalArgent` / `partInscriptions`).
 - Carte « Remplissage et finances » dans `EcranCompletion` (deuxième version), présentation `ui/ecran/PresentationRemplissageFinances` testée hors JavaFX ; section CSS « B036 » en fin de `theme.css`.
 - Format de sauvegarde : inchangé. Démo : inchangée.
+- Limites connues (défauts restants, non bloquants) :
+  - Paiement binaire : pas de paiement partiel ni de trop-payé (le modèle ne connaît que « payé » ou non).
+  - Taux de remplissage global : ne compte que les tableaux limités ; un tableau sans limite de places est affiché sans taux (voulu, test `tableau_sans_limite_de_places_hors_du_taux_global`).
+  - Réduction de dotation (conditions de maintien) non appliquée : dotation pleine affichée (question ci-dessus).
+  - Classes CSS `carte-finances` et `finances-nom` posées dans `EcranCompletion` sans règle dans `theme.css` : sans effet visuel aujourd'hui, à régler si un style propre est voulu.
+  - Quelques noms de classes complets au lieu d'imports dans les fichiers de la carte : style seulement.
 
 ## Fusion
 
@@ -62,5 +76,6 @@
 
 ## Chiffres
 
-- Tests : à mesurer par l'`integrateur`.
+- Tests : à mesurer par l'`integrateur` (`mvn -B test`, non lancé ici).
+- Nouveaux tests (`@Test` comptés dans les fichiers ajoutés) : 10 (`ServiceRemplissageFinancesTest`) + 10 (`ServiceRemplissageFinancesCoherenceTest`) + 8 (`PresentationRemplissageFinancesTest`) = 28 annotations ; le compte rendu du développeur (18) et celui du vérificateur (9) ne couvrent pas tout le périmètre.
 - Version de la démo : inchangée.
