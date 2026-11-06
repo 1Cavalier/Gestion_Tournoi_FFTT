@@ -296,6 +296,11 @@ public final class EditionPlanSalles {
         return r;
     }
 
+    /** Bilan de cohérence du brouillon (tables oubliées, en trop, tableaux inconnus). */
+    public ServicePlanSalle.BilanPlanSalles bilan() {
+        return new ServicePlanSalle().verifier(salles, nombreDeTables, tableaux, true);
+    }
+
     // ------------------------------------------------------------------
     // Enregistrement
     // ------------------------------------------------------------------

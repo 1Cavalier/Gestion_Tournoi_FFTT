@@ -64,31 +64,37 @@ public final class ServicePlanSalle {
 
     /** Cohérence du plan avec le nombre de tables et les tableaux du tournoi. */
     public BilanPlanSalles verifier(Tournoi tournoi) {
-        int n = Math.max(0, tournoi.getNombreDeTables());
-        Set<Integer> placees = new HashSet<>();
-        Set<Integer> enTrop = new TreeSet<>();
-        Set<String> inconnus = new TreeSet<>();
         Set<String> noms = new HashSet<>();
         for (Tableau t : tournoi.getTableaux()) {
             noms.add(t.getNom());
         }
-        for (SalleTournoi s : salles(tournoi)) {
+        return verifier(salles(tournoi), tournoi.getNombreDeTables(), noms, tournoi.aUnPlanDeSalle());
+    }
+
+    /** Cohérence de salles en cours d'édition (brouillon de l'éditeur). */
+    public BilanPlanSalles verifier(List<SalleTournoi> salles, int nombreDeTables, Set<String> tableaux,
+                                    boolean planPrepare) {
+        int n = Math.max(0, nombreDeTables);
+        Set<Integer> placees = new HashSet<>();
+        Set<Integer> enTrop = new TreeSet<>();
+        Set<String> inconnus = new TreeSet<>();
+        for (SalleTournoi s : salles) {
             for (TablePlan t : s.getPlan().getTables()) {
                 placees.add(t.numero());
                 if (t.numero() > n) {
                     enTrop.add(t.numero());
                 }
-                if (t.tableauReserve() != null && !noms.contains(t.tableauReserve())) {
+                if (t.tableauReserve() != null && !tableaux.contains(t.tableauReserve())) {
                     inconnus.add(t.tableauReserve());
                 }
             }
             for (String x : s.getTableauxReserves()) {
-                if (!noms.contains(x)) {
+                if (!tableaux.contains(x)) {
                     inconnus.add(x);
                 }
             }
             for (String x : s.getTableauxPreferes()) {
-                if (!noms.contains(x)) {
+                if (!tableaux.contains(x)) {
                     inconnus.add(x);
                 }
             }
@@ -99,7 +105,7 @@ public final class ServicePlanSalle {
                 horsPlan.add(i);
             }
         }
-        return new BilanPlanSalles(horsPlan, enTrop, inconnus, tournoi.aUnPlanDeSalle());
+        return new BilanPlanSalles(horsPlan, enTrop, inconnus, planPrepare);
     }
 
     /**

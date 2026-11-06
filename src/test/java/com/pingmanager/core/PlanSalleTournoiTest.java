@@ -235,4 +235,18 @@ class PlanSalleTournoiTest {
         assertEquals(0, e.getIndexCourant());
         assertEquals(1, e.getSalles().size());
     }
+
+    @Test
+    void le_bilan_du_brouillon_suit_les_modifications_avant_enregistrement() {
+        Tournoi t = tournoi(3);
+        EditionPlanSalles e = new EditionPlanSalles(t);
+        assertTrue(e.bilan().estCoherent());
+        assertEquals(ResultatPlacementPlan.Motif.HORS_GRILLE, e.ajouterTable(0, 5).getMotif());
+        assertTrue(e.redimensionner(10, 8).estReussi());
+        assertTrue(e.ajouterTable(0, 5).estReussi());
+        assertEquals(Set.of(4), e.bilan().tablesEnTrop());
+        assertTrue(e.retirer(1, 2).estReussi());
+        assertEquals(Set.of(1), e.bilan().tablesHorsPlan());
+        assertTrue(service.verifier(t).estCoherent(), "le tournoi n'a pas changé");
+    }
 }

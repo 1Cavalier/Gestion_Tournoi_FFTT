@@ -44,6 +44,7 @@ public class Capture extends Application {
     static boolean jourj;
     static boolean profil;
     static boolean b035;
+    static boolean b024;
     static boolean prepa;
     static boolean mesTournois;
     Scene scene;
@@ -63,6 +64,7 @@ public class Capture extends Application {
         jourj = java.util.Arrays.asList(a).contains("jourj");
         profil = java.util.Arrays.asList(a).contains("profil");
         b035 = java.util.Arrays.asList(a).contains("b035");
+        b024 = java.util.Arrays.asList(a).contains("b024");
         prepa = java.util.Arrays.asList(a).contains("prepa");
         mesTournois = java.util.Arrays.asList(a).contains("mestournois");
         launch(a);
@@ -124,6 +126,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (b024) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesB024(coq);
             lancer(0);
             return;
         }
@@ -454,6 +463,65 @@ public class Capture extends Application {
         }, "b035-homologue");
         etape(() -> defiler(0.3), "b035-homologue-milieu");
         etape(() -> defiler(1.0), "b035-homologue-bas");
+    }
+
+    /**
+     * Plan de salle (B024) : carte de l'écran du tournoi homologué, éditeur (deux
+     * salles, mini-carte), puis la vue Salle du jour J sur le plan réel. Les salles
+     * sont posées sur une copie de travail du tournoi de démonstration du jour J.
+     */
+    void etapesB024(Coquille[] coq) {
+        Path[] f = new Path[1];
+        etape(() -> {
+            f[0] = ctx.tousLesTournois().stream()
+                    .filter(x -> x.tournoi().getNom().equals("Tournoi national de Brunoy")).findFirst().orElseThrow().fichier();
+            Tournoi t = ctx.chargerTournoi(f[0]);
+            t.setNombreDeTables(10);
+            t.setNumeroHomologation("R-91-2027-014");
+            t.changerStatut(com.pingmanager.model.StatutTournoi.DEMANDE_HOMOLOGATION);
+            t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+            ctx.enregistrerTournoi(t, f[0]);
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            ouvrirCompletion(coq[0], f[0]);
+        }, "b024-carte-sans-plan");
+        etape(() -> cliquer("Préparer le plan"), "b024-editeur-grille-par-defaut");
+        etape(() -> {
+            cliquer("Appliquer le plan type");
+            cliquerSiPresent("Oui, remplacer");
+        }, "b024-editeur-plan-type");
+        etape(() -> {
+            saisir("Par exemple : Dojo", "Dojo");
+            cliquer("Ajouter une salle");
+        }, "b024-editeur-deuxieme-salle");
+        etape(() -> {
+            cliquer("Enregistrer le plan");
+            ouvrirCompletion(coq[0], f[0]);
+        }, "b024-carte-avec-plan");
+        etape(() -> {
+            Path jj = ctx.tousLesTournois().stream()
+                    .filter(x -> x.tournoi().getNom().equals(com.pingmanager.ui.infra.TournoiDemoJourJ.NOM))
+                    .findFirst().orElseThrow().fichier();
+            Tournoi t = ctx.chargerTournoi(jj);
+            int n = Math.max(4, t.getNombreDeTables());
+            com.pingmanager.model.PlanSalle gymnase = com.pingmanager.core.PlansTypesSalle.generer(2, n - 2, 1);
+            com.pingmanager.model.PlanSalle dojo = com.pingmanager.core.PlansTypesSalle.generer(1, 2, n - 1);
+            t.setSalles(List.of(new com.pingmanager.model.SalleTournoi("Gymnase", gymnase),
+                    new com.pingmanager.model.SalleTournoi("Dojo", 1, dojo, java.util.Set.of("D – Dames"),
+                            java.util.Set.of())));
+            ctx.enregistrerTournoi(t, jj);
+            coq[0].afficher("gestion");
+            try {
+                java.lang.reflect.Field r = Coquille.class.getDeclaredField("racine");
+                r.setAccessible(true);
+                javafx.scene.layout.BorderPane page = (javafx.scene.layout.BorderPane)
+                        ((javafx.scene.layout.BorderPane) r.get(coq[0])).getCenter();
+                page.setCenter(new EcranJourJ(ctx, jj, () -> { }).build());
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        }, "b024-salle-jour-j");
+        etape(() -> defiler(0.5), "b024-salle-jour-j-bas");
     }
 
     /** Ouvre l'écran de préparation d'un tournoi dans la page Gestion des tournois de la coquille. */
@@ -964,7 +1032,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || b035 || prepa) ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil || b035 || b024 || prepa) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

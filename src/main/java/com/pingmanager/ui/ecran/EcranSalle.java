@@ -11,9 +11,12 @@ import com.pingmanager.core.TableauDeBordSalle.CarteTable;
 import com.pingmanager.core.TableauDeBordSalle.Engagement;
 import com.pingmanager.core.TableauDeBordSalle.JoueurEnAttente;
 import com.pingmanager.core.TableauDeBordSalle.MatchSalle;
+import com.pingmanager.model.ElementPlan;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.ModeAnnonce;
+import com.pingmanager.model.PlanSalle;
 import com.pingmanager.model.Poule;
+import com.pingmanager.model.SalleTournoi;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tour;
@@ -38,8 +41,11 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -122,6 +128,8 @@ final class EcranSalle {
     private List<AnnonceRencontre> annonces = List.of();
     /** Ouvre un tableau (poules ou arbre) par son nom, ou null. */
     private Consumer<String> ouvrirTableau;
+    /** Salle du plan affichée (B024), ou -1 pour toutes. */
+    private int salleAffichee = -1;
 
     EcranSalle(Tournoi tournoi, Runnable enregistrer, Runnable onRetour, Horloge horloge) {
         this(tournoi, enregistrer, onRetour, "← Jour J", "Salle et tables", null, horloge);
@@ -325,6 +333,9 @@ final class EcranSalle {
             return Ui.carte("Tables", Ui.texte("Le nombre de tables du tournoi n'est pas renseigné. Indiquez-le dans "
                     + "« Informations sportives et techniques » pour afficher la salle."));
         }
+        if (tournoi.aUnPlanDeSalle()) {
+            return planDesSalles();
+        }
         FlowPane grille = new FlowPane(12, 12);
         grille.getStyleClass().add("salle-grille");
         // Autant de colonnes que la largeur disponible le permet.
@@ -333,6 +344,124 @@ final class EcranSalle {
             grille.getChildren().add(carteTable(c));
         }
         return grille;
+    }
+
+    // ==================================================================
+    // Plan réel des salles (B024)
+    // ==================================================================
+
+    /** Largeur d'une colonne de table (une table = 2 colonnes, une carte de 220 px). */
+    private static final double COLONNE_TABLE = 115;
+    /** Taille d'une case d'allée ou de repère. */
+    private static final double CASE_ETROITE = 26;
+
+    /**
+     * Les salles telles que le club les a dessinées : mini-carte (choix de la
+     * salle, occupation par étage) puis le plan, chaque table à sa place ; les
+     * tables du tournoi absentes du plan s'affichent à part.
+     */
+    private Node planDesSalles() {
+        List<SalleTournoi> salles = tournoi.getSalles();
+        if (salleAffichee >= salles.size()) {
+            salleAffichee = -1;
+        }
+        VBox bloc = new VBox(16);
+        if (salles.size() > 1) {
+            bloc.getChildren().add(miniCarteSalles(salles));
+        }
+        for (int i = 0; i < salles.size(); i++) {
+            if (salleAffichee < 0 || salleAffichee == i) {
+                SalleTournoi s = salles.get(i);
+                Label titreSalle = Ui.gras(s.getNom() + " · " + PresentationPlanSalle.occupation(s, bord));
+                bloc.getChildren().add(new VBox(8, titreSalle, planSalle(s)));
+            }
+        }
+        List<Integer> horsPlan = PresentationPlanSalle.tablesHorsPlan(salles, bord.getNombreDeTables());
+        if (!horsPlan.isEmpty() && salleAffichee < 0) {
+            FlowPane autres = new FlowPane(12, 12);
+            autres.getStyleClass().add("salle-grille");
+            autres.prefWrapLengthProperty().bind(defilement.widthProperty().subtract(64));
+            horsPlan.forEach(n -> autres.getChildren().add(carteTable(bord.table(n))));
+            bloc.getChildren().add(new VBox(8, Ui.gras("Tables hors plan"), autres));
+        }
+        return bloc;
+    }
+
+    private Node miniCarteSalles(List<SalleTournoi> salles) {
+        HBox etages = new HBox(16);
+        etages.getStyleClass().add("plan-mini-carte");
+        for (PresentationPlanSalle.EtageMiniCarte etage : PresentationPlanSalle.miniCarte(salles, salleAffichee)) {
+            FlowPane tuiles = new FlowPane(8, 8);
+            for (PresentationPlanSalle.SalleMiniCarte m : etage.salles()) {
+                VBox tuile = new VBox(2, Ui.gras(m.nom()),
+                        Ui.discret(PresentationPlanSalle.occupation(salles.get(m.index()), bord)));
+                tuile.getStyleClass().add("plan-mini-salle");
+                if (m.courante()) {
+                    tuile.getStyleClass().add("plan-mini-salle-active");
+                }
+                tuile.setOnMouseClicked(e -> {
+                    salleAffichee = m.index();
+                    afficher();
+                });
+                tuiles.getChildren().add(tuile);
+            }
+            etages.getChildren().add(new VBox(4, Ui.discret(etage.libelle()), tuiles));
+        }
+        VBox bloc = new VBox(8, etages);
+        if (salleAffichee >= 0) {
+            Button toutes = Ui.boutonLien("Voir toutes les salles");
+            toutes.setOnAction(e -> {
+                salleAffichee = -1;
+                afficher();
+            });
+            bloc.getChildren().add(toutes);
+        }
+        return bloc;
+    }
+
+    private Node planSalle(SalleTournoi s) {
+        PlanSalle plan = s.getPlan();
+        boolean[] colonnes = PresentationPlanSalle.avecTable(plan, true);
+        boolean[] lignes = PresentationPlanSalle.avecTable(plan, false);
+        GridPane g = new GridPane();
+        g.getStyleClass().addAll("plan-grille", "plan-grille-jourj");
+        for (boolean table : colonnes) {
+            double l = table ? COLONNE_TABLE : CASE_ETROITE;
+            g.getColumnConstraints().add(new ColumnConstraints(l, l, l));
+        }
+        for (boolean table : lignes) {
+            RowConstraints r = new RowConstraints();
+            if (table) {
+                r.setMinHeight(60);
+            } else {
+                r.setMinHeight(CASE_ETROITE);
+                r.setPrefHeight(CASE_ETROITE);
+                r.setMaxHeight(CASE_ETROITE);
+            }
+            g.getRowConstraints().add(r);
+        }
+        for (PresentationPlanSalle.Tuile t : PresentationPlanSalle.tuiles(plan)) {
+            Node noeud;
+            if (t.element() instanceof ElementPlan.TablePlan table) {
+                CarteTable c = table.numero() <= bord.getNombreDeTables() ? bord.table(table.numero()) : null;
+                if (c != null) {
+                    noeud = carteTable(c);
+                } else {
+                    Label hors = Ui.discret("Table " + table.numero() + "\nhors compétition");
+                    hors.getStyleClass().addAll("plan-element", "plan-table-hors");
+                    hors.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                    noeud = hors;
+                }
+            } else {
+                Label l = new Label(t.texte());
+                l.getStyleClass().addAll(t.classes());
+                l.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                Tooltip.install(l, new Tooltip(t.infobulle()));
+                noeud = l;
+            }
+            g.add(noeud, t.colonne(), t.ligne(), t.largeur(), t.hauteur());
+        }
+        return g;
     }
 
     private Node carteTable(CarteTable c) {
