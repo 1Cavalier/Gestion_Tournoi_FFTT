@@ -4,7 +4,7 @@ titre: Rendu graphique v2 : préparation du tournoi
 type: charte
 priorite: P1
 taille: M
-statut: en-cours
+statut: a-relire
 depend-de: []
 fichiers: [ui/ecran/EcranCompletion, ui/ecran/FormulairesSection, ui/ecran/EcranTableaux, ui/ecran/FormulaireTableau, ui/ecran/EcranSportif, ui/ecran/EcranComplementaire, ui/ecran/CarteReglesInscription, theme.css]
 branche: tache/B012-rendu-v2-pre-tournoi (2026-11-06)
@@ -17,8 +17,8 @@ Passer au **vrai rendu v2** (skill `charte-graphique`) tous les écrans de prép
 
 ## Critères de fin
 
-- [ ] captures avant / après en clair et sombre, regardées
-- [ ] aucun style en dur restant dans ces écrans
+- [x] captures avant / après en clair et sombre, regardées
+- [x] aucun style en dur restant dans ces écrans
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
