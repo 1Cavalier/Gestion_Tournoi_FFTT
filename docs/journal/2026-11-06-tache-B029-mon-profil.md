@@ -57,10 +57,10 @@
 
 ## Fusion
 
-Non faite à ce stade : `python3 outils-dev/verifier-fusion.py` sera lancé par l'`integrateur` après synchronisation avec `main`.
+Fusion de `origin/main` sans conflit ; `verifier-fusion.py` : OK. `theme.css` de main était déséquilibré (485 `{` pour 484 `}`, 126 `/*` pour 127 `*/`) : la réparation de cette branche était toujours nécessaire, fichier équilibré après fusion.
 
 ## Chiffres
 
-- Tests : 740 → 750 (750 mesurés par `mvn -B test`, 0 échec ; 740 calculé : 10 nouveaux tests, aucun supprimé).
+- Tests : 740 → 750 (798 mesurés après synchronisation avec main (750 avant), 0 échec ; 740 calculé : 10 nouveaux tests, aucun supprimé).
 - Version de la démo : inchangée.
 - Captures : 12 avant, 12 après (clair et sombre).
