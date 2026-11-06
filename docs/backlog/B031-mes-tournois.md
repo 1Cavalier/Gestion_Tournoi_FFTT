@@ -8,7 +8,7 @@ statut: fait
 depend-de: [B032]
 fichiers: [ui/ecran/MesTournois]
 branche: tache/B031-mes-tournois (2026-11-06)
-pr:
+pr: 44
 ---
 
 ## Ce qu'il faut faire
