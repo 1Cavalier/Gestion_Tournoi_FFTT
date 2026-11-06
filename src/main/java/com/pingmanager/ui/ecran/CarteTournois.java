@@ -27,6 +27,13 @@ import java.util.function.Consumer;
  * <p>Pont Java ↔ JavaScript : Java appelle {@code majMarqueurs}, {@code selectionner}
  * et {@code initialiser} ; la page appelle {@link Pont#ouvrir(String)} au clic sur un
  * marqueur et {@link Pont#survol(String)} au survol.</p>
+ *
+ * <p>Légèreté : une seule carte pour toute l'application ({@link #partagee}). Une
+ * WebView coûte cher (moteur WebKit natif, Leaflet à analyser, tuiles à recharger) et
+ * n'était jamais libérée quand on revenait sur l'onglet ; la carte partagée garde son
+ * cache de tuiles et se rattache simplement à la nouvelle page. La page HTML (≈ 170 Ko
+ * avec Leaflet) est assemblée une seule fois, et les marqueurs ne sont renvoyés à la
+ * page que s'ils ont changé.</p>
  */
 final class CarteTournois {
 
@@ -38,11 +45,18 @@ final class CarteTournois {
     private boolean prete;
     private List<CatalogueTournois.Entree> enAttente;
     private String selectionEnAttente;
+    /** Derniers marqueurs envoyés à la page : on ne redessine pas une carte identique. */
+    private String derniersMarqueurs;
+
+    /** Carte unique de l'application (créée au premier affichage, sur le fil JavaFX). */
+    private static CarteTournois partagee;
+    /** Page HTML assemblée une fois (Leaflet injecté). */
+    private static String page;
 
     /** Objet exposé à la page sous le nom {@code java} (méthodes publiques uniquement). */
     public static final class Pont {
-        private final Consumer<String> onOuvrir;
-        private final Consumer<String> onSurvol;
+        private Consumer<String> onOuvrir;
+        private Consumer<String> onSurvol;
 
         Pont(Consumer<String> onOuvrir, Consumer<String> onSurvol) {
             this.onOuvrir = onOuvrir;
@@ -56,6 +70,25 @@ final class CarteTournois {
         public void survol(String id) {
             Platform.runLater(() -> onSurvol.accept(id));
         }
+    }
+
+    /**
+     * La carte de l'application, rattachée aux actions de la page qui l'affiche
+     * (clic sur un marqueur, survol). À appeler sur le fil JavaFX.
+     */
+    static CarteTournois partagee(Consumer<String> onOuvrir, Consumer<String> onSurvol) {
+        if (partagee == null) {
+            partagee = new CarteTournois(onOuvrir, onSurvol);
+        } else {
+            partagee.pont.onOuvrir = onOuvrir;
+            partagee.pont.onSurvol = onSurvol;
+            // Nouvelle page : rien n'est sélectionné dans sa liste, la carte non plus.
+            partagee.selectionEnAttente = null;
+            if (partagee.prete) {
+                partagee.executer("selectionner(null, false)");
+            }
+        }
+        return partagee;
     }
 
     CarteTournois(Consumer<String> onOuvrir, Consumer<String> onSurvol) {
@@ -73,6 +106,7 @@ final class CarteTournois {
                 redimensionner();
                 if (enAttente != null) {
                     afficher(enAttente, true);
+                    enAttente = null;
                 }
                 if (selectionEnAttente != null) {
                     selectionner(selectionEnAttente, false);
@@ -142,7 +176,12 @@ final class CarteTournois {
                     .append('}');
         }
         sb.append(']');
-        executer("majMarqueurs(" + sb + ", " + ajuster + ")");
+        String marqueurs = sb.toString();
+        if (marqueurs.equals(derniersMarqueurs) && !ajuster) {
+            return;
+        }
+        derniersMarqueurs = marqueurs;
+        executer("majMarqueurs(" + marqueurs + ", " + ajuster + ")");
     }
 
     void selectionner(String id, boolean centrer) {
@@ -201,11 +240,14 @@ final class CarteTournois {
         return sb.append('\'').toString();
     }
 
-    /** Page HTML avec Leaflet injecté (script et style lus dans les ressources). */
+    /** Page HTML avec Leaflet injecté (script et style lus une fois dans les ressources). */
     private static String page() {
-        return lire("carte.html")
-                .replace("/*LEAFLET_CSS*/", lire("leaflet.css"))
-                .replace("/*LEAFLET_JS*/", lire("leaflet.js"));
+        if (page == null) {
+            page = lire("carte.html")
+                    .replace("/*LEAFLET_CSS*/", lire("leaflet.css"))
+                    .replace("/*LEAFLET_JS*/", lire("leaflet.js"));
+        }
+        return page;
     }
 
     private static String lire(String nom) {

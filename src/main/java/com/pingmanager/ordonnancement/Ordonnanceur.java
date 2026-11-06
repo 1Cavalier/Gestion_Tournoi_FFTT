@@ -41,6 +41,8 @@ public final class Ordonnanceur {
 
     /** Tous les matchs sous gestion de l'ordonnanceur. */
     private final List<MatchOrdonnancable> matchs = new ArrayList<>();
+    /** Les mêmes matchs, pour tester la présence en temps constant (l'ordre reste celui de {@link #matchs}). */
+    private final Set<MatchOrdonnancable> matchsGeres = new HashSet<>();
 
     /** Table (1..N) → match en cours dessus, ou null si libre. */
     private final Map<Integer, MatchOrdonnancable> occupationTables = new HashMap<>();
@@ -66,11 +68,16 @@ public final class Ordonnanceur {
     /** Ajoute un match à gérer. Sans effet s'il est déjà présent. */
     public void ajouterMatch(MatchOrdonnancable m) {
         Objects.requireNonNull(m, "m");
-        if (!matchs.contains(m)) {
+        gerer(m);
+    }
+
+
+    /** Ajoute le match à la liste ordonnée s'il n'y est pas encore. */
+    private void gerer(MatchOrdonnancable m) {
+        if (matchsGeres.add(m)) {
             matchs.add(m);
         }
     }
-
 
     /** Vue en lecture seule de tous les matchs sous gestion. */
     public List<MatchOrdonnancable> tousLesMatchs() {
@@ -447,7 +454,7 @@ public final class Ordonnanceur {
      */
     public ResultatAffectationTable verifierMatch(MatchOrdonnancable mo) {
         Objects.requireNonNull(mo, "mo");
-        if (!matchs.contains(mo)) {
+        if (!matchsGeres.contains(mo)) {
             return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, 0);
         }
         Match m = mo.getMatch();
@@ -563,9 +570,7 @@ public final class Ordonnanceur {
         if (occupationTables.get(table) != null) {
             throw new IllegalStateException("La table " + table + " est déjà occupée.");
         }
-        if (!matchs.contains(mo)) {
-            matchs.add(mo);
-        }
+        gerer(mo);
         occupationTables.put(table, mo);
     }
 

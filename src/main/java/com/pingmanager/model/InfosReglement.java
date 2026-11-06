@@ -74,15 +74,15 @@ public final class InfosReglement {
     private final String tiragePublicLieu;
 
     private InfosReglement(Builder b) {
-        this.responsableNom = normaliser(b.responsableNom);
-        this.responsableEmail = normaliser(b.responsableEmail);
-        this.responsableTelephone = normaliser(b.responsableTelephone);
-        this.salleNom = normaliser(b.salleNom);
-        this.salleAdresse = normaliser(b.salleAdresse);
-        this.salleCodePostal = normaliser(b.salleCodePostal);
-        this.salleVille = normaliser(b.salleVille);
+        this.responsableNom = Textes.optionnel(b.responsableNom);
+        this.responsableEmail = Textes.optionnel(b.responsableEmail);
+        this.responsableTelephone = Textes.optionnel(b.responsableTelephone);
+        this.salleNom = Textes.optionnel(b.salleNom);
+        this.salleAdresse = Textes.optionnel(b.salleAdresse);
+        this.salleCodePostal = Textes.optionnel(b.salleCodePostal);
+        this.salleVille = Textes.optionnel(b.salleVille);
         this.nombreDeTables = b.nombreDeTables;
-        this.marqueBalles = normaliser(b.marqueBalles);
+        this.marqueBalles = Textes.optionnel(b.marqueBalles);
         this.politiqueBalles = b.politiqueBalles;
         this.couleurBalles = b.couleurBalles;
         this.ballesRefusees = b.ballesRefusees == null ? List.of() : List.copyOf(b.ballesRefusees);
@@ -94,7 +94,7 @@ public final class InfosReglement {
         this.finPrevue = b.finPrevue;
         this.horairePrevuFinales = b.horairePrevuFinales;
         this.tiragePublicDateHeure = b.tiragePublicDateHeure;
-        this.tiragePublicLieu = normaliser(b.tiragePublicLieu);
+        this.tiragePublicLieu = Textes.optionnel(b.tiragePublicLieu);
 
         // Invariants durs.
         if (nombreDeTables < 0) {
@@ -440,14 +440,6 @@ public final class InfosReglement {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
-
-    private static String normaliser(String s) {
-        if (s == null) {
-            return null;
-        }
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
-    }
 
     private static boolean estVide(String s) {
         return s == null || s.isBlank();

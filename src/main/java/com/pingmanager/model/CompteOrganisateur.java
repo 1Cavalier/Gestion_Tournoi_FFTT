@@ -49,11 +49,11 @@ public final class CompteOrganisateur {
      */
     public CompteOrganisateur(String email, String nom, String prenom,
                               String empreinteMotDePasse, String numeroClub) {
-        this.email = exigerNonVide(email, "email").toLowerCase();
-        this.nom = exigerNonVide(nom, "nom");
-        this.prenom = exigerNonVide(prenom, "prenom");
-        this.empreinteMotDePasse = exigerNonVide(empreinteMotDePasse, "empreinteMotDePasse");
-        this.numeroClub = exigerNonVide(numeroClub, "numeroClub");
+        this.email = Textes.obligatoire(email, "email").toLowerCase();
+        this.nom = Textes.obligatoire(nom, "nom");
+        this.prenom = Textes.obligatoire(prenom, "prenom");
+        this.empreinteMotDePasse = Textes.obligatoire(empreinteMotDePasse, "empreinteMotDePasse");
+        this.numeroClub = Textes.obligatoire(numeroClub, "numeroClub");
         this.emailVerifie = false;
     }
 
@@ -66,7 +66,7 @@ public final class CompteOrganisateur {
     }
 
     public void setNom(String nom) {
-        this.nom = exigerNonVide(nom, "nom");
+        this.nom = Textes.obligatoire(nom, "nom");
     }
 
     public String getPrenom() {
@@ -83,7 +83,7 @@ public final class CompteOrganisateur {
      * qu'elle soit non vide.
      */
     public void setEmpreinteMotDePasse(String empreinteMotDePasse) {
-        this.empreinteMotDePasse = exigerNonVide(empreinteMotDePasse, "empreinteMotDePasse");
+        this.empreinteMotDePasse = Textes.obligatoire(empreinteMotDePasse, "empreinteMotDePasse");
     }
 
     public String getNumeroClub() {
@@ -125,16 +125,5 @@ public final class CompteOrganisateur {
     @Override
     public String toString() {
         return prenom + " " + nom + " <" + email + "> (club " + numeroClub + ")";
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
     }
 }

@@ -64,7 +64,7 @@ public final class PageGestionTournoi {
     // ==================================================================
 
     private void afficherCompletion(Path fichier) {
-        com.pingmanager.model.ModePreparation mode = contexte.chargerTournoi(fichier).getModePreparation();
+        com.pingmanager.model.ModePreparation mode = contexte.lireTournoi(fichier).getModePreparation();
         if (mode == com.pingmanager.model.ModePreparation.A_CHOISIR) {
             racine.setCenter(new EcranChoixPreparation(contexte, fichier, () -> afficherCompletion(fichier),
                     this::afficherAccueil).build());

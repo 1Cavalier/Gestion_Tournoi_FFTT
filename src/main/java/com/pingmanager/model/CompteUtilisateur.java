@@ -46,10 +46,10 @@ public final class CompteUtilisateur {
      *                            qu'elle soit présente
      */
     public CompteUtilisateur(String email, String nom, String prenom, String empreinteMotDePasse) {
-        this.email = exigerNonVide(email, "email").toLowerCase();
-        this.nom = exigerNonVide(nom, "nom");
-        this.prenom = exigerNonVide(prenom, "prenom");
-        this.empreinteMotDePasse = exigerNonVide(empreinteMotDePasse, "empreinteMotDePasse");
+        this.email = Textes.obligatoire(email, "email").toLowerCase();
+        this.nom = Textes.obligatoire(nom, "nom");
+        this.prenom = Textes.obligatoire(prenom, "prenom");
+        this.empreinteMotDePasse = Textes.obligatoire(empreinteMotDePasse, "empreinteMotDePasse");
         this.licenceLiee = null;
     }
 
@@ -62,7 +62,7 @@ public final class CompteUtilisateur {
     }
 
     public void setNom(String nom) {
-        this.nom = exigerNonVide(nom, "nom");
+        this.nom = Textes.obligatoire(nom, "nom");
     }
 
     public String getPrenom() {
@@ -83,7 +83,7 @@ public final class CompteUtilisateur {
      * qu'elle soit non vide.
      */
     public void setEmpreinteMotDePasse(String empreinteMotDePasse) {
-        this.empreinteMotDePasse = exigerNonVide(empreinteMotDePasse, "empreinteMotDePasse");
+        this.empreinteMotDePasse = Textes.obligatoire(empreinteMotDePasse, "empreinteMotDePasse");
     }
 
     // -------------------------------------------------------------------------
@@ -108,7 +108,7 @@ public final class CompteUtilisateur {
      * @param numeroLicence numéro de licence validé (non vide)
      */
     public void lierLicence(String numeroLicence) {
-        this.licenceLiee = exigerNonVide(numeroLicence, "numeroLicence");
+        this.licenceLiee = Textes.obligatoire(numeroLicence, "numeroLicence");
     }
 
     // -------------------------------------------------------------------------
@@ -135,16 +135,5 @@ public final class CompteUtilisateur {
     public String toString() {
         return prenom + " " + nom + " <" + email + ">"
                 + (licenceLiee != null ? " [licence " + licenceLiee + "]" : "");
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static String exigerNonVide(String valeur, String champ) {
-        if (valeur == null || valeur.isBlank()) {
-            throw new IllegalArgumentException("Le champ « " + champ + " » est obligatoire.");
-        }
-        return valeur.trim();
     }
 }

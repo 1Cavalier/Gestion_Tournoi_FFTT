@@ -52,7 +52,7 @@ public final class PageSupervision {
         int total = 0;
         for (Path f : contexte.fichiersTournois()) {
             try {
-                Tournoi t = contexte.chargerTournoi(f);
+                Tournoi t = contexte.lireTournoi(f);
                 String club = nomClub(t);
                 String cle = club.replaceFirst(" \\(\\d+\\)$", ""); // même club, avec ou sans n°
                 parClub.computeIfAbsent(cle, k -> new ArrayList<>()).add(new Ligne(f, t, club));

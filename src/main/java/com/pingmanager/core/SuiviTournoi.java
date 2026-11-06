@@ -94,16 +94,19 @@ public final class SuiviTournoi {
         return false;
     }
 
+    /** Ordre de la journée : heure de début des matchs, puis nom ; tableaux sans horaire à la fin. */
+    public static final Comparator<Tableau> ORDRE_DE_LA_JOURNEE = Comparator
+            .comparing((Tableau t) -> t.getHoraires().getDebutMatchs(),
+                    Comparator.nullsLast(Comparator.<LocalDateTime>naturalOrder()))
+            .thenComparing(Tableau::getNom);
+
     /**
      * Tableaux du tournoi dans l'ordre de la journée (heure de début, puis nom ;
      * sans horaire à la fin), ceux du joueur en premier si une licence est donnée.
      */
     public static List<Tableau> tableauxOrdonnes(Tournoi tournoi, String numeroLicence) {
         List<Tableau> tries = new ArrayList<>(tournoi.getTableaux());
-        tries.sort(Comparator
-                .comparing((Tableau t) -> t.getHoraires().getDebutMatchs(),
-                        Comparator.nullsLast(Comparator.<LocalDateTime>naturalOrder()))
-                .thenComparing(Tableau::getNom));
+        tries.sort(ORDRE_DE_LA_JOURNEE);
         List<Tableau> res = new ArrayList<>();
         for (Tableau t : tries) {
             if (estInscrit(t, numeroLicence)) {

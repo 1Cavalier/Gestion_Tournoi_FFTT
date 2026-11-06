@@ -106,7 +106,7 @@ final class EcranSuiviTournoi {
 
     private void actualiser() {
         try {
-            tournoi = contexte.chargerTournoi(fichier);
+            tournoi = contexte.lireTournoi(fichier); // relu seulement si le fichier a changé
             derniereLecture = LocalTime.now();
             messageErreur = null;
         } catch (RuntimeException ex) {

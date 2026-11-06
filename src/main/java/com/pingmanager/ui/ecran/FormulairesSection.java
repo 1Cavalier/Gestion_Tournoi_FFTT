@@ -76,217 +76,304 @@ final class FormulairesSection {
 
     private static Node general(String titre, Tournoi t, Referentiel ref,
                                 Runnable persister, Runnable onSave, Runnable onCancel) {
+        SectionGenerale s = new SectionGenerale(t, ref);
+        return cadre(titre, EnumSet.of(H, P, R, O), s.motifVerrou, s.corps(), onCancel,
+                erreur -> s.enregistrer(erreur, persister, onSave));
+    }
+
+    private static final Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
+    private static final Niveau P = Niveau.OBLIGATOIRE_PUBLICATION;
+    private static final Niveau O = Niveau.OPTIONNEL;
+    private static final Niveau R = Niveau.RECOMMANDE;
+
+    /**
+     * Formulaire « Général », construit en étapes nommées (club, tournoi, échelon,
+     * phase de points, lieu, dates, correspondant, verrous) dans l'ordre d'origine :
+     * chaque étape crée ses champs et leurs réactions.
+     */
+    private static final class SectionGenerale {
+
+        private final Tournoi t;
+        private final Referentiel ref;
         // B035 : dès la demande d'homologation, les champs du dossier ne sont plus modifiables.
-        ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
-        boolean nomFige = verrous.estVerrouille(t, ChampHomologation.NOM);
-        boolean clubFige = verrous.estVerrouille(t, ChampHomologation.CLUB_ORGANISATEUR);
-        boolean adresseFigee = verrous.estVerrouille(t, ChampHomologation.ADRESSE);
-        boolean correspondantFige = verrous.estVerrouille(t, ChampHomologation.CORRESPONDANT);
-        String motifVerrou = new PresentationPreparationTournoi(t)
-                .motifVerrouSection(PresentationPreparationTournoi.SECTION_GENERAL);
-        Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
-        Niveau P = Niveau.OBLIGATOIRE_PUBLICATION;
-        Niveau O = Niveau.OPTIONNEL;
-        Niveau R = Niveau.RECOMMANDE;
+        private final ServiceVerrousHomologation verrous = new ServiceVerrousHomologation();
+        private final boolean nomFige;
+        private final boolean clubFige;
+        private final boolean adresseFigee;
+        private final boolean correspondantFige;
+        private final String motifVerrou;
 
-        // --- Club organisateur : repris de la base FFTT, jamais saisi ---
-        Club clubInitial = clubDuTournoi(t, ref.clubs());
-        Club[] club = {clubInitial};
-        TextField nomClub = Ui.champLecture(clubInitial != null && !clubFige
-                ? clubInitial.getNom() : t.getClubOrganisateur());
-        TextField affiliation = Ui.champLecture(clubInitial != null && !clubFige
-                ? clubInitial.getNumero() : t.getNumeroAffiliationClub());
+        private Club clubInitial;
+        private Club club;
+        private TextField nomClub;
+        private TextField affiliation;
 
-        // --- Le tournoi ---
-        TextField nom = champ(t.getNom());
-        String[] proposition = {PropositionsTournoi.nomTournoi(nomClub.getText())};
-        if (valeur(nom) == null && !nomFige) {
-            nom.setText(proposition[0]);
+        private TextField nom;
+        private String proposition;
+        private Button utiliserNom;
+        private ComboBox<NiveauTournoi> niveau;
+        private TextField homolog;
+        private VBox blocEchelon;
+        private ComboBox<PhasePoints> phase;
+        private Label notePhase;
+
+        private TextField voie;
+        private TextField cp;
+        private TextField ville;
+        private Button reprendreAdresse;
+        private TextField debut;
+        private TextField fin;
+        private TextField corNom;
+        private TextField corPrenom;
+        private TextField corEmail;
+        private TextField corTel;
+        private Button reprendreAdmin;
+        private Groupe groupeClub;
+
+        SectionGenerale(Tournoi t, Referentiel ref) {
+            this.t = t;
+            this.ref = ref;
+            nomFige = verrous.estVerrouille(t, ChampHomologation.NOM);
+            clubFige = verrous.estVerrouille(t, ChampHomologation.CLUB_ORGANISATEUR);
+            adresseFigee = verrous.estVerrouille(t, ChampHomologation.ADRESSE);
+            correspondantFige = verrous.estVerrouille(t, ChampHomologation.CORRESPONDANT);
+            motifVerrou = new PresentationPreparationTournoi(t)
+                    .motifVerrouSection(PresentationPreparationTournoi.SECTION_GENERAL);
+
+            clubOrganisateur();
+            nomDuTournoi();
+            niveauEtEchelon();
+            phaseDesPoints();
+            lieu();
+            dates();
+            correspondant();
+            choixDuClub();
+            appliquerVerrous();
         }
-        Button utiliserNom = Ui.boutonLien("");
-        Runnable majProposition = () -> {
-            utiliserNom.setText("Utiliser « " + proposition[0] + " »");
-            boolean differente = !nomFige && !proposition[0].equals(nom.getText());
-            utiliserNom.setVisible(differente);
-            utiliserNom.setManaged(differente);
-        };
-        nom.textProperty().addListener((o, a, n) -> majProposition.run());
-        utiliserNom.setOnAction(e -> nom.setText(proposition[0]));
-        majProposition.run();
 
-        ComboBox<NiveauTournoi> niveau = combo(NiveauTournoi.values(), niveauInitial(t));
-        TextField homolog = champ(t.getNumeroHomologation());
-        homolog.setPromptText("délivré après homologation");
+        /** Club organisateur : repris de la base FFTT, jamais saisi. */
+        private void clubOrganisateur() {
+            clubInitial = clubDuTournoi(t, ref.clubs());
+            club = clubInitial;
+            nomClub = Ui.champLecture(clubInitial != null && !clubFige
+                    ? clubInitial.getNom() : t.getClubOrganisateur());
+            affiliation = Ui.champLecture(clubInitial != null && !clubFige
+                    ? clubInitial.getNumero() : t.getNumeroAffiliationClub());
+        }
 
-        Label echelon = new Label();
-        echelon.getStyleClass().add("valeur-calculee");
-        Runnable majEchelon = () -> {
-            EchelonHomologation e = EchelonHomologation.pour(niveau.getValue(), t.getDotationGlobale());
-            echelon.setText(e == null ? "choisissez d'abord la catégorie" : e.getLibelle());
-        };
-        niveau.valueProperty().addListener((o, a, n) -> majEchelon.run());
-        majEchelon.run();
-        VBox blocEchelon = new VBox(3,
-                Ui.ligne(6, Ui.note("Homologation demandée à :"), echelon),
-                Ui.note("Déduit de la catégorie (règlement IX.103) : national, international ou "
-                        + "dotation supérieure à 3 000 € → FFTT ; sinon la ligue, qui peut déléguer "
-                        + "au comité départemental."));
-
-        // --- Phase de référence des points (classement retenu pour les inscriptions) ---
-        ComboBox<PhasePoints> phase = combo(PhasePoints.values(), t.getPhasePoints());
-        Label notePhase = Ui.note("");
-        notePhase.setWrapText(true);
-        Runnable majPhase = () -> {
-            String saison = t.getDateDebut() == null ? "de la saison du tournoi" : Formats.saison(t.getDateDebut());
-            notePhase.setText(phase.getValue() == null
-                    ? "Points de licence pris en compte pour les inscriptions et les tableaux limités en points."
-                    : "Le règlement indiquera : points retenus de la " + phase.getValue().getLibelle() + " "
-                    + saison + ".");
-        };
-        phase.valueProperty().addListener((o, x, n) -> majPhase.run());
-        majPhase.run();
-
-        // --- Lieu : par défaut l'adresse du club, modifiable ---
-        AdresseTournoi a = t.getAdresse();
-        boolean sansAdresse = a == null || (vide(a.getVoie()) && vide(a.getCodePostal()) && vide(a.getVille()));
-        TextField voie = champ(a == null ? null : a.getVoie());
-        TextField cp = champ(a == null ? null : a.getCodePostal());
-        TextField ville = champ(a == null ? null : a.getVille());
-        cp.setPromptText("ex. 91800");
-        Runnable adresseDuClub = () -> {
-            if (club[0] != null) {
-                voie.setText(club[0].getAdresse1());
-                cp.setText(club[0].getCodePostal());
-                ville.setText(club[0].getVille());
+        /** Nom du tournoi, avec la proposition déduite du club. */
+        private void nomDuTournoi() {
+            nom = champ(t.getNom());
+            proposition = PropositionsTournoi.nomTournoi(nomClub.getText());
+            if (valeur(nom) == null && !nomFige) {
+                nom.setText(proposition);
             }
-        };
-        if (sansAdresse && !adresseFigee) {
-            adresseDuClub.run();
+            utiliserNom = Ui.boutonLien("");
+            nom.textProperty().addListener((o, a, n) -> majProposition());
+            utiliserNom.setOnAction(e -> nom.setText(proposition));
+            majProposition();
         }
-        Button reprendreAdresse = Ui.boutonLien("Reprendre l'adresse du club");
-        reprendreAdresse.setOnAction(e -> adresseDuClub.run());
 
-        // --- Dates de l'ensemble du tournoi ---
-        TextField debut = champ(fmt(t.getDateDebut()));
-        TextField fin = champ(fmt(t.getDateFin()));
-        debut.setPromptText("jj/mm/aaaa");
-        fin.setPromptText("jj/mm/aaaa");
+        private void majProposition() {
+            utiliserNom.setText("Utiliser « " + proposition + " »");
+            Ui.afficherSi(utiliserNom, !nomFige && !proposition.equals(nom.getText()));
+        }
 
-        // --- Correspondant : par défaut l'administrateur principal ---
-        TextField corNom = champ(t.getCorrespondantNom());
-        TextField corPrenom = champ(t.getCorrespondantPrenom());
-        TextField corEmail = champ(t.getCorrespondantEmail());
-        TextField corTel = champ(t.getCorrespondantTelephone());
-        corEmail.setPromptText("nom@exemple.fr");
-        Runnable adminPrincipal = () -> {
-            if (club[0] != null) {
-                String[] c = ref.correspondant().apply(club[0].getNumero());
+        /** Catégorie, numéro d'homologation et échelon d'homologation qui en découle. */
+        private void niveauEtEchelon() {
+            niveau = combo(NiveauTournoi.values(), niveauInitial(t));
+            homolog = champ(t.getNumeroHomologation());
+            homolog.setPromptText("délivré après homologation");
+
+            Label echelon = new Label();
+            echelon.getStyleClass().add("valeur-calculee");
+            Runnable majEchelon = () -> {
+                EchelonHomologation e = EchelonHomologation.pour(niveau.getValue(), t.getDotationGlobale());
+                echelon.setText(e == null ? "choisissez d'abord la catégorie" : e.getLibelle());
+            };
+            niveau.valueProperty().addListener((o, a, n) -> majEchelon.run());
+            majEchelon.run();
+            blocEchelon = new VBox(3,
+                    Ui.ligne(6, Ui.note("Homologation demandée à :"), echelon),
+                    Ui.note("Déduit de la catégorie (règlement IX.103) : national, international ou "
+                            + "dotation supérieure à 3 000 € → FFTT ; sinon la ligue, qui peut déléguer "
+                            + "au comité départemental."));
+        }
+
+        /** Phase de référence des points (classement retenu pour les inscriptions). */
+        private void phaseDesPoints() {
+            phase = combo(PhasePoints.values(), t.getPhasePoints());
+            notePhase = Ui.note("");
+            notePhase.setWrapText(true);
+            Runnable majPhase = () -> {
+                String saison = t.getDateDebut() == null ? "de la saison du tournoi" : Formats.saison(t.getDateDebut());
+                notePhase.setText(phase.getValue() == null
+                        ? "Points de licence pris en compte pour les inscriptions et les tableaux limités en points."
+                        : "Le règlement indiquera : points retenus de la " + phase.getValue().getLibelle() + " "
+                        + saison + ".");
+            };
+            phase.valueProperty().addListener((o, x, n) -> majPhase.run());
+            majPhase.run();
+        }
+
+        /** Lieu : par défaut l'adresse du club, modifiable. */
+        private void lieu() {
+            AdresseTournoi a = t.getAdresse();
+            boolean sansAdresse = a == null || (vide(a.getVoie()) && vide(a.getCodePostal()) && vide(a.getVille()));
+            voie = champ(a == null ? null : a.getVoie());
+            cp = champ(a == null ? null : a.getCodePostal());
+            ville = champ(a == null ? null : a.getVille());
+            cp.setPromptText("ex. 91800");
+            if (sansAdresse && !adresseFigee) {
+                adresseDuClub();
+            }
+            reprendreAdresse = Ui.boutonLien("Reprendre l'adresse du club");
+            reprendreAdresse.setOnAction(e -> adresseDuClub());
+        }
+
+        private void adresseDuClub() {
+            if (club != null) {
+                voie.setText(club.getAdresse1());
+                cp.setText(club.getCodePostal());
+                ville.setText(club.getVille());
+            }
+        }
+
+        /** Dates de l'ensemble du tournoi. */
+        private void dates() {
+            debut = champ(fmt(t.getDateDebut()));
+            fin = champ(fmt(t.getDateFin()));
+            debut.setPromptText("jj/mm/aaaa");
+            fin.setPromptText("jj/mm/aaaa");
+        }
+
+        /** Correspondant : par défaut l'administrateur principal. */
+        private void correspondant() {
+            corNom = champ(t.getCorrespondantNom());
+            corPrenom = champ(t.getCorrespondantPrenom());
+            corEmail = champ(t.getCorrespondantEmail());
+            corTel = champ(t.getCorrespondantTelephone());
+            corEmail.setPromptText("nom@exemple.fr");
+            if (valeur(corNom) == null && valeur(corPrenom) == null && valeur(corEmail) == null
+                    && !correspondantFige) {
+                adminPrincipal();
+            }
+            reprendreAdmin = Ui.boutonLien("Reprendre l'administrateur principal");
+            reprendreAdmin.setOnAction(e -> adminPrincipal());
+        }
+
+        private void adminPrincipal() {
+            if (club != null) {
+                String[] c = ref.correspondant().apply(club.getNumero());
                 corNom.setText(c[0]);
                 corPrenom.setText(c[1]);
                 corEmail.setText(c[2]);
             }
-        };
-        if (valeur(corNom) == null && valeur(corPrenom) == null && valeur(corEmail) == null
-                && !correspondantFige) {
-            adminPrincipal.run();
         }
-        Button reprendreAdmin = Ui.boutonLien("Reprendre l'administrateur principal");
-        reprendreAdmin.setOnAction(e -> adminPrincipal.run());
 
-        // --- Choix du club si le compte en gère plusieurs ---
-        Groupe groupeClub = new Groupe("Club organisateur");
-        if (ref.clubs().size() > 1) {
-            ComboBox<Club> choix = new ComboBox<>();
-            choix.getItems().addAll(ref.clubs());
-            choix.setConverter(new javafx.util.StringConverter<>() {
-                @Override
-                public String toString(Club c) {
-                    return c == null ? "" : c.getNom() + " (" + c.getNumero() + ")";
-                }
+        /** Groupe « Club organisateur », avec le choix du club si le compte en gère plusieurs. */
+        private void choixDuClub() {
+            groupeClub = new Groupe("Club organisateur");
+            if (ref.clubs().size() > 1) {
+                ComboBox<Club> choix = new ComboBox<>();
+                choix.getItems().addAll(ref.clubs());
+                choix.setConverter(new javafx.util.StringConverter<>() {
+                    @Override
+                    public String toString(Club c) {
+                        return c == null ? "" : c.getNom() + " (" + c.getNumero() + ")";
+                    }
 
-                @Override
-                public Club fromString(String s) {
-                    return null;
+                    @Override
+                    public Club fromString(String s) {
+                        return null;
+                    }
+                });
+                choix.setValue(clubInitial);
+                if (clubFige) {
+                    Ui.verrouiller(choix, motifVerrou);
                 }
-            });
-            choix.setValue(clubInitial);
-            if (clubFige) {
-                Ui.verrouiller(choix, motifVerrou);
+                choix.valueProperty().addListener((o, ancien, nouveau) -> changerDeClub(nouveau));
+                groupeClub.large(Ui.champEtiquete("Club", choix));
             }
-            choix.valueProperty().addListener((o, ancien, nouveau) -> {
-                club[0] = nouveau;
-                nomClub.setText(nouveau == null ? "" : nouveau.getNom());
-                affiliation.setText(nouveau == null ? "" : nouveau.getNumero());
-                boolean nomParDefaut = nom.getText().equals(proposition[0]);
-                proposition[0] = PropositionsTournoi.nomTournoi(nomClub.getText());
-                if (nomParDefaut) {
-                    nom.setText(proposition[0]);
-                }
-                majProposition.run();
-            });
-            groupeClub.large(Ui.champEtiquete("Club", choix));
-        }
-        groupeClub
-                .demi(Ui.champEtiquete("Nom du club", nomClub, H))
-                .demi(Ui.champEtiquete("N° d'affiliation", affiliation, H))
-                .large(Ui.note("Repris de la base FFTT du club : non modifiable ici."));
-
-        // --- Verrous du dossier d'homologation (B035) : champs grisés, motif en infobulle ---
-        if (nomFige) {
-            Ui.verrouiller(nom, motifVerrou);
-        }
-        if (verrous.estVerrouille(t, ChampHomologation.CATEGORIE)) {
-            Ui.verrouiller(niveau, motifVerrou);
-        }
-        if (adresseFigee) {
-            Ui.verrouiller(voie, motifVerrou);
-            Ui.verrouiller(cp, motifVerrou);
-            Ui.verrouiller(ville, motifVerrou);
-            Ui.cacher(reprendreAdresse);
-        }
-        if (verrous.estVerrouille(t, ChampHomologation.DATES)) {
-            Ui.verrouiller(debut, motifVerrou);
-            Ui.verrouiller(fin, motifVerrou);
-        }
-        if (correspondantFige) {
-            Ui.verrouiller(corNom, motifVerrou);
-            Ui.verrouiller(corPrenom, motifVerrou);
-            Ui.verrouiller(corEmail, motifVerrou);
-            Ui.cacher(reprendreAdmin);
+            groupeClub
+                    .demi(Ui.champEtiquete("Nom du club", nomClub, H))
+                    .demi(Ui.champEtiquete("N° d'affiliation", affiliation, H))
+                    .large(Ui.note("Repris de la base FFTT du club : non modifiable ici."));
         }
 
-        Node corps = groupes(
-                new Groupe("Le tournoi")
-                        .large(new VBox(4, Ui.champEtiquete("Nom du tournoi", nom, H), utiliserNom))
-                        .demi(Ui.champEtiquete("Niveau du tournoi (catégorie)", niveau, H))
-                        .demi(Ui.champEtiquete("Numéro d'homologation", homolog, P))
-                        .large(blocEchelon)
-                        .demi(Ui.champEtiquete("Phase concernée (points retenus)", phase, R))
-                        .large(notePhase),
-                groupeClub,
-                new Groupe("Lieu")
-                        .large(Ui.note("Par défaut l'adresse du club. Modifiez-la si le tournoi "
-                                + "se joue dans une autre salle."))
-                        .large(Ui.champEtiquete("Adresse (voie)", voie, H))
-                        .demi(Ui.champEtiquete("Code postal", cp, H))
-                        .demi(Ui.champEtiquete("Ville", ville, H))
-                        .large(reprendreAdresse),
-                new Groupe("Dates du tournoi")
-                        .large(Ui.note("Du premier au dernier jour de l'ensemble du tournoi, toutes "
-                                + "journées comprises (pas une seule journée). À renseigner dès "
-                                + "maintenant : elles figurent sur la demande d'homologation."))
-                        .demi(Ui.champEtiquete("Date de début", debut, H))
-                        .demi(Ui.champEtiquete("Date de fin", fin, H)),
-                new Groupe("Correspondant")
-                        .large(Ui.note("Par défaut l'administrateur principal du club. Vous pouvez "
-                                + "indiquer une autre personne."))
-                        .demi(Ui.champEtiquete("Prénom", corPrenom, H))
-                        .demi(Ui.champEtiquete("Nom", corNom, H))
-                        .demi(Ui.champEtiquete("Email", corEmail, H))
-                        .demi(Ui.champEtiquete("Téléphone", corTel, O))
-                        .large(reprendreAdmin));
+        private void changerDeClub(Club nouveau) {
+            club = nouveau;
+            nomClub.setText(nouveau == null ? "" : nouveau.getNom());
+            affiliation.setText(nouveau == null ? "" : nouveau.getNumero());
+            boolean nomParDefaut = nom.getText().equals(proposition);
+            proposition = PropositionsTournoi.nomTournoi(nomClub.getText());
+            if (nomParDefaut) {
+                nom.setText(proposition);
+            }
+            majProposition();
+        }
 
-        return cadre(titre, EnumSet.of(H, P, R, O), motifVerrou, corps, onCancel, erreur -> {
+        /** Verrous du dossier d'homologation (B035) : champs grisés, motif en infobulle. */
+        private void appliquerVerrous() {
+            if (nomFige) {
+                Ui.verrouiller(nom, motifVerrou);
+            }
+            if (verrous.estVerrouille(t, ChampHomologation.CATEGORIE)) {
+                Ui.verrouiller(niveau, motifVerrou);
+            }
+            if (adresseFigee) {
+                Ui.verrouiller(voie, motifVerrou);
+                Ui.verrouiller(cp, motifVerrou);
+                Ui.verrouiller(ville, motifVerrou);
+                Ui.cacher(reprendreAdresse);
+            }
+            if (verrous.estVerrouille(t, ChampHomologation.DATES)) {
+                Ui.verrouiller(debut, motifVerrou);
+                Ui.verrouiller(fin, motifVerrou);
+            }
+            if (correspondantFige) {
+                Ui.verrouiller(corNom, motifVerrou);
+                Ui.verrouiller(corPrenom, motifVerrou);
+                Ui.verrouiller(corEmail, motifVerrou);
+                Ui.cacher(reprendreAdmin);
+            }
+        }
+
+        Node corps() {
+            return groupes(
+                    new Groupe("Le tournoi")
+                            .large(new VBox(4, Ui.champEtiquete("Nom du tournoi", nom, H), utiliserNom))
+                            .demi(Ui.champEtiquete("Niveau du tournoi (catégorie)", niveau, H))
+                            .demi(Ui.champEtiquete("Numéro d'homologation", homolog, P))
+                            .large(blocEchelon)
+                            .demi(Ui.champEtiquete("Phase concernée (points retenus)", phase, R))
+                            .large(notePhase),
+                    groupeClub,
+                    new Groupe("Lieu")
+                            .large(Ui.note("Par défaut l'adresse du club. Modifiez-la si le tournoi "
+                                    + "se joue dans une autre salle."))
+                            .large(Ui.champEtiquete("Adresse (voie)", voie, H))
+                            .demi(Ui.champEtiquete("Code postal", cp, H))
+                            .demi(Ui.champEtiquete("Ville", ville, H))
+                            .large(reprendreAdresse),
+                    new Groupe("Dates du tournoi")
+                            .large(Ui.note("Du premier au dernier jour de l'ensemble du tournoi, toutes "
+                                    + "journées comprises (pas une seule journée). À renseigner dès "
+                                    + "maintenant : elles figurent sur la demande d'homologation."))
+                            .demi(Ui.champEtiquete("Date de début", debut, H))
+                            .demi(Ui.champEtiquete("Date de fin", fin, H)),
+                    new Groupe("Correspondant")
+                            .large(Ui.note("Par défaut l'administrateur principal du club. Vous pouvez "
+                                    + "indiquer une autre personne."))
+                            .demi(Ui.champEtiquete("Prénom", corPrenom, H))
+                            .demi(Ui.champEtiquete("Nom", corNom, H))
+                            .demi(Ui.champEtiquete("Email", corEmail, H))
+                            .demi(Ui.champEtiquete("Téléphone", corTel, O))
+                            .large(reprendreAdmin));
+        }
+
+        /** Validation puis enregistrement : dates d'abord, puis champs du dossier par les méthodes gardées du cœur. */
+        boolean enregistrer(StringBuilder erreur, Runnable persister, Runnable onSave) {
             LocalDate dd = parseDate(debut, erreur, "date de début");
             LocalDate df = parseDate(fin, erreur, "date de fin");
             if (erreur.length() > 0) {
@@ -303,9 +390,9 @@ final class FormulairesSection {
                 resultats.add(verrous.modifierNom(t, valeur(nom)));
             }
             resultats.add(verrous.modifierCategorie(t, niveau.getValue()));
-            if (club[0] != null && !clubFige) {
-                resultats.add(verrous.modifierClubOrganisateur(t, club[0].getNom()));
-                resultats.add(verrous.modifierNumeroAffiliation(t, club[0].getNumero()));
+            if (club != null && !clubFige) {
+                resultats.add(verrous.modifierClubOrganisateur(t, club.getNom()));
+                resultats.add(verrous.modifierNumeroAffiliation(t, club.getNumero()));
             }
             resultats.add(verrous.modifierPeriode(t, dd, df));
             AdresseTournoi saisie = adresse(text(voie), text(cp), text(ville));
@@ -327,7 +414,7 @@ final class FormulairesSection {
             }
             onSave.run();
             return true;
-        });
+        }
     }
 
     /** Club du tournoi parmi ceux gérés : par n° d'affiliation, puis par nom, sinon le premier. */
