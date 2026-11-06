@@ -88,35 +88,16 @@ public final class Joueur {
         return prenom;
     }
 
-    public void setPrenom(String prenom) {
-        this.prenom = Objects.requireNonNull(prenom, "prenom");
-    }
-
     public Sexe getSexe() {
         return sexe;
-    }
-
-    public void setSexe(Sexe sexe) {
-        this.sexe = Objects.requireNonNull(sexe, "sexe");
     }
 
     public String getClub() {
         return club;
     }
 
-    public void setClub(String club) {
-        this.club = club == null ? "" : club;
-    }
-
     public int getPoints() {
         return points;
-    }
-
-    public void setPoints(int points) {
-        if (points < 0) {
-            throw new IllegalArgumentException("Les points ne peuvent pas être négatifs : " + points);
-        }
-        this.points = points;
     }
 
     /**

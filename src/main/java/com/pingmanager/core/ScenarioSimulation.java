@@ -97,13 +97,6 @@ public final class ScenarioSimulation {
         return b.build();
     }
 
-    /** Copie avec une autre graine. */
-    public ScenarioSimulation avecGraine(long nouvelleGraine) {
-        Builder b = copie();
-        b.graine(nouvelleGraine);
-        return b.build();
-    }
-
     private Builder copie() {
         Builder b = builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
                 .variabilite(variabilite).heureLimite(heureLimite);

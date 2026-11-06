@@ -467,14 +467,6 @@ final class Ui {
         return n == Niveau.RECOMMANDE ? "recommandé" : "optionnel";
     }
 
-    /** Classe d'état associée à un niveau d'exigence non satisfait. */
-    static String etatManquant(Niveau n) {
-        if (n == Niveau.OBLIGATOIRE_HOMOLOGATION || n == Niveau.OBLIGATOIRE_PUBLICATION) {
-            return ETAT_ATTENTION;
-        }
-        return n == Niveau.RECOMMANDE ? ETAT_RECOMMANDE : ETAT_OPTIONNEL;
-    }
-
     // ------------------------------------------------------------------
     // Code couleur : rond = dépendance, cadre = état
     // ------------------------------------------------------------------
@@ -635,13 +627,6 @@ final class Ui {
     static Label note(String texte) {
         Label l = label(texte, "note-groupe");
         l.setWrapText(true);
-        return l;
-    }
-
-    /** Mention discrète du niveau d'exigence. */
-    static Label mentionExigence(Niveau n) {
-        Label l = label(exigence(n), "mention-exigence");
-        l.setMinWidth(Region.USE_PREF_SIZE);
         return l;
     }
 

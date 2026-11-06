@@ -39,16 +39,8 @@ public final class HorairesTableau {
         return debutPointage;
     }
 
-    public void setDebutPointage(LocalDateTime debutPointage) {
-        this.debutPointage = debutPointage;
-    }
-
     public LocalDateTime getFinPointage() {
         return finPointage;
-    }
-
-    public void setFinPointage(LocalDateTime finPointage) {
-        this.finPointage = finPointage;
     }
 
     public LocalDateTime getDebutMatchs() {
@@ -61,10 +53,6 @@ public final class HorairesTableau {
 
     public LocalDateTime getFinTheorique() {
         return finTheorique;
-    }
-
-    public void setFinTheorique(LocalDateTime finTheorique) {
-        this.finTheorique = finTheorique;
     }
 
     /** @return le jour du tableau (déduit du début des matchs), ou {@code null}. */

@@ -2,7 +2,6 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.CalendrierTournoi;
 import com.pingmanager.core.CatalogueTournois;
-import com.pingmanager.core.reglement.Formats;
 import javafx.application.Platform;
 import javafx.concurrent.Worker;
 import javafx.scene.layout.StackPane;

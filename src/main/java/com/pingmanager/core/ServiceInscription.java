@@ -5,7 +5,6 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.QuotasTableaux;
 import com.pingmanager.model.RegleTableauxParJour;
 import com.pingmanager.model.Sexe;
-import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.ValidationInscription;

@@ -69,10 +69,6 @@ public final class CompteUtilisateur {
         return prenom;
     }
 
-    public void setPrenom(String prenom) {
-        this.prenom = exigerNonVide(prenom, "prenom");
-    }
-
     public String getNomComplet() {
         return prenom + " " + nom;
     }
@@ -113,11 +109,6 @@ public final class CompteUtilisateur {
      */
     public void lierLicence(String numeroLicence) {
         this.licenceLiee = exigerNonVide(numeroLicence, "numeroLicence");
-    }
-
-    /** Rompt la liaison à la licence (retour à l'état non lié). */
-    public void delierLicence() {
-        this.licenceLiee = null;
     }
 
     // -------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 package com.pingmanager.ui;
 
-import com.pingmanager.core.CalendrierTournoi;
 import com.pingmanager.core.CatalogueTournois;
 import com.pingmanager.core.DemandeVerification;
 import com.pingmanager.core.EligibiliteTournoi;
@@ -9,7 +8,6 @@ import com.pingmanager.core.ServiceInscription;
 import com.pingmanager.core.ServiceInscriptionEnLigne;
 import com.pingmanager.core.Territoires;
 import com.pingmanager.model.Coordonnees;
-import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.core.RegistreClubs;
 import com.pingmanager.core.RegistreLicences;
@@ -450,10 +448,6 @@ public final class ContexteApplication {
         this.compteConnecte = null;
     }
 
-    public boolean estConnecte() {
-        return compteConnecte != null;
-    }
-
     public CompteUtilisateur compteConnecte() {
         return compteConnecte;
     }
@@ -695,10 +689,6 @@ public final class ContexteApplication {
 
     public EligibiliteTournoi eligibilite() {
         return eligibilite;
-    }
-
-    public Optional<FicheLicence> ficheLicence(String numero) {
-        return licencesFFTT.trouverParLicence(numero);
     }
 
     /** Essai à blanc d'une sélection de tableaux pour la licence liée (validation en direct). */

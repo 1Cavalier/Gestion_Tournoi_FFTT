@@ -2,7 +2,6 @@ package com.pingmanager.core;
 
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.Joueur;
-import com.pingmanager.model.Poule;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;

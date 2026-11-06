@@ -44,10 +44,6 @@ public final class DemandeVerification {
         return empreinteCode;
     }
 
-    public Instant getExpiration() {
-        return expiration;
-    }
-
     /**
      * @param maintenant instant courant
      * @return {@code true} si la demande est expirée à cet instant

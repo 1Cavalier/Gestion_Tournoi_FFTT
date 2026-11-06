@@ -204,16 +204,6 @@ public final class Tournoi {
         return jours.first();
     }
 
-    /**
-     * Fixe le tournoi sur un seul jour (remplace tous les jours existants).
-     * Compatibilité mono-jour.
-     */
-    public void setDate(LocalDate date) {
-        Objects.requireNonNull(date, "date");
-        jours.clear();
-        jours.add(date);
-    }
-
     /** @return les jours du tournoi, triés, en lecture seule (au moins un). */
     public java.util.SortedSet<LocalDate> getJours() {
         return Collections.unmodifiableSortedSet(jours);

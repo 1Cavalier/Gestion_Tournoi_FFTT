@@ -65,10 +65,6 @@ public final class EstimateurDuree {
         valeursDepart.put(categorie, duree);
     }
 
-    public void setValeurParDefautGlobale(Duration v) {
-        this.valeurParDefautGlobale = Objects.requireNonNull(v, "v");
-    }
-
     /**
      * Enregistre la durée réelle d'un match terminé pour affiner l'estimation de
      * sa catégorie (moyenne mobile pondérée).

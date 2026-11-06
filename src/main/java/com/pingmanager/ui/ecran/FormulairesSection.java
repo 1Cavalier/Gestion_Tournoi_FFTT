@@ -6,18 +6,14 @@ import com.pingmanager.core.ServiceVerrousHomologation;
 import com.pingmanager.model.AdresseTournoi;
 import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.model.Club;
-import com.pingmanager.model.DocumentReference;
 import com.pingmanager.model.EchelonHomologation;
-import com.pingmanager.model.InfosReglement;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.model.PhasePoints;
 import com.pingmanager.core.reglement.Formats;
-import com.pingmanager.model.PolitiqueBalles;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.model.TypeTournoi;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -28,7 +24,6 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
 import java.util.List;
@@ -50,7 +45,6 @@ final class FormulairesSection {
 
     private static final DateTimeFormatter D = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DateTimeFormatter T = DateTimeFormatter.ofPattern("HH:mm");
 
     private FormulairesSection() {
     }
@@ -528,10 +522,6 @@ final class FormulairesSection {
         return dt == null ? null : dt.format(DT);
     }
 
-    private static String fmtHeure(LocalTime h) {
-        return h == null ? null : h.format(T);
-    }
-
     private static LocalDate parseDate(TextField champ, StringBuilder erreur, String nom) {
         String s = valeur(champ);
         if (s == null) {
@@ -542,54 +532,6 @@ final class FormulairesSection {
         } catch (RuntimeException e) {
             Ui.marquerErreur(champ);
             ajouter(erreur, "La " + nom + " doit être au format jj/mm/aaaa.");
-            return null;
-        }
-    }
-
-    private static LocalDateTime parseDateTime(TextField champ, StringBuilder erreur, String nom) {
-        String s = valeur(champ);
-        if (s == null) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(s, DT);
-        } catch (RuntimeException e) {
-            Ui.marquerErreur(champ);
-            ajouter(erreur, "La " + nom + " doit être au format jj/mm/aaaa HH:mm.");
-            return null;
-        }
-    }
-
-    private static LocalTime parseHeure(TextField champ, StringBuilder erreur, String nom) {
-        String s = valeur(champ);
-        if (s == null) {
-            return null;
-        }
-        try {
-            return LocalTime.parse(s, T);
-        } catch (RuntimeException e) {
-            Ui.marquerErreur(champ);
-            ajouter(erreur, "L'" + nom + " doit être au format HH:mm.");
-            return null;
-        }
-    }
-
-    private static Integer parseEntier(TextField champ, StringBuilder erreur, String nom) {
-        String s = valeur(champ);
-        if (s == null) {
-            return null;
-        }
-        try {
-            int v = Integer.parseInt(s);
-            if (v < 0) {
-                Ui.marquerErreur(champ);
-                ajouter(erreur, "Le " + nom + " ne peut pas être négatif.");
-                return null;
-            }
-            return v;
-        } catch (NumberFormatException e) {
-            Ui.marquerErreur(champ);
-            ajouter(erreur, "Le " + nom + " doit être un nombre entier.");
             return null;
         }
     }

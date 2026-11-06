@@ -179,11 +179,6 @@ public final class Json {
         return (String) valeur;
     }
 
-    /** @return la chaîne, ou {@code defaut} si le nœud est nul. */
-    public String asStringOrNull() {
-        return type == Type.NUL ? null : asString();
-    }
-
     public double asDouble() {
         if (type != Type.NOMBRE) {
             throw new JsonException("Nœud attendu : nombre, mais trouvé : " + type);
@@ -216,10 +211,6 @@ public final class Json {
 
     public int getInt(String cle, int defaut) {
         return has(cle) ? get(cle).asInt() : defaut;
-    }
-
-    public long getLong(String cle, long defaut) {
-        return has(cle) ? get(cle).asLong() : defaut;
     }
 
     public double getDouble(String cle, double defaut) {

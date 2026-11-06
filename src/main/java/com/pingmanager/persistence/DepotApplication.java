@@ -87,11 +87,6 @@ public final class DepotApplication implements RegistreClubs {
         return Optional.ofNullable(clubsParNumero.get(cleClub(numeroClub)));
     }
 
-    /** @return tous les clubs, dans l'ordre d'insertion. */
-    public List<Club> tousLesClubs() {
-        return new ArrayList<>(clubsParNumero.values());
-    }
-
     public int nombreDeClubs() {
         return clubsParNumero.size();
     }
@@ -159,10 +154,6 @@ public final class DepotApplication implements RegistreClubs {
      */
     public Predicate<String> emailUtilisateurDejaUtilise() {
         return email -> email != null && comptesUtilisateursParEmail.containsKey(cleEmail(email));
-    }
-
-    public List<CompteUtilisateur> tousLesComptesUtilisateurs() {
-        return new ArrayList<>(comptesUtilisateursParEmail.values());
     }
 
     // ==================================================================

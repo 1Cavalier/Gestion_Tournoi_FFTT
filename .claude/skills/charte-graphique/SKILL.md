@@ -143,8 +143,10 @@ aussi venir du dépôt Maven local `~/.m2` après `mvn -B test`, par les
 variables `FX`, `PDF` et `ECRAN`). Le mode `v2` du harnais capture à 1440 px
 les écrans de référence (connexion, accueil, profil, gestion des tournois,
 nouveau tournoi, vue d'ensemble, jour J, page à venir, carte des tournois) ;
-références : `docs/captures/v2-avant/` et `docs/captures/v2-apres/`. Pour tout lot
+référence unique versionnée : `docs/captures/v2-apres/`. Pour tout lot
 d'interface : produire des captures **avant / après**, en thème clair et
-sombre, dans `docs/captures/<lot>/` (PNG, largeur 1440), les regarder soi-même
-avec l'outil de lecture d'image, et les citer dans la Pull Request. Si les
-captures sont impossibles, le dire clairement.
+sombre, **hors du dépôt** (`/tmp/captures/<lot>/`, PNG, largeur 1440), les
+regarder soi-même avec l'outil de lecture d'image et les décrire dans la Pull
+Request. **Ne pas les committer** (le dépôt avait gonflé à 31 Mo de captures) ;
+seule exception : remplacer une image de `docs/captures/v2-apres/` quand
+l'écran de référence change. Si les captures sont impossibles, le dire.

@@ -13,7 +13,6 @@ import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 import com.pingmanager.model.Tournoi;
-import com.pingmanager.model.format.FormatTournoi;
 import com.pingmanager.ordonnancement.CategorieDuree;
 import com.pingmanager.ordonnancement.MatchOrdonnancable;
 import com.pingmanager.ordonnancement.Ordonnanceur;

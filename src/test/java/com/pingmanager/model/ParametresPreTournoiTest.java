@@ -1,6 +1,5 @@
 package com.pingmanager.model;
 
-import com.pingmanager.core.ResultatTransition;
 import com.pingmanager.core.ServiceCycleTournoi;
 import org.junit.jupiter.api.Test;
 

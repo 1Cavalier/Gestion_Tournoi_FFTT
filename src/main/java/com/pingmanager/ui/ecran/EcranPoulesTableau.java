@@ -4,7 +4,6 @@ import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.SuiviPoule;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.LigneClassement;
-import com.pingmanager.model.Manche;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.Poule;
 import com.pingmanager.model.StatutMatch;

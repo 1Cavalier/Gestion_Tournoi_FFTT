@@ -73,10 +73,6 @@ public final class CompteOrganisateur {
         return prenom;
     }
 
-    public void setPrenom(String prenom) {
-        this.prenom = exigerNonVide(prenom, "prenom");
-    }
-
     public String getEmpreinteMotDePasse() {
         return empreinteMotDePasse;
     }
