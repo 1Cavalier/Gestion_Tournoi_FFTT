@@ -8,7 +8,7 @@ statut: fait
 depend-de: [B011, B035]
 fichiers: [model (salle, plan), ordonnancement/Ordonnanceur, core/ServiceSalle, persistence, ui/ecran/EcranSalle (nouvel éditeur de plan)]
 branche: tache/B024-plan-de-salle (prise le 2026-11-06)
-pr: PR B024 (voir GitHub, branche tache/B024-plan-de-salle)
+pr: 51
 ---
 
 ## Ce qu'il faut faire
