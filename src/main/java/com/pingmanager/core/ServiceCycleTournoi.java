@@ -6,6 +6,7 @@ import com.pingmanager.model.GrilleRecompenses;
 import com.pingmanager.model.InfosReglement;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.model.Recompense;
+import com.pingmanager.model.RefusHomologation;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
@@ -18,7 +19,9 @@ import java.util.Objects;
 
 /**
  * Service pilotant le cycle de vie d'un {@link Tournoi} :
- * {@code BROUILLON → HOMOLOGUE → PUBLIE}, avec {@code ANNULE} en sortie.
+ * {@code BROUILLON → DEMANDE_HOMOLOGATION → HOMOLOGUE → PUBLIE}, avec
+ * {@code ANNULE} en sortie ; une demande refusée revient au brouillon
+ * ({@link #refuserHomologation(Tournoi, String)}).
  *
  * <p>Le logiciel ne délivre pas l'homologation (c'est le rôle de la FFTT) : il
  * <b>rassemble et vérifie les paramètres requis</b> à chaque étape, puis suit
@@ -49,6 +52,18 @@ import java.util.Objects;
  * dépend de {@code model}, jamais l'inverse ni d'une UI/persistance).</p>
  */
 public final class ServiceCycleTournoi {
+
+    private final Horloge horloge;
+
+    /** Service s'appuyant sur l'horloge système (date des refus d'homologation). */
+    public ServiceCycleTournoi() {
+        this(Horloge.systeme());
+    }
+
+    /** @param horloge horloge datant les refus d'homologation (tests : horloge fixe) */
+    public ServiceCycleTournoi(Horloge horloge) {
+        this.horloge = Objects.requireNonNull(horloge, "horloge");
+    }
 
     /**
      * Vérifie les pré-requis d'homologation puis, s'ils sont réunis, fige le
@@ -110,6 +125,29 @@ public final class ServiceCycleTournoi {
         Objects.requireNonNull(tournoi, "tournoi");
         exigerStatut(tournoi, StatutTournoi.DEMANDE_HOMOLOGATION, "retirer la demande de");
         tournoi.changerStatut(StatutTournoi.BROUILLON);
+    }
+
+    /**
+     * Enregistre le refus de la demande d'homologation : le motif saisi est
+     * conservé avec le tournoi ({@link Tournoi#getDernierRefusHomologation()}),
+     * puis le tournoi revient au brouillon, où le dossier redevient modifiable.
+     * L'acceptation, elle, passe par {@link #homologuer(Tournoi, String)}.
+     *
+     * @param motif motif du refus, obligatoire
+     * @return {@link ResultatTransition#effectuee()}, ou
+     *         {@link ResultatTransition#motifRefusAbsent()} si le motif est vide
+     *         (rien n'est alors modifié)
+     * @throws IllegalStateException si le tournoi n'est pas en demande d'homologation
+     */
+    public ResultatTransition refuserHomologation(Tournoi tournoi, String motif) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        exigerStatut(tournoi, StatutTournoi.DEMANDE_HOMOLOGATION, "refuser l'homologation de");
+        if (estVide(motif)) {
+            return ResultatTransition.motifRefusAbsent();
+        }
+        tournoi.enregistrerRefusHomologation(new RefusHomologation(horloge.maintenant(), motif));
+        tournoi.changerStatut(StatutTournoi.BROUILLON);
+        return ResultatTransition.effectuee();
     }
 
     /**

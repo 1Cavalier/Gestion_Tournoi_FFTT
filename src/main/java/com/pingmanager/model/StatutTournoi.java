@@ -7,7 +7,7 @@ package com.pingmanager.model;
  * <pre>
  *   BROUILLON ──demanderHomologation()──▶ DEMANDE_HOMOLOGATION ──homologuer(numéro)──▶ HOMOLOGUE ──publier()──▶ PUBLIE
  *       ▲               (dossier complet)        │
- *       └──────────── retirerDemande() ──────────┘
+ *       └──── retirerDemande() / refuserHomologation(motif) ────┘
  *   (homologuer(numéro) reste possible directement depuis BROUILLON ; annuler() depuis tout état non terminal)
  * </pre>
  *
