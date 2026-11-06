@@ -8,7 +8,6 @@ import com.pingmanager.importation.ModeleImport;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.ContexteApplication;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;

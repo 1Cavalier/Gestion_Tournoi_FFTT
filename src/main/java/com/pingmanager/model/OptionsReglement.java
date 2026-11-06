@@ -39,10 +39,6 @@ public final class OptionsReglement {
         return articles;
     }
 
-    public OptionsReglement avecMode(Mode m) {
-        return new OptionsReglement(m, articles);
-    }
-
     public OptionsReglement avecArticles(List<ArticleOptionnel> a) {
         return new OptionsReglement(mode, a);
     }

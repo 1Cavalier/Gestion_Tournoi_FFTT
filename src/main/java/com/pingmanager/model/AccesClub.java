@@ -98,10 +98,6 @@ public final class AccesClub {
         return prenom;
     }
 
-    public void setPrenom(String prenom) {
-        this.prenom = normaliserOptionnel(prenom);
-    }
-
     // -------------------------------------------------------------------------
     // Identité : couple (numéro de club, email).
     // -------------------------------------------------------------------------

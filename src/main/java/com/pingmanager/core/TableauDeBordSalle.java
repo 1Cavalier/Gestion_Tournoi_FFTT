@@ -150,11 +150,6 @@ public final class TableauDeBordSalle {
         this.ordonnanceur = ordonnanceur;
     }
 
-    /** Instant de la photographie (horloge du service). */
-    public LocalDateTime getMaintenant() {
-        return maintenant;
-    }
-
     /** Nombre de tables du tournoi (0 si non renseigné : la salle n'a alors aucune carte). */
     public int getNombreDeTables() {
         return nombreDeTables;

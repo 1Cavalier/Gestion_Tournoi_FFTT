@@ -15,7 +15,6 @@ import com.pingmanager.model.Sexe;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
-import com.pingmanager.model.TypeTournoi;
 import com.pingmanager.model.format.RegistreFormats;
 import org.junit.jupiter.api.Test;
 

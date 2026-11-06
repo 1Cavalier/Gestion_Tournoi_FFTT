@@ -6,7 +6,6 @@ import com.pingmanager.core.ResultatConstructionPhaseFinale;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
-import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tournoi;

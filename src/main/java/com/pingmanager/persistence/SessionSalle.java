@@ -37,11 +37,6 @@ public final class SessionSalle {
         this.estimateur = estimateur;
     }
 
-    /** Session sans ordonnancement (phase de préparation). */
-    public static SessionSalle preparation(Tournoi tournoi, RegistreDisciplinaire discipline) {
-        return new SessionSalle(tournoi, discipline, null, null);
-    }
-
     public Tournoi getTournoi() {
         return tournoi;
     }

@@ -34,11 +34,4 @@ public enum IssueMatch {
      */
     DISQUALIFICATION;
 
-    /**
-     * @return true si cette issue fait marquer 0 point au perdant/fautif au
-     *         classement de poule (toutes sauf {@link #NORMALE}).
-     */
-    public boolean estZeroPoint() {
-        return this != NORMALE;
-    }
 }

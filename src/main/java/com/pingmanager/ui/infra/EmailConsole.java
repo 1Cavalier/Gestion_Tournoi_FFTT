@@ -74,11 +74,6 @@ public final class EmailConsole implements EnvoiEmail {
         }
     }
 
-    /** @return le dernier message « envoyé », ou {@code null} si aucun. */
-    public Message getDernierMessage() {
-        return dernierMessage;
-    }
-
     /** Branche (ou débranche avec {@code null}) un observateur des messages, pour l'UI. */
     public void setObservateur(Consumer<Message> observateur) {
         this.observateur = observateur;

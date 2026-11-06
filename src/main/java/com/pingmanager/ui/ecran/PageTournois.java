@@ -2,7 +2,6 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.CatalogueTournois;
 import com.pingmanager.core.Territoires;
-import com.pingmanager.core.reglement.Formats;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.ui.ContexteApplication;

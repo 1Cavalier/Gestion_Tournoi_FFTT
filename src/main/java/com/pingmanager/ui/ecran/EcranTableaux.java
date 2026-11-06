@@ -6,17 +6,14 @@ import com.pingmanager.core.ServiceCompletudeTournoi.Niveau;
 import com.pingmanager.core.ServiceVerrousHomologation;
 import com.pingmanager.model.ChampHomologation;
 import com.pingmanager.core.reglement.LibellesTableau;
-import com.pingmanager.model.CategorieAge;
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.GrilleRecompenses;
 import com.pingmanager.model.HorairesTableau;
 import com.pingmanager.model.InfosReglement;
-import com.pingmanager.model.Recompense;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TarifInscription;
 import com.pingmanager.model.Tournoi;
-import com.pingmanager.model.TypeRecompense;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -36,7 +33,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Section « Tableaux et inscriptions », en deux parties :

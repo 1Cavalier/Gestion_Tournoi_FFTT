@@ -11,7 +11,7 @@ chaîne a produit.
 
 Avant la skill, contrôle l'**arborescence** de la branche :
 - `git status` propre ; aucun fichier généré (`target/`, `*.class`), réglage
-  d'IDE, capture hors de `docs/captures/`, fichier temporaire ou secret ;
+  d'IDE, capture d'écran (seules les images de `docs/captures/v2-apres/` sont versionnées), fichier temporaire ou secret ;
 - les nouveaux fichiers Java sont dans le bon package (`model`, `core`,
   `ordonnancement`, `importation`, `persistence`, `ui.ecran`, `ui.infra`) et
   leurs tests dans le même package sous `src/test/java` ;

@@ -3,7 +3,6 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.EditionPlanSalles;
 import com.pingmanager.core.PlansTypesSalle;
 import com.pingmanager.core.ResultatEditionSalles;
-import com.pingmanager.core.ServicePlanSalle;
 import com.pingmanager.model.ElementPlan;
 import com.pingmanager.model.ElementPlan.ReperePlan;
 import com.pingmanager.model.ElementPlan.TablePlan;
@@ -63,7 +62,6 @@ final class EcranPlanSalle {
     private final Runnable onRetour;
     private final Tournoi tournoi;
     private final EditionPlanSalles edition;
-    private final ServicePlanSalle service = new ServicePlanSalle();
 
     private final BorderPane racine = new BorderPane();
     private final Label message = Ui.message();

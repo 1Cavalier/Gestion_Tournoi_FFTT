@@ -68,18 +68,6 @@ public final class RegistreDisciplinaire {
         return joueursExclus.contains(joueur.getNumeroLicence());
     }
 
-    /** Tous les cartons d'un joueur, dans l'ordre d'enregistrement. */
-    public List<Carton> cartonsDe(Joueur joueur) {
-        Objects.requireNonNull(joueur, "joueur");
-        List<Carton> r = new ArrayList<>();
-        for (Carton c : cartons) {
-            if (c.getJoueur().equals(joueur)) {
-                r.add(c);
-            }
-        }
-        return r;
-    }
-
     /** Nombre total de cartons d'une couleur reçus par un joueur. */
     public long compterCartons(Joueur joueur, CouleurCarton couleur) {
         Objects.requireNonNull(joueur, "joueur");
@@ -95,8 +83,4 @@ public final class RegistreDisciplinaire {
         return new ArrayList<>(cartons);
     }
 
-    /** Liste des joueurs actuellement exclus de la compétition. */
-    public Set<String> licencesExclues() {
-        return new HashSet<>(joueursExclus);
-    }
 }

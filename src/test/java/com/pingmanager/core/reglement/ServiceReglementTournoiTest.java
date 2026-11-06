@@ -1,28 +1,14 @@
 package com.pingmanager.core.reglement;
 
 import com.pingmanager.core.ServiceCycleTournoi;
-import com.pingmanager.model.AdresseTournoi;
-import com.pingmanager.model.AffectationJugeArbitre;
-import com.pingmanager.model.ArticleOptionnel;
-import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.DocumentReference;
 import com.pingmanager.model.DocumentReglement;
-import com.pingmanager.model.GradeJugeArbitre;
-import com.pingmanager.model.HorairesTableau;
-import com.pingmanager.model.InfosReglement;
-import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.model.OptionsReglement;
-import com.pingmanager.model.PolitiqueBalles;
-import com.pingmanager.model.Sexe;
 import com.pingmanager.model.StatutTournoi;
-import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
-import com.pingmanager.model.format.RegistreFormats;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

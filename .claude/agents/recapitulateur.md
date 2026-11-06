@@ -26,8 +26,7 @@ décider, ce qu'il doit tester et ce qui vient ensuite**.
 4. **Les journaux de tâches** `docs/journal/20*.md` (hors `archives/`) : ce
    que chaque session a fait, ses questions et ses notes ; puis
    `QUESTIONS.md` : chaque entrée « En attente » sans réponse de Quentin.
-5. `ETAT_DU_PROJET.md` (section 0), `RAPPORT_*.md`, `docs/RECHERCHE_*.md`,
-   `docs/PLAN_DE_NUIT.md`, `docs/TACHES_AUTONOMES.md`.
+5. `ETAT_DU_PROJET.md` (section 0), `RAPPORT_*.md`, `docs/RECHERCHE_*.md`.
 6. `mvn -B test` : nombre de tests et d'échecs **mesurés**, pas recopiés.
 
 ## Vérifications de cohérence (signale tout écart)

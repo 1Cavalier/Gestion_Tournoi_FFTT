@@ -155,10 +155,6 @@ public final class ServiceAutosave implements AutoCloseable {
             this.fichierAutosave = fichierAutosave;
         }
 
-        public Path getFichierAutosave() {
-            return fichierAutosave;
-        }
-
         /** Charge la session interrompue à reprendre. */
         public SessionSalle charger() {
             return DepotSession.charger(fichierAutosave);

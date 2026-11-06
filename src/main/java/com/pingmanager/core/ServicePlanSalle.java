@@ -6,7 +6,6 @@ import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.ReservationsTables;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;

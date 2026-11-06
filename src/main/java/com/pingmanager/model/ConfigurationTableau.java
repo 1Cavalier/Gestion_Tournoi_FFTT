@@ -189,11 +189,6 @@ public final class ConfigurationTableau {
         return manquants;
     }
 
-    /** @return true si le tableau est complet pour la publication. */
-    public boolean estCompletPourPublication() {
-        return champsManquantsPourPublication(null).isEmpty();
-    }
-
     public Set<CategorieAge> getCategoriesAutorisees() {
         return categoriesAutorisees;
     }

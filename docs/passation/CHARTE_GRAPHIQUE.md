@@ -1,8 +1,7 @@
 # Charte graphique PingManager — brief de départ
 
 > **Remplacé le 5 novembre 2026 par la charte v2 « blanc et bleu »** (décision
-> de Quentin) : voir la skill `.claude/skills/charte-graphique` et
-> `docs/PLAN_INTERFACE.md`. Ce document reste comme historique.
+> de Quentin) : voir la skill `.claude/skills/charte-graphique`. Ce document reste comme historique.
 
 > Point de départ de la phase « design / charte » (rédigé le 13 octobre 2026).
 > Application **bureau JavaFX**, package `com.pingmanager.ui`. Objectif : interface

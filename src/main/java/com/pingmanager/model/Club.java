@@ -73,16 +73,8 @@ public final class Club {
         return departement;
     }
 
-    public void setDepartement(String departement) {
-        this.departement = exigerNonVide(departement, "departement");
-    }
-
     public String getVille() {
         return ville;
-    }
-
-    public void setVille(String ville) {
-        this.ville = exigerNonVide(ville, "ville");
     }
 
     public String getAdresse1() {
@@ -111,10 +103,6 @@ public final class Club {
 
     public String getEmailOfficiel() {
         return emailOfficiel;
-    }
-
-    public void setEmailOfficiel(String emailOfficiel) {
-        this.emailOfficiel = exigerNonVide(emailOfficiel, "emailOfficiel");
     }
 
     public String getResponsableNom() {

@@ -27,7 +27,6 @@ import com.pingmanager.model.LotTables;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.model.OptionsReglement;
 import com.pingmanager.model.PolitiqueBalles;
-import com.pingmanager.model.RegleTableauxParJour;
 import com.pingmanager.model.RoleJugeArbitre;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.Tableau;
@@ -38,7 +37,6 @@ import com.pingmanager.model.format.FormatTournoi;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -63,7 +61,6 @@ import java.util.TreeMap;
  */
 public final class GenerateurReglement {
 
-    private static final DateTimeFormatter JOUR_MOIS = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH);
 
     private final ServiceCycleTournoi cycle = new ServiceCycleTournoi();
 

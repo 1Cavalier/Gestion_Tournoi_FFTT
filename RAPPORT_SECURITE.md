@@ -25,7 +25,7 @@ Le rapport distingue donc pour chaque constat le risque **bureau** (réel aujour
 - écriture par fichier temporaire + renommage ; fichiers JSON créés en **0600** sur Linux/macOS (vérifié) ;
 - carte : Leaflet embarqué (pas de CDN), noms de tournois échappés côté Java (`CarteTournois.js`) **et**
   côté page (`echapper()`) : pas d'injection HTML/JS par un nom de tournoi ;
-- HTML et PDF du règlement : texte échappé (`RenduHtmlReglement.esc`), PDFBox encode le texte ;
+- HTML et PDF du règlement : PDFBox encode le texte (le rendu HTML, inutilisé, a été retiré le 6 novembre 2026) ;
 - géocodage en HTTPS, délais courts (2 s / 3 s), pas de redirection suivie, aucune donnée personnelle envoyée ;
 - aucune clé d'API, aucun jeton, aucune clé privée dans l'arbre ni dans l'historique ;
 - pas de désérialisation Java, pas de réflexion pilotée par les données, pas d'exécution de processus.

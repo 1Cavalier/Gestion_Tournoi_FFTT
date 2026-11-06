@@ -4,7 +4,6 @@ import com.pingmanager.core.MotifsInscription;
 import com.pingmanager.core.RemplissageTableaux;
 import com.pingmanager.core.ResultatInscriptionTournoi;
 import com.pingmanager.core.ResultatInscriptionTournoi.Motif;
-import com.pingmanager.core.ServiceInscription;
 import com.pingmanager.core.ServiceInscriptionEnLigne;
 import com.pingmanager.core.reglement.Formats;
 import com.pingmanager.core.reglement.GenerateurReglement;

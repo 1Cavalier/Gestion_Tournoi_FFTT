@@ -33,10 +33,10 @@ Tu es le designer de l'interface de PingManager. Tu appliques la skill
    lance d'abord `mvn -B test` puis prends JavaFX, PDFBox et JUnit dans
    `~/.m2/repository`, en adaptant les variables `FX`, `PDF` et `J` du script
    par variables d'environnement plutôt qu'en le réécrivant). Thèmes clair et
-   sombre, largeur 1440, dans `docs/captures/<lot>/avant/`.
+   sombre, largeur 1440, dans `/tmp/captures/<lot>/avant/` (jamais committées).
 3. Modifie par petites étapes : d'abord `theme.css` et `Ui`, puis un écran
    pilote, puis les autres. Un commit par étape.
-4. **Captures « après »** dans `docs/captures/<lot>/apres/`. **Regarde-les**
+4. **Captures « après »** dans `/tmp/captures/<lot>/apres/`. **Regarde-les**
    avec l'outil de lecture d'image : textes coupés, contrastes, alignements,
    états vides, débordements. Corrige, recapture.
 5. `mvn -B test` à 0 échec.

@@ -56,18 +56,6 @@ public final class ValidationInscription {
         return new ValidationInscription(false, null);
     }
 
-    public void setInterdireTableauxSuccessifs(boolean v) {
-        this.interdireTableauxSuccessifs = v;
-    }
-
-    public boolean isInterdireTableauxSuccessifs() {
-        return interdireTableauxSuccessifs;
-    }
-
-    public void setSeuilProximite(Duration seuilProximite) {
-        this.seuilProximite = seuilProximite;
-    }
-
     /**
      * Vérifie si un joueur peut s'inscrire à un tableau cible, compte tenu des
      * tableaux auxquels il est déjà inscrit.
