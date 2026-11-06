@@ -17,10 +17,10 @@ Référence : `docs/CAHIER_DES_CHARGES_V0.md`, section 3. L'onglet Tournois est 
 
 ## Critères de fin
 
-- [ ] deux présentations
-- [ ] quatre statuts distincts et testés
-- [ ] captures clair et sombre regardées
-- [ ] `mvn -B test` à 0 échec
+- [x] deux présentations
+- [x] quatre statuts distincts et testés
+- [x] captures clair et sombre regardées
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -36,6 +36,9 @@ Voir le cahier des charges v0.
 - Captures avant / après : docs/captures/B030/avant/ et apres/ (clair, sombre, 1440). Non vérifié : rendu Windows, mise à l'échelle.
 
 ## Résultat
+- Livré : onglet « Carte des tournois » avec deux présentations (carte avec filtres et « Voir plus » ; agenda par jour), quatre statuts calculés dans le cœur (`core.StatutCarteTournoi`, testés), fiche ouverte par « Voir plus » quel que soit le statut, correction de la ligne 2816 de `theme.css`.
+- Questions ouvertes dans le journal `docs/journal/2026-11-06-tache-B030-carte-tournois.md` : statut « En cours » face à « Non accessible » ; pastille « Complet » avec liste d'attente (option appliquée : A pour les deux, à confirmer par Quentin).
+- Tests : 812, 0 échec (dernier passage vert). Captures clair et sombre regardées par le documentaliste.
 - relecteur-code (2026-11-06) : liaisons OK (règle d'or, aucun switch sur énumération, « Voir plus » et double-clic → `ouvrirFiche` quel que soit le statut, marqueurs de la carte branchés sur `statut()`, pas de TODO ni de `setStyle`, aucune donnée de démo touchée). Aucun défaut bloquant.
 - Mineur : `filtres-carte-tournois`, `agenda-tournois` et `carte-des-tournois` sont posées en Java mais sans règle dans theme.css (marqueurs de structure, sans effet) ; `PresentationCarteTournois.carte` suppose `acces()` non nul comme le reste du catalogue.
 - Vérifié par lecture : toutes les autres classes posées existent dans theme.css (variables de thème, donc clair et sombre) ; la bascule Carte / Mes tournois a son retour (segment).
