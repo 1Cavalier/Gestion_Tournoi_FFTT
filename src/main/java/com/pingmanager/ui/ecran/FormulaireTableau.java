@@ -139,7 +139,10 @@ final class FormulaireTableau {
                 Ui.discret("Une fois validé, le tableau rejoint la grille de la section. "
                         + "Rien n'est enregistré avant la validation."));
 
-        return Ui.page(760, enTete, Ui.legende(EnumSet.of(H, P, R, O)), Ui.carteNue(corps),
+        // Chaque groupe de champs devient sa propre carte (règles B012 de theme.css).
+        Node cartes = Ui.carteNue(corps);
+        cartes.getStyleClass().add("formulaire-cartes");
+        return Ui.page(760, enTete, Ui.legende(EnumSet.of(H, P, R, O)), cartes,
                 erreur, Ui.actions(valider, annuler));
     }
 

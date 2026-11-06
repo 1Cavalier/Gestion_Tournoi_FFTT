@@ -365,7 +365,10 @@ final class FormulairesSection {
                 Ui.titre(titre),
                 Ui.discret("Rien n'est modifié tant que vous n'avez pas enregistré."));
 
-        return Ui.page(720, enTete, Ui.legende(dependances), Ui.carteNue(corps), erreur,
+        // Chaque groupe de champs devient sa propre carte (règles B012 de theme.css).
+        Node cartes = Ui.carteNue(corps);
+        cartes.getStyleClass().add("formulaire-cartes");
+        return Ui.page(760, enTete, Ui.legende(dependances), cartes, erreur,
                 Ui.actions(enregistrer, annuler));
     }
 
