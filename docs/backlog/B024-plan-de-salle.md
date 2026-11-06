@@ -23,10 +23,10 @@ Le club organise l'espace comme il veut :
 
 ## Critères de fin
 
-- [ ] plan persisté et relu (test)
-- [ ] réservations respectées par l'ordonnanceur (tests)
-- [ ] captures de l'éditeur et de la salle
-- [ ] `mvn -B test` à 0 échec
+- [x] plan persisté et relu (test)
+- [x] réservations respectées par l'ordonnanceur (tests)
+- [x] captures de l'éditeur et de la salle
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -35,5 +35,7 @@ Précisions du cahier des charges v0 (section 6) : plan sur une **grille** (tabl
 Aucune pour l'instant.
 
 ## Passations
+
+- 2026-11-06 `developpeur` : modèle (PlanSalle, SalleTournoi), cœur (PlansTypesSalle, ServicePlanSalle, EditionPlanSalles), réservations dans l'Ordonnanceur, JSON `salles` rétrocompatible, EcranPlanSalle + vue Salle sur le plan réel, captures `docs/captures/b024/`. 1022 tests verts. Questions dans le journal.
 
 ## Résultat
