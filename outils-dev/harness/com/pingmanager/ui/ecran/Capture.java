@@ -42,6 +42,7 @@ public class Capture extends Application {
     static boolean accueil;
     static boolean suivi;
     static boolean jourj;
+    static boolean profil;
     Scene scene;
     ContexteApplication ctx;
     final List<Runnable> etapes = new ArrayList<>();
@@ -57,6 +58,7 @@ public class Capture extends Application {
         accueil = java.util.Arrays.asList(a).contains("accueil");
         suivi = java.util.Arrays.asList(a).contains("suivi");
         jourj = java.util.Arrays.asList(a).contains("jourj");
+        profil = java.util.Arrays.asList(a).contains("profil");
         launch(a);
     }
 
@@ -109,6 +111,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (profil) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesProfil(coq);
             lancer(0);
             return;
         }
@@ -373,6 +382,32 @@ public class Capture extends Application {
             coq[0] = new Coquille(ctx, () -> { });
             scene.setRoot(coq[0].build());
         }, "accueil-sans-licence");
+    }
+
+    /** Mon profil (B029) : compte relié à un club (Quentin) puis joueur non relié, 1440 px. */
+    void etapesProfil(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("profil");
+        }, "profil-club");
+        etape(() -> defiler(0.5), "profil-club-milieu");
+        etape(() -> defiler(1.0), "profil-club-bas");
+        etape(() -> {
+            ctx.deconnecter();
+            com.pingmanager.model.FicheLicence f = com.pingmanager.ui.infra.DonneesDemo.JOUEURS_FICTIFS.get(0);
+            ctx.creerCompteEtConnecter("joueur.demo@exemple.fr", f.getNom(), f.getPrenom(), "Joueur123/");
+            ctx.lierLicence(f.getNumeroLicence());
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            coq[0].afficher("profil");
+        }, "profil-joueur");
+        etape(() -> defiler(1.0), "profil-joueur-bas");
+        etape(() -> {
+            scene.getRoot().lookupAll(".profil-confirmation-liaison").forEach(n ->
+                    ((javafx.scene.control.CheckBox) n).setSelected(true));
+            defiler(1.0);
+        }, "profil-joueur-confirme");
     }
 
     /** Charte v2 : écrans représentatifs, largeur 1440 (noms suffixés -clair / -sombre). */
@@ -773,7 +808,7 @@ public class Capture extends Application {
             }
         }
         try {
-            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil) ? "-clair" : "")) + ".png"));
+            ImageIO.write(bi, "png", new File(out, nom + (sombre ? "-sombre" : ((v2 || accueil || profil) ? "-clair" : "")) + ".png"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -2812,7 +2812,9 @@
 
 .icone-tuile.accueil-club-tuile .icone-tuile-trace {
     -fx-fill: -sur-primaire;
+}
 
+/* =====================================================================
    Gestion des tournois (B033) : gros bouton de création, frise verticale
    ===================================================================== */
 
@@ -2921,4 +2923,80 @@
 
 .ligne-element.ligne-tournoi-cliquable {
     -fx-cursor: hand;
+}
+
+/* =====================================================================
+   Mon profil (B029) : bloc personnel, bloc Club séparé, alerte de liaison
+   ===================================================================== */
+
+/* Classes repères sans règle propre, posées par PageCompte pour la mise en page
+   et les tests : profil-bloc-personnel (les deux cartes du haut) et
+   profil-tableau-membres (tableau des membres du club, mis en forme par
+   .profil-tableau-cellule). */
+
+/* Bloc « Club » : bandeau teinté, bien distinct du bloc personnel. */
+.profil-bloc-club {
+    -fx-background-color: -bordure, -primaire-doux;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 16, 15;
+    -fx-padding: 24;
+}
+
+.icone-tuile.profil-club-tuile {
+    -fx-background-color: -primaire;
+}
+
+.icone-tuile.profil-club-tuile .icone-tuile-trace {
+    -fx-fill: -sur-primaire;
+}
+
+.profil-bloc-club-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.profil-bloc-club-intro {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13.5px;
+}
+
+/* Encart d'alerte (composant commun Ui.encartAlerte) : bien visible. */
+.encart-alerte {
+    -fx-background-color: -attention, -attention-doux;
+    -fx-background-insets: 0, 0 0 0 5;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 20;
+}
+
+.label.encart-alerte-titre {
+    -fx-font-weight: bold;
+    -fx-font-size: 14.5px;
+    -fx-text-fill: -attention-texte;
+}
+
+.label.encart-alerte-texte {
+    -fx-text-fill: -attention-texte;
+}
+
+.check-box.profil-confirmation-liaison {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.profil-tableau-droits {
+    -fx-padding: 4 0 4 0;
+}
+
+/* Tableaux du bloc Club (droits, équipe) : en-tête teinté, lignes filetées. */
+.profil-tableau-cellule {
+    -fx-padding: 9 16 9 10;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.profil-tableau-cellule.profil-tableau-entete {
+    -fx-background-color: -neutre-doux;
+    -fx-padding: 7 16 7 10;
+    -fx-border-color: transparent transparent -bordure-forte transparent;
 }
