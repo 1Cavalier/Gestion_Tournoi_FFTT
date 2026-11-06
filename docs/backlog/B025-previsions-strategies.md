@@ -4,10 +4,10 @@ titre: Prévisions d'ordonnancement et stratégies du club
 type: idee
 priorite: P2
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [ordonnancement (simulation, stratégies), core, ui/ecran (écran Prévisions)]
-branche:
+branche: tache/B025-previsions-strategies (prise le 2026-11-06)
 pr:
 ---
 
