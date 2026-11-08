@@ -36,5 +36,7 @@ Aucune pour l'instant.
 - developpeur-jour-j (8 nov.) : contenu des feuilles dans `core.feuilles` (testé, sans PDFBox), rendu `ui.infra.RenduPdfFeuilles`, boutons poules / arbre / salle, option « Feuille à l'envoi » (JSON `feuilleALEnvoi` facultatif).
   Tests 1046 → 1079, 0 échec (`outils-dev/tests.sh`) ; PDF et écrans regardés (captures hors dépôt `/tmp/captures/B016/`).
   À vérifier : impression directe sous Windows ; 3 questions dans le journal (sens de « feuille de rencontre », impression directe, 5 colonnes au meilleur des 3).
+- correcteur (8 nov.) : caractère hors police (CJK, emoji) remplacé par « ? » via `RenduPdfFeuilles.imprimable` (par code point), partagé par mesure, coupe et dessin ; tests 1095, 0 échec.
+  Même défaut latent dans `core.reglement.RenduPdfReglement` (`propre` seul avant `showText`/`getStringWidth`) : signalé, non corrigé ici.
 
 ## Résultat

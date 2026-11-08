@@ -446,7 +446,7 @@ public final class RenduPdfFeuilles {
         }
 
         void texte(String s, float x, float y, PDFont f, float taille, float[] couleur) throws IOException {
-            String t = propre(s);
+            String t = imprimable(s, f);
             if (t.isEmpty()) {
                 return;
             }
@@ -460,7 +460,7 @@ public final class RenduPdfFeuilles {
 
         float largeur(String s, PDFont f, float taille) {
             try {
-                return f.getStringWidth(propre(s)) / 1000f * taille;
+                return f.getStringWidth(imprimable(s, f)) / 1000f * taille;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -468,7 +468,8 @@ public final class RenduPdfFeuilles {
 
         /** Coupe le texte avec « … » pour qu'il tienne dans la largeur. */
         String ajuster(String s, PDFont f, float taille, float max) {
-            String t = propre(s);
+            // Filtré d'abord : plus de paire de substitution qu'une coupe par char pourrait casser.
+            String t = imprimable(s, f);
             if (largeur(t, f, taille) <= max) {
                 return t;
             }
@@ -589,6 +590,35 @@ public final class RenduPdfFeuilles {
     static String propre(String s) {
         return s == null ? "" : s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
                 .replace(' ', ' ').replace(' ', ' ');
+    }
+
+    /**
+     * {@link #propre} puis remplace par « ? » chaque caractère (code point, paires de
+     * substitution comprises) que la police ne sait pas encoder (CJK, emoji…). Utilisé
+     * à la fois pour la mesure et pour le dessin, pour qu'ils restent cohérents.
+     */
+    static String imprimable(String s, PDFont f) {
+        String t = propre(s);
+        StringBuilder sb = null;
+        for (int i = 0; i < t.length(); ) {
+            int cp = t.codePointAt(i);
+            int n = Character.charCount(cp);
+            boolean ok;
+            try {
+                f.encode(t.substring(i, i + n));
+                ok = true;
+            } catch (IllegalArgumentException | IOException e) {
+                ok = false;
+            }
+            if (!ok && sb == null) {
+                sb = new StringBuilder(t.length()).append(t, 0, i);
+            }
+            if (sb != null) {
+                sb.append(ok ? t.substring(i, i + n) : "?");
+            }
+            i += n;
+        }
+        return sb == null ? t : sb.toString();
     }
 
     private static float[] rgb(int hex) {
