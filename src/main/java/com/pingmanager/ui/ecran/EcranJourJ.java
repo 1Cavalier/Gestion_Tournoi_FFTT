@@ -6,12 +6,15 @@ import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.ContexteApplication;
+import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Label;
+import javafx.print.PrinterJob;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -51,6 +54,8 @@ final class EcranJourJ {
     private Integer jourAffiche;
 
     private final BorderPane racine = new BorderPane();
+    /** B021 : message du dernier démarrage du suivi sur téléphone (refus), vide sinon. */
+    private String messageTelephone = "";
 
     EcranJourJ(ContexteApplication contexte, Path fichier, Runnable onRetour) {
         this(contexte, fichier, onRetour, "← Vue d'ensemble du tournoi");
@@ -101,11 +106,23 @@ final class EcranJourJ {
 
     Node build() {
         afficherListe();
+        // B021 : quitter le jour J (la page sort de la fenêtre) arrête le suivi sur téléphone.
+        racine.sceneProperty().addListener((obs, avant, apres) -> {
+            if (avant != null && apres == null) {
+                contexte.diffusionSuivi().arreter();
+            }
+        });
         return racine;
     }
 
     private void enregistrer() {
         contexte.enregistrerTournoi(tournoi, fichier);
+        publierSuivi();
+    }
+
+    /** B021 : nouvelle photographie pour les téléphones (fil JavaFX ; sans effet si le suivi est fermé). */
+    private void publierSuivi() {
+        contexte.diffusionSuivi().publier(tournoi);
     }
 
     // ------------------------------------------------------------------
@@ -120,6 +137,7 @@ final class EcranJourJ {
      */
     private void afficherListe() {
         tournoi = contexte.chargerTournoi(fichier);
+        publierSuivi();
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
                 this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau);
         racine.setCenter(principal.build());
@@ -189,7 +207,122 @@ final class EcranJourJ {
         if (tournoi.getStatut() == StatutTournoi.ANNULE) {
             carte.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : le pointage et les tirages sont fermés."));
         }
+        // Reconstruit à chaque rafraîchissement de l'écran principal : la photographie suit.
+        publierSuivi();
+        return new VBox(16, carte, carteTelephone());
+    }
+
+    // ------------------------------------------------------------------
+    // B021 : suivi sur téléphone (serveur web local en lecture seule)
+    // ------------------------------------------------------------------
+
+    /** Carte « Suivi sur téléphone » : port, ouverture, adresse en grand, arrêt. */
+    private Node carteTelephone() {
+        DiffusionSuivi d = contexte.diffusionSuivi();
+        VBox carte;
+        if (d.estDemarre()) {
+            Label adresse = Ui.label(d.url(), "suivi-telephone-adresse");
+            Button grand = Ui.boutonSecondaire("Afficher en grand et imprimer");
+            grand.setOnAction(e -> afficherAdresseEnGrand());
+            Button arreter = Ui.boutonSecondaire("Arrêter le suivi");
+            arreter.setOnAction(e -> {
+                d.arreter();
+                messageTelephone = "";
+                afficherListe();
+            });
+            carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Suivi sur téléphone"), grand, arreter),
+                    Ui.discret("Ouvert : joueurs et public, reliés au Wi-Fi de la salle, ouvrent cette adresse."),
+                    adresse,
+                    Ui.aide("Consultation seule : poules, matchs en cours et à venir avec la table, tableaux finaux "
+                            + "et « Ma prochaine partie ». Seuls le nom, le club et les points des joueurs sont "
+                            + "visibles. Le suivi s'arrête en quittant le jour J."));
+        } else {
+            TextField port = Ui.champ("Port");
+            port.setText(String.valueOf(d.port()));
+            port.setPrefColumnCount(6);
+            port.getStyleClass().add("suivi-telephone-port");
+            Button ouvrir = Ui.boutonPrimaire("Ouvrir le suivi sur téléphone");
+            Runnable demarrer = () -> {
+                int p = DiffusionSuivi.lirePort(port.getText());
+                DiffusionSuivi.ResultatDemarrage r = d.demarrer(p, tournoi);
+                messageTelephone = r.estDemarre() ? "" : r.message();
+                afficherListe();
+            };
+            ouvrir.setOnAction(e -> demarrer.run());
+            port.setOnAction(e -> demarrer.run());
+            carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Suivi sur téléphone"), ouvrir),
+                    Ui.discret("Les joueurs et le public suivent le tournoi sur leur téléphone, sans application, "
+                            + "par le Wi-Fi de la salle."),
+                    Ui.ligne(8, Ui.discret("Port"), port));
+            if (!messageTelephone.isEmpty()) {
+                carte.getChildren().add(Ui.encartInfo(messageTelephone));
+            }
+        }
+        carte.getStyleClass().add("suivi-telephone");
         return carte;
+    }
+
+    /** Adresse du suivi en grand, à montrer ou à imprimer pour l'afficher dans la salle. */
+    private void afficherAdresseEnGrand() {
+        DiffusionSuivi d = contexte.diffusionSuivi();
+        if (!d.estDemarre()) {
+            afficherListe();
+            return;
+        }
+        Button retour = Ui.boutonLien("← Jour J");
+        retour.setOnAction(e -> afficherListe());
+        Button imprimer = Ui.boutonPrimaire("Imprimer");
+        Label etat = Ui.discret("");
+        Node affiche = afficheTelephone(d.url());
+        imprimer.setOnAction(e -> etat.setText(imprimer(affiche)));
+        VBox page = new VBox(16, Ui.ligne(10, retour, Ui.espace(), etat, imprimer), affiche);
+        page.getStyleClass().add("suivi-telephone-page");
+        racine.setCenter(page);
+    }
+
+    /** L'affiche elle-même : adresse en très grand et mode d'emploi. */
+    private Node afficheTelephone(String url) {
+        Label titre = Ui.label("Suivez le tournoi sur votre téléphone", "suivi-telephone-affiche-titre");
+        Label nom = Ui.label(tournoi.getNom(), "suivi-telephone-affiche-tournoi");
+        Label etape1 = Ui.label("1. Connectez-vous au Wi-Fi de la salle.", "suivi-telephone-affiche-etape");
+        Label etape2 = Ui.label("2. Ouvrez cette adresse dans votre navigateur :", "suivi-telephone-affiche-etape");
+        Label adresse = Ui.label(url, "suivi-telephone-affiche-adresse");
+        adresse.setWrapText(true);
+        Label aide = Ui.label("Poules, matchs en cours avec la table, tableaux finaux et « Ma prochaine partie » "
+                + "(recherche par nom ou licence).", "suivi-telephone-affiche-aide");
+        aide.setWrapText(true);
+        VBox affiche = new VBox(18, titre, nom, etape1, etape2, adresse, aide);
+        affiche.getStyleClass().add("suivi-telephone-affiche");
+        return affiche;
+    }
+
+    /** Imprime l'affiche ; renvoie un message court pour le juge-arbitre. */
+    private String imprimer(Node affiche) {
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job == null) {
+            return "Aucune imprimante disponible.";
+        }
+        if (!job.showPrintDialog(racine.getScene() == null ? null : racine.getScene().getWindow())) {
+            return "";
+        }
+        // Réduite si besoin pour tenir dans la zone imprimable (l'affiche à l'écran n'est pas modifiée).
+        javafx.print.PageLayout mise = job.getJobSettings().getPageLayout();
+        double largeur = affiche.getBoundsInParent().getWidth();
+        double hauteur = affiche.getBoundsInParent().getHeight();
+        double echelle = Math.min(1, Math.min(mise.getPrintableWidth() / Math.max(1, largeur),
+                mise.getPrintableHeight() / Math.max(1, hauteur)));
+        javafx.scene.transform.Scale reduction = new javafx.scene.transform.Scale(echelle, echelle);
+        affiche.getTransforms().add(reduction);
+        boolean ok;
+        try {
+            ok = job.printPage(affiche) && job.endJob();
+            if (!ok) {
+                job.cancelJob();
+            }
+        } finally {
+            affiche.getTransforms().remove(reduction);
+        }
+        return ok ? "Affiche envoyée à l'imprimante." : "L'impression a échoué.";
     }
 
     private void changerJour(int index) {
