@@ -1,11 +1,14 @@
 package com.pingmanager.persistence;
 
 import com.pingmanager.core.RegistreClubs;
+import com.pingmanager.core.RegistrePrononciations;
 import com.pingmanager.model.AccesClub;
 import com.pingmanager.model.AgendaCompte;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteOrganisateur;
 import com.pingmanager.model.CompteUtilisateur;
+import com.pingmanager.model.PrononciationClub;
+import com.pingmanager.model.PrononciationJoueur;
 import com.pingmanager.persistence.json.Json;
 import com.pingmanager.persistence.json.JsonParser;
 import com.pingmanager.persistence.json.JsonWriter;
@@ -61,6 +64,9 @@ public final class DepotApplication implements RegistreClubs {
     private final Map<String, CompteUtilisateur> comptesUtilisateursParEmail = new LinkedHashMap<>();
     private final Map<String, AccesClub> accesParCle = new LinkedHashMap<>();
     private final Map<String, AgendaCompte> agendasParEmail = new LinkedHashMap<>();
+
+    /** B018 : prononciations phonétiques des joueurs et des clubs (appels au micro). */
+    private final RegistrePrononciations prononciations = new RegistrePrononciations();
 
     /** Tournois récemment ouverts, du plus récent au plus ancien. */
     private final List<ProjetTournoi> recents = new ArrayList<>();
@@ -229,6 +235,18 @@ public final class DepotApplication implements RegistreClubs {
     }
 
     // ==================================================================
+    // Prononciations (B018)
+    // ==================================================================
+
+    /**
+     * Registre des prononciations phonétiques, réutilisé d'un tournoi à l'autre.
+     * Les modifications sont sauvegardées avec le dépôt.
+     */
+    public RegistrePrononciations prononciations() {
+        return prononciations;
+    }
+
+    // ==================================================================
     // Tournois récents
     // ==================================================================
 
@@ -327,6 +345,19 @@ public final class DepotApplication implements RegistreClubs {
         }
         doc.set("agendas", agendas);
 
+        Json pron = Json.objet();
+        Json pj = Json.tableau();
+        for (PrononciationJoueur p : prononciations.tousLesJoueurs()) {
+            pj.add(Json.objet().set("licence", p.licence()).set("prenom", p.prenom()).set("nom", p.nom()));
+        }
+        pron.set("joueurs", pj);
+        Json pc = Json.tableau();
+        for (PrononciationClub p : prononciations.tousLesClubs()) {
+            pc.add(Json.objet().set("numero", p.numero()).set("nom", p.nom()).set("ipa", p.ipa()));
+        }
+        pron.set("clubs", pc);
+        doc.set("prononciations", pron);
+
         Json rec = Json.tableau();
         for (ProjetTournoi p : recents) {
             Json o = Json.objet();
@@ -372,6 +403,9 @@ public final class DepotApplication implements RegistreClubs {
                 depot.enregistrerAgenda(ApplicationMapper.lireAgenda(o));
             }
         }
+        if (doc.has("prononciations")) { // absent des fichiers antérieurs à B018
+            lirePrononciations(doc.get("prononciations"), depot.prononciations);
+        }
         if (doc.has("recents")) {
             for (Json o : doc.get("recents").elements()) {
                 depot.recents.add(new ProjetTournoi(
@@ -381,6 +415,25 @@ public final class DepotApplication implements RegistreClubs {
             }
         }
         return depot;
+    }
+
+    /**
+     * Relit les prononciations en repassant par la validation : une entrée
+     * invalide (fichier modifié à la main) est ignorée plutôt que de risquer un
+     * SSML cassé ou d'empêcher le démarrage.
+     */
+    private static void lirePrononciations(Json o, RegistrePrononciations registre) {
+        if (o.has("joueurs")) {
+            for (Json j : o.get("joueurs").elements()) {
+                registre.definirJoueur(j.getString("licence", null), j.getString("prenom", ""),
+                        j.getString("nom", ""));
+            }
+        }
+        if (o.has("clubs")) {
+            for (Json c : o.get("clubs").elements()) {
+                registre.definirClub(c.getString("numero", null), c.getString("nom", ""), c.getString("ipa", ""));
+            }
+        }
     }
 
     // ==================================================================
