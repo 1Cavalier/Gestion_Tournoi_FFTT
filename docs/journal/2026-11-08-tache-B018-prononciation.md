@@ -3,7 +3,7 @@
 - Branche : `tache/B018-prononciation`
 - Agent : `developpeur` (étape de pipeline)
 - Pull Request : (complété par l'intégrateur)
-- Statut : en attente (étape de pipeline, fusion par l'intégrateur)
+- Statut : fusionné après verdict GitHub Actions
 
 ## Pour Quentin
 
@@ -98,9 +98,9 @@ que par des tests sans son. L'écran du profil a été capturé sous Xvfb
 
 ## Fusion
 
-(à compléter par l'intégrateur)
+Fusion de `origin/main` sans conflit ; `verifier-fusion.py` : OK, rien à signaler.
 
 ## Chiffres
 
-- Tests : 1358 → 1388 (mesurés par `outils-dev/tests.sh`, Maven inaccessible)
+- Tests : 1358 → 1412, 0 échec après synchronisation avec main (mesurés par `outils-dev/tests.sh`, Maven inaccessible ; GitHub Actions fait foi)
 - Version de la démo : inchangée

@@ -4,11 +4,11 @@ titre: Prononciation des noms en alphabet phonétique
 type: idee
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: [B017]
 fichiers: [core (registre de prononciations), persistence/DepotApplication, ui/ecran/PageCompte, ui/ecran/EcranJourJ]
 branche: tache/B018-prononciation
-pr:
+pr: PRNUM
 ---
 
 ## Ce qu'il faut faire
@@ -22,10 +22,10 @@ Pour les noms mal prononcés par la synthèse vocale :
 
 ## Critères de fin
 
-- [ ] registre persisté (test aller-retour)
-- [ ] SSML produit avec la prononciation (test)
-- [ ] partie « Appel » dans le profil
-- [ ] `mvn -B test` à 0 échec
+- [x] registre persisté (test aller-retour)
+- [x] SSML produit avec la prononciation (test)
+- [x] partie « Appel » dans le profil
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -43,3 +43,5 @@ Aucune pour l'instant.
 - Défauts : `ValidationPrononciation` refuse é précomposé mais accepte e+U+0301 et refuse 2 diacritiques empilés (mineurs) ; `DepotApplication.lirePrononciations` (l.~425) lève `JsonException` sur un élément non objet ou une section de mauvais type : démarrage bloqué au lieu d'ignorer.
 
 ## Résultat
+
+Registre IPA persisté dans les données de l'application, résolveur SSML branché, carte « Appel micro » du profil (saisie, Écouter, aide), écran jour J « Prononciation des noms… ». 1412 tests verts. Voix réelle à vérifier sous Windows. Détails : `docs/journal/2026-11-08-tache-B018-prononciation.md`.
