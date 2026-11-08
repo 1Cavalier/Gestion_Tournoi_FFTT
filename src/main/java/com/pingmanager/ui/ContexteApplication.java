@@ -30,6 +30,7 @@ import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
 import com.pingmanager.ui.infra.TournoiDemoJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
+import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
 import com.pingmanager.ui.infra.GenerateurCodeAleatoire;
 import com.pingmanager.ui.infra.HachageMotDePassePBKDF2;
@@ -75,6 +76,8 @@ public final class ContexteApplication {
 
     // Ports concrets.
     private final EmailConsole email;
+    /** B021 : suivi sur téléphone (serveur web local en lecture seule), arrêté par {@link #fermer()}. */
+    private final DiffusionSuivi diffusionSuivi = new DiffusionSuivi();
 
     // Services métier.
     private final ServiceAuthentification authentification;
@@ -845,8 +848,14 @@ public final class ContexteApplication {
         return DonneesDemo.memo();
     }
 
-    /** Ferme proprement l'application : persiste le dépôt et arrête l'autosave. */
+    /** @return le suivi sur téléphone (B021), démarré depuis le jour J. */
+    public DiffusionSuivi diffusionSuivi() {
+        return diffusionSuivi;
+    }
+
+    /** Ferme proprement l'application : arrête le suivi sur téléphone, persiste le dépôt et arrête l'autosave. */
     public void fermer() {
+        diffusionSuivi.arreter();
         service.close();
     }
 
