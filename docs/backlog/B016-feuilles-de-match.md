@@ -4,7 +4,7 @@ titre: Impression des feuilles de match, de poule et du tableau final
 type: jour-j
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [core/reglement (nouveaux générateurs), ui/ecran/EcranPoulesTableau, ui/ecran/VuePhaseFinale]
 branche: tache/B016-feuilles-de-match
@@ -23,7 +23,7 @@ Couleur du tableau reprise si B015 est faite.
 
 - [x] contenu des documents testé
 - [x] boutons d'impression dans les poules, l'arbre et la salle
-- [ ] `mvn -B test` à 0 échec
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 

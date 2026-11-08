@@ -3,7 +3,7 @@
 - Branche : `tache/B016-feuilles-de-match`
 - Agent : `developpeur-jour-j` (étape de pipeline, reprise le 8 novembre après la limite d'usage)
 - Pull Request : à compléter par l'`integrateur`
-- Statut : en attente de la suite de la chaîne (pas de fusion à cette étape)
+- Statut : voir Pull Request
 
 ## Pour Quentin
 
@@ -69,10 +69,20 @@ feuille dès qu'un match part sur une table ; sinon, bouton « Feuille » sur ch
 - Réponse de Quentin :
 
 ### 2026-11-06 — Grille de 5 manches pour une partie au meilleur des 3
-- Contexte : la grille 3 × 5 est imprimée telle quelle même au meilleur des 3 manches
-  (2.12.1) ; les deux dernières colonnes restent vides.
-- Options : A) garder 5 colonnes ; B) réduire à 3 colonnes au meilleur des 3.
+- Contexte : la grille 3 × 5 est imprimée avec 5 colonnes même au meilleur des 3 manches
+  (2.12.1) ; les deux dernières colonnes restent vides. Au meilleur des 7 manches, la grille
+  passe à 7 colonnes (contrôle de conformité 2.12.1, corrigé).
+- Options : A) garder 5 colonnes par défaut ; B) réduire à 3 colonnes au meilleur des 3.
 - Choix provisoire de l'agent : A (format imposé).
+- Réponse de Quentin :
+
+### 2026-11-08 — Manches gagnantes du format non transmises aux matchs
+- Contexte : au lancement d'un match, `nombreManchesGagnantes` du format du tableau n'est pas
+  recopié dans le match (toujours 3). Les feuilles ne peuvent donc afficher 7 colonnes que si
+  cela est corrigé dans le lancement, hors périmètre de B016.
+- Article FFTT : 2.12.1.
+- Options : A) corriger le lancement dans une tâche à part ; B) laisser en l'état.
+- Choix provisoire de l'agent : B (aucune modification hors périmètre).
 - Réponse de Quentin :
 
 ## Notes pour l'état du projet
@@ -98,6 +108,9 @@ feuille dès qu'un match part sur une table ; sinon, bouton « Feuille » sur ch
   est cassé : bouton « Suivre le tournoi » introuvable (sans lien avec B016) ; captures
   faites avec un petit harnais hors dépôt (`/tmp/captures/B016/`, poules, arbre, salle,
   clair et sombre).
+- Balayage final : `core.reglement.RenduPdfReglement` a le même défaut de caractères hors
+  police (CJK, emoji) que celui corrigé dans `RenduPdfFeuilles.imprimable` ; non corrigé ici
+  (hors périmètre), à traiter au balayage final.
 - Couleur du tableau (B015) : non reprise, B015 n'est pas faite.
 
 ## Fusion
@@ -106,7 +119,7 @@ feuille dès qu'un match part sur une table ; sinon, bouton « Feuille » sur ch
 
 ## Chiffres
 
-- Tests : 1046 → 1079 (mesurés par `outils-dev/tests.sh`, Maven Central inaccessible), 0 échec
+- Tests : 1046 → 1096 (mesurés par `outils-dev/tests.sh`, Maven Central inaccessible), 0 échec
 - Version de la démo : inchangée
 
 ## Passations
