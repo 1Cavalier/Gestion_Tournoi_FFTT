@@ -8,7 +8,7 @@ statut: fait
 depend-de: [B017]
 fichiers: [core (registre de prononciations), persistence/DepotApplication, ui/ecran/PageCompte, ui/ecran/EcranJourJ]
 branche: tache/B018-prononciation
-pr: PRNUM
+pr: 73
 ---
 
 ## Ce qu'il faut faire

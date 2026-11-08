@@ -2,7 +2,7 @@
 
 - Branche : `tache/B018-prononciation`
 - Agent : `developpeur` (étape de pipeline)
-- Pull Request : (complété par l'intégrateur)
+- Pull Request : #73
 - Statut : fusionné après verdict GitHub Actions
 
 ## Pour Quentin
