@@ -136,7 +136,7 @@ vraiment** : les messages s'affichent à l'écran (simulation).
 
 ## Fusion
 
-À faire par l'`integrateur`.
+Main (B016, B021, B023) fusionné le 2026-11-08. Conflits : `Tournoi.java` (accesseurs `getConvocationsSms` et `imprimerFeuilleALEnvoi` gardés tous deux) et `EcranSalle.java` (case « Feuille à l'envoi » et bouton « SMS… » gardés ; à l'envoi sur une table, le message ajoute la phrase des SMS). `verifier-fusion.py` signale 1 ligne : `apresAction(r.estReussi(), texte);` devenue `texte + smsEnvoyes`, remplacement voulu. Les champs JSON `feuilleALEnvoi` et `convocationsSms` coexistent dans `TournoiMapper`. `VERSION_DEMO` inchangée (pas de donnée de démo modifiée).
 
 ## Chiffres
 
