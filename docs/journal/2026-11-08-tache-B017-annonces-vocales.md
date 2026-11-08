@@ -2,7 +2,7 @@
 
 - Branche : `tache/B017-annonces-vocales`
 - Agent : `developpeur-jour-j` (étape de pipeline)
-- Pull Request : à compléter (voir « Fusion »)
+- Pull Request : n° 70
 - Statut : fait (fusionné par l'intégrateur)
 
 ## Pour Quentin

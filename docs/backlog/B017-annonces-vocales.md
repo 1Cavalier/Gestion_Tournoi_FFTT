@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [core (annonces), ui/infra (synthèse vocale), ui/ecran/EcranSalle, ui/ecran/EcranJourJ]
 branche: tache/B017-annonces-vocales
-pr:
+pr: 70
 ---
 
 ## Ce qu'il faut faire
