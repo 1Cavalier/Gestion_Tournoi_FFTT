@@ -4,10 +4,10 @@ titre: Suivi du tournoi sur téléphone
 type: idee
 priorite: P2
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [nouveau package de diffusion hors cœur, core (vue publique en lecture), ui/ecran/EcranJourJ]
-branche:
+branche: tache/B021-suivi-telephone
 pr:
 ---
 
