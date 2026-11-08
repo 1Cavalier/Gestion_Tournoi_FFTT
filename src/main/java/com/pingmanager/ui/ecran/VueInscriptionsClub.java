@@ -1,6 +1,7 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.RemplissageTableaux;
+import com.pingmanager.core.ResultatContactSms;
 import com.pingmanager.core.reglement.Formats;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Tableau;
@@ -35,7 +36,9 @@ import java.util.Locale;
  *   <li>par tableau : jauge des places, inscrits triés par points de licence
  *       (décroissant), puis la liste d'attente dans l'ordre ;</li>
  *   <li>par joueur : chaque participant et tous ses tableaux, tri par points ou par
- *       club, recherche par nom, licence ou club.</li>
+ *       club, recherche par nom, licence ou club ; le joueur choisi peut recevoir
+ *       un numéro de portable pour les convocations par SMS (B019), avec son
+ *       accord explicite.</li>
  * </ul>
  * Le tournoi est relu depuis son fichier à l'ouverture et à chaque « Actualiser » :
  * les inscriptions en ligne enregistrées entre-temps apparaissent.
@@ -238,7 +241,65 @@ final class VueInscriptionsClub {
         maj.run();
         lv.setPlaceholder(Ui.discret("Aucun participant."));
 
-        return Ui.carte(Ui.ligne(10, recherche, tri, compteur), BlocsInscriptions.legendePuces(), lv);
+        VBox panneauSms = new VBox();
+        lv.getSelectionModel().selectedItemProperty().addListener((o, a, p) ->
+                panneauSms.getChildren().setAll(carteSms(p == null ? null : p.joueur(), null, null)));
+        panneauSms.getChildren().setAll(carteSms(null, null, null));
+        return new VBox(16, Ui.carte(Ui.ligne(10, recherche, tri, compteur), BlocsInscriptions.legendePuces(), lv),
+                panneauSms);
+    }
+
+    /**
+     * Portable du joueur choisi pour les convocations par SMS (B019) : saisie avec
+     * consentement explicite, retrait ; chaque action enregistre aussitôt le tournoi.
+     */
+    private Node carteSms(Joueur j, String erreur, String succes) {
+        if (j == null) {
+            return Ui.carte(PresentationSaisieSms.TITRE,
+                    Ui.etatVideCompact("Choisissez un joueur dans la liste pour saisir son portable."));
+        }
+        BlocSaisieSms bloc = new BlocSaisieSms(PresentationSaisieSms.CONSENTEMENT_CLUB, null);
+        bloc.montrerEtat(tournoi, j.getNumeroLicence());
+        VBox carte = Ui.carte(PresentationSaisieSms.TITRE + " · " + j.getNomComplet());
+        if (erreur != null || succes != null) {
+            carte.getChildren().add(Ui.message(erreur, succes));
+        }
+        Button enregistrer = Ui.boutonPrimaire("Enregistrer le numéro");
+        enregistrer.setOnAction(e -> {
+            ResultatContactSms r = contexte.convocationsSms().enregistrerContact(tournoi, j.getNumeroLicence(),
+                    bloc.saisie(), bloc.consenti(), java.time.LocalDateTime.now());
+            String echec = r.estReussi() ? sauver() : r.message();
+            remplacerCarteSms(carte, j, echec, echec == null ? r.message() : null);
+        });
+        HBox actions = Ui.actions(enregistrer);
+        if (PresentationSaisieSms.aUnNumero(tournoi, j.getNumeroLicence())) {
+            Button retirer = Ui.boutonSecondaire("Retirer le numéro");
+            retirer.setOnAction(e -> {
+                contexte.convocationsSms().retirerContact(tournoi, j.getNumeroLicence());
+                String echec = sauver();
+                remplacerCarteSms(carte, j, echec, echec == null ? "Numéro retiré." : null);
+            });
+            actions.getChildren().add(retirer);
+        }
+        carte.getChildren().addAll(bloc.noeud(), actions);
+        carte.getStyleClass().add("carte-sms-club");
+        return carte;
+    }
+
+    private void remplacerCarteSms(VBox ancienne, Joueur j, String erreur, String succes) {
+        if (ancienne.getParent() instanceof VBox parent) {
+            parent.getChildren().setAll(carteSms(j, erreur, succes));
+        }
+    }
+
+    /** Enregistre le tournoi ; renvoie le motif de l'échec, ou {@code null}. */
+    private String sauver() {
+        try {
+            contexte.enregistrerTournoi(tournoi, fichier);
+            return null;
+        } catch (RuntimeException ex) {
+            return "Attention : l'enregistrement a échoué (" + ex.getMessage() + ").";
+        }
     }
 
     private static String normaliser(String s) {

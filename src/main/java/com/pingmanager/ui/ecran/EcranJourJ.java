@@ -120,9 +120,20 @@ final class EcranJourJ {
      */
     private void afficherListe() {
         tournoi = contexte.chargerTournoi(fichier);
+        // B019 : numéros de portable effacés dès le lendemain du dernier jour.
+        if (contexte.convocationsSms().effacerSiTermine(tournoi, java.time.LocalDateTime.now()) > 0) {
+            enregistrer();
+        }
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
-                this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau);
+                this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
+                .avecSms(contexte.convocationsSms(), this::afficherSms);
         racine.setCenter(principal.build());
+    }
+
+    /** Convocations par SMS (B019) : réglages, numéros consentis, journal ; retour à l'écran principal. */
+    private void afficherSms() {
+        racine.setCenter(new EcranConvocationsSms(tournoi, contexte.convocationsSms(), contexte.smsSimule(),
+                this::enregistrer, this::afficherListe, Horloge.systeme()).build());
     }
 
     /** Ouvre les poules ou l'arbre d'un tableau désigné par son nom (depuis « pourquoi »). */
