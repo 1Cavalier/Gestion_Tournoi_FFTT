@@ -202,12 +202,18 @@ public final class TournoiMapper {
         if (t.getModeAnnonce() != null) {
             o.set("modeAnnonce", ecrireEnum(t.getModeAnnonce()));
         }
+        // B016 : feuille de match imprimée à l'envoi ; écrit seulement si activé.
+        if (t.imprimerFeuilleALEnvoi()) {
+            o.set("feuilleALEnvoi", true);
+        }
         // B025 : stratégie d'ordonnancement, écrite seulement si le club l'a choisie.
         if (t.strategieOrdonnancementChoisie()) {
             o.set("strategieOrdonnancement", ecrireEnum(t.getStrategieOrdonnancement()));
         }
         // B024 : salles et plans, écrits seulement si le club a préparé un plan.
         PlanSalleMapper.ecrire(t, o);
+        // B019 : convocations par SMS, écrites seulement si le club s'en sert.
+        ConvocationsSmsMapper.ecrire(t, o);
 
         // Tableaux.
         Json tableaux = Json.tableau();
@@ -619,8 +625,10 @@ public final class TournoiMapper {
         }
         t.setTablesEchauffement(Math.max(0, o.getInt("tablesEchauffement", 0)));
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
+        t.setImprimerFeuilleALEnvoi(o.getBoolean("feuilleALEnvoi", false));
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
         PlanSalleMapper.lire(o, t);
+        ConvocationsSmsMapper.lire(o, t);
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
             for (Json l : o.get("lotsTables").elements()) {

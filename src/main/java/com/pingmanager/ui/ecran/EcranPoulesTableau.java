@@ -17,6 +17,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -54,6 +55,7 @@ final class EcranPoulesTableau {
     private int pouleChoisie;
     private Match enEdition;
     private String messageSucces;
+    private String messageErreur;
 
     EcranPoulesTableau(Tournoi tournoi, Tableau tableau, Runnable enregistrer, Runnable onRetour,
                        boolean apresTirage) {
@@ -229,12 +231,20 @@ final class EcranPoulesTableau {
         if (p.estTerminee()) {
             entete.getChildren().add(Ui.pastille("Terminée", Ui.ETAT_OK));
         }
+        // B016 : feuilles imprimées de la poule (feuille de poule + rencontre, feuilles de match).
+        Button feuillePoule = Ui.boutonSecondaire("Imprimer la feuille de poule");
+        feuillePoule.setTooltip(new Tooltip("Joueurs, ordre des parties (I.301), grille des résultats et classement "
+                + "à remplir, puis la feuille de rencontre (une grille de manches par partie)."));
+        feuillePoule.setOnAction(e -> imprimer(ImpressionJourJ.feuillePoule(tournoi, tableau, p)));
+        Button feuillesMatch = Ui.boutonLien("Feuilles de match");
+        feuillesMatch.setTooltip(new Tooltip("Une feuille par partie, deux par page, dans l'ordre officiel."));
+        feuillesMatch.setOnAction(e -> imprimer(ImpressionJourJ.feuillesMatchsPoule(tournoi, tableau, p)));
+        entete.getChildren().addAll(Ui.espace(), feuillesMatch, feuillePoule);
         VBox carte = Ui.carte(entete);
-        if (messageSucces != null) {
-            Label ok = Ui.message();
-            Ui.succes(ok, messageSucces);
-            carte.getChildren().add(ok);
+        if (messageSucces != null || messageErreur != null) {
+            carte.getChildren().add(Ui.message(messageErreur, messageSucces));
             messageSucces = null;
+            messageErreur = null;
         }
         carte.getChildren().addAll(classement(p), parties(p));
         return carte;
@@ -318,6 +328,12 @@ final class EcranPoulesTableau {
             });
             actions.getChildren().add(b);
         }
+        if (!m.estBye()) {
+            Button feuille = Ui.boutonLien("Feuille");
+            feuille.setTooltip(new Tooltip("Imprimer la feuille de match de cette partie."));
+            feuille.setOnAction(e -> imprimer(ImpressionJourJ.feuilleMatch(tournoi, m)));
+            actions.getChildren().add(feuille);
+        }
         HBox ligne = Ui.ligne(12, largeur(badgeTour, 64), centre, actions);
         VBox bloc = new VBox(8, ligne);
         bloc.getStyleClass().add("ligne-match");
@@ -349,6 +365,17 @@ final class EcranPoulesTableau {
         messageSucces = m.getStatut() == StatutMatch.TERMINE
                 ? "Résultat enregistré : " + PresentationJourJ.resultat(m) + "."
                 : "Résultat effacé : le match est de nouveau à jouer.";
+        afficher();
+    }
+
+    /** Enregistre et ouvre la feuille, puis affiche le résultat dans la carte de la poule. */
+    private void imprimer(ImpressionJourJ.Preparation preparation) {
+        ImpressionJourJ.Message m = ImpressionJourJ.imprimer(preparation, false);
+        if (m.erreur()) {
+            messageErreur = m.texte();
+        } else {
+            messageSucces = m.texte();
+        }
         afficher();
     }
 

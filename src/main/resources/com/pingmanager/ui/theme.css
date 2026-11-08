@@ -3779,4 +3779,74 @@
 .suivi-telephone-affiche-aide {
     -fx-font-size: 16px;
     -fx-text-fill: -texte-doux;
+
+/* === Convocations par SMS (B019) : saisie du portable, journal, SMS simulés === */
+
+.sms-saisie {
+    -fx-padding: 4 0 4 0;
+}
+
+.sms-etat-numero {
+    -fx-text-fill: -texte-doux;
+    -fx-wrap-text: true;
+}
+
+/* Case d'accord explicite : encadrée pour qu'on la lise avant de cocher. */
+.sms-consentement {
+    -fx-padding: 10 12 10 12;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 8;
+}
+
+.sms-consentement:selected {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}
+
+.sms-alerte-limite {
+    -fx-padding: 8 12 8 12;
+    -fx-background-color: -attention-doux;
+    -fx-text-fill: -attention-texte;
+    -fx-background-radius: 8;
+}
+
+.sms-confirmation-effacement {
+    -fx-text-fill: -erreur-texte;
+}
+
+.bouton-secondaire.bouton-danger-sms {
+    -fx-text-fill: -erreur;
+    -fx-border-color: -erreur;
+}
+
+.sms-journal-ligne {
+    -fx-padding: 10 0 10 0;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.sms-journal-ligne.sms-journal-premiere {
+    -fx-border-width: 0;
+}
+
+.sms-journal-entete {
+    -fx-padding: 0;
+}
+
+.sms-texte {
+    -fx-text-fill: -texte-doux;
+    -fx-padding: 0 0 0 2;
+}
+
+/* SMS simulé : bulle de messagerie, fond bleu très doux. */
+.sms-bulle {
+    -fx-padding: 10 14 10 14;
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 12 12 12 4;
+}
+
+.sms-bulle-texte {
+    -fx-text-fill: -texte;
 }

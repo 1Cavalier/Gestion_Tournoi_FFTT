@@ -2,6 +2,7 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.MotifsInscription;
 import com.pingmanager.core.RemplissageTableaux;
+import com.pingmanager.core.ResultatContactSms;
 import com.pingmanager.core.ResultatInscriptionTournoi;
 import com.pingmanager.core.ResultatInscriptionTournoi.Motif;
 import com.pingmanager.core.ServiceInscriptionEnLigne;
@@ -30,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -58,6 +60,11 @@ final class AssistantInscription {
 
     private final Set<Tableau> selection = new LinkedHashSet<>();
     private ServiceInscriptionEnLigne.Bilan bilanFinal;
+    /** Portable facultatif pour les convocations par SMS (B019), gardé entre les étapes. */
+    private final BlocSaisieSms saisieSms = new BlocSaisieSms(PresentationSaisieSms.CONSENTEMENT_JOUEUR,
+            PresentationSaisieSms.AIDE_JOUEUR);
+    private ResultatContactSms resultatSms;
+    private String echecSms;
 
     AssistantInscription(ContexteApplication contexte, Path fichier, Tournoi tournoi, Runnable onFiche, Runnable onListe) {
         this.contexte = contexte;
@@ -280,12 +287,21 @@ final class AssistantInscription {
                     + "que si vous êtes repêché ; vous les réglerez alors au pointage."));
         }
 
+        saisieSms.montrerEtat(tournoi, contexte.ficheLicenceLiee().map(FicheLicence::getNumeroLicence).orElse(null));
+        VBox carteSms = Ui.carte(PresentationSaisieSms.TITRE, saisieSms.noeud());
+        carteSms.getStyleClass().add("carte-sms-inscription");
+
         CheckBox accepte = new CheckBox("J'ai lu le règlement du tournoi et je l'accepte.");
         Label message = Ui.message();
         Button confirmer = Ui.boutonPrimaire("Confirmer l'inscription");
         confirmer.setDisable(true);
         accepte.selectedProperty().addListener((o, a, v) -> confirmer.setDisable(!v));
         confirmer.setOnAction(e -> {
+            Optional<String> refusSms = saisieSms.refus();
+            if (refusSms.isPresent()) {
+                Ui.erreur(message, refusSms.get() + " Ou laissez le numéro vide.");
+                return;
+            }
             ServiceInscriptionEnLigne.Bilan res = contexte.inscrireEnLigne(fichier, tournoi, selection);
             if (!res.estValide()) {
                 Ui.erreur(message, res.refusGlobal() != null ? res.refusGlobal()
@@ -293,13 +309,36 @@ final class AssistantInscription {
                 return;
             }
             bilanFinal = res;
+            enregistrerPortable(res.joueur());
             etapePaiement();
         });
         Button modifier = Ui.boutonSecondaire("← Modifier mes tableaux");
         modifier.setOnAction(e -> etapeTableaux());
         HBox pied = Ui.ligne(12, accepte, Ui.espace(), modifier, confirmer);
         pied.getStyleClass().add("pied-assistant");
-        racine.setCenter(Ui.defilant(page(1, recap, pied, message)));
+        racine.setCenter(Ui.defilant(page(1, recap, carteSms, pied, message)));
+    }
+
+    /** Après l'inscription : garde le portable saisi (avec l'accord coché) et enregistre aussitôt le tournoi. */
+    private void enregistrerPortable(Joueur j) {
+        resultatSms = null;
+        echecSms = null;
+        if (saisieSms.estVide() || j == null) {
+            return;
+        }
+        resultatSms = contexte.convocationsSms().enregistrerContact(tournoi, j.getNumeroLicence(),
+                saisieSms.saisie(), saisieSms.consenti(), java.time.LocalDateTime.now());
+        if (resultatSms.estReussi()) {
+            try {
+                contexte.enregistrerTournoi(tournoi, fichier);
+            } catch (RuntimeException ex) {
+                // Le numéro reste en mémoire mais n'est pas sur disque : on le retire et on le dit.
+                contexte.convocationsSms().retirerContact(tournoi, j.getNumeroLicence());
+                resultatSms = null;
+                echecSms = "Convocations par SMS : le numéro n'a pas pu être enregistré (" + ex.getMessage()
+                        + "). Le club pourra l'ajouter.";
+            }
+        }
     }
 
     private static Label montant(double v) {
@@ -398,7 +437,13 @@ final class AssistantInscription {
                         + "Montant à régler : " + Formats.montant(bilanFinal.montantInscrit())
                         + (bilanFinal.montantSiRepeche() > 0 ? " (les tableaux en liste d'attente ne sont pas dus)" : "")
                         + ". Retrouvez cette inscription dans « Mes tournois »."),
-                lignes, Ui.ligne(12, fiche, tournois));
+                lignes);
+        Optional.ofNullable(echecSms).or(() -> PresentationSaisieSms.apresInscription(resultatSms)).ifPresent(t -> {
+            Label l = Ui.discret(t);
+            l.setWrapText(true);
+            c.getChildren().add(l);
+        });
+        c.getChildren().add(Ui.ligne(12, fiche, tournois));
         racine.setCenter(Ui.defilant(page(3, c)));
     }
 

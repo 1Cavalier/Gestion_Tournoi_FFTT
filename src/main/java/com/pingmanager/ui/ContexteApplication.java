@@ -32,6 +32,7 @@ import com.pingmanager.ui.infra.TournoiDemoJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
 import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
+import com.pingmanager.ui.infra.EnvoiSmsSimule;
 import com.pingmanager.ui.infra.GenerateurCodeAleatoire;
 import com.pingmanager.ui.infra.HachageMotDePassePBKDF2;
 
@@ -76,8 +77,15 @@ public final class ContexteApplication {
 
     // Ports concrets.
     private final EmailConsole email;
+<<<<<<< HEAD
     /** B021 : suivi sur téléphone (serveur web local en lecture seule), arrêté par {@link #fermer()}. */
     private final DiffusionSuivi diffusionSuivi = new DiffusionSuivi();
+=======
+    /** B019 : SMS simulés (aucun envoi réel tant que le prestataire n'est pas branché). */
+    private final EnvoiSmsSimule smsSimule = new EnvoiSmsSimule();
+    private final com.pingmanager.core.ServiceConvocationsSms convocationsSms =
+            new com.pingmanager.core.ServiceConvocationsSms(smsSimule);
+>>>>>>> origin/main
 
     // Services métier.
     private final ServiceAuthentification authentification;
@@ -644,6 +652,24 @@ public final class ContexteApplication {
         cacheLectures.remove(fichier);
     }
 
+    /**
+     * B019 : à l'ouverture d'un tournoi, efface les numéros de portable s'il est
+     * terminé et enregistre le fichier si quelque chose a été effacé.
+     *
+     * @return le nombre de numéros effacés
+     */
+    public int effacerNumerosSmsSiTermine(Path fichier, java.time.LocalDateTime maintenant) {
+        if (lireTournoi(fichier).getConvocationsSms().getContacts().isEmpty()) {
+            return 0;
+        }
+        Tournoi tournoi = chargerTournoi(fichier);
+        int effaces = convocationsSms.effacerSiTermine(tournoi, maintenant);
+        if (effaces > 0) {
+            enregistrerTournoi(tournoi, fichier);
+        }
+        return effaces;
+    }
+
     private Path cibleBrouillon(Tournoi tournoi) {
         String base = (tournoi.getNom() == null || tournoi.getNom().isBlank())
                 ? "tournoi"
@@ -842,6 +868,16 @@ public final class ContexteApplication {
     /** @return le dernier email « envoyé » (démo), pour l'afficher à l'écran. */
     public EmailConsole email() {
         return email;
+    }
+
+    /** Convocations par SMS (B019), branchées sur la simulation. */
+    public com.pingmanager.core.ServiceConvocationsSms convocationsSms() {
+        return convocationsSms;
+    }
+
+    /** SMS simulés, pour les montrer à l'écran (B019). */
+    public EnvoiSmsSimule smsSimule() {
+        return smsSimule;
     }
 
     public String memoDemo() {

@@ -11,6 +11,8 @@ Légende : ✅ implémenté et testé — ⚠️ partiel — ❌ non traité (pr
 
 ## Déroulé sportif (articles I.30x)
 
+> Feuilles imprimées (B016) : I.301 et I.303 conformes ; écart 2.12.1 (grille 5 manches fixe alors que 7 admis), voir journal B016.
+
 ### I.301 — Ordre des parties dans une poule
 Ordres officiels respectés pour toutes les tailles de poule (3, 4, 5, 6) et selon
 le nombre de qualifiés (1, 2 ou 3). Exemples vérifiés : poule de 3 avec 1 ou 3

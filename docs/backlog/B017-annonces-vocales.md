@@ -4,10 +4,10 @@ titre: Annonces vocales automatiques des matchs
 type: jour-j
 priorite: P2
 taille: L
-statut: a-faire
+statut: en-cours
 depend-de: []
 fichiers: [core (annonces), ui/infra (synthèse vocale), ui/ecran/EcranSalle, ui/ecran/EcranJourJ]
-branche:
+branche: tache/B017-annonces-vocales
 pr:
 ---
 
