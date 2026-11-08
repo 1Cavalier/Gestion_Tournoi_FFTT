@@ -182,7 +182,27 @@ public final class VuePhaseFinale {
         titres.getChildren().addAll(Ui.titre("Tableau final — " + tableau.getNom()), Ui.discret(sous));
         String etat = diagnostic.getEtat() == DiagnosticPhaseFinale.Etat.TERMINEE ? Ui.ETAT_OK
                 : diagnostic.estConstruite() || diagnostic.peutConstruire() ? Ui.ETAT_RECOMMANDE : Ui.ETAT_OPTIONNEL;
-        return Ui.enteteAvecActions(titres, Ui.pastille(PresentationPhaseFinale.titreEtat(diagnostic), etat));
+        Node pastille = Ui.pastille(PresentationPhaseFinale.titreEtat(diagnostic), etat);
+        if (tournoi == null || !diagnostic.estConstruite()) {
+            return Ui.enteteAvecActions(titres, pastille);
+        }
+        // B016 : arbre imprimable pour l'affichage en salle, résultats déjà saisis compris.
+        Button imprimer = Ui.boutonSecondaire("Imprimer le tableau final");
+        imprimer.setTooltip(new javafx.scene.control.Tooltip("PDF de l'arbre (A4 paysage, A3 au-delà de 16 places) "
+                + "avec les résultats déjà saisis, à afficher en salle."));
+        imprimer.setOnAction(e -> imprimer(ImpressionJourJ.arbre(tournoi, tableau)));
+        return Ui.enteteAvecActions(titres, Ui.ligne(10, imprimer, pastille));
+    }
+
+    /** Enregistre et ouvre la feuille, puis affiche le résultat en haut de la page. */
+    private void imprimer(ImpressionJourJ.Preparation preparation) {
+        ImpressionJourJ.Message m = ImpressionJourJ.imprimer(preparation, false);
+        if (m.erreur()) {
+            messageErreur = m.texte();
+        } else {
+            messageSucces = m.texte();
+        }
+        rafraichir();
     }
 
     static Node rappel(String texte) {
@@ -480,6 +500,11 @@ public final class VuePhaseFinale {
             messageSucces = PresentationPhaseFinale.messageResultat(joue, tableau.getPhaseFinale());
             enregistrerPuisRafraichir();
         });
+        if (tournoi != null && PresentationPhaseFinale.estSaisissable(m)) {
+            Button feuille = Ui.boutonLien("Imprimer la feuille de match");
+            feuille.setOnAction(e -> imprimer(ImpressionJourJ.feuilleMatch(tournoi, m)));
+            panneau.getChildren().add(feuille);
+        }
         ScrollPane defilant = Ui.defilant(panneau);
         defilant.getStyleClass().add("pf-cote");
         BorderPane.setMargin(defilant, new Insets(24, 24, 24, 0));

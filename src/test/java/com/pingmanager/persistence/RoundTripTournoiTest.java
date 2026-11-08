@@ -497,6 +497,21 @@ class RoundTripTournoiTest {
         assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce());
     }
 
+    /** B016 : l'impression de la feuille de match à l'envoi est mémorisée ; ancien fichier relu sans. */
+    @Test
+    void feuille_a_l_envoi_memorisee_et_ancien_fichier_sans_option() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("feuille_envoi", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        assertFalse(Files.readString(fichier).contains("feuilleALEnvoi"), "rien d'écrit tant que l'option est coupée");
+        assertFalse(DepotTournoi.charger(fichier).getTournoi().imprimerFeuilleALEnvoi());
+
+        original.setImprimerFeuilleALEnvoi(true);
+        DepotTournoi.sauvegarder(original, fichier);
+        assertTrue(Files.readString(fichier).contains("\"feuilleALEnvoi\""));
+        assertTrue(DepotTournoi.charger(fichier).getTournoi().imprimerFeuilleALEnvoi());
+    }
+
     /** Jour J (B037) : chaque mode survit, et une valeur illisible redemande au lieu de planter. */
     @Test
     void mode_d_annonce_tous_les_modes_et_valeurs_degenerees() throws Exception {
