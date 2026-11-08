@@ -99,6 +99,7 @@ public final class LecteurClubsCsv {
             c.setResponsablePrenom(t.valeur(l, "Prénom du responsable"));
             clubs.put(numero, c);
         }
+        t.signalerDepassement(anomalies);
         return new ResultatImportClubs(new ArrayList<>(clubs.values()), anomalies);
     }
 

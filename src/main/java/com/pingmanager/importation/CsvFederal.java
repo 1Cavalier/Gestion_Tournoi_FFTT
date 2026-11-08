@@ -48,11 +48,22 @@ final class CsvFederal {
         final List<List<String>> lignes;
         /** Numéro de ligne dans le fichier (1 = en-têtes) de chaque ligne de données. */
         final List<Integer> numeros;
+        /** Limite de lignes atteinte, suite du fichier non lue ; null sinon. */
+        final AnomalieImport depassement;
 
-        Table(Map<String, Integer> colonnes, List<List<String>> lignes, List<Integer> numeros) {
+        Table(Map<String, Integer> colonnes, List<List<String>> lignes, List<Integer> numeros,
+              AnomalieImport depassement) {
             this.colonnes = colonnes;
             this.lignes = lignes;
             this.numeros = numeros;
+            this.depassement = depassement;
+        }
+
+        /** Ajoute aux anomalies le dépassement de {@link #LIGNES_MAX}, s'il y en a un. */
+        void signalerDepassement(List<AnomalieImport> anomalies) {
+            if (depassement != null) {
+                anomalies.add(depassement);
+            }
         }
 
         boolean a(String entete) {
@@ -110,13 +121,21 @@ final class CsvFederal {
         }
         List<List<String>> lignes = new ArrayList<>();
         List<Integer> numeros = new ArrayList<>();
-        for (int l = i + 1; l < brut.size() && lignes.size() < LIGNES_MAX; l++) {
+        int l = i + 1;
+        for (; l < brut.size() && lignes.size() < LIGNES_MAX; l++) {
             if (!estVide(brut.get(l))) {
                 lignes.add(brut.get(l));
                 numeros.add(l + 1);
             }
         }
-        return new Table(colonnes, lignes, numeros);
+        // Le lecteur de tableur s'arrête lui aussi à MAX_LIGNES : l'atteindre veut dire que la
+        // suite du fichier, s'il y en a une, n'a pas été lue. On le signale plutôt que de se taire.
+        AnomalieImport depassement = null;
+        if (l < brut.size() || brut.size() >= LecteurTableur.MAX_LIGNES) {
+            depassement = new AnomalieImport(l + 1, "limite de " + LIGNES_MAX
+                    + " lignes atteinte : les lignes à partir de celle-ci n'ont pas été lues", false);
+        }
+        return new Table(colonnes, lignes, numeros, depassement);
     }
 
     /** @return true si une cellule de la ligne dépasse {@link #LONGUEUR_MAX_CELLULE}. */
@@ -138,7 +157,11 @@ final class CsvFederal {
         return true;
     }
 
-    /** Retire BOM, caractères de contrôle et espaces de bord. */
+    /**
+     * Retire BOM, caractères de contrôle et espaces de bord. Un saut de ligne
+     * interne à la cellule (suite de \r et \n) devient une seule espace, pour
+     * ne pas coller deux mots (« Saint\nMaur » → « Saint Maur »).
+     */
     static String nettoyer(String s) {
         if (s == null) {
             return "";
@@ -146,6 +169,12 @@ final class CsvFederal {
         StringBuilder sb = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
+            if (c == '\r' || c == '\n') {
+                if (sb.length() > 0 && sb.charAt(sb.length() - 1) != ' ') {
+                    sb.append(' ');
+                }
+                continue;
+            }
             if (c == '﻿' || (Character.isISOControl(c))) {
                 continue;
             }
@@ -196,8 +225,13 @@ final class CsvFederal {
     /** Échappe une cellule : neutralise les formules, puis met entre guillemets si besoin. */
     static String cellule(String v) {
         String s = v == null ? "" : v;
-        if (!s.isEmpty()) {
-            char c = s.charAt(0);
+        // Premier caractère après les espaces : « =1+1 » précédé d'espaces reste une formule pour un tableur.
+        int d = 0;
+        while (d < s.length() && s.charAt(d) == ' ') {
+            d++;
+        }
+        if (d < s.length()) {
+            char c = s.charAt(d);
             if (c == '=' || c == '+' || c == '-' || c == '@' || c == '\t' || c == '\r') {
                 s = "'" + s;
             }

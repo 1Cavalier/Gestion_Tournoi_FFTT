@@ -63,6 +63,7 @@ public final class LecteurLicencesCsv {
         Map<String, FicheLicence> fiches = new LinkedHashMap<>();
         Map<String, SituationCertificat> certificats = new HashMap<>();
         List<AnomalieImport> anomalies = new ArrayList<>();
+        java.util.Set<String> vues = new java.util.HashSet<>();
         LocalDate releve = null;
         for (int i = 0; i < t.lignes.size(); i++) {
             List<String> l = t.lignes.get(i);
@@ -83,7 +84,8 @@ public final class LecteurLicencesCsv {
                 anomalies.add(new AnomalieImport(n, "numéro de licence invalide : « " + licence + " »", true));
                 continue;
             }
-            if (fiches.containsKey(licence)) {
+            // « ab1 » et « AB1 » : même licence (la saisie d'origine est conservée).
+            if (vues.contains(licence.toUpperCase(java.util.Locale.ROOT))) {
                 anomalies.add(new AnomalieImport(n, "licence " + licence + " en double", true));
                 continue;
             }
@@ -138,8 +140,10 @@ public final class LecteurLicencesCsv {
                 }
             }
             certificats.put(licence, certificat(t.valeur(l, "Certificat"), n, anomalies));
+            vues.add(licence.toUpperCase(java.util.Locale.ROOT));
             fiches.put(licence, b.build());
         }
+        t.signalerDepassement(anomalies);
         return new ResultatImportLicences(new ArrayList<>(fiches.values()), anomalies, certificats, releve);
     }
 
