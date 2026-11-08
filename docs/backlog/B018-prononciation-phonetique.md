@@ -35,4 +35,8 @@ Aucune pour l'instant.
 
 ## Passations
 
+- 2026-11-08 `developpeur` : registre (cœur + JSON applicatif rétrocompatible), validation API, résolveur branché au démarrage, profil « Appel micro » (saisie, Écouter, aide), écran jour J « Prononciation des noms… » (menu Voix). 3 commits, 1388 tests verts (tests.sh).
+- Points d'attention : `AnnonceVocale` a un 5e composant `licences` (constructeur à 4 arguments gardé) ; `TexteAnnonceVocale.nomPropre` devenu public ; constante `PresentationProfil.APPEL_A_VENIR` retirée (inutilisée).
+- Non vérifié : voix réelle (Windows) et écran jour J à l'œil ; profil capturé sous Xvfb (correct). 3 questions dans le journal `docs/journal/2026-11-08-tache-B018-prononciation.md`.
+
 ## Résultat
