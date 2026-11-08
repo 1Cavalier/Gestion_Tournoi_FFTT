@@ -76,4 +76,33 @@ class AnnoncesVocalesPersistanceTest {
                 "\"annoncesVocales\": 7"));
         assertTrue(DepotTournoi.charger(fichier).getTournoi().getAnnoncesVocales().estVierge());
     }
+
+    @Test
+    void ancien_fichier_sans_champ_relu_puis_reecrit_sans_le_champ() throws Exception {
+        Tournoi t = tournoi();
+        t.getAnnoncesVocales().setRappelMinutes(10);
+        Path fichier = Files.createTempFile("voix_ancien", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, fichier);
+        String json = Files.readString(fichier).replaceAll(",?\\s*\"annoncesVocales\"\\s*:\\s*\\{[^{}]*\\}", "");
+        assertFalse(json.contains("annoncesVocales"));
+        Files.writeString(fichier, json);
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+        assertTrue(relu.getAnnoncesVocales().estVierge());
+        Path copie = Files.createTempFile("voix_ancien2", DepotTournoi.EXTENSION);
+        assertTrue(allerRetour(relu, copie).getAnnoncesVocales().estVierge());
+    }
+
+    @Test
+    void reglages_remis_a_zero_apres_modification_reviennent_vierges() throws Exception {
+        Tournoi t = tournoi();
+        t.getAnnoncesVocales().setVoix("  ");
+        t.getAnnoncesVocales().setDebit(0);
+        t.getAnnoncesVocales().setDiffusions(2);
+        Path fichier = Files.createTempFile("voix_zero", DepotTournoi.EXTENSION);
+        assertTrue(allerRetour(t, fichier).getAnnoncesVocales().estVierge());
+        t.getAnnoncesVocales().setVoix("Voix \"spéciale\" <&>");
+        t.getAnnoncesVocales().setDebit(-10);
+        assertEquals("Voix \"spéciale\" <&>", allerRetour(t, fichier).getAnnoncesVocales().getVoix());
+        assertEquals(-10, allerRetour(t, fichier).getAnnoncesVocales().getDebit());
+    }
 }
