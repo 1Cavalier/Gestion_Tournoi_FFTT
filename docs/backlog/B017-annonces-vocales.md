@@ -4,11 +4,11 @@ titre: Annonces vocales automatiques des matchs
 type: jour-j
 priorite: P2
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [core (annonces), ui/infra (synthèse vocale), ui/ecran/EcranSalle, ui/ecran/EcranJourJ]
 branche: tache/B017-annonces-vocales
-pr:
+pr: 70
 ---
 
 ## Ce qu'il faut faire
@@ -34,4 +34,11 @@ Seul Windows est testable chez Quentin ; la session cloud ne peut pas écouter :
 
 ## Passations
 
+- developpeur-jour-j (2026-11-08) : cœur (`ServiceAnnoncesVocales`, `TexteAnnonceVocale`, `GenerateurSsml`, ports `SyntheseVocale` / `ResolveurPrononciation`), réglages persistés (`annoncesVocales`), `ui.infra.SyntheseVocaleWindows` + `DiffuseurAnnonces`, salle (menu « Voix », « Annoncer », « Joueurs à la table »).
+- Tests 1263 → 1299 via `outils-dev/tests.sh`, 0 échec ; captures `run.sh <dossier> b017` regardées (en-tête passé en FlowPane, lien de rappel sur sa ligne). Son non vérifiable en cloud.
+- À vérifier : relecture sécurité de `SyntheseVocaleWindows` (aucun nom en ligne de commande, test dédié) ; questions Quentin dans le journal (libellé « Appel vocal », rappel unique).
+
 ## Résultat
+- Fait : annonces vocales dans la salle (voir le journal `docs/journal/2026-11-08-tache-B017-annonces-vocales.md`). Son non vérifiable en cloud : validation sous Windows par Quentin. 1320 tests, 0 échec.
+- verificateur-modele (2026-11-08) : +21 tests (`ServiceAnnoncesVocalesLimitesTest`, `GenerateurSsmlLimitesTest`, `SyntheseVocaleWindowsLimitesTest`, 2 dans `AnnoncesVocalesPersistanceTest`) ; SSML, texte, persistance, `SyntheseVocaleWindows` (aucune donnée de joueur, fichier supprimé dans tous les cas) conformes.
+- Défaut à corriger : `ServiceAnnoncesVocales.diffuserSuivante` (l.~226) reprogramme un rappel même si `oublier(match)` a été appelé pendant la diction (test `rencontre_oubliee_pendant_la_diction_ne_programme_pas_de_rappel`, rouge volontairement) ; mineur : `SyntheseVocaleWindows.dire` met `powershellAbsent` sur toute IOException après création du fichier (écriture disque comprise).

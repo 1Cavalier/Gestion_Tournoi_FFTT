@@ -80,6 +80,10 @@ public final class ContexteApplication {
     private final EnvoiSmsSimule smsSimule = new EnvoiSmsSimule();
     private final com.pingmanager.core.ServiceConvocationsSms convocationsSms =
             new com.pingmanager.core.ServiceConvocationsSms(smsSimule);
+    /** B017 : annonces vocales dans la salle (voix de Windows, sinon annonce affichée). */
+    private final com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales =
+            new com.pingmanager.ui.infra.DiffuseurAnnonces(new com.pingmanager.core.ServiceAnnoncesVocales(
+                    Horloge.systeme(), new com.pingmanager.ui.infra.SyntheseVocaleWindows()));
 
     // Services métier.
     private final ServiceAuthentification authentification;
@@ -867,6 +871,11 @@ public final class ContexteApplication {
     /** Convocations par SMS (B019), branchées sur la simulation. */
     public com.pingmanager.core.ServiceConvocationsSms convocationsSms() {
         return convocationsSms;
+    }
+
+    /** Annonces vocales de la salle (B017), une file pour toute l'application. */
+    public com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales() {
+        return annoncesVocales;
     }
 
     /** SMS simulés, pour les montrer à l'écran (B019). */

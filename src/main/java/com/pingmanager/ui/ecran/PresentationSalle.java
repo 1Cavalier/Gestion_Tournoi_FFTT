@@ -2,12 +2,15 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.AnnonceRencontre;
 import com.pingmanager.core.NiveauPriorite;
+import com.pingmanager.core.ResultatAnnonceVocale;
+import com.pingmanager.core.ResultatDemandeAnnonce;
 import com.pingmanager.core.ResultatPropositionSalle;
 import com.pingmanager.core.TableauDeBordSalle;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.ModeAnnonce;
 import com.pingmanager.model.Poule;
+import com.pingmanager.model.ReglagesAnnoncesVocales;
 import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.StatutTournoi;
@@ -505,9 +508,68 @@ final class PresentationSalle {
      * « SMS et appel vocal (envoi automatique à venir) · Table 4 : … ».
      */
     static String texteAnnonce(AnnonceRencontre a) {
-        String mode = a.aEnvoyer()
-                ? a.mode().getLibelle() + " (envoi automatique à venir : annoncez au micro)"
-                : "À annoncer au micro";
+        String mode;
+        if (a.mode().avecAppel()) {
+            mode = a.mode().getLibelle() + " (dit par l'ordinateur si l'annonce automatique est activée, "
+                    + "sinon « Annoncer » sur la table)";
+        } else if (a.aEnvoyer()) {
+            mode = a.mode().getLibelle() + " (envoi automatique à venir : annoncez au micro)";
+        } else {
+            mode = "À annoncer au micro";
+        }
         return mode + " · " + a.texte();
+    }
+
+    // ------------------------------------------------------------------
+    // Annonces vocales (B017)
+    // ------------------------------------------------------------------
+
+    /** Libellé du menu des annonces vocales : « Voix : auto », « Voix : à la demande », « Voix : indisponible ». */
+    static String libelleVoix(ReglagesAnnoncesVocales r, boolean disponible) {
+        if (!disponible) {
+            return "Voix : indisponible";
+        }
+        return r.isAnnonceAutomatique() ? "Voix : auto" : "Voix : à la demande";
+    }
+
+    /** « Dire 1 fois », « Dire 2 fois ». */
+    static String libelleDiffusions(int n) {
+        return "Dire " + n + " fois";
+    }
+
+    /** « Pas de rappel », « Rappel après 5 min ». */
+    static String libelleRappel(int minutes) {
+        return minutes <= 0 ? "Pas de rappel" : "Rappel après " + minutes + " min";
+    }
+
+    /** Débit lisible : « Lent », « Normal », « Rapide ». */
+    static String libelleDebit(int debit) {
+        return debit < 0 ? "Lent" : debit > 0 ? "Rapide" : "Normal";
+    }
+
+    /** Message après « Annoncer » ou un lancement : mise en file, repli à l'écran, ou refus motivé. */
+    static String messageDemandeAnnonce(ResultatDemandeAnnonce r, boolean voixDisponible) {
+        if (!r.acceptee()) {
+            return r.motif();
+        }
+        String table = "table " + r.annonce().table();
+        if (!voixDisponible) {
+            return "Voix indisponible : annonce de la " + table + " affichée, à lire au micro.";
+        }
+        return r.position() <= 1 ? "Annonce de la " + table + " en cours."
+                : "Annonce de la " + table + " en file (" + (r.position() - 1) + " avant elle).";
+    }
+
+    /** Annonce non dite (repli silencieux), lisible de loin : « À lire au micro (motif) · texte ». */
+    static String texteRepli(ResultatAnnonceVocale r) {
+        return (r.annonce().rappel() ? "Rappel à lire au micro" : "À lire au micro")
+                + (r.motif().isEmpty() ? "" : " (" + r.motif() + ")") + " · " + r.annonce().texte();
+    }
+
+    /** Info-bulle du bouton « Joueurs à la table » : heure du rappel prévu. */
+    static String infoRappel(java.time.Instant echeance, java.time.ZoneId zone) {
+        java.time.LocalTime h = java.time.LocalTime.ofInstant(echeance, zone);
+        return String.format(Locale.FRENCH, "Rappel prévu à %02dh%02d si les joueurs ne sont pas à la table. "
+                + "Cliquer quand ils y sont : le rappel est annulé.", h.getHour(), h.getMinute());
     }
 }
