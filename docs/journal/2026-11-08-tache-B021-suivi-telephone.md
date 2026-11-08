@@ -93,7 +93,7 @@ l'écran du jour J, avec une affiche imprimable.
 
 ## Fusion
 
-À compléter par l'intégrateur.
+Conflits avec main (B019 SMS) dans `EcranJourJ.java` (`afficherListe` : appel `publierSuivi()` et effacement des numéros SMS gardés tous les deux), `theme.css` (sections B021 et B019 gardées, accolade rétablie) et `ContexteApplication.java` (champs `diffusionSuivi` et SMS gardés). `verifier-fusion.py` : OK. Tests après fusion : 1301, 0 échec.
 
 ## Chiffres
 

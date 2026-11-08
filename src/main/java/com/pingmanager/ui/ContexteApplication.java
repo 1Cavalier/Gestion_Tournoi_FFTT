@@ -77,15 +77,13 @@ public final class ContexteApplication {
 
     // Ports concrets.
     private final EmailConsole email;
-<<<<<<< HEAD
     /** B021 : suivi sur téléphone (serveur web local en lecture seule), arrêté par {@link #fermer()}. */
     private final DiffusionSuivi diffusionSuivi = new DiffusionSuivi();
-=======
+
     /** B019 : SMS simulés (aucun envoi réel tant que le prestataire n'est pas branché). */
     private final EnvoiSmsSimule smsSimule = new EnvoiSmsSimule();
     private final com.pingmanager.core.ServiceConvocationsSms convocationsSms =
             new com.pingmanager.core.ServiceConvocationsSms(smsSimule);
->>>>>>> origin/main
 
     // Services métier.
     private final ServiceAuthentification authentification;
