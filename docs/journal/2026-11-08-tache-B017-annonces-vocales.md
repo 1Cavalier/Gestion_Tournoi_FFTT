@@ -106,6 +106,11 @@ n'a été vérifiée que par des tests sans son. C'est à valider chez vous, sou
   `b017` (`outils-dev/run.sh <dossier> b017`) ; le mode `jourj` existant est
   cassé (« Suivre le tournoi » introuvable), non corrigé ici.
 
+## Passations
+
+- correcteur : corrigés « oublier pendant la diction programmait un rappel » (drapeau `enCoursOubliee`) et « erreur d'écriture du fichier SSML désactivait la voix » (seul l'échec du lancement marque PowerShell absent) ; 1320 tests, 0 échec.
+- correcteur : NON corrigé « A–B = B–A » : contredit l'attendu existant `identite_de_rencontre_par_licence…` (ligne 164, choix documenté) ; aucun article du règlement ne tranche → décision à prendre (intégrateur/Quentin) avant de changer le test.
+
 ## Fusion
 
 À faire par l'intégrateur.

@@ -56,6 +56,8 @@ public final class ServiceAnnoncesVocales {
     private final Deque<Demande> file = new ArrayDeque<>();
     private final List<Rappel> rappels = new ArrayList<>();
     private AnnonceVocale enCours;
+    /** La rencontre en cours de diction a été oubliée pendant la parole : pas de rappel. */
+    private boolean enCoursOubliee;
 
     /** Annonce à dire, avec les réglages du tournoi au moment de la demande. */
     private record Demande(AnnonceVocale annonce, ParametresVoix voix, int diffusions, int rappelMinutes) {
@@ -169,6 +171,9 @@ public final class ServiceAnnoncesVocales {
      * @return vrai si quelque chose a été retiré
      */
     public synchronized boolean oublier(Match match) {
+        if (enCours != null && memeRencontre(enCours.match(), match)) {
+            enCoursOubliee = true;
+        }
         boolean retire = retirerDeLaFile(match);
         return rappels.removeIf(x -> memeRencontre(x.demande().annonce().match(), match)) || retire;
     }
@@ -225,6 +230,7 @@ public final class ServiceAnnoncesVocales {
                     return Optional.empty();
                 }
                 enCours = d.annonce();
+                enCoursOubliee = false;
             }
             ResultatSynthese rs;
             try {
@@ -241,7 +247,7 @@ public final class ServiceAnnoncesVocales {
             }
             synchronized (this) {
                 enCours = null;
-                if (d.rappelMinutes() > 0 && !d.annonce().rappel()) {
+                if (d.rappelMinutes() > 0 && !d.annonce().rappel() && !enCoursOubliee) {
                     rappels.add(new Rappel(d, horloge.maintenant().plus(Duration.ofMinutes(d.rappelMinutes()))));
                 }
             }

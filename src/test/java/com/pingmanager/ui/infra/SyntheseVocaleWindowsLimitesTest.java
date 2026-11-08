@@ -71,6 +71,21 @@ class SyntheseVocaleWindowsLimitesTest {
     }
 
     @Test
+    void erreur_d_ecriture_du_fichier_echoue_cette_annonce_sans_condamner_la_voix() {
+        Lanceur l = new Lanceur();
+        SyntheseVocaleWindows s = new SyntheseVocaleWindows(true, l);
+        // Surrogate isolé : l'écriture UTF-8 du fichier lève une IOException d'encodage.
+        ResultatSynthese r = s.dire("<speak>\uD800</speak>", null);
+        assertFalse(r.dite());
+        assertTrue(l.fichiers.isEmpty(), "PowerShell ne doit pas être lancé");
+        assertTrue(s.estDisponible(), "une erreur d'écriture ne marque pas PowerShell absent");
+        assertTrue(s.dire("<speak/>", null).dite(), "l'annonce suivante est dite");
+        l.erreur = new IOException("introuvable");
+        assertFalse(s.dire("<speak/>", null).dite());
+        assertFalse(s.estDisponible(), "échec du lancement : PowerShell absent");
+    }
+
+    @Test
     void debit_et_voix_nuls_donnent_des_valeurs_sures_dans_l_environnement() {
         Map<String, String> env = SyntheseVocaleWindows.environnement(Path.of("/tmp/x.ssml"), null);
         assertEquals("", env.get(SyntheseVocaleWindows.VAR_VOIX));

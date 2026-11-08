@@ -105,6 +105,12 @@ public final class SyntheseVocaleWindows implements SyntheseVocale {
         try {
             fichier = Files.createTempFile("pingmanager-annonce-", ".ssml");
             Files.writeString(fichier, ssml, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            // Erreur d'écriture (disque plein, texte non encodable…) : échec de cette annonce seulement.
+            supprimer(fichier);
+            return ResultatSynthese.echec("annonce non écrite sur le disque (" + e.getMessage() + ")");
+        }
+        try {
             Sortie s = lanceur.lancer(commande(SCRIPT_DIRE), environnement(fichier, voix), LIMITE_ANNONCE);
             if (s.expire()) {
                 return ResultatSynthese.echec("la voix n'a pas fini à temps (" + LIMITE_ANNONCE.toSeconds()
@@ -115,15 +121,20 @@ public final class SyntheseVocaleWindows implements SyntheseVocale {
             }
             return ResultatSynthese.ok();
         } catch (IOException e) {
-            powershellAbsent = fichier != null;
+            // Seul l'échec du lancement du processus signifie « PowerShell absent ».
+            powershellAbsent = true;
             return ResultatSynthese.echec("PowerShell introuvable ou inutilisable (" + e.getMessage() + ")");
         } finally {
-            if (fichier != null) {
-                try {
-                    Files.deleteIfExists(fichier);
-                } catch (IOException ignore) {
-                    // Fichier temporaire : le système le nettoiera.
-                }
+            supprimer(fichier);
+        }
+    }
+
+    private static void supprimer(Path fichier) {
+        if (fichier != null) {
+            try {
+                Files.deleteIfExists(fichier);
+            } catch (IOException ignore) {
+                // Fichier temporaire : le système le nettoiera.
             }
         }
     }
