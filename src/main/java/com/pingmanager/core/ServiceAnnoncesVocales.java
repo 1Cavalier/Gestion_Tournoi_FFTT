@@ -157,7 +157,9 @@ public final class ServiceAnnoncesVocales {
                 || inconnu(b.getJoueurA()) || inconnu(b.getJoueurB())) {
             return false;
         }
-        return a.getJoueurA().equals(b.getJoueurA()) && a.getJoueurB().equals(b.getJoueurB());
+        // L'ordre des joueurs ne change pas la rencontre (A contre B = B contre A).
+        return (a.getJoueurA().equals(b.getJoueurA()) && a.getJoueurB().equals(b.getJoueurB()))
+                || (a.getJoueurA().equals(b.getJoueurB()) && a.getJoueurB().equals(b.getJoueurA()));
     }
 
     private static boolean inconnu(Joueur j) {

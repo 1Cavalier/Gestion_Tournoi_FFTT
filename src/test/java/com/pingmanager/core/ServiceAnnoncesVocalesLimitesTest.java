@@ -160,8 +160,8 @@ class ServiceAnnoncesVocalesLimitesTest {
         // Même licence, nom différent : c'est le même joueur (identité par licence).
         Joueur huguette = new Joueur("1", "AUTRE", "Nom", Sexe.HOMME, "Autre club", 1);
         assertTrue(ServiceAnnoncesVocales.memeRencontre(new Match(hugo, lea), new Match(huguette, lea)));
-        // Joueurs inversés : rencontre distincte pour le service (choix documenté par le test).
-        assertFalse(ServiceAnnoncesVocales.memeRencontre(new Match(hugo, lea), new Match(lea, hugo)));
+        // Joueurs inversés : c'est la même rencontre (A contre B = B contre A).
+        assertTrue(ServiceAnnoncesVocales.memeRencontre(new Match(hugo, lea), new Match(lea, hugo)));
         // Une moitié connue seulement, ou null : jamais « la même ».
         assertFalse(ServiceAnnoncesVocales.memeRencontre(new Match(hugo, Joueur.aDeterminer()),
                 new Match(hugo, Joueur.aDeterminer())));
