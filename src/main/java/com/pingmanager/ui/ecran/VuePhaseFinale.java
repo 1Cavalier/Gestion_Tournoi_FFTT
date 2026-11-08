@@ -269,7 +269,66 @@ public final class VuePhaseFinale {
             corps.getChildren().add(h);
         }
         corps.getChildren().add(Ui.aide(PresentationPhaseFinale.notePodium(podium)));
+        if (ServicePhaseFinale.estTerminee(elim)) {
+            corps.getChildren().add(blocExportResultats());
+        }
         return Ui.carte("Podium", corps);
+    }
+
+    /**
+     * B023 : export des résultats du tableau terminé (parties.csv, classements.csv),
+     * format provisoire en attendant le format fédéral (IX.107).
+     */
+    private Node blocExportResultats() {
+        Label message = Ui.discret("");
+        message.setWrapText(true);
+        Button exporter = Ui.boutonSecondaire("Exporter les résultats (CSV)…");
+        exporter.setOnAction(e -> {
+            com.pingmanager.core.ResultatPreparationExport prep =
+                    new com.pingmanager.core.ServiceResultatsFederaux().construire(tournoi, tableau);
+            if (!prep.estExportable()) {
+                message.setText(prep.getMotif().getLibelle());
+                return;
+            }
+            javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+            dc.setTitle("Dossier où enregistrer les résultats du tableau « " + tableau.getNom() + " »");
+            java.io.File dossier = dc.showDialog(racine.getScene() == null ? null : racine.getScene().getWindow());
+            if (dossier == null) {
+                return;
+            }
+            com.pingmanager.importation.ExportResultatsCsv export = new com.pingmanager.importation.ExportResultatsCsv();
+            String nom = tableau.getNom().replaceAll("[^\\p{L}\\p{N}]+", "-").replaceAll("^-|-$", "");
+            String prefixe = "resultats-" + (nom.isEmpty() ? "tableau" : nom) + "-";
+            StringBuilder sb = new StringBuilder();
+            try {
+                for (com.pingmanager.core.FichierExporte f : export.produire(prep.getResultats().orElseThrow())) {
+                    Path cible = cibleLibre(dossier.toPath(), prefixe + f.getNom());
+                    java.nio.file.Files.write(cible, f.getContenu());
+                    sb.append(sb.length() == 0 ? "Enregistré : " : ", ").append(cible.getFileName());
+                }
+                sb.append(" (").append(export.nomFormat()).append(").");
+                prep.getAvertissements().forEach(a -> sb.append("\n").append(a));
+                message.setText(sb.toString());
+            } catch (java.io.IOException ex) {
+                message.setText("Export impossible : " + ex.getMessage());
+            }
+        });
+        return new VBox(6, exporter, message);
+    }
+
+    /**
+     * Fichier à écrire sans écraser un export précédent : « nom.csv », sinon
+     * « nom-2.csv », « nom-3.csv »…
+     */
+    static Path cibleLibre(Path dossier, String nomFichier) {
+        Path cible = dossier.resolve(nomFichier);
+        int point = nomFichier.lastIndexOf('.');
+        String base = point < 0 ? nomFichier : nomFichier.substring(0, point);
+        String extension = point < 0 ? "" : nomFichier.substring(point);
+        for (int n = 2; java.nio.file.Files.exists(cible); n++) {
+            cible = dossier.resolve(base + "-" + n + extension);
+        }
+        return cible;
     }
 
     /** L'arbre des rencontres, dessiné aux coordonnées de {@link DispositionArbre}. */
