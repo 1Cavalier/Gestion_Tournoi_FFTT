@@ -2,7 +2,7 @@
 
 - Branche : `tache/B023-ports-fftt`
 - Agent : chaîne développeur, vérificateur-modèle, correcteur, relecteur-code, chef de projet, documentaliste, intégrateur
-- Pull Request : à compléter par l'`integrateur`
+- Pull Request : #65
 - Statut : voir la fin du fichier de tâche `docs/backlog/B023-ports-fftt-fichiers.md`
 
 ## Pour Quentin
@@ -56,7 +56,7 @@ de la FFTT dès qu'elle l'aura donné.
 
 ## Fusion
 
-À compléter par l'`integrateur` (voir fin de fichier).
+Fusion de main sans conflit ; verifier-fusion.py : OK, rien à signaler.
 
 ## Contrôles de la chaîne
 
@@ -66,5 +66,5 @@ de la FFTT dès qu'elle l'aura donné.
 
 ## Chiffres
 
-- Tests : 1056 → 1097 (`outils-dev/tests.sh`, Maven inaccessible ; GitHub Actions fait foi)
+- Tests : 1056 → 1116 après fusion avec main (outils-dev/tests.sh ; GitHub Actions fait foi)
 - Version de la démo : inchangée
