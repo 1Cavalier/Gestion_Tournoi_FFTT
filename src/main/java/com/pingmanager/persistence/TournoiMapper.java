@@ -208,6 +208,8 @@ public final class TournoiMapper {
         }
         // B024 : salles et plans, écrits seulement si le club a préparé un plan.
         PlanSalleMapper.ecrire(t, o);
+        // B019 : convocations par SMS, écrites seulement si le club s'en sert.
+        ConvocationsSmsMapper.ecrire(t, o);
 
         // Tableaux.
         Json tableaux = Json.tableau();
@@ -621,6 +623,7 @@ public final class TournoiMapper {
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
         PlanSalleMapper.lire(o, t);
+        ConvocationsSmsMapper.lire(o, t);
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
             for (Json l : o.get("lotsTables").elements()) {
