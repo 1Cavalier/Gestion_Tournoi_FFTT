@@ -257,6 +257,38 @@ public final class ServiceAnnoncesVocales {
         }
     }
 
+    /**
+     * Fait écouter une prononciation (B018, bouton « Écouter ») : les morceaux
+     * dits une fois, sous le même verrou que les annonces (jamais deux voix en
+     * même temps). Bloque le temps de la parole : à appeler depuis un fil de fond.
+     *
+     * @return l'issue ; échec avec motif si la voix est indisponible, si une
+     *         prononciation est refusée ou s'il n'y a rien à dire
+     */
+    public ResultatSynthese ecouterPrononciation(List<GenerateurSsml.Morceau> morceaux, ParametresVoix voix) {
+        if (morceaux == null || morceaux.stream().allMatch(m -> m.texte() == null || m.texte().isBlank())) {
+            return ResultatSynthese.echec("rien à faire écouter");
+        }
+        for (GenerateurSsml.Morceau m : morceaux) {
+            ResultatSaisiePrononciation v = ValidationPrononciation.verifier(m.ipa());
+            if (!v.valide()) {
+                return ResultatSynthese.echec(v.motif());
+            }
+        }
+        ParametresVoix p = voix == null ? ParametresVoix.PAR_DEFAUT : voix;
+        synchronized (parole) {
+            try {
+                if (!synthese.estDisponible()) {
+                    return SyntheseVocale.AUCUNE.dire("", p);
+                }
+                ResultatSynthese rs = synthese.dire(GenerateurSsml.essai(morceaux), p);
+                return rs == null ? ResultatSynthese.echec("réponse vide de la synthèse vocale") : rs;
+            } catch (RuntimeException e) {
+                return ResultatSynthese.echec("erreur de la synthèse vocale (" + e.getMessage() + ")");
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // État (affichage)
     // ------------------------------------------------------------------

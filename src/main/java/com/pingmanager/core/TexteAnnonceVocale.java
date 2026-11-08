@@ -27,34 +27,50 @@ public final class TexteAnnonceVocale {
      */
     public static AnnonceVocale composer(Match match, int table, ContexteConvocation contexte) {
         Objects.requireNonNull(match, "match");
-        List<SegmentAnnonce> s = new ArrayList<>();
+        Morceaux m = new Morceaux();
         if (contexte != null) {
-            s.add(SegmentAnnonce.libre(contexte.libelle() + ". "));
+            m.libre(contexte.libelle() + ". ");
         }
-        joueur(s, match.getJoueurA());
-        s.add(SegmentAnnonce.libre(", contre "));
-        joueur(s, match.getJoueurB());
-        s.add(SegmentAnnonce.libre(", table " + table + "."));
-        return new AnnonceVocale(match, table, s, false);
+        joueur(m, match.getJoueurA());
+        m.libre(", contre ");
+        joueur(m, match.getJoueurB());
+        m.libre(", table " + table + ".");
+        return new AnnonceVocale(match, table, m.segments, false, m.licences);
     }
 
-    private static void joueur(List<SegmentAnnonce> s, Joueur j) {
+    /** Morceaux de l'annonce et, pour chacun, la licence de son joueur (B018). */
+    private static final class Morceaux {
+        final List<SegmentAnnonce> segments = new ArrayList<>();
+        final List<String> licences = new ArrayList<>();
+
+        void libre(String texte) {
+            segments.add(SegmentAnnonce.libre(texte));
+            licences.add("");
+        }
+
+        void du(Joueur j, String texte, SegmentAnnonce.Nature nature) {
+            segments.add(new SegmentAnnonce(texte, nature));
+            licences.add(j.getNumeroLicence());
+        }
+    }
+
+    private static void joueur(Morceaux m, Joueur j) {
         if (j == null || j.estADeterminer()) {
-            s.add(SegmentAnnonce.libre("joueur à déterminer"));
+            m.libre("joueur à déterminer");
             return;
         }
         String prenom = propre(j.getPrenom());
         String nom = nomPropre(propre(j.getNom()));
         if (!prenom.isEmpty()) {
-            s.add(new SegmentAnnonce(prenom, SegmentAnnonce.Nature.PRENOM));
-            s.add(SegmentAnnonce.libre(" "));
+            m.du(j, prenom, SegmentAnnonce.Nature.PRENOM);
+            m.libre(" ");
         }
-        s.add(new SegmentAnnonce(nom, SegmentAnnonce.Nature.NOM));
+        m.du(j, nom, SegmentAnnonce.Nature.NOM);
         String club = propre(j.getClub());
         if (!club.isEmpty()) {
             boolean dejaClub = club.toLowerCase(Locale.ROOT).startsWith("club ");
-            s.add(SegmentAnnonce.libre(dejaClub ? ", " : ", club "));
-            s.add(new SegmentAnnonce(club, SegmentAnnonce.Nature.CLUB));
+            m.libre(dejaClub ? ", " : ", club ");
+            m.du(j, club, SegmentAnnonce.Nature.CLUB);
         }
     }
 
