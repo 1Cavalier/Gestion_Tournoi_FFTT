@@ -4,11 +4,11 @@ titre: Vérifier le tableau final (I.304, I.305, petite finale, exempts)
 type: regle
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [CONFORMITE_FFTT.md, src/test]
 branche: tache/B009-tableau-final
-pr:
+pr: 64
 ---
 
 ## Ce qu'il faut faire
@@ -17,8 +17,8 @@ Confronter au règlement le placement des qualifiés, les têtes de série, la s
 
 ## Critères de fin
 
-- [ ] `CONFORMITE_FFTT.md` à jour pour ces articles
-- [ ] `mvn -B test` à 0 échec
+- [x] `CONFORMITE_FFTT.md` à jour pour ces articles
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -31,3 +31,5 @@ Aucune pour l'instant.
 - Pour le correcteur : rien à corriger ; `CONFORMITE_FFTT.md` mis à jour.
 
 ## Résultat
+
+Audit terminé, aucun écart certain, 10 tests ajoutés ; questions pour Quentin au journal. PR #64.
