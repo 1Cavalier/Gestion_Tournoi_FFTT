@@ -144,7 +144,7 @@ public final class LecteurTableur {
         }
     }
 
-    private static final int MAX_LIGNES = 20_000;
+    static final int MAX_LIGNES = 20_000;
     private static final int MAX_COLONNES = 200;
 
     private LecteurTableur() {

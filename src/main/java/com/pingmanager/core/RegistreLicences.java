@@ -48,4 +48,15 @@ public interface RegistreLicences {
     default java.util.List<FicheLicence> rechercher(String texte, int max) {
         return java.util.List.of();
     }
+
+    /**
+     * Liste les licenciés d'un club (correspond au service fédéral
+     * {@code xml_licence_b?club=}, voir {@code docs/RECHERCHE_FFTT.md} §4.1).
+     *
+     * @param numeroClub numéro du club
+     * @return les fiches du club (vide par défaut si la source ne sait pas lister)
+     */
+    default java.util.List<FicheLicence> listerParClub(String numeroClub) {
+        return java.util.List.of();
+    }
 }

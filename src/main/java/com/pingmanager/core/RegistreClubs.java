@@ -35,4 +35,16 @@ public interface RegistreClubs {
     default boolean existe(String numeroClub) {
         return trouverParNumero(numeroClub).isPresent();
     }
+
+    /**
+     * Recherche des clubs par nom, ville ou début de numéro (sans tenir compte
+     * des accents ni de la casse ; plusieurs mots doivent tous correspondre).
+     *
+     * @param texte saisie libre (au moins 2 caractères utiles)
+     * @param max   nombre maximum de résultats
+     * @return les clubs correspondants (vide par défaut si la source ne sait pas chercher)
+     */
+    default java.util.List<Club> rechercher(String texte, int max) {
+        return java.util.List.of();
+    }
 }
