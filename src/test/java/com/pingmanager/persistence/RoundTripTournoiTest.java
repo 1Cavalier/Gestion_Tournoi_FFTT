@@ -531,4 +531,29 @@ class RoundTripTournoiTest {
             assertNull(DepotTournoi.charger(fichier).getTournoi().getModeAnnonce(), "valeur " + valeur);
         }
     }
+
+    /** B016 : ancien fichier sans le champ, valeur explicite fausse, et valeur illisible. */
+    @Test
+    void feuille_a_l_envoi_ancien_fichier_faux_explicite_et_valeur_illisible() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        original.setImprimerFeuilleALEnvoi(true);
+        Path fichier = Files.createTempFile("feuille_envoi_limites", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+
+        Files.writeString(fichier, json.replaceAll("\"feuilleALEnvoi\"\\s*:\\s*true\\s*,?", ""));
+        assertFalse(Files.readString(fichier).contains("feuilleALEnvoi"));
+        assertFalse(DepotTournoi.charger(fichier).getTournoi().imprimerFeuilleALEnvoi());
+
+        Files.writeString(fichier, json.replace("\"feuilleALEnvoi\":true", "\"feuilleALEnvoi\":false")
+                .replace("\"feuilleALEnvoi\": true", "\"feuilleALEnvoi\": false"));
+        assertFalse(DepotTournoi.charger(fichier).getTournoi().imprimerFeuilleALEnvoi());
+
+        // Aller-retour stable : deux sauvegardes successives donnent le même contenu.
+        DepotTournoi.sauvegarder(original, fichier);
+        Tournoi relu = DepotTournoi.charger(fichier).getTournoi();
+        Path second = Files.createTempFile("feuille_envoi_second", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(relu, second);
+        assertTrue(DepotTournoi.charger(second).getTournoi().imprimerFeuilleALEnvoi());
+    }
 }

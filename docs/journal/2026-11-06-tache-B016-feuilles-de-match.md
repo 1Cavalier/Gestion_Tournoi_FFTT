@@ -108,3 +108,8 @@ feuille dès qu'un match part sur une table ; sinon, bouton « Feuille » sur ch
 
 - Tests : 1046 → 1079 (mesurés par `outils-dev/tests.sh`, Maven Central inaccessible), 0 échec
 - Version de la démo : inchangée
+
+## Passations
+
+- verificateur-modele : cœur et persistance de B016 vérifiés (poules 3 à 6, tableaux de 2/64/128, exempts et forfait, sans club ni points, ancien fichier sans `feuilleALEnvoi`) ; 14 tests ajoutés, 1 défaut démontré.
+- Défaut à corriger (`correcteur`) : `RenduPdfFeuilles` lève `IllegalArgumentException: No glyph for U+65E5` sur un nom hors police (CJK, emoji) ; test `RenduPdfFeuillesLimitesTest.caractere_hors_police_ne_fait_pas_echouer_l_impression`. Mineur : `getBoolean` sur `feuilleALEnvoi` de mauvais type rend le fichier illisible (comportement commun à tous les champs).
