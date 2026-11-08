@@ -4,11 +4,11 @@ titre: Ports d'échange FFTT et import / export par fichier
 type: idee
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: [B022]
 fichiers: [core (ports), importation, persistence]
 branche: tache/B023-ports-fftt
-pr:
+pr: PRNUM
 ---
 
 ## Ce qu'il faut faire
@@ -20,9 +20,9 @@ D'après B022 : préparer le code pour la FFTT **sans dépendre de l'accès à l
 
 ## Critères de fin
 
-- [ ] ports et implémentations fichier testés
-- [ ] export des résultats d'un tableau terminé
-- [ ] `mvn -B test` à 0 échec
+- [x] ports et implémentations fichier testés
+- [x] export des résultats d'un tableau terminé
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -39,3 +39,4 @@ Aucune pour l'instant.
 - +5 tests dans `CsvHostileTest`, aucun test existant modifié ; 1096 tests, 0 échec (`outils-dev/tests.sh`). Limite : nombre exact de lignes non lues inconnu (le lecteur s'arrête), d'où le message sans compte.
 
 ## Résultat
+Ports, import CSV (licenciés, clubs) et export CSV (parties, classements) livrés et branchés dans l'interface ; format dans `docs/FORMAT_ECHANGES_FFTT.md`. 1097 tests verts. 3 questions pour Quentin dans le journal. Interface non vérifiée visuellement.

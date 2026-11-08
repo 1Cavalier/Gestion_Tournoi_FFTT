@@ -1,9 +1,9 @@
 # Ports d'échange FFTT et import / export par fichier — 2026-11-06
 
 - Branche : `tache/B023-ports-fftt`
-- Agent : `developpeur` (étape de pipeline)
+- Agent : chaîne développeur, vérificateur-modèle, correcteur, relecteur-code, chef de projet, documentaliste, intégrateur
 - Pull Request : à compléter par l'`integrateur`
-- Statut : en cours (étape développeur terminée le 8 novembre 2026)
+- Statut : voir la fin du fichier de tâche `docs/backlog/B023-ports-fftt-fichiers.md`
 
 ## Pour Quentin
 
@@ -21,6 +21,7 @@ de la FFTT dès qu'elle l'aura donné.
   résumé (importés, refusés, cinq premières anomalies) s'affiche dessous.
 - Chemin 2 : Jour J → un tableau dont la finale est jouée → Tableau final →
   carte « Podium » → « Exporter les résultats (CSV)… » → choisir un dossier.
+- L'export n'écrase jamais un fichier existant (un nom différent est choisi).
 - Vérifier la lisibilité du résumé (texte multiligne) en thème clair et sombre.
 - Interface non vérifiée visuellement (session cloud).
 
@@ -55,9 +56,15 @@ de la FFTT dès qu'elle l'aura donné.
 
 ## Fusion
 
-À compléter par l'`integrateur`.
+À compléter par l'`integrateur` (voir fin de fichier).
+
+## Contrôles de la chaîne
+
+- Vérificateur : 16 tests ajoutés ; 1 défaut bloquant (dépassement de 20 000 lignes silencieux) plus 3 mineurs, tous corrigés (`6924d80`) : doublon de licence insensible à la casse, formule précédée d'espaces neutralisée, saut de ligne interne remplacé par une espace.
+- Relecteur : aucun bloquant. Gardés volontairement : `RegistreClubs.rechercher` et `listerParClub` (API prévue par B022, sans appelant hors tests).
+- Chef de projet (`39941d8`) : l'export n'écrase plus un fichier existant.
 
 ## Chiffres
 
-- Tests : 1056 → 1075 (`outils-dev/tests.sh`, Maven inaccessible)
+- Tests : 1056 → 1097 (`outils-dev/tests.sh`, Maven inaccessible ; GitHub Actions fait foi)
 - Version de la démo : inchangée
