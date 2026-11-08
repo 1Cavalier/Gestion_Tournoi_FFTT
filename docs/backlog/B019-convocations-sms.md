@@ -42,5 +42,7 @@ Aucune pour l'instant.
 - 2026-11-08 `developpeur-interface` : portable facultatif + case d'accord jamais pré-cochée à l'inscription en ligne (`AssistantInscription`) et côté club (`VueInscriptionsClub`, « Par joueur »), bloc commun `BlocSaisieSms` ; enregistrement immédiat du tournoi.
 - Écran « SMS… » fini (tuiles, alerte limite, journal en pastilles, bulles simulées, effacement avec confirmation explicite) ; logique dans `PresentationConvocationsSms` / `PresentationSaisieSms` testées ; CSS section B019 en fin de `theme.css` ; cœur : `refusSaisieFacultative`, `dateEffacementAutomatique`.
 - Tests 1100 → 1112, 0 échec ; captures Xvfb vues (clair/sombre), validation visuelle finale à Quentin ; 1 question ajoutée (saisie club / import).
+- 2026-11-08 `verificateur-modele` : 28 tests ajoutes (`ConvocationsSmsLimitesTest`, `ConvocationsSmsRetrocompatibiliteTest`) : limite exacte/zero, consentement, effacement, GSM-7/UCS-2, numeros, expediteur, jamais d'appel, anciens fichiers, aller-retour ; 1140 tests, 0 echec, aucun defaut bloquant.
+- Non bloquants : le `detail` d'un echec (message d'exception du prestataire) peut contenir le numero et survit a l'effacement (`ServiceConvocationsSms.envoyerA`) ; `+33 (0)6 12...` refuse (`NumeroPortable`) ; effacement automatique declenche seulement a l'ouverture de `EcranJourJ`/`EcranConvocationsSms`.
 
 ## Résultat
