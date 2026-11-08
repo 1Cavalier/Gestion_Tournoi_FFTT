@@ -3,7 +3,7 @@
 - Branche : `tache/B021-suivi-telephone`
 - Agent : `developpeur` (étape de pipeline)
 - Pull Request : #<n> (complété par l'intégrateur)
-- Statut : en attente (étape de pipeline, pas de fusion)
+- Statut : fait (fusion par l'intégrateur)
 
 ## Pour Quentin
 
@@ -97,5 +97,5 @@ l'écran du jour J, avec une affiche imprimable.
 
 ## Chiffres
 
-- Tests : 1116 → 1144 (`outils-dev/tests.sh`, Maven inaccessible)
+- Tests : 1116 → 1154 (`outils-dev/tests.sh`, Maven inaccessible ; GitHub Actions fait foi)
 - Version de la démo : inchangée

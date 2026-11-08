@@ -240,7 +240,6 @@ final class EcranJourJ {
             TextField port = Ui.champ("Port");
             port.setText(String.valueOf(d.port()));
             port.setPrefColumnCount(6);
-            port.getStyleClass().add("suivi-telephone-port");
             Button ouvrir = Ui.boutonPrimaire("Ouvrir le suivi sur téléphone");
             Runnable demarrer = () -> {
                 int p = DiffusionSuivi.lirePort(port.getText());

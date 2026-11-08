@@ -4,11 +4,11 @@ titre: Suivi du tournoi sur téléphone
 type: idee
 priorite: P2
 taille: L
-statut: en-cours
+statut: fait
 depend-de: []
 fichiers: [nouveau package de diffusion hors cœur, core (vue publique en lecture), ui/ecran/EcranJourJ]
 branche: tache/B021-suivi-telephone
-pr:
+pr: PRNUM
 ---
 
 ## Ce qu'il faut faire
@@ -39,3 +39,5 @@ Les joueurs et le public suivent sur leur **téléphone**, sans application à i
 - Tests : `ServeurSuiviSecuriteTest` (7 tests dont le gel par connexions lentes, qui échouera une fois corrigé : à retourner) ; 1151 verts.
 
 ## Résultat
+
+Serveur web local en lecture seule (`ui.diffusion`), pages téléphone, « Ma prochaine partie », carte et affiche dans `EcranJourJ`. Audit de sécurité corrigé (délais, 16 fils, journalisation, IPv4 privées). 1154 tests verts. Écran non vérifié visuellement ; 4 questions dans le journal.
