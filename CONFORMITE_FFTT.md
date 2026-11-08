@@ -18,8 +18,18 @@ qualifiés → 1-3, 2-3, 1-2 ; poule de 3 avec 2 qualifiés → 1-3, 1-2, 2-3. R
 anti-arrangement appliquée (mêmes clubs au premier tour). ✅
 
 ### I.302 — Placement des joueurs dans une poule
-Répartition en serpentin, séparation des clubs, départage aléatoire
-**reproductible** des ex æquo (graine conservée). ✅
+Audit B040 (2026-11-06). Texte : placement selon les points, tirage au sort en cas
+d'égalité ; deux joueurs d'une même association dans des poules différentes « dans
+la mesure du possible », sinon rencontre au 1er tour (deux) ou le plus tôt possible
+(trois ou plus).
+- Serpentin exact (poules de 3, 12 joueurs : A 1-8-9, B 2-7-10…), départage
+  aléatoire reproductible des ex æquo (graine) : ✅ testé.
+- Séparation des clubs : ✅ (corrigé B040). Le moins bien classé du doublon est
+  déplacé, une tête de poule n'est échangée qu'en dernier recours, les poules
+  restent ordonnées par points. Tests `i302_ECART_*` (`ConformiteTirageI302I305Test`).
+- Rencontre précoce si séparation impossible : ✅ (`GenerateurMatchsPoule`).
+- Source des points (qualificatifs, licence, mensuelle) : clause configurable de
+  l'organisateur, hors tirage.
 
 ### I.303 — Classement des joueurs dans une poule
 Points 2 (victoire) / 1 (défaite) / 0 (issue non normale : forfait, abandon,
@@ -30,14 +40,57 @@ Vérifié empiriquement sur un cycle à trois ex æquo (A bat B, B bat C, C bat 
 correctement départagé. ✅
 
 ### I.304 — Placement des joueurs dans un tableau
-Cadre du tableau, exemptions (byes), têtes de série tirées au sort par blocs. ✅
+Cadre du tableau, exemptions (byes), 1er en haut et 2e en bas, les 2^k premiers ne
+se rencontrant qu'au tour prévu (structure du cadre testée jusqu'à 64) : ✅.
+⚠️ Le tirage d'un tableau **sans poules** (têtes de série par blocs 3-4, 5-8…,
+séparation des clubs I.304.1) n'existe pas : `genererTableau(liste)` n'est
+utilisé par aucun écran (question posée dans le journal B040). Le texte ne dit pas
+où placer les exempts (question ouverte dans `QUESTIONS.md`).
 
 ### I.305 — Placement des joueurs issus de poules qualificatives
-Vainqueur de poule 1 en haut du tableau, de poule 2 en bas ; têtes de série
-tirées au sort par blocs (3-4, 5-8, 9-16) ; deuxièmes placés dans la demie opposée
-à leur premier ; troisièmes dans la même demie que le deuxième mais le quart
-opposé ; séparation des clubs au premier **et au deuxième tour** lorsque le
-tableau est incomplet. Tous les alinéas vérifiés. ✅
+Audit B040 (2026-11-06) :
+- 2es dans le demi opposé à leur premier (I.305.3), 3es dans le même demi que
+  le 2e mais le quart opposé (I.305.4) : ✅ testé sur 4 et 8 poules (200 tirages).
+  Réserve : repli sur tout le demi si le quart est plein. Le tirage « par blocs »
+  des 2es s'appuie sur un manuel absent des textes fournis : non vérifiable.
+- Vainqueurs de poule (I.305.2) : ✅ (corrigé B040). Placés selon le numéro
+  de poule (poule A = 1 en haut, B = 2 en bas, groupes 3-4, 5-8… tirés au sort),
+  comme le dit le texte. Test `i305_2_ECART_*`. Question de confirmation posée
+  dans le journal B040.
+- Séparation des clubs au 1er tour (I.305.1) : ✅ (corrigé B040). Tirage des 2es
+  et 3es avec retour arrière : aucun conflit au 1er tour quand une répartition
+  existe (sinon tirage glouton historique). Le 2e tour n'est pris en compte que si
+  le tableau a réellement des exempts, et il passe après le 1er tour. Test `i305_1_…`.
+
+### Tableau final : déroulé, têtes de série, exempts, petite finale
+Audit B009 (2026-11-06). Tests : `ConformiteTableauFinalTest` (10 tests, tous verts).
+- **Têtes de série I.304.2** : ✅ règle fédérale. Pour des cadres de 2 à 128, le 1er
+  est dans la moitié haute, le 2e dans la moitié basse, et les 2^k premiers ne peuvent
+  se rencontrer qu'à partir du tour prévu (finale, demies, quarts…). Groupes 3-4 et 5-8
+  répartis un par demi / un par quart (cadre 32). Le tirage au sort *à l'intérieur* des
+  groupes pour un tableau sans poules n'existe pas (voir I.304 ci-dessus).
+- **Avancement des vainqueurs** : ✅ clause d'organisateur (le chapitre IX ne décrit pas
+  le déroulé d'un tableau). Vainqueur propagé par liens explicites, indépendant des
+  exempts ; correction d'un résultat répercutée tant que la suite n'est ni en cours ni jouée.
+- **Forfait, abandon, refus, disqualification** : ✅ réserve. Le texte fédéral ne dit rien
+  du tableau final : 3.5.3.1.1 admet l'abandon (maladie, blessure), 3.5.2.10 la
+  disqualification ; I.303 a) (0 point) ne vise que les poules. Comportement : l'adversaire
+  avance, le fautif est perdant (2e en finale, 4e en petite finale). Testé, y compris un
+  abandon avec score partiel et la correction forfait -> victoire de l'autre.
+- **Place des exempts** : ⚠️ texte muet (question `QUESTIONS.md`, non tranchée, rien
+  modifié). `genererTableau` (par classement) donne les exempts aux meilleures têtes de
+  série (testé, usage courant mais non écrit dans le règlement).
+- **Petite finale** : ✅ clause d'organisateur (option du tableau, décision de Quentin
+  du 5 novembre). Aucune règle fédérale pour les tournois (IX) ; seule mention : XI.407.2
+  (Classic Series, hors périmètre). Testée : perdants des demies uniquement, jamais un
+  finaliste, non jouable avant les deux demies, podium 3e / 4e. Pas ajoutée sous 4 joueurs
+  ou si une demie est un exempt. ⚠️ Abandon en demie : le fautif est placé en petite finale
+  (choix provisoire A, question ouverte dans `QUESTIONS.md`, non répondue).
+- Réserve technique (aucun effet aujourd'hui) : `TableauElimination.getFinale()` renvoie
+  le dernier tour, donc la petite finale une fois ajoutée ; seul `MoteurTournoi` l'appelle,
+  avant l'ajout.
+- Parties de classement (places 5 et suivantes) : non prévues par le logiciel ni par le texte.
+
 
 ---
 
