@@ -93,7 +93,7 @@ public final class GenerateurFeuilles {
         return ResultatFeuille.prete(new FeuilleMatch(entete(tournoi, tableau), phase,
                 table == null ? "" : "Table " + table, format(match.getNombreManchesGagnantes()),
                 JoueurFeuille.de(match.getJoueurA()), JoueurFeuille.de(match.getJoueurB()),
-                GrilleManches.vide(), SIGNATURES));
+                GrilleManches.vide(match.getNombreManchesGagnantes()), SIGNATURES));
     }
 
     /**
@@ -138,7 +138,7 @@ public final class GenerateurFeuilles {
             int posB = m.estBye() ? 0 : joueurs.indexOf(m.getJoueurB()) + 1;
             parties.add(new PartiePoule(i + 1, SuiviPoule.tourDuMatch(poule, i), posA, posB,
                     JoueurFeuille.de(m.getJoueurA()), JoueurFeuille.de(m.getJoueurB()), m.estBye(),
-                    GrilleManches.vide()));
+                    GrilleManches.vide(m.getNombreManchesGagnantes())));
         }
         int manches = matchs.get(0).getNombreManchesGagnantes();
         return ResultatFeuille.prete(new FeuillePoule(entete(tournoi, tableau), "Poule " + poule.getNom(),

@@ -8,6 +8,7 @@ import com.pingmanager.core.feuilles.FeuilleMatch;
 import com.pingmanager.core.feuilles.FeuillePoule;
 import com.pingmanager.core.feuilles.FeuillePoule.PartiePoule;
 import com.pingmanager.core.feuilles.JoueurFeuille;
+import com.pingmanager.core.feuilles.GrilleManches;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -115,8 +116,9 @@ public final class RenduPdfFeuilles {
         blocJoueur(d, "Joueur B", f.joueurB(), x0 + colonne + 40, y, colonne, hBloc);
         y -= hBloc + 14;
 
-        // Grille 3 × 5 : manches 1 à 5 en en-tête, autres cases vides.
-        float etiquette = 150;
+        // Grille 3 × 5 (3 × 7 au meilleur des 7 manches, 2.12.1) : étiquettes
+        // rétrécies pour que 7 colonnes gardent une largeur lisible.
+        float etiquette = f.grille().get(0).size() > GrilleManches.COLONNES ? 110 : 150;
         grilleManches(d, f.grille(), f.etiquettesLignes(), x0, y, largeur, etiquette, 24);
         y -= 3 * 24 + 16;
 
@@ -155,7 +157,7 @@ public final class RenduPdfFeuilles {
         d.texte(d.ajuster(bas, d.p.normale, 9.5f, l - 16), x + 8, y - 58, d.p.normale, 9.5f, DOUX);
     }
 
-    /** Grille des manches : étiquettes à gauche (sans cadre), puis 3 lignes × 5 colonnes encadrées. */
+    /** Grille des manches : étiquettes à gauche (sans cadre), puis 3 lignes × 5 (ou 7, 2.12.1) colonnes encadrées. */
     private static void grilleManches(Dessin d, List<List<String>> grille, List<String> etiquettes, float x,
                                       float y, float largeur, float etiquette, float hLigne) throws IOException {
         int colonnes = grille.get(0).size();
@@ -171,8 +173,9 @@ public final class RenduPdfFeuilles {
                 d.cadre(xc, yl, lc, hLigne, FILET, l == 0 ? FOND_ENTETE : null);
                 String s = grille.get(l).get(c);
                 if (!s.isEmpty()) {
-                    float ls = d.largeur(s, d.p.grasse, 9.5f);
-                    d.texte(s, xc + (lc - ls) / 2, yl + hLigne / 2 - 3.5f, d.p.grasse, 9.5f, PRIMAIRE);
+                    String t = d.ajuster(s, d.p.grasse, 9.5f, lc - 4);
+                    float ls = d.largeur(t, d.p.grasse, 9.5f);
+                    d.texte(t, xc + (lc - ls) / 2, yl + hLigne / 2 - 3.5f, d.p.grasse, 9.5f, PRIMAIRE);
                 }
             }
         }
@@ -266,7 +269,7 @@ public final class RenduPdfFeuilles {
                 fx.d.texte(fx.d.ajuster(titre, p.grasse, 9.5f, largeur), MARGE, fx.y - 10, p.grasse, 9.5f, TEXTE);
                 fx.y -= 16;
                 grilleManches(fx.d, pp.grille(), List.of("", pp.joueurA().nomComplet(), pp.joueurB().nomComplet()),
-                        MARGE, fx.y, largeur, 150, 20);
+                        MARGE, fx.y, largeur, pp.grille().get(0).size() > GrilleManches.COLONNES ? 110 : 150, 20);
                 fx.y -= hGrille + 14;
             }
             fx.fermer();
