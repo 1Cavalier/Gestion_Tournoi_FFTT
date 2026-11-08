@@ -34,4 +34,8 @@ Seul Windows est testable chez Quentin ; la session cloud ne peut pas écouter :
 
 ## Passations
 
+- developpeur-jour-j (2026-11-08) : cœur (`ServiceAnnoncesVocales`, `TexteAnnonceVocale`, `GenerateurSsml`, ports `SyntheseVocale` / `ResolveurPrononciation`), réglages persistés (`annoncesVocales`), `ui.infra.SyntheseVocaleWindows` + `DiffuseurAnnonces`, salle (menu « Voix », « Annoncer », « Joueurs à la table »).
+- Tests 1263 → 1299 via `outils-dev/tests.sh`, 0 échec ; captures `run.sh <dossier> b017` regardées (en-tête passé en FlowPane, lien de rappel sur sa ligne). Son non vérifiable en cloud.
+- À vérifier : relecture sécurité de `SyntheseVocaleWindows` (aucun nom en ligne de commande, test dédié) ; questions Quentin dans le journal (libellé « Appel vocal », rappel unique).
+
 ## Résultat
