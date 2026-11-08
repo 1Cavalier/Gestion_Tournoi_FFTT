@@ -35,9 +35,9 @@ Aucune nouvelle.
 
 ## Fusion
 
-À compléter après synchronisation.
+Synchronisé avec main (dont PR #74), aucun conflit ; verifier-fusion OK.
 
 ## Chiffres
 
-- Tests : 1413 → 1414 (`outils-dev/tests.sh` ; GitHub Actions fait foi)
+- Tests : 1412 → 1413 (`outils-dev/tests.sh` ; GitHub Actions fait foi)
 - Version de la démo : inchangée
