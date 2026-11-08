@@ -192,8 +192,8 @@ public final class GenerateurTableauElimination {
      * paires (0-1, 2-3, …) forment les affrontements du premier tour, en seeds
      * 1-based.</p>
      *
-     * <p>Exemples : cadre 2 -&gt; [1,2] ; cadre 4 -&gt; [1,4,3,2] ;
-     * cadre 8 -&gt; [1,8,5,4,3,6,7,2].</p>
+     * <p>Exemples : cadre 2 -&gt; [1,2] ; cadre 4 -&gt; [1,4,2,3] ;
+     * cadre 8 -&gt; [1,8,4,5,2,7,3,6].</p>
      */
     int[] ordreDuCadre(int cadre) {
         int[] seeds = {1, 2};

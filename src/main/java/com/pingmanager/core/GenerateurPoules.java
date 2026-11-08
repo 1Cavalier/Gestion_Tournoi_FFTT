@@ -174,12 +174,18 @@ public final class GenerateurPoules {
      * de niveau proche) qui n'introduit pas de nouveau conflit. Si aucun échange
      * n'est possible, le doublon est laissé tel quel (cas de clubs très
      * nombreux).</p>
+     *
+     * <p>I.302 (placement « en tenant compte des points ») : c'est le
+     * <b>moins bien classé</b> du doublon qui est déplacé, une tête de poule
+     * n'est échangée que faute d'autre candidat, et chaque poule touchée est
+     * retriée par points décroissants (tri stable) après l'échange.</p>
      */
     private void separerLesClubs(List<List<Joueur>> groupes) {
         int p = groupes.size();
         if (p < 2) {
             return;
         }
+        Comparator<Joueur> parPoints = Comparator.comparingInt(Joueur::getPoints).reversed();
         for (int g = 0; g < p; g++) {
             List<Joueur> groupe = groupes.get(g);
             for (int i = 0; i < groupe.size(); i++) {
@@ -196,19 +202,30 @@ public final class GenerateurPoules {
                         groupe.set(i, candidat);
                         autre.remove(candidat);
                         autre.add(joueur);
+                        // I.302 : les poules restent ordonnées par points.
+                        groupe.sort(parPoints);
+                        autre.sort(parPoints);
+                        // Le retri a pu déplacer les indices : on reprend la poule
+                        // au début. Chaque échange supprime au moins un doublon sans
+                        // en créer, la boucle se termine donc.
+                        i = -1;
                     }
                 }
             }
         }
     }
 
-    /** Un joueur a-t-il un homonyme de club dans son groupe (hors lui-même) ? */
+    /**
+     * Un joueur a-t-il un homonyme de club MIEUX (ou également) classé placé
+     * avant lui dans son groupe ? Le groupe étant trié par points, c'est donc
+     * le moins bien classé du doublon qui est signalé, et déplacé (I.302).
+     */
     private boolean clubEnDouble(List<Joueur> groupe, Joueur joueur, int indexJoueur) {
         String club = joueur.getClub();
         if (club == null || club.isBlank()) {
             return false;
         }
-        for (int k = 0; k < groupe.size(); k++) {
+        for (int k = 0; k < indexJoueur; k++) {
             if (k != indexJoueur && club.equalsIgnoreCase(groupe.get(k).getClub())) {
                 return true;
             }
@@ -246,19 +263,27 @@ public final class GenerateurPoules {
      */
     private Joueur choisirCandidatEchange(List<Joueur> cible, Joueur joueur, List<Joueur> groupeOrigine) {
         Joueur meilleur = null;
-        int meilleurEcart = Integer.MAX_VALUE;
-        for (Joueur candidat : cible) {
-            boolean creeConflit = groupeOrigine.stream()
-                    .anyMatch(j -> !j.equals(joueur)
-                            && j.getClub().equalsIgnoreCase(candidat.getClub())
-                            && !candidat.getClub().isBlank());
-            if (creeConflit) {
-                continue;
-            }
-            int ecart = Math.abs(candidat.getPoints() - joueur.getPoints());
-            if (ecart < meilleurEcart) {
-                meilleurEcart = ecart;
-                meilleur = candidat;
+        // I.302 : la tête de la poule cible (cible.get(0), poule triée) n'est
+        // proposée qu'en dernier recours (2e passe), pour que les meilleurs
+        // restent têtes de poule.
+        for (int passe = 0; passe < 2 && meilleur == null; passe++) {
+            int meilleurEcart = Integer.MAX_VALUE;
+            for (Joueur candidat : cible) {
+                if (passe == 0 && cible.size() > 1 && candidat == cible.get(0)) {
+                    continue;
+                }
+                boolean creeConflit = groupeOrigine.stream()
+                        .anyMatch(j -> !j.equals(joueur)
+                                && j.getClub().equalsIgnoreCase(candidat.getClub())
+                                && !candidat.getClub().isBlank());
+                if (creeConflit) {
+                    continue;
+                }
+                int ecart = Math.abs(candidat.getPoints() - joueur.getPoints());
+                if (ecart < meilleurEcart) {
+                    meilleurEcart = ecart;
+                    meilleur = candidat;
+                }
             }
         }
         return meilleur;
