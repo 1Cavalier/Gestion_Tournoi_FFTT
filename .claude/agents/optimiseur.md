@@ -24,8 +24,9 @@ supprimer une duplication évidente). Un commit par optimisation, avec la
 mesure avant/après dans le message. Pas de nouvelle dépendance, pas de
 changement du format JSON, pas de `switch` sur une énumération.
 
-Étape 3 : `RAPPORT_OPTIMISATION.md` : mesures, ce qui a été corrigé, ce qui
-est proposé mais demande une décision de Quentin (refonte plus large).
+Étape 3 : dans le corps de la Pull Request, les mesures et ce qui a été
+corrigé ; ce qui demande une décision de Quentin (refonte plus large) va
+dans la section 6 du README.
 
-Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+Pour finir, applique la skill `terminer-tache` (README, synchronisation
 avec `main`, Pull Request, fusion automatique, description pour Quentin).

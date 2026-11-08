@@ -1,252 +1,329 @@
 # PingManager
 
-Logiciel de bureau (Java) pour **gérer des tournois individuels officiels de
-tennis de table FFTT**. Le cœur métier est totalement découplé de l'interface et
-de la base de données, en vue d'une revente et d'un futur passage au web.
+Logiciel de bureau (Java 21, JavaFX) pour **gérer les tournois individuels
+officiels de tennis de table FFTT**, de la création du tournoi à la finale :
+homologation, inscriptions en ligne, pointage, poules, tableau final,
+ordonnancement des tables, annonces en salle.
+Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 
-Tournois visés : épreuves **individuelles** homologuées (type Maisons-Alfort,
-Sucy, Lille). Ni le Critérium, ni les épreuves par équipes.
+> Ce README est **le seul document du projet**. Il décrit l'état réel du code au
+> 8 novembre 2026 et tout ce qui reste à faire. Le mettre à jour à chaque lot
+> de travail.
 
 ---
 
-## Stack et architecture
+## 1. Lancer le programme
 
-- **Java 21 + Maven.** Interface **JavaFX** prévue pour la v1 (bureau), web plus tard.
-- **Architecture MVC à cœur découplé.** Les packages `model`, `model.format`,
-  `core` et `ordonnancement` ne connaissent **ni l'interface ni la base de
-  données**. C'est la règle d'or du projet : elle garantit la revente et un futur
-  portage web. Les dépendances autorisées vont de `core` vers `model` et
-  `ordonnancement` ; jamais l'inverse, jamais vers une UI ou une couche de
-  persistance.
+### Prérequis
+- **Java 21** (JDK, par exemple Temurin 21)
+- **Maven 3.9+**
+- Accès à Internet au premier lancement (Maven télécharge JavaFX, PDFBox et JUnit)
+
+### Commandes (Windows, macOS, Linux)
+
+```
+git pull                 # récupérer la dernière version
+mvn clean javafx:run     # compiler et lancer l'application
+mvn -B test              # lancer les 1 413 tests (doit finir à 0 échec)
+```
+
+Point d'entrée : `com.pingmanager.ui.Lanceur`.
+
+### Au premier lancement
+- Les **données de démonstration** sont créées : clubs, licenciés fictifs, le
+  National B de Brunoy (10-11 avril 2027, 13 tableaux, 233 inscrits fictifs),
+  cinq autres tournois publiés (Créteil, Loiret, Lyon, Lille, Rennes) et un
+  tournoi de démonstration du jour J.
+- Les **comptes de démo** (club de Brunoy, joueur licencié, supervision) sont
+  affichés dans la **console** au démarrage.
+- Les données sont rangées dans `~/.pingmanager/pingmanager/` (ou
+  `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
+  accès) et un fichier `.ptt.json` par tournoi.
+- Si les données de démo changent dans le code, la constante
+  `ContexteApplication.VERSION_DEMO` est incrémentée et la démo est recréée au
+  lancement suivant.
+
+### Suivi sur téléphone
+Le jour J, l'application peut ouvrir un petit serveur web en lecture seule
+(port **8080** par défaut) sur le Wi-Fi de la salle. Au premier lancement,
+le pare-feu Windows demandera d'autoriser Java.
+
+---
+
+## 2. Organisation du code
+
+Environ 64 000 lignes de code (360 classes) et 200 classes de test.
 
 ```
 com.pingmanager
-├── model              entités pures (joueur, match, poule, tableau, tournoi,
-│   │                  club, compte organisateur, règlement, juge-arbitre…)
-│   └── format         définition des formats de tournoi
-├── core               services métier (génération, classement, placement,
-│                      inscription, pointage, lancement, comptes, cycle de vie
-│                      du tournoi, habilitation…)
-├── ordonnancement     tables, priorités, prévision, anticipation
-└── persistence        sauvegarde/rechargement local (JSON sans dépendance),
-    └── json           autosave + reprise sur incident — dépend de model/core/
-                       ordonnancement, jamais l'inverse
+├── model, model.format       entités pures (joueur, tableau, tournoi, formats…)
+├── core                      services métier (inscription, pointage, lancement…)
+│   ├── core.feuilles         feuilles de match et de poule
+│   └── core.reglement        règlement et feuille d'engagement en PDF
+├── ordonnancement            tables, priorités, durées, prévision, anticipation
+├── importation               lecture xlsx / ods / csv / json, sans dépendance
+├── persistence(.json)        sauvegarde JSON locale, autosave, reprise
+└── ui                        interface JavaFX
+    ├── ui.ecran              écrans
+    ├── ui.infra              démo, géocodage, SMS simulé, impression…
+    └── ui.diffusion          serveur du suivi sur téléphone
 ```
+
+**Règle d'or** : `model`, `core` et `ordonnancement` ne connaissent ni
+l'interface, ni la persistance, ni l'importation. Les effets de bord passent
+par des ports (`EnvoiEmail`, `Horloge`, `Geocodeur`, `EnvoiSms`…). Un test
+(`RegleOrModeleSansDependanceTest`) le vérifie.
+Exception connue : `core.reglement.RenduPdfReglement` importe PDFBox.
+
+Dépendances : JavaFX 21.0.5 (controls, web), PDFBox 2.0.29, JUnit 5.
+Aucune autre sans décision de Quentin.
+
+Conventions : tout en français, jamais de `switch` sur une énumération,
+format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 
 ---
 
-## Compiler et tester
+## 3. Ce qui fonctionne (utilisable à l'écran)
 
-```
-mvn test
-```
+> Aucun écran livré depuis le 5 novembre n'a encore été vu par un humain :
+> tout a été vérifié par les tests et par des captures automatiques.
+> La première étape est donc de **tout parcourir à l'écran**.
 
-Dépendances : **JavaFX** (interface), **PDFBox 2** (règlement et feuille
-d'engagement en PDF) et **JUnit 5** (tests), récupérées par Maven. Le cœur
-(`model`, `core`, `ordonnancement`), la persistance (JSON maison) et l'import
-de tableurs n'utilisent que la bibliothèque standard ; seule exception,
-`core.reglement.RenduPdfReglement` s'appuie sur PDFBox.
+**Comptes et club**
+- Connexion, création de compte, licence liée, rattachement à un club avec
+  niveaux d'accès, page « Mon profil », accueil en cartes, supervision.
 
-**412 tests unitaires** au 2 novembre 2026 (détail dans `ETAT_DU_PROJET.md`).
-Lancer l'interface : `mvn javafx:run`.
+**Préparation du tournoi**
+- Nouveau tournoi avec calendrier, puis choix imposé : tout préparer dans
+  PingManager, ou importer un classeur (tableaux et joueurs).
+- Sections Général, Tableaux (horaires calculés), Sportif, Complémentaire.
+- Cycle BROUILLON → DEMANDE D'HOMOLOGATION → HOMOLOGUÉ → PUBLIÉ (ou ANNULÉ),
+  dossier verrouillé dès la demande, refus avec motif.
+- Règlement généré (aperçu et PDF), figé après publication ; feuille
+  d'engagement en PDF.
+- Gestion des tournois du club : tournoi actuel, frise en 4 étapes, historique.
+- Remplissage et finances : taux de remplissage, recettes attendues,
+  encaissé, dotation promise, solde.
 
-Les consignes pour les agents Claude (règles, skills, agents spécialisés) sont
-dans `CLAUDE.md` et le dossier `.claude/`.
+**Import**
+- Joueurs et tableaux depuis Excel (.xlsx), LibreOffice (.ods), CSV ou JSON,
+  avec un classeur modèle à deux feuilles (listes déroulantes).
+- Import des licenciés et des clubs par fichier (format provisoire PingManager).
 
----
+**Côté joueur**
+- Onglet Tournois : carte (Plan IGN, repli OpenStreetMap) et agenda par jour,
+  filtres, tournois non accessibles grisés avec le motif (IX.101, IX.102).
+- Fiche du tournoi, assistant d'inscription avec validation en direct
+  (quotas par jour, points, sexe, catégories, tableaux qui se suivent,
+  liste d'attente), paiement « à régler plus tard ».
+- Mes tournois (en cours, à venir, passés avec victoires et défaites),
+  désinscription, agenda du compte et export .ics.
 
-## Ce que fait le logiciel aujourd'hui
+**Jour J**
+- Pointage et repêchage de la liste d'attente, tirage reproductible des
+  poules et du tableau final (conforme I.302 à I.305).
+- Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
+  chronomètre et explication, « Lancer un match », plan de salle, stratégies
+  d'ordonnancement.
+- Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
+- Feuilles de match et de poule imprimables (format provisoire 3 × 5).
+- Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
+- Suivi sur téléphone en lecture seule, avec « Ma prochaine partie ».
+- Export des résultats d'un tableau terminé (format provisoire).
 
-Le **déroulé sportif complet d'un tableau** est implémenté et testé, des
-inscriptions jusqu'à la finale :
-
-```
-INSCRIPTION → POINTAGE → LANCE (poules) → PHASE_FINALE (tableau à élimination → finale)
-```
-
-Chaque étape est conforme aux règlements officiels FFTT 2026-2027 (voir
-`CONFORMITE_FFTT.md` pour le détail article par article).
-
-### Le modèle (`model`) — entités pures
-
-- `Joueur` — identité fondée sur le **numéro de licence** ; classement en points ;
-  rang national optionnel (numérotation française, pour l'exclusion des mieux
-  numérotés) ; sentinelle « à déterminer » pour les emplacements de tableau non
-  encore connus.
-- `Match` — best-of propre à chaque match (finale réglable), numéro de table,
-  liens de progression (`sourceA`/`sourceB`), issue (normale, forfait, abandon,
-  refus, disqualification), points de pénalité, horodatage lancement/fin.
-- `Manche`, `Poule`, `Tour`, `TableauElimination`, `LigneClassement`, `Qualifie` —
-  briques du déroulé et du classement.
-- `Tableau` + `ConfigurationTableau` — une épreuve et tous ses paramètres :
-  format, taille de poule, qualifiés par poule, best-of, **limite de places**,
-  **liste d'attente bornée** (taille réglable par tableau), **tarifs** en ligne /
-  sur place, **grille de récompenses** (nombre de places libre, par place ou par
-  plage), **mode de limite de classement** (tranche de points, plafond, ou toutes
-  séries), **exclusion par rang national**, **réservation par sexe** et **par
-  catégorie d'âge**. Le tableau suit un **cycle de vie** (`StatutTableau` :
-  inscription → pointage → lancé → phase finale), tient ses inscrits, sa liste
-  d'attente, l'état pointé/payé de chacun (par tableau) et sa phase finale.
-- `Tournoi` — nom, club organisateur, **un ou plusieurs jours**, **niveau**
-  (départemental → international), **type** (SPID), dates début/fin, adresse
-  structurée, correspondant, numéro d'homologation, nombre de tables, la **règle
-  de tableaux par jour** (quota + exception féminine), les **juges-arbitres**
-  (saisie libre + grade), les **métadonnées de règlement** (`InfosReglement`,
-  IX.111), les **documents** (règlement / feuille d'engagement PDF), un **statut
-  de cycle de vie** (`StatutTournoi` : brouillon → homologué → publié, + annulé)
-  et la liste des tableaux.
-- `Carton`, `CouleurCarton`, `IssueMatch`, `Sexe`, `StatutMatch`,
-  `FormatPhaseFinale`, `ModeLimiteClassement`, `CategorieAge`, `TypeRecompense`,
-  `Recompense`, `GrilleRecompenses`, `TarifInscription`, `RegleTableauxParJour`,
-  `StatutTableau`, `HorairesTableau` — types de support.
-
-### Les formats (`model.format`)
-
-- `FormatTournoi` (interface), `FormatPoule3Qualifie2` (format par défaut,
-  identifiant `P3Q2` : poule de 3, 2 qualifiés), `FormatConfigurable` (builder :
-  best-of finale, petite finale…), `SortNonQualifies`, `RegistreFormats`
-  (catalogue + format par défaut).
-- **Ajouter un format** consiste à créer une classe implémentant `FormatTournoi`
-  et à l'enregistrer dans `RegistreFormats`. Le moteur n'a pas à changer.
-
-### Les services métier (`core`)
-
-- `GenerateurPoules` — répartition en serpentin, séparation des clubs, départage
-  aléatoire reproductible des ex æquo (I.302).
-- `GenerateurMatchsPoule` — ordres officiels des parties I.301 (poules 3/4/5/6
-  selon le nombre de qualifiés) et règle anti-arrangement.
-- `ClassementPouleService` — classement I.303 (2/1/0 points, 0 pour issue non
-  normale, départages par mini-classement des ex æquo).
-- `GenerateurTableauElimination` — cadre du tableau, exemptions (byes), seeding.
-- `PlacementQualifiesService` — placement I.304/I.305 (têtes de série tirées au
-  sort par blocs 3-4/5-8/9-16, 2es en demi opposé, 3es en quart opposé, séparation
-  des clubs au 1er et 2e tour si le tableau est incomplet).
-- `ProgressionTableau` — propage les vainqueurs, gère la petite finale.
-- `MoteurTournoi` — orchestre une épreuve selon un format (poules → qualifiés →
-  tableau), applique les best-of.
-- `RegistreDisciplinaire` — historique des cartons ; règle 3.5.2.9 (deux
-  disqualifications entraînent l'exclusion de la compétition).
-- `GestionCartonsMatch` — progression des cartons (jaune, puis pénalités),
-  cartons hors match.
-- `ServiceInscription` — inscription d'un joueur à un tableau, au niveau du
-  tournoi. Applique dans l'ordre l'éligibilité (classement selon le mode, rang
-  national, sexe), le quota de tableaux par jour (avec exception féminine
-  configurable), la clause « pas deux tableaux qui se suivent », puis délègue à
-  `Tableau.inscrire` (capacité + liste d'attente bornée). Renvoie un résultat au
-  motif précis (`ResultatInscriptionTournoi`).
-- `ServicePointage` — pointage et repêchage le jour J. La présence et le paiement
-  sont suivis **par tableau** (deux états indépendants). Clôturer le pointage
-  libère les inscrits non pointés et repêche la liste d'attente ; tout joueur
-  repêché doit repasser par le pointage (c'est là qu'il règle son engagement). Le
-  juge-arbitre confirme ou retire à la main. Gère aussi le désistement (avant
-  clôture il libère la place ; après clôture il est refusé, sauf cas particulier
-  du juge-arbitre avec remboursement tracé).
-- `ServiceLancementTableau` — la charnière entre l'inscription et le déroulé
-  sportif. Une fois le pointage clôturé, `lancer` prend les présents et génère les
-  poules via `MoteurTournoi` (tirage reproductible, graine conservée). Une fois
-  toutes les poules terminées, `construirePhaseFinale` monte le tableau à
-  élimination directe (placement des qualifiés I.305, best-of, petite finale) et
-  fait passer le tableau en phase finale.
-- `ResultatInscriptionTournoi`, `ResultatPointage`, `ResultatLancement` — comptes
-  rendus détaillés renvoyés par les services correspondants.
-
-### Le pré-tournoi (`core` + `model`)
-
-- **Comptes & clubs** : `Club` (référentiel FFTT), `CompteOrganisateur`,
-  `AccesClub`. `ServiceComptesOrganisateurs` orchestre inscription → code envoyé à
-  l'**email officiel du club** → vérification → création de l'accès. Les effets de
-  bord passent par des **ports** (`EnvoiEmail`, `GenerateurCode`,
-  `HachageMotDePasse`, `Horloge`) : aucune implémentation de production dans le
-  livrable, le cœur reste pur. `RegistreClubs` (+ impl mémoire) fournit le
-  référentiel.
-- **Cycle de vie** : `ServiceCycleTournoi` fait passer un tournoi de
-  **brouillon → homologué → publié** (ou annulé). L'homologation vérifie la
-  **grille H** (dossier de demande SPID : correspondant, juge-arbitre, type,
-  dates, adresse, tableaux avec nom/type/date, au moins un tableau dames — IX.104)
-  et enregistre le numéro délivré par la FFTT. La publication vérifie la **grille
-  P** (notre décision produit : niveau, tables, règlement PDF, politique balles,
-  clôtures, et chaque tableau complet) et **calcule la dotation globale**. Les
-  éléments manquants sont consultables à tout moment, en clair.
-- **Habilitation** : `ServiceTournois` réserve la création et les transitions à un
-  organisateur habilité pour le club (contrôle d'`AccesClub`).
-- **Couplage** : une `PolitiqueOuverture` partagée fait que l'inscription, le
-  pointage et le lancement respectent le statut du tournoi (refus si annulé ; mode
-  strict « exiger publié »).
-
-### L'ordonnancement (`ordonnancement`)
-
-- `Ordonnanceur` — moteur réactif semi-automatique d'affectation des matchs aux
-  tables. Contrainte dure (un joueur ne peut pas être à deux tables). Score de
-  priorité réglable : vagues (poules avant tableau), équité (attente), déblocage
-  (joueur engagé sur plusieurs tableaux).
-- `ValidationInscription` — règle configurable « pas deux tableaux qui se
-  suivent » (clause d'organisateur, pas une règle fédérale).
-- `EstimateurDuree` — durée d'un match par catégorie, avec apprentissage (moyenne
-  mobile robuste).
-- `PrevisionSalle`, `Anticipateur` — prévision de disponibilité des tables et des
-  joueurs, suggestions de préparation des matchs bientôt jouables.
-- Types de support : `MatchOrdonnancable`, `PhaseMatch`, `PoidsOrdonnancement`,
-  `PropositionLancement`, `SuggestionAnticipation`, `CategorieDuree`.
-
-### La persistance (`persistence`)
-
-Conçue pour la salle : **local, hors ligne, résistant aux coupures**. Format JSON
-versionné, **sans aucune dépendance** (socle `persistence.json` fait maison).
-
-- `DepotTournoi` — sauvegarde/rechargement d'un tournoi complet + sa discipline,
-  en **écriture atomique** (une coupure de courant ne corrompt jamais le fichier
-  précédent). Le fichier est lisible et inspectable à la main en cas de pépin.
-- `ServiceAutosave` — sauvegarde automatique toutes les **15 minutes** dans un
-  fichier séparé, avec **reprise sur incident** : au lancement suivant, un arrêt
-  anormal est détecté (marqueur de fermeture propre) et la reprise peut être
-  proposée. L'autosave embarque l'état vivant de l'ordonnancement et
-  l'apprentissage des durées, en plus du tournoi.
-- Points délicats gérés : **déduplication des joueurs** (une instance par licence),
-  **graphe des matchs** de la phase finale rétabli au rechargement, et **mêmes
-  instances de matchs** partagées entre le tournoi et l'ordonnanceur.
-- `DepotApplication` — persistance des **données d'application** (référentiel des
-  clubs, comptes organisateurs, accès, tournois récents), dans un fichier distinct
-  du document de tournoi. Il **implémente `RegistreClubs`** et se branche donc
-  directement sur le service de comptes ; les habilitations survivent d'un tournoi
-  à l'autre. Les mots de passe n'y figurent que sous forme d'**empreinte**.
-- `ServiceFichierTournoi` — le **cycle de vie applicatif** : démarrage, nouveau/
-  ouvrir (avec **reprise sur incident** signalée par événements), autosave branché
-  sur la session, enregistrer/enregistrer-sous, **tournois récents**, fermeture
-  propre. Pilotable par un écouteur, prêt à être branché sur une interface.
-- Le cœur reste découplé : quelques accesseurs de restauration ont été ajoutés au
-  `model`/`ordonnancement`, mais aucune dépendance vers `persistence`.
+**Moteur sportif (testé)**
+- Ordre des parties I.301, placement I.302, classement I.303, placement du
+  tableau I.304 et I.305, cartons et disqualifications 3.5.2, catégories
+  d'âge II.302 et II.303, accès aux tournois IX.101 et IX.102.
 
 ---
 
-## Contrainte d'intégration fédérale (à traiter au pré-tournoi)
+## 4. Prêt dans le moteur, mais pas encore branché
 
-L'homologation et la remontée officielle des résultats passent obligatoirement
-par les outils fédéraux **SPID V2** (portail) et **GIRPE** (logiciel de salle),
-verrouillés derrière authentification FFTT. PingManager ne les remplace pas : il
-apporte le confort de gestion en salle et produira un **export**. Le format
-d'échange GIRPE n'est pas public et n'est communiqué que **lors de
-l'homologation** (contact : spidv2@fftt.org).
+| Fonction | Ce qui existe | Ce qui manque |
+|---|---|---|
+| Sauvegarde automatique et reprise après incident | `ServiceAutosave`, `SessionSalle`, détection d'arrêt anormal (testés) | l'activer dans l'interface et proposer la reprise au démarrage ; aujourd'hui chaque action enregistre le fichier du tournoi, ce qui suffit à rouvrir la salle |
+| Convocations par SMS | écran, consentement, textes, journal ; envoi **simulé** (`EnvoiSmsSimule`) | brancher un vrai prestataire (recommandation : Brevo, environ 0,045 € HT par SMS) et décider à qui appartient le compte |
+| Emails (vérification de compte et de club) | port `EnvoiEmail` ; envoi **à la console** (`EmailConsole`) | un envoi réel (SMTP avec TLS ou service tiers) |
+| Échanges FFTT | import licenciés/clubs et export des résultats en CSV **provisoires** | le format officiel (voir section 8) |
+| Paiement en ligne | lien HelloAsso saisi par le club | paiement par tableau et retour qui marque l'inscrit « payé » |
+| Phase finale | accès par un bouton « Phase finale (provisoire) » | l'intégrer à la page du jour J (tâche B039) |
+| Pointage et lancement | `ServicePointage`, `ServiceLancementTableau` complets | écrans de la veille (B006, B007, B008) |
+
+À valider chez l'utilisateur, jamais vu en session cloud : tuiles IGN et
+géocodage sur le vrai réseau, rendu Windows avec mise à l'échelle, voix,
+impression directe, pare-feu pour le suivi sur téléphone.
 
 ---
 
-## État d'avancement
+## 5. Reste à faire
 
-- **Fait** : le déroulé sportif complet d'un tableau (inscription, pointage,
-  liste d'attente, lancement, poules, phase finale, discipline, ordonnancement,
-  prévision), conforme aux règlements ; le **pré-tournoi complet** (comptes &
-  clubs, habilitation, cycle de vie brouillon → homologué → publié, métadonnées
-  IX.111 + champs de la demande SPID, complétude à trois niveaux, dotation
-  calculée, câblage du statut au déroulé) ; et la **persistance** (sauvegarde/
-  rechargement local en JSON sans dépendance, écriture atomique, autosave 15 min
-  et reprise sur incident embarquant l'ordonnancement et l'apprentissage des
-  durées). Les **données d'application** (clubs, comptes organisateurs, accès)
-  sont elles aussi persistées, dans un fichier distinct. Un **service de pilotage
-  « fichier »** (`ServiceFichierTournoi`) orchestre tout le cycle de vie
-  applicatif (démarrage, ouvrir/nouveau, autosave, enregistrer, récents, fermeture)
-  et se pilote par événements, prêt pour l'interface.
-- **Prochain bloc** : le générateur de règlement PDF et l'**interface JavaFX**
-  par-dessus le moteur désormais persistant, puis la remontée fédérale
-  SPID/GIRPE.
+Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
-Le détail de l'avancement et la feuille de route sont dans `ETAT_DU_PROJET.md`.
-La conformité réglementaire article par article est dans `CONFORMITE_FFTT.md`.
+### Jour J
+1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
+   et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
+   dans une cellule ; le même composant pour les poules et le tableau final ;
+   issues anormales conservées ; un **espace cartons** (jaune, jaune-rouge,
+   rouge, par joueur) branché sur `GestionCartonsMatch` et
+   `RegistreDisciplinaire`, persisté. La branche `tache/B038-saisie-score-grille`
+   existe mais ne contient aucun code.
+2. **B039 (P1) — Page du jour J en onglets.** Quand le tournoi passe « jour J »,
+   une page au nom du tournoi avec les onglets **Général** (écran du
+   juge-arbitre), **Pointage** (tous les tableaux), **un onglet par tableau**
+   (poules, arbre) et **Salle**. Retirer les croix « payé » au tirage : être
+   dans la liste veut dire avoir payé, le paiement se règle au pointage.
+   Supprimer le bouton « Phase finale (provisoire) ».
+3. **B005 — Jour J au style v2** (après B039) : pointage, tirage, poules,
+   arbre, salle avec les tuiles, pastilles et cartes de la charte. Ne pas
+   bouleverser les poules et les arbres, jugés très bons.
+4. **B015 — Une couleur par tableau**, attribuée automatiquement et
+   modifiable, visible sur les matchs proposés, la salle, les poules, l'arbre,
+   les feuilles et le suivi sur téléphone ; persistée (anciens fichiers :
+   couleur attribuée à la lecture).
+
+### Veille du tournoi (J-1)
+5. **B006 — Tableau de bord de la veille** : par tableau, inscrits, attente,
+   payés, horaires et pointage, et des alertes (tableau sans horaire, sous le
+   seuil de maintien, juge-arbitre principal non désigné, joueur sans club ou
+   sans points).
+6. **B007 — Listes de pointage en PDF** : une par tableau, triée par nom (nom,
+   prénom, licence, club, points, cases « pointé » et « payé », montant), bouton
+   dans la vue Inscriptions.
+7. **B008 — Mise à jour des points avant le tirage** : importer un fichier
+   licence + points, aperçu (anciens et nouveaux points, licences inconnues),
+   puis application ; interdit sur un tableau lancé.
+
+### Brancher l'existant (section 4)
+8. Autosave et reprise au démarrage.
+9. Envoi réel des emails, puis des SMS.
+10. Paiement HelloAsso.
+
+### Sécurité, indispensable avant la vente (B004 et suite)
+11. **Données personnelles réelles dans le code** (`ui.infra.DonneesDemo`) :
+    l'email de Quentin et celui d'un autre licencié, la licence et la date de
+    naissance de Quentin, et des mots de passe de démo écrits en clair.
+    **Le dépôt GitHub est public** : remplacer par des identités fictives,
+    changer le mot de passe s'il sert ailleurs, et décider s'il faut réécrire
+    l'historique git.
+12. **Compte de supervision** créé à chaque démarrage, avec un mot de passe
+    écrit dans le code : le réserver à un mode démo explicite
+    (`-Dpingmanager.demo=true`) et stocker le rôle au lieu de le déduire de
+    l'email.
+13. Vérifier l'email à la création de compte : sinon, qui crée un compte avec
+    l'email d'un référent devient administrateur du club.
+14. Liaison de licence : une licence pour un seul compte, et une preuve
+    de possession.
+15. Politique de mot de passe (10 caractères minimum) et limite d'essais
+    (connexion et code à 6 chiffres).
+16. Contrôle des droits dans le contexte (`exigerDroit`) et pas seulement par
+    la navigation ; suppression du repli par nom de club.
+17. Robustesse face aux fichiers piégés : profondeur et taille maximales dans
+    `JsonParser`, bornes de l'import (bombe zip, numéros de ligne géants).
+18. Règlement déposé : copier le PDF dans le dossier de données au lieu de
+    garder un chemin absolu libre.
+19. Carte : n'injecter le pont Java que sur la page locale, bloquer la
+    navigation de la WebView.
+20. Mettre à jour JavaFX (dernière 21.0.x) et PDFBox.
+21. RGPD : mention d'information, purge des tournois anciens, effacement d'un
+    joueur ; écriture sûre (`fsync`, copie `.bak`, verrou entre deux instances).
+
+### Technique
+22. **B002** — Toute lecture de la date ou de l'heure du cœur passe par le port
+    `Horloge` (tests de catégorie d'âge à date fixe).
+23. Chaque écran relit le fichier du tournoi : envisager un objet partagé par
+    tournoi ouvert (plus rapide, refonte plus large).
+24. Géocodage en arrière-plan (il fige l'écran jusqu'à 5 s sans réseau).
+
+### Plus tard
+25. **B014** — Finitions graphiques et cohérence de tous les écrans (en dernier).
+26. **B041** — Statistiques du joueur (rencontres, victoires, adversaires, par
+    saison).
+27. **B026** — Buvette (cahier des charges à écrire : qui vend, sur quel
+    poste, carte ou non, stock).
+28. Tableaux réservés aux licences loisir (IX.101), inscription d'un licencié
+    par son club, export de la liste des inscrits (attention à l'injection de
+    formules dans les cellules).
+29. Remise des récompenses (podium à afficher et exporter), version web.
+
+---
+
+## 6. Décisions à prendre (Quentin)
+
+En attendant, le code applique l'option la plus prudente, indiquée entre
+parenthèses.
+
+**Règlement sportif**
+- « Poule 1 » de l'article I.305.2 = poule A ? (oui)
+- Place des exempts dans le tableau final.
+- Petite finale quand un joueur abandonne en demi-finale.
+- Parties de classement pour les places 5 et suivantes ? (non)
+- Ordre des rencontres de poule I.301 à confirmer sur un vrai tournoi.
+- Remplacement du juge-arbitre après la demande d'homologation (verrouillé ;
+  recommandé : autoriser si le grade reste conforme, à vérifier avec IX.104).
+- Tirage public et graine (IX.109) : enregistrer la graine du tableau final.
+- Manches d'un match perdu par forfait ou abandon ; victoires et défaites par
+  forfait dans les statistiques (comptées et signalées à part).
+- Lancer un tableau avec des repêchés qui n'ont pas pointé ; inscriptions sur
+  un tableau déjà en pointage.
+
+**Produit**
+- SMS : compte du club ou de PingManager ? Lire une colonne « portable » à
+  l'import ? (non : l'accord du joueur ne se déduit pas d'un tableur)
+- Feuilles : « feuille de rencontre » (vocabulaire des équipes) ou « feuille
+  de partie » (tournois individuels) ?
+- Renommer « Appel vocal », qui peut faire croire à un appel sur le portable ?
+- Suivi sur téléphone : ajouter un QR code (nouvelle dépendance ou encodeur
+  maison) ? Garder la recherche par licence ?
+- Délai de désinscription en ligne (jusqu'à la fin des inscriptions).
+- Seuils de couleur des matchs proposés (fixes : 10 et 20 minutes).
+- Tarif et dotation dans les finances (tarif en ligne, dotation sur les
+  recettes attendues).
+- Téléphone dans le compte utilisateur (absent : « Non renseigné »).
+- Tournoi annulé : verrous et règlement levés (oui).
+
+---
+
+## 7. Conformité FFTT
+
+Les règles sont vérifiées sur les **règlements sportifs et généraux FFTT
+2026-2027** (textes officiels, pas des sources secondaires), avec l'article
+cité dans le code et les tests.
+
+| Article | Sujet | État |
+|---|---|---|
+| I.301 | Ordre des parties en poule (3 à 6 joueurs, selon les qualifiés) | ✅ |
+| I.302 | Placement en poule, séparation des clubs, départage aléatoire | ✅ |
+| I.303 | Classement 2/1/0, forfait/abandon/disqualification, départages | ✅ |
+| I.304, I.305 | Placement du tableau final, têtes de série, 2es et 3es | ✅ |
+| II.302, II.303 | Catégories d'âge | ✅ |
+| IX.101, IX.102 | Accès selon la catégorie du tournoi | ✅ |
+| IX.104, IX.111 | Inscription, classement, capacité, tarifs, récompenses | ✅ |
+| 3.5.2 | Cartons, points de pénalité, exclusion après 2 disqualifications | ✅ |
+
+Réserves : égalité vraiment persistante (I.303.e) laissée à l'organisateur ;
+séparation des clubs non contrainte au-delà du 2e tour ; **aucune validation
+par un juge-arbitre sur un vrai tournoi** pour l'instant.
+
+---
+
+## 8. Échanges avec la FFTT
+
+- L'homologation et la remontée officielle passent par les outils fédéraux.
+  Pour les **tournois individuels**, c'est **SPIDD** (SPID déconnecté, logiciel
+  du juge-arbitre) et non GIRPE (épreuves par équipes).
+- Aucun format d'échange ni fichier officiel de licenciés n'est public.
+  PingManager utilise en attendant des CSV provisoires (import licenciés et
+  clubs, export des résultats).
+- Prochaine étape : écrire à la FFTT (**spidv2@fftt.email**) pour obtenir le
+  format de remontée et un accord sur l'accès aux données. Pas de moissonnage
+  du site fédéral.
+
+---
+
+## 9. Travailler avec Claude
+
+`CLAUDE.md` donne les consignes aux sessions Claude (langue, architecture,
+tests, branches) et `.claude/` contient les agents et les skills. Le travail à
+faire est la **section 5 de ce README** : une session prend une tâche, la
+réalise sur une branche, met ce README à jour et ouvre une Pull Request.

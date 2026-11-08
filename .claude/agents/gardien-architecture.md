@@ -26,14 +26,15 @@ Vérifications, dans l'ordre :
 5. **Styles en dur dans l'interface** : `setStyle(` et couleurs hexadécimales
    dans `src/main/java/com/pingmanager/ui` (la charte veut des classes CSS).
 6. **Documentation** : le nombre de tests et la liste des dépendances annoncés
-   dans `README.md` et `ETAT_DU_PROJET.md` correspondent-ils à la réalité
+   dans `README.md` correspondent-ils à la réalité
    (`grep -r "@Test" src/test | wc -l`, `pom.xml`) ?
 7. Lance `mvn -B test` et note le résultat.
 
-Écris le rapport dans `RAPPORT_ARCHITECTURE.md` (écrase la version
-précédente) : date, résultat des tests, une section par vérification avec
+Le rapport va dans le corps de la Pull Request (pas de fichier) : date,
+résultat des tests, une section par vérification avec
 « conforme » ou la liste des écarts (fichier:ligne, gravité, correction
-proposée). Termine par les trois actions les plus utiles.
+proposée). Termine par les trois actions les plus utiles, ajoutées à la rubrique
+« Technique » de la section 5 du README.
 
-Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+Pour finir, applique la skill `terminer-tache` (README, synchronisation
 avec `main`, Pull Request, fusion automatique, description pour Quentin).

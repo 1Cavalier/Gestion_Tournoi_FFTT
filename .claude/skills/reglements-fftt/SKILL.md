@@ -7,20 +7,12 @@ description: Vérifier ou implémenter une règle sportive FFTT (poules, classem
 
 ## Sources officielles (seules valables)
 
-- `docs/reglements/reglements_sportifs_2026_2027.txt` : chapitres I (épreuves,
-  poules, tableaux), IX (tournois), II (catégories), etc.
-- `docs/reglements/reglements_generaux_2026_2027.txt` : règlements généraux
-  (licences, discipline…).
-
-Ce sont des extractions texte des PDF officiels. Chercher par numéro d'article :
-
-```
-Grep pattern "I\.305" path docs/reglements/reglements_sportifs_2026_2027.txt
-```
-
-puis lire les lignes autour avec Read (offset/limit). Ne jamais s'appuyer sur la
-mémoire ni sur un site tiers. Le texte extrait peut contenir des coupures de
-mise en page : relire le passage entier avant de conclure.
+Les **règlements sportifs** (chapitres I épreuves, poules, tableaux ; II
+catégories ; IX tournois…) et les **règlements généraux** FFTT 2026-2027.
+Ils ne sont plus versionnés dans le dépôt : Quentin les fournit (PDF) quand
+une règle doit être vérifiée. Sans le texte sous les yeux, ne pas
+interpréter de mémoire : appliquer l'option la plus prudente et ajouter la
+question dans la section 6 du README.
 
 ## Où chaque règle vit dans le code
 
@@ -39,7 +31,7 @@ mise en page : relire le passage entier avant de conclure.
 | 3.5.2 | Cartons, pénalités, 2 disqualifications = exclusion | `core.GestionCartonsMatch`, `core.RegistreDisciplinaire` |
 
 Vérifier l'emplacement avec Glob avant de s'y fier : le code évolue.
-L'état article par article est tenu dans `CONFORMITE_FFTT.md`.
+L'état article par article est tenu dans la section 7 du README.
 
 ## Méthode
 
@@ -48,7 +40,7 @@ L'état article par article est tenu dans `CONFORMITE_FFTT.md`.
 3. Écrire d'abord un test qui exprime la règle (cas nominal + cas limites :
    effectif non rond, ex æquo, forfait, club unique…).
 4. Implémenter, puis `mvn -B test`.
-5. Mettre à jour `CONFORMITE_FFTT.md` si la conformité d'un article change.
+5. Mettre à jour la section 7 du README si la conformité d'un article change.
 
 ## Réserves connues (ne pas « corriger » sans décision de Quentin)
 

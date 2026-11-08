@@ -137,16 +137,12 @@ explique pourquoi et quoi faire.
 
 ## Vérification par captures
 
-Les captures sont possibles en session cloud sous Xvfb avec
-`outils-dev/run.sh` (voir `outils-dev/LISEZMOI.md` ; JavaFX et PDFBox peuvent
-aussi venir du dépôt Maven local `~/.m2` après `mvn -B test`, par les
-variables `FX`, `PDF` et `ECRAN`). Le mode `v2` du harnais capture à 1440 px
-les écrans de référence (connexion, accueil, profil, gestion des tournois,
-nouveau tournoi, vue d'ensemble, jour J, page à venir, carte des tournois) ;
-référence unique versionnée : `docs/captures/v2-apres/`. Pour tout lot
+Les captures sont possibles en session cloud en lançant l'application sous
+Xvfb (jars JavaFX et PDFBox de la recette de `CLAUDE.md`) ; il n'y a plus de
+harnais ni d'images de référence dans le dépôt, tout code de capture reste
+dans `/tmp`. Pour tout lot
 d'interface : produire des captures **avant / après**, en thème clair et
 sombre, **hors du dépôt** (`/tmp/captures/<lot>/`, PNG, largeur 1440), les
 regarder soi-même avec l'outil de lecture d'image et les décrire dans la Pull
-Request. **Ne pas les committer** (le dépôt avait gonflé à 31 Mo de captures) ;
-seule exception : remplacer une image de `docs/captures/v2-apres/` quand
-l'écran de référence change. Si les captures sont impossibles, le dire.
+Request. **Ne jamais les committer** (le dépôt avait gonflé à 31 Mo de
+captures). Si les captures sont impossibles, le dire.
