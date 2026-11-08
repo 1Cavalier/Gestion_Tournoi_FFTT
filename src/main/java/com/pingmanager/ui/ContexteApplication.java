@@ -10,6 +10,8 @@ import com.pingmanager.core.Territoires;
 import com.pingmanager.model.Coordonnees;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.core.RegistreClubs;
+import com.pingmanager.core.RegistrePrononciations;
+import com.pingmanager.core.ResolveurPrononciationRegistre;
 import com.pingmanager.core.RegistreLicences;
 import com.pingmanager.core.ResultatLiaisonClub;
 import com.pingmanager.core.ServiceAuthentification;
@@ -129,6 +131,10 @@ public final class ContexteApplication {
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
+
+        // B018 : prononciations des noms (registre de l'application) dans les annonces vocales.
+        annoncesVocales.service().definirResolveur(new ResolveurPrononciationRegistre(
+                depot.prononciations(), this::numeroClubDuJoueur));
 
         amorcerProfilDemo();
     }
@@ -875,6 +881,24 @@ public final class ContexteApplication {
     /** Convocations par SMS (B019), branchées sur la simulation. */
     public com.pingmanager.core.ServiceConvocationsSms convocationsSms() {
         return convocationsSms;
+    }
+
+    /** B018 : registre des prononciations phonétiques (sauvegardé par {@link #sauvegarder()}). */
+    public RegistrePrononciations prononciations() {
+        return depot.prononciations();
+    }
+
+    /** B018 : numéro du club d'un licencié (base des licences), vide si inconnu. */
+    public Optional<String> numeroClubDuJoueur(String licence) {
+        if (licence == null || licence.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return licencesFFTT.trouverParLicence(licence.trim()).map(FicheLicence::getNumeroClub)
+                    .filter(n -> n != null && !n.isBlank());
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
     }
 
     /** Annonces vocales de la salle (B017), une file pour toute l'application. */

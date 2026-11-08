@@ -96,8 +96,6 @@ public final class PresentationProfil {
             "Cochez d'abord la case de confirmation sous l'avertissement.";
     static final String MOTIF_SANS_NUMERO = "Saisissez un numéro de club.";
 
-    static final String APPEL_A_VENIR = "Saisie à venir : vous pourrez bientôt indiquer ici comment "
-            + "prononcer votre nom lors des appels au micro (alphabet phonétique).";
 
     private PresentationProfil() {
     }

@@ -177,14 +177,26 @@ public final class PageCompte {
         return Ui.carte(PresentationProfil.TITRE_TOURNOI, corps);
     }
 
-    /** Appel micro : pas encore de saisie (B018), d'où la mention « à venir ». */
-    private static VBox construireCarteAppel() {
-        Node entete = Ui.ligne(12, Ui.titreCarte(PresentationProfil.TITRE_APPEL), Ui.espace(),
-                Ui.pastille("Bientôt", StatutPastille.NEUTRE));
-        return Ui.carte(entete,
-                grilleChamps(List.of(new PresentationProfil.Champ("Prononciation",
-                        PresentationProfil.prononciation(null)))),
-                aide(PresentationProfil.APPEL_A_VENIR));
+    /**
+     * Appel micro (B018) : sa prononciation en alphabet phonétique, avec
+     * « Écouter » et l'aide à la saisie. Il faut une licence reliée : le
+     * registre des prononciations est indexé par licence.
+     */
+    private VBox construireCarteAppel() {
+        CompteUtilisateur compte = contexte.compteConnecte();
+        if (!compte.aLicenceLiee()) {
+            return Ui.carte(PresentationProfil.TITRE_APPEL,
+                    grilleChamps(List.of(new PresentationProfil.Champ("Prononciation",
+                            PresentationProfil.prononciation(null)))),
+                    aide(PresentationPrononciation.AIDE_PROFIL_SANS_LICENCE));
+        }
+        Optional<com.pingmanager.model.FicheLicence> fiche = contexte.ficheLicenceLiee();
+        String prenom = fiche.map(com.pingmanager.model.FicheLicence::getPrenom).orElse(compte.getPrenom());
+        String nom = fiche.map(f -> com.pingmanager.core.TexteAnnonceVocale.nomPropre(f.getNom()))
+                .orElse(compte.getNom());
+        return Ui.carte(PresentationProfil.TITRE_APPEL,
+                new FormulairePrononciation(contexte, compte.getLicenceLiee(), prenom, nom, null, null, null, null)
+                        .build());
     }
 
     // Clubs -----------------------------------------------------------------

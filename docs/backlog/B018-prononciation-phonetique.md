@@ -4,11 +4,11 @@ titre: Prononciation des noms en alphabet phonétique
 type: idee
 priorite: P2
 taille: M
-statut: en-cours
+statut: fait
 depend-de: [B017]
 fichiers: [core (registre de prononciations), persistence/DepotApplication, ui/ecran/PageCompte, ui/ecran/EcranJourJ]
 branche: tache/B018-prononciation
-pr:
+pr: 73
 ---
 
 ## Ce qu'il faut faire
@@ -22,10 +22,10 @@ Pour les noms mal prononcés par la synthèse vocale :
 
 ## Critères de fin
 
-- [ ] registre persisté (test aller-retour)
-- [ ] SSML produit avec la prononciation (test)
-- [ ] partie « Appel » dans le profil
-- [ ] `mvn -B test` à 0 échec
+- [x] registre persisté (test aller-retour)
+- [x] SSML produit avec la prononciation (test)
+- [x] partie « Appel » dans le profil
+- [x] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
 
@@ -35,4 +35,13 @@ Aucune pour l'instant.
 
 ## Passations
 
+- 2026-11-08 `developpeur` : registre (cœur + JSON applicatif rétrocompatible), validation API, résolveur branché au démarrage, profil « Appel micro » (saisie, Écouter, aide), écran jour J « Prononciation des noms… » (menu Voix). 3 commits, 1388 tests verts (tests.sh).
+- Points d'attention : `AnnonceVocale` a un 5e composant `licences` (constructeur à 4 arguments gardé) ; `TexteAnnonceVocale.nomPropre` devenu public ; constante `PresentationProfil.APPEL_A_VENIR` retirée (inutilisée).
+- Non vérifié : voix réelle (Windows) et écran jour J à l'œil ; profil capturé sous Xvfb (correct). 3 questions dans le journal `docs/journal/2026-11-08-tache-B018-prononciation.md`.
+
+- 2026-11-08 `verificateur-modele` : 2 classes de tests ajoutées (18 tests, 1410 au total, 4 en échec voulu). Injection SSML impossible (balayage de tous les caractères), registre, résolveur et ancien fichier OK.
+- Défauts : `ValidationPrononciation` refuse é précomposé mais accepte e+U+0301 et refuse 2 diacritiques empilés (mineurs) ; `DepotApplication.lirePrononciations` (l.~425) lève `JsonException` sur un élément non objet ou une section de mauvais type : démarrage bloqué au lieu d'ignorer.
+
 ## Résultat
+
+Registre IPA persisté dans les données de l'application, résolveur SSML branché, carte « Appel micro » du profil (saisie, Écouter, aide), écran jour J « Prononciation des noms… ». 1412 tests verts. Voix réelle à vérifier sous Windows. Détails : `docs/journal/2026-11-08-tache-B018-prononciation.md`.

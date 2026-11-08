@@ -145,8 +145,14 @@ final class EcranJourJ {
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
                 this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
                 .avecSms(contexte.convocationsSms(), this::afficherSms)
-                .avecAnnoncesVocales(contexte.annoncesVocales());
+                .avecAnnoncesVocales(contexte.annoncesVocales())
+                .avecPrononciations(this::afficherPrononciations);
         racine.setCenter(principal.build());
+    }
+
+    /** B018 : prononciation des noms des joueurs et des clubs ; retour à l'écran principal. */
+    private void afficherPrononciations() {
+        racine.setCenter(new EcranPrononciations(contexte, tournoi, this::afficherListe).build());
     }
 
     /** Convocations par SMS (B019) : réglages, numéros consentis, journal ; retour à l'écran principal. */

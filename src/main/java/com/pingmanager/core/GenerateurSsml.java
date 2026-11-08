@@ -1,5 +1,6 @@
 package com.pingmanager.core;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,17 +27,14 @@ public final class GenerateurSsml {
     public static String generer(AnnonceVocale annonce, int diffusions, ResolveurPrononciation resolveur) {
         ResolveurPrononciation r = resolveur == null ? ResolveurPrononciation.TEXTE_NORMAL : resolveur;
         StringBuilder phrase = new StringBuilder();
-        for (SegmentAnnonce s : annonce.segments()) {
-            Optional<String> ipa = s.nature() == SegmentAnnonce.Nature.LIBRE ? Optional.empty() : resoudre(r, s);
-            if (ipa.isPresent()) {
-                phrase.append("<phoneme alphabet=\"ipa\" ph=\"").append(echapperXml(ipa.get())).append("\">")
-                        .append(echapperXml(s.texte())).append("</phoneme>");
-            } else {
-                phrase.append(echapperXml(s.texte()));
-            }
+        List<SegmentAnnonce> segments = annonce.segments();
+        for (int i = 0; i < segments.size(); i++) {
+            SegmentAnnonce s = segments.get(i);
+            Optional<String> ipa = s.nature() == SegmentAnnonce.Nature.LIBRE ? Optional.empty()
+                    : resoudre(r, s, annonce.licenceDu(i));
+            morceau(phrase, s.texte(), ipa);
         }
-        StringBuilder sb = new StringBuilder()
-                .append("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"fr-FR\">");
+        StringBuilder sb = new StringBuilder().append(ENTETE);
         for (int i = 0; i < Math.max(1, diffusions); i++) {
             if (i > 0) {
                 sb.append(SILENCE_ENTRE_DIFFUSIONS);
@@ -46,9 +44,47 @@ public final class GenerateurSsml {
         return sb.append("</speak>").toString();
     }
 
-    private static Optional<String> resoudre(ResolveurPrononciation r, SegmentAnnonce s) {
+    /**
+     * Essai d'une prononciation (B018, bouton « Écouter ») : les morceaux dits
+     * une fois, chacun avec sa prononciation si elle est valide
+     * ({@link ValidationPrononciation}), sinon en texte normal.
+     */
+    public static String essai(List<Morceau> morceaux) {
+        StringBuilder phrase = new StringBuilder();
+        for (Morceau m : morceaux) {
+            if (phrase.length() > 0) {
+                phrase.append(' ');
+            }
+            ResultatSaisiePrononciation v = ValidationPrononciation.verifier(m.ipa());
+            morceau(phrase, m.texte(), v.valide() && !v.ipa().isEmpty() ? Optional.of(v.ipa()) : Optional.empty());
+        }
+        return ENTETE + "<s>" + phrase + "</s></speak>";
+    }
+
+    /**
+     * Morceau d'un essai de prononciation.
+     *
+     * @param texte texte écrit (prénom, nom, club)
+     * @param ipa   prononciation en API, ou vide / null
+     */
+    public record Morceau(String texte, String ipa) {
+    }
+
+    private static final String ENTETE =
+            "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"fr-FR\">";
+
+    private static void morceau(StringBuilder phrase, String texte, Optional<String> ipa) {
+        if (ipa.isPresent()) {
+            phrase.append("<phoneme alphabet=\"ipa\" ph=\"").append(echapperXml(ipa.get())).append("\">")
+                    .append(echapperXml(texte)).append("</phoneme>");
+        } else {
+            phrase.append(echapperXml(texte));
+        }
+    }
+
+    private static Optional<String> resoudre(ResolveurPrononciation r, SegmentAnnonce s, String licence) {
         try {
-            Optional<String> ipa = r.phonemesIpa(s);
+            Optional<String> ipa = r.phonemesIpa(s, licence);
             return ipa == null ? Optional.empty() : ipa.filter(p -> !p.isBlank()).map(String::strip);
         } catch (RuntimeException e) {
             // Une prononciation défaillante ne doit jamais empêcher l'annonce : texte normal.

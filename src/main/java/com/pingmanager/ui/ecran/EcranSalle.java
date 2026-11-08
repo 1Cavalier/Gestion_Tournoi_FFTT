@@ -144,6 +144,8 @@ final class EcranSalle {
     private Runnable ouvrirSms;
     /** Annonces vocales (B017), ou null si non branchées. */
     private com.pingmanager.ui.infra.DiffuseurAnnonces voix;
+    /** Ouvre l'écran « Prononciation des noms » (B018), ou null. */
+    private Runnable ouvrirPrononciations;
     /**
      * Annonces non dites (voix indisponible) : zone gardée d'un affichage à
      * l'autre, complétée sans redessiner la page (une saisie de score en cours
@@ -188,6 +190,12 @@ final class EcranSalle {
     EcranSalle avecSms(com.pingmanager.core.ServiceConvocationsSms service, Runnable ouvrirReglages) {
         this.sms = service;
         this.ouvrirSms = ouvrirReglages;
+        return this;
+    }
+
+    /** Branche l'écran « Prononciation des noms » (B018), ouvert depuis le menu « Voix ». */
+    EcranSalle avecPrononciations(Runnable ouvrir) {
+        this.ouvrirPrononciations = ouvrir;
         return this;
     }
 
@@ -506,6 +514,11 @@ final class EcranSalle {
                     () -> reglerVoix(() -> r.setVoix(nom), "Voix choisie : " + nom + ".")));
         }
         menu.getItems().addAll(auto, contexte, new SeparatorMenuItem(), repetitions, rappel, debit, choixVoix);
+        if (ouvrirPrononciations != null) {
+            MenuItem prononciations = new MenuItem("Prononciation des noms…");
+            prononciations.setOnAction(e -> ouvrirPrononciations.run());
+            menu.getItems().addAll(new SeparatorMenuItem(), prononciations);
+        }
         return menu;
     }
 

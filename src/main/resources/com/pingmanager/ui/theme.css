@@ -3851,3 +3851,37 @@
 .sms-bulle-texte {
     -fx-text-fill: -texte;
 }
+
+/* === Prononciation phonétique des noms (B018) === */
+
+.prononciation-champ {
+    -fx-font-size: 15px;
+}
+
+/* Symbole de l'aide : petite touche cliquable, police assez grande pour l'API. */
+.prononciation-symbole {
+    -fx-font-size: 16px;
+    -fx-min-width: 38px;
+    -fx-padding: 4 8 4 8;
+    -fx-background-color: -surface-2;
+    -fx-text-fill: -texte;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.prononciation-symbole:hover {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}
+
+.prononciation-exemple {
+    -fx-text-fill: -primaire;
+}
+
+.prononciation-aide {
+    -fx-padding: 10 12 10 12;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+}

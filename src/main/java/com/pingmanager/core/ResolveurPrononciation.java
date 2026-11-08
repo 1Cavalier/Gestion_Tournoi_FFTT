@@ -21,4 +21,14 @@ public interface ResolveurPrononciation {
      * @return la prononciation en IPA (par exemple « ʒɑ̃ dy.pɔ̃ »), ou vide
      */
     Optional<String> phonemesIpa(SegmentAnnonce segment);
+
+    /**
+     * Variante qui connaît la licence du joueur auquel appartient le morceau
+     * (B018 : registre des prononciations). Par défaut, ignore la licence.
+     *
+     * @param licence licence du joueur du morceau, ou vide (texte libre)
+     */
+    default Optional<String> phonemesIpa(SegmentAnnonce segment, String licence) {
+        return phonemesIpa(segment);
+    }
 }

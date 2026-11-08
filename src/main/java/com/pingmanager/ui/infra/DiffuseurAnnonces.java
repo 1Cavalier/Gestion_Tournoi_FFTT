@@ -55,6 +55,23 @@ public final class DiffuseurAnnonces {
         return v;
     }
 
+    /**
+     * Fait écouter une prononciation (B018) sur le fil des annonces : jamais en
+     * même temps qu'une annonce. L'issue est rendue depuis le fil de fond.
+     */
+    public void ecouter(List<com.pingmanager.core.GenerateurSsml.Morceau> morceaux,
+                        com.pingmanager.core.SyntheseVocale.ParametresVoix voix,
+                        Consumer<com.pingmanager.core.SyntheseVocale.ResultatSynthese> issue) {
+        fil.execute(() -> {
+            com.pingmanager.core.SyntheseVocale.ResultatSynthese r = service.ecouterPrononciation(morceaux, voix);
+            try {
+                issue.accept(r);
+            } catch (RuntimeException ignore) {
+                // Un écran fermé ne doit pas arrêter le fil des annonces.
+            }
+        });
+    }
+
     /** Dit, l'une après l'autre, toutes les annonces en attente. */
     public void diffuser() {
         if (!service.aDiffuser()) {
