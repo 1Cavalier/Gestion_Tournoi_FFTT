@@ -2,7 +2,7 @@
 
 - Branche : `tache/B021-suivi-telephone`
 - Agent : `developpeur` (étape de pipeline)
-- Pull Request : #<n> (complété par l'intégrateur)
+- Pull Request : #71
 - Statut : fait (fusion par l'intégrateur)
 
 ## Pour Quentin

@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [nouveau package de diffusion hors cœur, core (vue publique en lecture), ui/ecran/EcranJourJ]
 branche: tache/B021-suivi-telephone
-pr: PRNUM
+pr: 71
 ---
 
 ## Ce qu'il faut faire
