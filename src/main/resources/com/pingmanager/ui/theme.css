@@ -3779,6 +3779,7 @@
 .suivi-telephone-affiche-aide {
     -fx-font-size: 16px;
     -fx-text-fill: -texte-doux;
+}
 
 /* === Convocations par SMS (B019) : saisie du portable, journal, SMS simulés === */
 
