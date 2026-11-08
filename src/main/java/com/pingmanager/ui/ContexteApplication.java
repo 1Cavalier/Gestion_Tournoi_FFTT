@@ -31,6 +31,7 @@ import com.pingmanager.ui.infra.DonneesDemo;
 import com.pingmanager.ui.infra.TournoiDemoJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
 import com.pingmanager.ui.infra.EmailConsole;
+import com.pingmanager.ui.infra.EnvoiSmsSimule;
 import com.pingmanager.ui.infra.GenerateurCodeAleatoire;
 import com.pingmanager.ui.infra.HachageMotDePassePBKDF2;
 
@@ -72,6 +73,10 @@ public final class ContexteApplication {
 
     // Ports concrets.
     private final EmailConsole email;
+    /** B019 : SMS simulés (aucun envoi réel tant que le prestataire n'est pas branché). */
+    private final EnvoiSmsSimule smsSimule = new EnvoiSmsSimule();
+    private final com.pingmanager.core.ServiceConvocationsSms convocationsSms =
+            new com.pingmanager.core.ServiceConvocationsSms(smsSimule);
 
     // Services métier.
     private final ServiceAuthentification authentification;
@@ -831,6 +836,16 @@ public final class ContexteApplication {
     /** @return le dernier email « envoyé » (démo), pour l'afficher à l'écran. */
     public EmailConsole email() {
         return email;
+    }
+
+    /** Convocations par SMS (B019), branchées sur la simulation. */
+    public com.pingmanager.core.ServiceConvocationsSms convocationsSms() {
+        return convocationsSms;
+    }
+
+    /** SMS simulés, pour les montrer à l'écran (B019). */
+    public EnvoiSmsSimule smsSimule() {
+        return smsSimule;
     }
 
     public String memoDemo() {

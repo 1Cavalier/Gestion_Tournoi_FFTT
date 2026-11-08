@@ -130,6 +130,11 @@ final class EcranSalle {
     private Consumer<String> ouvrirTableau;
     /** Salle du plan affichée (B024), ou -1 pour toutes. */
     private int salleAffichee = -1;
+    private final Horloge horloge;
+    /** Convocations par SMS (B019), ou null si non branchées. */
+    private com.pingmanager.core.ServiceConvocationsSms sms;
+    /** Ouvre les réglages des SMS (B019), ou null. */
+    private Runnable ouvrirSms;
 
     EcranSalle(Tournoi tournoi, Runnable enregistrer, Runnable onRetour, Horloge horloge) {
         this(tournoi, enregistrer, onRetour, "← Jour J", "Salle et tables", null, horloge);
@@ -148,6 +153,7 @@ final class EcranSalle {
         this.titre = titre;
         this.bandeau = bandeau;
         this.salle = new ServiceSalle(horloge);
+        this.horloge = horloge;
         this.saisiePoule = new SaisieResultatMatch(horloge);
         this.defilement = Ui.defilant(new VBox());
         racine.setCenter(defilement);
@@ -158,6 +164,26 @@ final class EcranSalle {
     EcranSalle surOuvrirTableau(Consumer<String> ouvrir) {
         this.ouvrirTableau = ouvrir;
         return this;
+    }
+
+    /**
+     * Branche les convocations par SMS (B019) : envoi automatique au lancement
+     * selon l'annonce choisie, et bouton vers les réglages.
+     */
+    EcranSalle avecSms(com.pingmanager.core.ServiceConvocationsSms service, Runnable ouvrirReglages) {
+        this.sms = service;
+        this.ouvrirSms = ouvrirReglages;
+        return this;
+    }
+
+    /** SMS au lancement d'un match (B019) : résumé à ajouter au message, vide si rien n'est parti. */
+    private String smsApresLancement(Match m, int table, ModeAnnonce mode) {
+        if (sms == null) {
+            return "";
+        }
+        LocalDateTime maintenant = LocalDateTime.ofInstant(horloge.maintenant(), java.time.ZoneId.systemDefault());
+        String resume = sms.apresLancement(tournoi, m, table, mode, maintenant).resume();
+        return resume.isEmpty() ? "" : " SMS : " + resume;
     }
 
     Node build() {
@@ -291,6 +317,15 @@ final class EcranSalle {
         annonce.getItems().addAll(new SeparatorMenuItem(), demander);
 
         HBox actions = Ui.ligne(10, annonce, lancer, proposer);
+        if (ouvrirSms != null) {
+            Button boutonSms = Ui.boutonSecondaire("SMS…");
+            boutonSms.setTooltip(new Tooltip("Convocations par SMS : réglages, numéros consentis, journal des envois."));
+            boutonSms.setOnAction(e -> {
+                arreterMinuterie();
+                ouvrirSms.run();
+            });
+            actions.getChildren().add(0, boutonSms);
+        }
         HBox haut = Ui.ligne(16, gauche, Ui.espace(), actions);
         haut.setAlignment(javafx.geometry.Pos.TOP_LEFT);
         return new VBox(6, haut, chiffres);
@@ -953,8 +988,9 @@ final class EcranSalle {
             afficher();
         });
         choix.getChildren().addAll(Ui.espace(), renoncer);
-        VBox encart = new VBox(10, question, Ui.aide("Les SMS et appels automatiques arrivent bientôt : en "
-                + "attendant, l'annonce s'affiche ici pour être lue au micro."), choix, retenir);
+        VBox encart = new VBox(10, question, Ui.aide("SMS : messages simulés pour l'instant (bouton « SMS… »), "
+                + "envoyés aux joueurs qui ont donné leur numéro. L'appel vocal arrive bientôt : l'annonce s'affiche "
+                + "ici pour être lue au micro."), choix, retenir);
         encart.getStyleClass().addAll("encart-confirmation", "jourj-annonce-question");
         return encart;
     }
@@ -1071,11 +1107,15 @@ final class EcranSalle {
             ResultatPropositionSalle r = salle.proposer(tournoi);
             if (r.aLance()) {
                 List<AnnonceRencontre> liste = new ArrayList<>();
+                StringBuilder smsEnvoyes = new StringBuilder();
                 for (ResultatPropositionSalle.Lancement l : r.getLancements()) {
                     liste.add(AnnonceRencontre.preparer(mode, l.match().match(), l.table(),
                             PresentationSalle.contexte(l.match())));
+                    smsEnvoyes.append(smsApresLancement(l.match().match(), l.table(), mode));
                 }
                 annonces = liste;
+                apresAction(true, PresentationSalle.messageProposition(r) + smsEnvoyes);
+                return;
             }
             apresAction(r.aLance(), PresentationSalle.messageProposition(r));
         });
@@ -1085,13 +1125,15 @@ final class EcranSalle {
         lancerAvecAnnonce(mode -> {
             String contexte = contexteDe(m);
             ResultatAffectationTable r = salle.affecter(tournoi, m, table);
+            String smsEnvoyes = "";
             if (r.estReussi()) {
                 annonces = List.of(AnnonceRencontre.preparer(mode, m, table, contexte));
                 lancerManuel = false;
                 rechercheLancer = "";
                 joueurDetail = null;
+                smsEnvoyes = smsApresLancement(m, table, mode);
             }
-            apresAction(r.estReussi(), PresentationSalle.message(r, bord.getNombreDeTables()));
+            apresAction(r.estReussi(), PresentationSalle.message(r, bord.getNombreDeTables()) + smsEnvoyes);
         });
     }
 
