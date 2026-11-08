@@ -30,8 +30,8 @@ import java.util.List;
  * consentement explicite, envoi manuel, journal des envois et boîte d'envoi
  * simulée. <b>Jamais d'appel</b>, des messages écrits seulement.
  *
- * <p>Écran minimal fonctionnel ; la mise en forme fine viendra avec l'agent
- * {@code developpeur-interface}.</p>
+ * <p>Vue mince : textes, ordre et états dans {@link PresentationConvocationsSms}
+ * et {@link PresentationSaisieSms} ; chaque action enregistre aussitôt le tournoi.</p>
  */
 final class EcranConvocationsSms {
 
@@ -83,6 +83,17 @@ final class EcranConvocationsSms {
             messageSucces = null;
             messageErreur = null;
         }
+        ConvocationsSms c = tournoi.getConvocationsSms();
+        List<Node> tuiles = new ArrayList<>();
+        for (PresentationConvocationsSms.Tuile t : PresentationConvocationsSms.tuiles(c)) {
+            tuiles.add(Ui.tuileChiffre(t.valeur(), t.libelle()));
+        }
+        page.getChildren().add(Ui.rangeeTuiles(tuiles.toArray(new Node[0])));
+        PresentationConvocationsSms.alerteLimite(c).ifPresent(a -> {
+            Label l = Ui.aide(a);
+            l.getStyleClass().add("sms-alerte-limite");
+            page.getChildren().add(l);
+        });
         List<PresentationConvocationsSms.Personne> personnes = PresentationConvocationsSms.personnes(tournoi);
         page.getChildren().addAll(carteReglages(), carteNumeros(personnes), carteEnvoiManuel(personnes),
                 carteJournal(), carteSimulation());
@@ -97,10 +108,7 @@ final class EcranConvocationsSms {
         ConvocationsSms c = tournoi.getConvocationsSms();
         CheckBox auto = new CheckBox("Envoyer les SMS automatiquement quand un match est envoyé sur une table");
         auto.setSelected(c.isEnvoiAutomatique());
-        String annonce = tournoi.getModeAnnonce() == null ? "demandée à chaque lancement"
-                : "« " + tournoi.getModeAnnonce().getLibelle() + " »";
-        Label aideAuto = Ui.aide("Seulement si l'annonce choisie comprend le SMS (« SMS » ou « SMS et appel vocal »). "
-                + "Annonce actuelle : " + annonce + ".");
+        Label aideAuto = Ui.aide(PresentationConvocationsSms.aideEnvoiAutomatique(tournoi));
         TextField expediteur = Ui.champ(ExpediteurSms.proposer(tournoi.getClubOrganisateur()));
         expediteur.setText(c.getExpediteur() == null ? "" : c.getExpediteur());
         TextField limite = Ui.champ(String.valueOf(ConvocationsSms.LIMITE_PAR_DEFAUT));
@@ -108,33 +116,34 @@ final class EcranConvocationsSms {
         limite.setPrefColumnCount(6);
         Button valider = Ui.boutonPrimaire("Enregistrer les réglages");
         valider.setOnAction(e -> {
-            int l;
-            try {
-                l = Integer.parseInt(limite.getText().trim());
-            } catch (NumberFormatException ex) {
-                l = -1;
-            }
-            if (l < 0 || l > ConvocationsSms.LIMITE_MAXIMALE) {
-                messageErreur = "Limite d'envois : un nombre entre 0 et " + ConvocationsSms.LIMITE_MAXIMALE + ".";
+            java.util.Optional<Integer> l = PresentationConvocationsSms.limite(limite.getText());
+            if (l.isEmpty()) {
+                messageErreur = PresentationConvocationsSms.limiteRefusee();
                 afficher();
                 return;
             }
             if (!service.definirExpediteur(tournoi, expediteur.getText())) {
-                messageErreur = "Expéditeur : 3 à 11 lettres ou chiffres, sans espace ni accent, avec au moins une "
-                        + "lettre (le nom du club de préférence).";
+                messageErreur = PresentationConvocationsSms.EXPEDITEUR_REFUSE;
                 afficher();
                 return;
             }
-            c.setLimiteEnvois(l);
+            c.setLimiteEnvois(l.get());
             c.setEnvoiAutomatique(auto.isSelected());
             sauver(true, "Réglages des SMS enregistrés.");
             afficher();
         });
-        return Ui.carte("Réglages", auto, aideAuto,
-                Ui.libelleChamp("Expéditeur (nom affiché sur le téléphone)"), expediteur,
+        expediteur.setMaxWidth(220);
+        limite.setMaxWidth(120);
+        VBox colExp = new VBox(6, Ui.libelleChamp("Expéditeur (nom affiché sur le téléphone)"), expediteur,
                 Ui.aide("Laisser vide pour « " + ExpediteurSms.proposer(tournoi.getClubOrganisateur())
-                        + " », tiré du nom du club."),
-                Ui.libelleChamp("Limite d'envois pour le tournoi"), limite, Ui.actions(valider));
+                        + " », tiré du nom du club."));
+        VBox colLim = new VBox(6, Ui.libelleChamp("Limite d'envois pour le tournoi"), limite,
+                Ui.aide("Au-delà, rien ne part et le refus est noté au journal."));
+        HBox.setHgrow(colExp, javafx.scene.layout.Priority.ALWAYS);
+        HBox.setHgrow(colLim, javafx.scene.layout.Priority.ALWAYS);
+        HBox champs = new HBox(24, colExp, colLim);
+        champs.getStyleClass().add("sms-reglages-champs");
+        return Ui.carte("Réglages", new VBox(4, auto, aideAuto), champs, Ui.actions(valider));
     }
 
     // ------------------------------------------------------------------
@@ -146,15 +155,15 @@ final class EcranConvocationsSms {
         ComboBox<PresentationConvocationsSms.Personne> qui = new ComboBox<>();
         qui.getItems().setAll(personnes);
         qui.setPromptText("Joueur ou arbitre");
-        TextField numero = Ui.champ("06 12 34 56 78");
-        CheckBox consentement = new CheckBox("La personne accepte de recevoir ses convocations par SMS pour ce "
-                + "tournoi. Son numéro sert uniquement à cela et sera effacé à la fin du tournoi.");
-        consentement.setWrapText(true);
+        qui.setMaxWidth(420);
+        BlocSaisieSms saisie = new BlocSaisieSms(PresentationSaisieSms.CONSENTEMENT_CLUB, null);
+        saisie.montrerEtat(tournoi, null);
+        qui.valueProperty().addListener((o, a, p) -> saisie.montrerEtat(tournoi, p == null ? null : p.licence()));
         Button ajouter = Ui.boutonPrimaire("Enregistrer le numéro");
         ajouter.setOnAction(e -> {
             PresentationConvocationsSms.Personne p = qui.getValue();
             ResultatContactSms r = service.enregistrerContact(tournoi, p == null ? null : p.licence(),
-                    numero.getText(), consentement.isSelected(), maintenant());
+                    saisie.saisie(), saisie.consenti(), maintenant());
             if (r.estReussi()) {
                 sauver(true, r.message());
             } else {
@@ -175,12 +184,14 @@ final class EcranConvocationsSms {
                 sauver(true, "Numéro retiré.");
                 afficher();
             });
-            HBox ligne = Ui.ligne(10, Ui.gras(PresentationConvocationsSms.nomDe(personnes, k.numeroLicence())),
-                    Ui.discret(PresentationConvocationsSms.detailContact(k)), Ui.espace(), retirer);
+            HBox ligne = Ui.ligneElement(null, PresentationConvocationsSms.nomDe(personnes, k.numeroLicence()),
+                    PresentationConvocationsSms.detailContact(k), retirer);
+            if (liste.getChildren().isEmpty()) {
+                ligne.getStyleClass().add("ligne-element-premiere");
+            }
             liste.getChildren().add(ligne);
         }
-        Button effacer = Ui.boutonSecondaire(effacementAConfirmer ? "Confirmer l'effacement de tous les numéros"
-                : "Effacer tous les numéros");
+        Button effacer = Ui.boutonSecondaire(effacementAConfirmer ? "Oui, effacer" : "Effacer tous les numéros");
         effacer.setDisable(c.getContacts().isEmpty());
         effacer.setOnAction(e -> {
             if (!effacementAConfirmer) {
@@ -192,8 +203,23 @@ final class EcranConvocationsSms {
             }
             afficher();
         });
-        return Ui.carte("Numéros de portable (facultatifs)", qui, numero, consentement, Ui.actions(ajouter),
-                Ui.filet(), liste, Ui.actions(effacer));
+        HBox pied = Ui.actions(effacer);
+        if (effacementAConfirmer && !c.getContacts().isEmpty()) {
+            effacer.getStyleClass().add("bouton-danger-sms");
+            Button annuler = Ui.boutonLien("Annuler");
+            annuler.setOnAction(e -> {
+                effacementAConfirmer = false;
+                afficher();
+            });
+            Label question = Ui.texte(PresentationConvocationsSms.confirmationEffacement(c.getContacts().size()));
+            question.setWrapText(true);
+            question.getStyleClass().add("sms-confirmation-effacement");
+            pied = new HBox(10, question, Ui.espace(), annuler, effacer);
+            pied.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        }
+        return Ui.carte("Numéros de portable (facultatifs)",
+                Ui.libelleChamp("Joueur ou arbitre"), qui, saisie.noeud(), Ui.actions(ajouter),
+                Ui.filet(), liste, pied);
     }
 
     // ------------------------------------------------------------------
@@ -241,33 +267,56 @@ final class EcranConvocationsSms {
 
     private Node carteJournal() {
         ConvocationsSms c = tournoi.getConvocationsSms();
-        VBox lignes = new VBox(6);
-        List<MessageSms> journal = new ArrayList<>(c.getJournal());
+        VBox lignes = new VBox();
+        List<MessageSms> journal = PresentationConvocationsSms.journalAffiche(c);
         if (journal.isEmpty()) {
-            lignes.getChildren().add(Ui.etatVideCompact("Aucun envoi pour l'instant."));
+            lignes.getChildren().add(Ui.etatVideCompact("Aucun envoi pour l'instant. Les convocations envoyées "
+                    + "s'afficheront ici, la plus récente en haut."));
         }
-        for (int i = journal.size() - 1; i >= 0; i--) {
-            MessageSms m = journal.get(i);
-            Label texte = Ui.discret(m.texte());
+        for (MessageSms m : journal) {
+            Label statut = Ui.pastille(m.statut().getLibelle(), PresentationConvocationsSms.pastille(m.statut()));
+            HBox entete = Ui.ligneElement(null, PresentationConvocationsSms.destinataire(m),
+                    PresentationConvocationsSms.detailMessage(m), statut);
+            entete.getStyleClass().addAll("sms-journal-entete", "ligne-element-premiere");
+            Label texte = Ui.texte(m.texte());
             texte.setWrapText(true);
-            lignes.getChildren().add(new VBox(2, Ui.gras(PresentationConvocationsSms.enteteMessage(m)), texte));
+            texte.getStyleClass().add("sms-texte");
+            VBox ligne = new VBox(4, entete, texte);
+            PresentationConvocationsSms.motif(m).ifPresent(mo -> ligne.getChildren().add(Ui.aide(mo)));
+            ligne.getStyleClass().add("sms-journal-ligne");
+            if (lignes.getChildren().isEmpty()) {
+                ligne.getStyleClass().add("sms-journal-premiere");
+            }
+            lignes.getChildren().add(ligne);
         }
+        PresentationConvocationsSms.resteJournal(c).ifPresent(r -> lignes.getChildren().add(Ui.aide(r)));
         return Ui.carte("Journal des envois", Ui.discret(PresentationConvocationsSms.compteur(c)), lignes);
     }
 
     private Node carteSimulation() {
-        VBox lignes = new VBox(6);
+        VBox lignes = new VBox(10);
         List<EnvoiSmsSimule.Message> messages = simulation.messages();
         if (messages.isEmpty()) {
             lignes.getChildren().add(Ui.etatVideCompact("Aucun SMS simulé depuis l'ouverture du logiciel."));
         }
-        for (int i = messages.size() - 1; i >= 0; i--) {
+        for (int i = messages.size() - 1; i >= 0 && messages.size() - i <= PresentationConvocationsSms.JOURNAL_AFFICHE;
+             i--) {
             EnvoiSmsSimule.Message m = messages.get(i);
             Label texte = Ui.texte(m.texte());
             texte.setWrapText(true);
-            lignes.getChildren().add(new VBox(2, Ui.discret("De " + m.expediteur() + " à " + m.numeroMasque()), texte));
+            texte.getStyleClass().add("sms-bulle-texte");
+            Label meta = Ui.discret(PresentationConvocationsSms.enteteSimule(m) + " · "
+                    + PresentationConvocationsSms.tailleTexte(m.texte()));
+            VBox bulle = new VBox(4, meta, texte);
+            bulle.getStyleClass().add("sms-bulle");
+            bulle.setMaxWidth(560);
+            lignes.getChildren().add(bulle);
         }
-        return Ui.carte("SMS simulés (aucun envoi réel)", lignes);
+        Label titre = Ui.titreCarte("SMS simulés");
+        Label badge = Ui.pastille("Aucun envoi réel", StatutPastille.INFO);
+        return Ui.carte(Ui.enteteAvecActions(titre, badge),
+                Ui.aide("Ce que les téléphones auraient reçu depuis l'ouverture du logiciel (non sauvegardé)."),
+                lignes);
     }
 
     private void sauver(boolean reussi, String texte) {
