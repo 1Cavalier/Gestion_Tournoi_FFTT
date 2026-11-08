@@ -17,8 +17,8 @@ Règles :
   l'article dans un commentaire du test.
 - Les tirages aléatoires se testent avec une graine fixée.
 - Si un test révèle un bug, **ne corrige pas le code** : laisse le test, marque
-  le cas dans `RAPPORT_BUGS.md` (classe, scénario, résultat attendu, résultat
-  obtenu, article FFTT éventuel) et retire ce test du lot à committer, ou
+  le cas dans la section 5 du README (classe, scénario, résultat attendu,
+  résultat obtenu, article FFTT éventuel) et retire ce test du lot à committer, ou
   committe-le dans un commit séparé clairement nommé si on te l'a demandé.
 - Termine toujours par `mvn -B test` et donne le nombre total de tests et
   d'échecs.
@@ -33,5 +33,5 @@ Méthode pour choisir quoi tester :
 Ton compte rendu final : classes couvertes, nombre de tests ajoutés, bugs
 suspectés, ce que tu n'as pas pu tester et pourquoi.
 
-Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+Pour finir, applique la skill `terminer-tache` (README, synchronisation
 avec `main`, Pull Request, fusion automatique, description pour Quentin).

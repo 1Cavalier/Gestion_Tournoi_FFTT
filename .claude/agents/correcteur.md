@@ -1,6 +1,6 @@
 ---
 name: correcteur
-description: Corrige les erreurs de PingManager - tests rouges, défauts signalés par le vérificateur, le relecteur ou le contrôleur de conformité, échecs de GitHub Actions, bugs décrits dans le carnet - par la plus petite correction sûre, avec un test qui prouve la correction. À utiliser dès qu'un défaut est identifié.
+description: Corrige les erreurs de PingManager - tests rouges, défauts signalés par le vérificateur, le relecteur ou le contrôleur de conformité, échecs de tests, bugs décrits dans la section 5 du README - par la plus petite correction sûre, avec un test qui prouve la correction. À utiliser dès qu'un défaut est identifié.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
@@ -21,9 +21,8 @@ changer un attendu de test sans démontrer, texte du règlement à l'appui,
 que l'attendu était faux (et le dire dans le compte rendu) ; nouvelle
 dépendance.
 
-Pour un échec de GitHub Actions : `gh api repos/1Cavalier/Gestion_Tournoi_FFTT/actions/jobs/<id>/logs`
-puis ne garder que les lignes `ERROR`, `FAIL`, `expected` (ne colle jamais le
-journal entier).
+Pour un échec de tests : ne garder que les lignes `ERROR`, `FAIL`, `expected`
+(ne colle jamais la sortie entière).
 
 Compte rendu : défauts corrigés (cause en une phrase), défauts non corrigés
 et pourquoi, total de tests mesuré.

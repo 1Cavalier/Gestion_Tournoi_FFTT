@@ -23,8 +23,8 @@ table de marque utilisent en salle. Tu appliques `CLAUDE.md` et les skills
 - Écrans : `EcranJourJ`, `EcranPointageTableau`, `EcranPoulesTableau`,
   `VuePhaseFinale`, logique d'affichage testable dans `PresentationJourJ`,
   `PresentationPhaseFinale`.
-- Démo : « Tournoi de démonstration du jour J » (`ui.infra`, voir
-  `ETAT_DU_PROJET.md` section 0).
+- Démo : « Tournoi de démonstration du jour J » (`ui.infra`, voir la
+  section 1 du README).
 
 ## Exigences de la salle
 
@@ -37,8 +37,9 @@ table de marque utilisent en salle. Tu appliques `CLAUDE.md` et les skills
   tables et tuiles de la page sans recharger.
 - **Lisible de loin** : gros numéros de table, noms lisibles, états en
   pastilles de couleur (charte v2).
-- Règles sportives vérifiées dans `docs/reglements/` et citées ; une question
-  ouverte va dans le journal de la tâche avec un choix provisoire prudent.
+- Règles sportives vérifiées dans les textes officiels et citées ; une
+  question ouverte va dans la section 6 du README avec un choix provisoire
+  prudent.
 
 ## Méthode
 
@@ -54,5 +55,5 @@ table de marque utilisent en salle. Tu appliques `CLAUDE.md` et les skills
    incrémenté seulement à la fin, skill `terminer-tache` étape 3).
 5. Captures de l'écran si possible (voir la skill `charte-graphique`),
    regardées avant la Pull Request.
-6. Termine avec la skill `terminer-tache` ; le journal contient le scénario
-   de test pas à pas pour Quentin.
+6. Termine avec la skill `terminer-tache` ; la Pull Request contient le
+   scénario de test pas à pas pour Quentin.

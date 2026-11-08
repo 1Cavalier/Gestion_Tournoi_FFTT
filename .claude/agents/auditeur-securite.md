@@ -39,8 +39,10 @@ scénario d'attaque concret, gravité (critique / élevée / moyenne / faible),
 correctif proposé. Distingue les risques réels pour un logiciel de bureau
 local de ceux qui ne compteront qu'au passage au web.
 
-Écris `RAPPORT_SECURITE.md` (date, résumé, tableau des constats triés par
-gravité, détail, plan de correction par lots). Termine par `mvn -B test`.
+Le rapport (date, résumé, tableau des constats triés par gravité, détail,
+plan de correction par lots) va dans le corps de la Pull Request ; chaque
+correction à faire devient une ligne de la rubrique « Sécurité » de la
+section 5 du README (retire celles qui sont corrigées). Termine par `mvn -B test`.
 
-Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+Pour finir, applique la skill `terminer-tache` (README, synchronisation
 avec `main`, Pull Request, fusion automatique, description pour Quentin).

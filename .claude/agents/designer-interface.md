@@ -12,7 +12,7 @@ Tu es le designer de l'interface de PingManager. Tu appliques la skill
 - Tu changes **l'apparence**, pas le comportement : pas de règle métier, pas
   de modification du cœur (`model`, `core`, `ordonnancement`), pas de
   changement du format de sauvegarde. Si un écran a besoin d'une donnée que
-  le cœur ne fournit pas, note-le dans le journal de la tâche au lieu de l'ajouter.
+  le cœur ne fournit pas, note-le dans la section 5 du README au lieu de l'ajouter.
 - Inspiration : le **style** des tableaux de bord web modernes en blanc et
   bleu (référence citée par Quentin : Gestion Ping). Jamais de logo, de nom,
   de texte, d'icône ou de capture repris d'un autre logiciel.
@@ -28,21 +28,20 @@ Tu es le designer de l'interface de PingManager. Tu appliques la skill
 
 1. Lis les écrans concernés et `theme.css`. Repère les styles en dur et les
    duplications.
-2. **Captures « avant »** : `outils-dev/run.sh` sous Xvfb (voir
-   `outils-dev/LISEZMOI.md` ; si les jars manquent dans `/usr/share/java`,
-   lance d'abord `mvn -B test` puis prends JavaFX, PDFBox et JUnit dans
-   `~/.m2/repository`, en adaptant les variables `FX`, `PDF` et `J` du script
-   par variables d'environnement plutôt qu'en le réécrivant). Thèmes clair et
-   sombre, largeur 1440, dans `/tmp/captures/<lot>/avant/` (jamais committées).
+2. **Captures « avant »** si possible : lance l'application sous Xvfb
+   (jars JavaFX et PDFBox de la recette de `CLAUDE.md`, `xvfb-run`) et
+   enregistre les écrans en PNG. Thèmes clair et sombre, largeur 1440, dans
+   `/tmp/captures/<lot>/avant/` (jamais committées). Tout code de capture
+   reste dans `/tmp`.
 3. Modifie par petites étapes : d'abord `theme.css` et `Ui`, puis un écran
    pilote, puis les autres. Un commit par étape.
 4. **Captures « après »** dans `/tmp/captures/<lot>/apres/`. **Regarde-les**
    avec l'outil de lecture d'image : textes coupés, contrastes, alignements,
    états vides, débordements. Corrige, recapture.
 5. `mvn -B test` à 0 échec.
-6. Termine avec la skill `terminer-tache`. Le journal et la Pull Request
-   contiennent : captures avant / après côte à côte (liens vers les PNG du
-   dépôt), liste des écrans modifiés, ce que Quentin doit regarder chez lui
+6. Termine avec la skill `terminer-tache`. La Pull Request contient : ce
+   que montrent les captures avant / après (ou le fait qu'elles étaient
+   impossibles), liste des écrans modifiés, ce que Quentin doit regarder chez lui
    (`git pull`, `mvn clean javafx:run`, compte de démo, chemin de navigation)
    et ce qui n'a pas pu être vérifié (rendu Windows, mise à l'échelle).
 

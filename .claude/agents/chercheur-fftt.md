@@ -8,10 +8,10 @@ model: sonnet
 Tu es chargé de la veille technique sur l'intégration de PingManager avec la
 Fédération française de tennis de table (FFTT).
 
-Contexte (voir `ETAT_DU_PROJET.md`, section 4) : l'homologation et la remontée
-des résultats passent par **SPID V2** (portail) et **GIRPE** (logiciel de
-salle), derrière authentification FFTT ; le format d'échange GIRPE n'est pas
-public (contact indiqué : spidv2@fftt.org). PingManager a besoin, idéalement,
+Contexte (voir la section 8 du README) : l'homologation et la remontée
+des résultats passent par **SPID** (portail) et, pour les tournois
+individuels, **SPIDD** (logiciel du juge-arbitre), derrière authentification
+FFTT ; aucun format d'échange n'est public (contact : spidv2@fftt.email). PingManager a besoin, idéalement,
 de : vérifier une licence (nom, club, points, catégorie, certificat), récupérer
 les points mensuels, le référentiel des clubs, et exporter les résultats.
 
@@ -38,9 +38,10 @@ Règles :
   le cœur, par exemple `RegistreLicences` déjà existant, implémenté hors du
   cœur) et la liste des démarches à faire auprès de la FFTT.
 
-Livrable : `docs/RECHERCHE_FFTT.md` : résumé en dix lignes, options classées
-(faisabilité, coût, délai, risque juridique), démarches à faire par Quentin
-(avec le brouillon du courriel à envoyer à la FFTT), sources.
+Livrable : la section 8 du README mise à jour (résumé court, démarches à
+faire par Quentin) ; le détail (options classées par faisabilité, coût,
+délai, risque juridique, brouillon du courriel à la FFTT, sources) va dans le
+corps de la Pull Request.
 
-Pour finir, applique la skill `terminer-tache` (journal, synchronisation
+Pour finir, applique la skill `terminer-tache` (README, synchronisation
 avec `main`, Pull Request, fusion automatique, description pour Quentin).
