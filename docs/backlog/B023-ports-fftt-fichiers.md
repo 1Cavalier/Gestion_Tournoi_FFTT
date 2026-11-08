@@ -30,4 +30,8 @@ Aucune pour l'instant.
 
 ## Passations
 
+- 2026-11-08 developpeur : ports (`ExportResultatsFederaux`, défauts `listerParClub` / `rechercher`), `ServiceResultatsFederaux`, lecteurs/registres/export CSV dans `importation`, format dans `docs/FORMAT_ECHANGES_FFTT.md` ; 1075 tests, 0 échec (`outils-dev/tests.sh`).
+- Branchement : `ui.infra.RegistresImportes` (session seulement, superposé à la base) dans `ContexteApplication` ; boutons dans `EcranImportJoueurs` et sous le podium de `VuePhaseFinale` (tableau terminé). Interface non vue à l'écran.
+- À faire ensuite : relecture sécurité/architecture ; 3 questions pour Quentin dans le journal (conservation de l'import, classement au-delà du podium, clubs sans courriel) ; persistance non touchée.
+
 ## Résultat
