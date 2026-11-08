@@ -2,7 +2,7 @@
 
 - Branche : `tache/B016-feuilles-de-match`
 - Agent : `developpeur-jour-j` (étape de pipeline, reprise le 8 novembre après la limite d'usage)
-- Pull Request : à compléter par l'`integrateur`
+- Pull Request : #66
 - Statut : voir Pull Request
 
 ## Pour Quentin

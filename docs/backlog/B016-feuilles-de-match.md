@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [core/reglement (nouveaux générateurs), ui/ecran/EcranPoulesTableau, ui/ecran/VuePhaseFinale]
 branche: tache/B016-feuilles-de-match
-pr:
+pr: 66
 ---
 
 ## Ce qu'il faut faire
