@@ -2,8 +2,8 @@
 
 - Branche : `tache/B017-annonces-vocales`
 - Agent : `developpeur-jour-j` (étape de pipeline)
-- Pull Request : à compléter par l'intégrateur
-- Statut : en attente de relecture (étape de pipeline)
+- Pull Request : à compléter (voir « Fusion »)
+- Statut : fait (fusionné par l'intégrateur)
 
 ## Pour Quentin
 
@@ -100,6 +100,7 @@ n'a été vérifiée que par des tests sans son. C'est à valider chez vous, sou
   automatique au lancement ; l'encart d'annonce n'est pas doublé pour « Appel
   vocal » seul. En-tête de la salle : actions en `FlowPane` (passaient en
   débordement avec le menu de plus).
+- Relecture de code : aucun bloquant. `DiffuseurAnnonces` n'a pas d'arrêt explicite (fil démon, PowerShell borné à 60 s : sans conséquence à la fermeture).
 - Limite connue : les rappels ne sont vérifiés que lorsque l'écran Jour J est
   affiché (minuterie de 20 s de la salle).
 - Démo : non modifiée (`VERSION_DEMO` inchangée). Harnais de captures : mode
@@ -109,13 +110,14 @@ n'a été vérifiée que par des tests sans son. C'est à valider chez vous, sou
 ## Passations
 
 - correcteur : corrigés « oublier pendant la diction programmait un rappel » (drapeau `enCoursOubliee`) et « erreur d'écriture du fichier SSML désactivait la voix » (seul l'échec du lancement marque PowerShell absent) ; 1320 tests, 0 échec.
-- correcteur : NON corrigé « A–B = B–A » : contredit l'attendu existant `identite_de_rencontre_par_licence…` (ligne 164, choix documenté) ; aucun article du règlement ne tranche → décision à prendre (intégrateur/Quentin) avant de changer le test.
+- chef de projet (`3fa86b9`) : décision prise, « A contre B » et « B contre A » sont la même rencontre (une annonce ou un rappel n'est pas doublé si l'ordre des joueurs s'inverse) ; le test d'identité a été adapté en conséquence. Aucun article FFTT concerné.
+- relecteur-code : aucun bloquant ; deux notes reportées ci-dessus. Contrôle de conformité non nécessaire (aucune règle sportive touchée).
 
 ## Fusion
 
-À faire par l'intégrateur.
+`main` (PR B021 n° 67, B019 n° 68) déjà intégré dans la branche avant la synchronisation finale : aucun conflit, `verifier-fusion.py` à relancer et résultat noté dans la PR. Démo non modifiée, `VERSION_DEMO` inchangée.
 
 ## Chiffres
 
-- Tests : 1263 → 1299 (`outils-dev/tests.sh`, Maven inaccessible), 0 échec.
+- Tests : 1263 → 1320 (`outils-dev/tests.sh`, Maven inaccessible ; GitHub Actions fait foi), 0 échec.
 - Version de la démo : inchangée.
