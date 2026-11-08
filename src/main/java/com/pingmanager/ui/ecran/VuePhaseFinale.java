@@ -297,11 +297,12 @@ public final class VuePhaseFinale {
                 return;
             }
             com.pingmanager.importation.ExportResultatsCsv export = new com.pingmanager.importation.ExportResultatsCsv();
-            String prefixe = "resultats-" + tableau.getNom().replaceAll("[^\\p{L}\\p{N}]+", "-") + "-";
+            String nom = tableau.getNom().replaceAll("[^\\p{L}\\p{N}]+", "-").replaceAll("^-|-$", "");
+            String prefixe = "resultats-" + (nom.isEmpty() ? "tableau" : nom) + "-";
             StringBuilder sb = new StringBuilder();
             try {
                 for (com.pingmanager.core.FichierExporte f : export.produire(prep.getResultats().orElseThrow())) {
-                    Path cible = dossier.toPath().resolve(prefixe + f.getNom());
+                    Path cible = cibleLibre(dossier.toPath(), prefixe + f.getNom());
                     java.nio.file.Files.write(cible, f.getContenu());
                     sb.append(sb.length() == 0 ? "Enregistré : " : ", ").append(cible.getFileName());
                 }
@@ -313,6 +314,21 @@ public final class VuePhaseFinale {
             }
         });
         return new VBox(6, exporter, message);
+    }
+
+    /**
+     * Fichier à écrire sans écraser un export précédent : « nom.csv », sinon
+     * « nom-2.csv », « nom-3.csv »…
+     */
+    static Path cibleLibre(Path dossier, String nomFichier) {
+        Path cible = dossier.resolve(nomFichier);
+        int point = nomFichier.lastIndexOf('.');
+        String base = point < 0 ? nomFichier : nomFichier.substring(0, point);
+        String extension = point < 0 ? "" : nomFichier.substring(point);
+        for (int n = 2; java.nio.file.Files.exists(cible); n++) {
+            cible = dossier.resolve(base + "-" + n + extension);
+        }
+        return cible;
     }
 
     /** L'arbre des rencontres, dessiné aux coordonnées de {@link DispositionArbre}. */
