@@ -42,6 +42,33 @@ vraiment** : les messages s'affichent à l'écran (simulation).
   / `smsSimule()`, `EcranSalle.avecSms(…)` (envoi au lancement, bouton « SMS… »),
   `EcranConvocationsSms`, `PresentationConvocationsSms`, branchement dans `EcranJourJ`.
 
+- Interface (`developpeur-interface`, 2026-11-08) :
+  - saisie facultative du portable avec **case d'accord jamais cochée d'avance**
+    à l'inscription en ligne (étape « Récapitulatif » de `AssistantInscription`,
+    numéro gardé juste après l'inscription et tournoi enregistré aussitôt) et par
+    le club (Inscriptions → « Par joueur » → choisir un joueur → carte
+    « Convocations par SMS », boutons « Enregistrer le numéro » / « Retirer le
+    numéro », enregistrement immédiat). Bloc commun `BlocSaisieSms`, textes dans
+    `PresentationSaisieSms` (testée) ;
+  - écran « SMS… » fini : tuiles (envoyés / limite, non envoyés, numéros),
+    alerte de limite proche ou atteinte, réglages sur deux colonnes, effacement
+    manuel avec question explicite et « Annuler », journal lisible (destinataire,
+    heure, type, pastille de statut, motif d'échec, 50 derniers), SMS simulés en
+    bulles avec longueur et nombre de SMS ; logique dans
+    `PresentationConvocationsSms` (testée) ;
+  - cœur, ajouts sans changement de comportement : `ServiceConvocationsSms.refusSaisieFacultative`
+    (contrôle avant inscription) et `dateEffacementAutomatique` (rappel affiché), testés ;
+  - CSS : section « Convocations par SMS (B019) » en fin de `theme.css`
+    (`sms-consentement`, `sms-bulle`, `sms-journal-ligne`, `sms-alerte-limite`…).
+  - Captures sous Xvfb (non committées) : écran SMS clair et sombre, bloc de saisie.
+
+## À tester à l'écran (ajout interface)
+
+- Inscription en ligne (compte joueur) : étape « Récapitulatif », saisir un numéro
+  sans cocher → refus avec motif ; laisser vide → inscription normale ; cocher →
+  ligne « Convocations par SMS : numéro enregistré (…) » à la confirmation.
+- Club : Inscriptions → « Par joueur » → cliquer un joueur → carte sous la liste.
+
 ## Questions pour Quentin
 
 ### 2026-11-06 — Envoi automatique : une case en plus de l'annonce « SMS » ?
@@ -61,6 +88,12 @@ vraiment** : les messages s'affichent à l'écran (simulation).
 - Contexte : il n'existe pas d'état « tournoi terminé ». Les numéros sont effacés à l'ouverture du jour J ou de l'écran SMS le lendemain du dernier jour, et le club peut les effacer à la main. Si personne n'ouvre le tournoi, ils restent dans le fichier.
 - Options : A) comme ça ; B) effacer aussi au démarrage du logiciel pour tous les tournois ; C) effacer à la clôture d'un tableau final.
 - Choix provisoire de l'agent : A.
+- Réponse de Quentin :
+
+### 2026-11-08 — Où le club saisit-il un numéro ?
+- Contexte : il n'existe pas de formulaire « ajouter un joueur » côté club (seulement l'import). La saisie club est donc dans Inscriptions → « Par joueur » (joueur choisi) et dans l'écran « SMS… » du jour J. L'import de tableur ne lit pas de colonne « portable ».
+- Options : A) comme ça ; B) lire aussi une colonne « portable + accord » à l'import.
+- Choix provisoire de l'agent : A (un accord explicite ne se déduit pas d'un tableur).
 - Réponse de Quentin :
 
 ### 2026-11-06 — Lettres accentuées dans les SMS
