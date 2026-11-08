@@ -4,10 +4,10 @@ titre: Prononciation des noms en alphabet phonétique
 type: idee
 priorite: P2
 taille: M
-statut: a-faire
+statut: en-cours
 depend-de: [B017]
 fichiers: [core (registre de prononciations), persistence/DepotApplication, ui/ecran/PageCompte, ui/ecran/EcranJourJ]
-branche:
+branche: tache/B018-prononciation
 pr:
 ---
 

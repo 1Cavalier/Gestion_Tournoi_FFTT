@@ -30,6 +30,7 @@ import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
 import com.pingmanager.ui.infra.TournoiDemoJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
+import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
 import com.pingmanager.ui.infra.EnvoiSmsSimule;
 import com.pingmanager.ui.infra.GenerateurCodeAleatoire;
@@ -76,10 +77,17 @@ public final class ContexteApplication {
 
     // Ports concrets.
     private final EmailConsole email;
+    /** B021 : suivi sur téléphone (serveur web local en lecture seule), arrêté par {@link #fermer()}. */
+    private final DiffusionSuivi diffusionSuivi = new DiffusionSuivi();
+
     /** B019 : SMS simulés (aucun envoi réel tant que le prestataire n'est pas branché). */
     private final EnvoiSmsSimule smsSimule = new EnvoiSmsSimule();
     private final com.pingmanager.core.ServiceConvocationsSms convocationsSms =
             new com.pingmanager.core.ServiceConvocationsSms(smsSimule);
+    /** B017 : annonces vocales dans la salle (voix de Windows, sinon annonce affichée). */
+    private final com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales =
+            new com.pingmanager.ui.infra.DiffuseurAnnonces(new com.pingmanager.core.ServiceAnnoncesVocales(
+                    Horloge.systeme(), new com.pingmanager.ui.infra.SyntheseVocaleWindows()));
 
     // Services métier.
     private final ServiceAuthentification authentification;
@@ -869,6 +877,11 @@ public final class ContexteApplication {
         return convocationsSms;
     }
 
+    /** Annonces vocales de la salle (B017), une file pour toute l'application. */
+    public com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales() {
+        return annoncesVocales;
+    }
+
     /** SMS simulés, pour les montrer à l'écran (B019). */
     public EnvoiSmsSimule smsSimule() {
         return smsSimule;
@@ -878,8 +891,14 @@ public final class ContexteApplication {
         return DonneesDemo.memo();
     }
 
-    /** Ferme proprement l'application : persiste le dépôt et arrête l'autosave. */
+    /** @return le suivi sur téléphone (B021), démarré depuis le jour J. */
+    public DiffusionSuivi diffusionSuivi() {
+        return diffusionSuivi;
+    }
+
+    /** Ferme proprement l'application : arrête le suivi sur téléphone, persiste le dépôt et arrête l'autosave. */
     public void fermer() {
+        diffusionSuivi.arreter();
         service.close();
     }
 

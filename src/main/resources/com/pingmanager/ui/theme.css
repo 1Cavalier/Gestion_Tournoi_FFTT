@@ -3729,6 +3729,58 @@
     -fx-border-color: -primaire;
 }
 
+/* === Jour J : suivi sur téléphone (B021) === */
+
+.suivi-telephone-adresse {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+    -fx-padding: 4 0 4 0;
+}
+
+.suivi-telephone-page {
+    -fx-padding: 24;
+}
+
+.suivi-telephone-affiche {
+    -fx-padding: 40;
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-alignment: center;
+}
+
+.suivi-telephone-affiche-titre {
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.suivi-telephone-affiche-tournoi {
+    -fx-font-size: 20px;
+    -fx-text-fill: -texte-doux;
+}
+
+.suivi-telephone-affiche-etape {
+    -fx-font-size: 20px;
+    -fx-text-fill: -texte;
+}
+
+.suivi-telephone-affiche-adresse {
+    -fx-font-size: 64px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+    -fx-padding: 12 24 12 24;
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 12;
+}
+
+.suivi-telephone-affiche-aide {
+    -fx-font-size: 16px;
+    -fx-text-fill: -texte-doux;
+}
+
 /* === Convocations par SMS (B019) : saisie du portable, journal, SMS simulés === */
 
 .sms-saisie {
