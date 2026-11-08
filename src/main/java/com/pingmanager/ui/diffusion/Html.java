@@ -1,7 +1,6 @@
 package com.pingmanager.ui.diffusion;
 
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,11 +43,6 @@ public final class Html {
             }
         }
         return sb.toString();
-    }
-
-    /** Encode une valeur pour une URL (paramètre de lien). */
-    public static String encoderUrl(String valeur) {
-        return URLEncoder.encode(valeur == null ? "" : valeur, StandardCharsets.UTF_8);
     }
 
     /**
