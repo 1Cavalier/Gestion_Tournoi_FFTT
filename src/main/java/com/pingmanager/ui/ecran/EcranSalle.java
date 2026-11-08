@@ -16,6 +16,8 @@ import com.pingmanager.model.Match;
 import com.pingmanager.model.ModeAnnonce;
 import com.pingmanager.model.PlanSalle;
 import com.pingmanager.model.Poule;
+import com.pingmanager.model.ReglagesAnnoncesVocales;
+import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.SalleTournoi;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
@@ -24,11 +26,16 @@ import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.ResultatAffectationTable;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.Menu;
+import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuButton;
@@ -135,6 +142,14 @@ final class EcranSalle {
     private com.pingmanager.core.ServiceConvocationsSms sms;
     /** Ouvre les réglages des SMS (B019), ou null. */
     private Runnable ouvrirSms;
+    /** Annonces vocales (B017), ou null si non branchées. */
+    private com.pingmanager.ui.infra.DiffuseurAnnonces voix;
+    /**
+     * Annonces non dites (voix indisponible) : zone gardée d'un affichage à
+     * l'autre, complétée sans redessiner la page (une saisie de score en cours
+     * n'est jamais perdue).
+     */
+    private final VBox zoneAnnoncesVocales = new VBox(8);
 
     EcranSalle(Tournoi tournoi, Runnable enregistrer, Runnable onRetour, Horloge horloge) {
         this(tournoi, enregistrer, onRetour, "← Jour J", "Salle et tables", null, horloge);
@@ -174,6 +189,86 @@ final class EcranSalle {
         this.sms = service;
         this.ouvrirSms = ouvrirReglages;
         return this;
+    }
+
+    /**
+     * Branche les annonces vocales (B017) : annonce automatique au lancement
+     * selon l'annonce choisie, bouton « Annoncer » sur chaque table, rappels.
+     */
+    EcranSalle avecAnnoncesVocales(com.pingmanager.ui.infra.DiffuseurAnnonces diffuseur) {
+        this.voix = diffuseur;
+        diffuseur.surDiffusion(r -> Platform.runLater(() -> recevoirAnnonce(r)));
+        return this;
+    }
+
+    /** Annonce traitée par la voix : si elle n'a pas été dite, elle s'affiche (repli silencieux). */
+    private void recevoirAnnonce(com.pingmanager.core.ResultatAnnonceVocale r) {
+        if (!r.estAffichee() || racine.getScene() == null) {
+            return;
+        }
+        Label texte = new Label(PresentationSalle.texteRepli(r));
+        texte.setWrapText(true);
+        texte.getStyleClass().add("jourj-annonce-texte");
+        Button fermer = Ui.boutonLien("Fermer");
+        VBox encart = new VBox(4, texte, fermer);
+        encart.getStyleClass().add("jourj-annonce");
+        fermer.setOnAction(e -> zoneAnnoncesVocales.getChildren().remove(encart));
+        zoneAnnoncesVocales.getChildren().add(0, encart);
+        // Trois annonces au plus : les plus anciennes ont déjà été lues au micro.
+        while (zoneAnnoncesVocales.getChildren().size() > 3) {
+            zoneAnnoncesVocales.getChildren().remove(3);
+        }
+    }
+
+    /** Annonce vocale au lancement d'un match (B017) : phrase à ajouter au message, vide si rien n'est demandé. */
+    private String voixApresLancement(Match m, int table, ModeAnnonce mode) {
+        if (voix == null || !com.pingmanager.core.ServiceAnnoncesVocales.annonceAutomatique(tournoi, mode)) {
+            return "";
+        }
+        com.pingmanager.core.ResultatDemandeAnnonce r = voix.service().apresLancement(tournoi, m, table, mode);
+        voix.diffuser();
+        return " " + PresentationSalle.messageDemandeAnnonce(r, voix.service().voixDisponible());
+    }
+
+    /**
+     * « Appel vocal » seul avec l'annonce automatique : la voix (ou, à défaut,
+     * l'encart « À lire au micro ») suffit, pas d'encart d'annonce en double.
+     */
+    private boolean annonceVocaleSeule(ModeAnnonce mode) {
+        return voix != null && mode == ModeAnnonce.APPEL
+                && com.pingmanager.core.ServiceAnnoncesVocales.annonceAutomatique(tournoi, mode);
+    }
+
+    /** Bouton « Annoncer » d'une table occupée. */
+    private void annoncerTable(Match m, int table) {
+        com.pingmanager.core.ResultatDemandeAnnonce r = voix.service().annoncer(tournoi, m, table);
+        voix.diffuser();
+        String texte = PresentationSalle.messageDemandeAnnonce(r, voix.service().voixDisponible());
+        if (r.acceptee()) {
+            messageSucces = texte;
+        } else {
+            messageErreur = texte;
+        }
+        afficher();
+    }
+
+    /** Rappels arrivés à échéance : seulement si le match est toujours sur sa table. */
+    private void verifierRappels() {
+        if (voix == null) {
+            return;
+        }
+        // Le tournoi a pu être relu depuis le fichier : on regarde la salle actuelle, pas l'objet mémorisé.
+        if (voix.service().programmerRappelsDus((m, t) -> bord.getTables().stream().anyMatch(c -> c.numero() == t
+                && !c.estLibre() && c.match().match().getStatut() == StatutMatch.EN_COURS
+                && com.pingmanager.core.ServiceAnnoncesVocales.memeRencontre(c.match().match(), m))) > 0) {
+            voix.diffuser();
+        }
+    }
+
+    private void oublierAnnonce(Match m) {
+        if (voix != null) {
+            voix.service().oublier(m);
+        }
     }
 
     /** SMS au lancement d'un match (B019) : résumé à ajouter au message, vide si rien n'est parti. */
@@ -228,6 +323,7 @@ final class EcranSalle {
             contenu.getChildren().add(encartAnnonce(a));
         }
         annonces = List.of();
+        contenu.getChildren().add(zoneAnnoncesVocales);
         if (lancementEnAttente != null) {
             contenu.getChildren().add(choixAnnonce());
         }
@@ -329,7 +425,15 @@ final class EcranSalle {
                     ? "La feuille de match sera imprimée à chaque envoi sur une table."
                     : "Les feuilles de match ne s'impriment plus à l'envoi (bouton « Feuille » sur chaque table).");
         });
-        HBox actions = Ui.ligne(10, feuille, annonce, lancer, proposer);
+        // Actions sur plusieurs lignes si la page est étroite : le titre garde sa largeur.
+        FlowPane actions = new FlowPane(10, 8, feuille, annonce, lancer, proposer);
+        actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        actions.setPrefWrapLength(640);
+        HBox.setHgrow(actions, javafx.scene.layout.Priority.ALWAYS);
+        gauche.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        if (voix != null) {
+            actions.getChildren().add(2, menuVoix());
+        }
         if (ouvrirSms != null) {
             Button boutonSms = Ui.boutonSecondaire("SMS…");
             boutonSms.setTooltip(new Tooltip("Convocations par SMS : réglages, numéros consentis, journal des envois."));
@@ -339,9 +443,83 @@ final class EcranSalle {
             });
             actions.getChildren().add(0, boutonSms);
         }
-        HBox haut = Ui.ligne(16, gauche, Ui.espace(), actions);
+        HBox haut = Ui.ligne(16, gauche, actions);
         haut.setAlignment(javafx.geometry.Pos.TOP_LEFT);
         return new VBox(6, haut, chiffres);
+    }
+
+    /** Réglages des annonces vocales (B017), mémorisés pour ce tournoi. */
+    private Node menuVoix() {
+        ReglagesAnnoncesVocales r = tournoi.getAnnoncesVocales();
+        boolean dispo = voix.service().voixDisponible();
+        MenuButton menu = new MenuButton(PresentationSalle.libelleVoix(r, dispo));
+        menu.getStyleClass().add("jourj-annonce-choix");
+        menu.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        menu.setDisable(ferme());
+        menu.setTooltip(new Tooltip(dispo
+                ? "Annonces vocales : l'ordinateur dit « Prénom Nom, club, contre …, table N ». Réglages mémorisés "
+                        + "pour ce tournoi."
+                : "La synthèse vocale n'est disponible que sous Windows : les annonces s'affichent à l'écran pour "
+                        + "être lues au micro."));
+
+        CheckMenuItem auto = new CheckMenuItem("Annonce automatique au lancement");
+        auto.setSelected(r.isAnnonceAutomatique());
+        auto.setOnAction(e -> reglerVoix(() -> r.setAnnonceAutomatique(auto.isSelected()), auto.isSelected()
+                ? "Annonce vocale automatique : chaque match envoyé sur une table est annoncé (si l'annonce "
+                        + "choisie comprend l'appel vocal)."
+                : "Annonce vocale automatique coupée : bouton « Annoncer » sur chaque table."));
+        CheckMenuItem contexte = new CheckMenuItem("Dire le tableau et le tour");
+        contexte.setSelected(r.isAvecTableauEtTour());
+        contexte.setOnAction(e -> reglerVoix(() -> r.setAvecTableauEtTour(contexte.isSelected()),
+                contexte.isSelected() ? "Les annonces commencent par le tableau et le tour."
+                        : "Les annonces ne disent plus le tableau ni le tour."));
+
+        Menu repetitions = new Menu("Répétition");
+        ToggleGroup gRep = new ToggleGroup();
+        for (int n = 1; n <= ReglagesAnnoncesVocales.DIFFUSIONS_MAX; n++) {
+            int valeur = n;
+            String libelle = PresentationSalle.libelleDiffusions(n);
+            repetitions.getItems().add(radio(libelle, gRep, r.getDiffusions() == n,
+                    () -> reglerVoix(() -> r.setDiffusions(valeur), "Annonces : " + libelle.toLowerCase() + ".")));
+        }
+        Menu rappel = new Menu("Rappel si la table reste vide");
+        ToggleGroup gRap = new ToggleGroup();
+        for (int minutes : new int[] {0, 3, 5, 10}) {
+            String libelle = PresentationSalle.libelleRappel(minutes);
+            rappel.getItems().add(radio(libelle, gRap, r.getRappelMinutes() == minutes,
+                    () -> reglerVoix(() -> r.setRappelMinutes(minutes), "Annonces : " + libelle.toLowerCase()
+                            + (minutes > 0 ? " (« Joueurs à la table » sur la table l'annule)." : "."))));
+        }
+        Menu debit = new Menu("Débit");
+        ToggleGroup gDeb = new ToggleGroup();
+        for (int d : new int[] {-3, 0, 3}) {
+            String libelle = PresentationSalle.libelleDebit(d);
+            debit.getItems().add(radio(libelle, gDeb, Integer.signum(r.getDebit()) == Integer.signum(d),
+                    () -> reglerVoix(() -> r.setDebit(d), "Débit de la voix : " + libelle.toLowerCase() + ".")));
+        }
+        Menu choixVoix = new Menu("Voix");
+        ToggleGroup gVoix = new ToggleGroup();
+        choixVoix.getItems().add(radio("Voix par défaut du système", gVoix, r.getVoix() == null,
+                () -> reglerVoix(() -> r.setVoix(null), "Voix par défaut du système.")));
+        for (String nom : voix.voixConnues()) {
+            choixVoix.getItems().add(radio(nom, gVoix, nom.equals(r.getVoix()),
+                    () -> reglerVoix(() -> r.setVoix(nom), "Voix choisie : " + nom + ".")));
+        }
+        menu.getItems().addAll(auto, contexte, new SeparatorMenuItem(), repetitions, rappel, debit, choixVoix);
+        return menu;
+    }
+
+    private static RadioMenuItem radio(String libelle, ToggleGroup groupe, boolean choisi, Runnable action) {
+        RadioMenuItem item = new RadioMenuItem(libelle);
+        item.setToggleGroup(groupe);
+        item.setSelected(choisi);
+        item.setOnAction(e -> action.run());
+        return item;
+    }
+
+    private void reglerVoix(Runnable changement, String message) {
+        changement.run();
+        apresAction(true, message);
     }
 
     /**
@@ -566,7 +744,29 @@ final class EcranSalle {
                 }
                 afficher();
             });
-            carte.getChildren().addAll(new VBox(0, tableau, tour), a, b, duree, terminer, feuilleMatch);
+            carte.getChildren().addAll(new VBox(0, tableau, tour), a, b, duree, terminer);
+            HBox liens = Ui.ligne(8, feuilleMatch);
+            if (voix != null) {
+                Button annoncer = Ui.boutonLien("Annoncer");
+                annoncer.setDisable(ferme());
+                annoncer.setTooltip(new Tooltip("Annoncer (ou annoncer de nouveau) cette rencontre dans la salle."));
+                annoncer.setOnAction(e -> annoncerTable(m.match(), c.numero()));
+                liens.getChildren().add(annoncer);
+                Optional<java.time.Instant> rappel = voix.service().rappelPrevu(m.match());
+                if (rappel.isPresent()) {
+                    Button presents = Ui.boutonLien("Joueurs à la table");
+                    presents.setTooltip(new Tooltip(PresentationSalle.infoRappel(rappel.get(),
+                            java.time.ZoneId.systemDefault())));
+                    presents.setOnAction(e -> {
+                        voix.service().oublier(m.match());
+                        messageSucces = "Table " + c.numero() + " : joueurs présents, pas de rappel.";
+                        afficher();
+                    });
+                    carte.getChildren().add(liens);
+                    liens = Ui.ligne(8, presents);
+                }
+            }
+            carte.getChildren().add(liens);
             if (annulationsAConfirmer.contains(c.numero())) {
                 Button oui = Ui.boutonSecondaire("Oui, annuler");
                 oui.getStyleClass().add("jourj-danger");
@@ -1014,8 +1214,9 @@ final class EcranSalle {
         });
         choix.getChildren().addAll(Ui.espace(), renoncer);
         VBox encart = new VBox(10, question, Ui.aide("SMS : messages simulés pour l'instant (bouton « SMS… »), "
-                + "envoyés aux joueurs qui ont donné leur numéro. L'appel vocal arrive bientôt : l'annonce s'affiche "
-                + "ici pour être lue au micro."), choix, retenir);
+                + "envoyés aux joueurs qui ont donné leur numéro. Appel vocal : l'ordinateur annonce la rencontre dans "
+                + "la salle (menu « Voix », Windows) ; sans voix, l'annonce s'affiche ici pour être lue au micro."),
+                choix, retenir);
         encart.getStyleClass().addAll("encart-confirmation", "jourj-annonce-question");
         return encart;
     }
@@ -1090,6 +1291,7 @@ final class EcranSalle {
 
     private void apresResultat(Match m) {
         ResultatAffectationTable r = salle.libererApresResultat(tournoi, m);
+        oublierAnnonce(m);
         enSaisie = null;
         boolean reussi = r.estReussi();
         apresActionSansAffichage(reussi, PresentationSalle.message(r, bord.getNombreDeTables()));
@@ -1137,8 +1339,9 @@ final class EcranSalle {
                     liste.add(AnnonceRencontre.preparer(mode, l.match().match(), l.table(),
                             PresentationSalle.contexte(l.match())));
                     smsEnvoyes.append(smsApresLancement(l.match().match(), l.table(), mode));
+                    smsEnvoyes.append(voixApresLancement(l.match().match(), l.table(), mode));
                 }
-                annonces = liste;
+                annonces = annonceVocaleSeule(mode) ? List.of() : liste;
                 apresAction(true, PresentationSalle.messageProposition(r) + smsEnvoyes);
                 return;
             }
@@ -1158,11 +1361,12 @@ final class EcranSalle {
             ResultatAffectationTable r = salle.affecter(tournoi, m, table);
             String smsEnvoyes = "";
             if (r.estReussi()) {
-                annonces = List.of(AnnonceRencontre.preparer(mode, m, table, contexte));
+                annonces = annonceVocaleSeule(mode) ? List.of()
+                        : List.of(AnnonceRencontre.preparer(mode, m, table, contexte));
                 lancerManuel = false;
                 rechercheLancer = "";
                 joueurDetail = null;
-                smsEnvoyes = smsApresLancement(m, table, mode);
+                smsEnvoyes = smsApresLancement(m, table, mode) + voixApresLancement(m, table, mode);
             }
             String texte = PresentationSalle.message(r, bord.getNombreDeTables());
             if (r.estReussi()) {
@@ -1187,6 +1391,9 @@ final class EcranSalle {
 
     private void annulerAffectation(Match m) {
         ResultatAffectationTable r = salle.annulerAffectation(tournoi, m);
+        if (r.estReussi()) {
+            oublierAnnonce(m);
+        }
         apresAction(r.estReussi(), PresentationSalle.message(r, bord.getNombreDeTables()));
     }
 
@@ -1218,6 +1425,7 @@ final class EcranSalle {
         minuterie = new Timeline(new KeyFrame(FREQUENCE_CHRONO, e -> {
             chronos.forEach(this::majChrono);
             chronosJoueurs.forEach(this::majChronoJoueur);
+            verifierRappels();
         }));
         minuterie.setCycleCount(Timeline.INDEFINITE);
         minuterie.play();

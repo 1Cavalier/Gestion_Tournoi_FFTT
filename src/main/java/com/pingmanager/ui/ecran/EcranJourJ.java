@@ -126,7 +126,8 @@ final class EcranJourJ {
         }
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
                 this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
-                .avecSms(contexte.convocationsSms(), this::afficherSms);
+                .avecSms(contexte.convocationsSms(), this::afficherSms)
+                .avecAnnoncesVocales(contexte.annoncesVocales());
         racine.setCenter(principal.build());
     }
 

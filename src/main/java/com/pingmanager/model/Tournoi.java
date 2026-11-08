@@ -41,6 +41,9 @@ public final class Tournoi {
     /** Convocations par SMS (B019) : réglages, numéros consentis, journal des envois. */
     private final ConvocationsSms convocationsSms = new ConvocationsSms();
 
+    /** Annonces vocales dans la salle (B017) : réglages, jamais nuls. */
+    private final ReglagesAnnoncesVocales annoncesVocales = new ReglagesAnnoncesVocales();
+
     /**
      * Imprimer la feuille de match quand un match est envoyé sur une table
      * (B016), mémorisé pour ce tournoi ; {@code false} par défaut (impression
@@ -283,6 +286,11 @@ public final class Tournoi {
     /** Convocations par SMS du tournoi (B019), jamais nul. */
     public ConvocationsSms getConvocationsSms() {
         return convocationsSms;
+    }
+
+    /** Réglages des annonces vocales dans la salle (B017), jamais nuls. */
+    public ReglagesAnnoncesVocales getAnnoncesVocales() {
+        return annoncesVocales;
     }
 
     /** Imprime-t-on la feuille de match à l'envoi d'un match sur une table ? */

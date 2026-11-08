@@ -45,6 +45,7 @@ public class Capture extends Application {
     static boolean profil;
     static boolean b035;
     static boolean b024;
+    static boolean b017;
     static boolean prepa;
     static boolean mesTournois;
     Scene scene;
@@ -65,6 +66,7 @@ public class Capture extends Application {
         profil = java.util.Arrays.asList(a).contains("profil");
         b035 = java.util.Arrays.asList(a).contains("b035");
         b024 = java.util.Arrays.asList(a).contains("b024");
+        b017 = java.util.Arrays.asList(a).contains("b017");
         prepa = java.util.Arrays.asList(a).contains("prepa");
         mesTournois = java.util.Arrays.asList(a).contains("mestournois");
         launch(a);
@@ -126,6 +128,13 @@ public class Capture extends Application {
             stage.setWidth(1440);
             stage.setHeight(900);
             etapesJourJ(coq);
+            lancer(0);
+            return;
+        }
+        if (b017) {
+            stage.setWidth(1440);
+            stage.setHeight(900);
+            etapesB017(coq);
             lancer(0);
             return;
         }
@@ -664,6 +673,41 @@ public class Capture extends Application {
         etape(() -> cliquerDebut("Envoyer "), "j05-match-suivant");
         etape(() -> cliquerSiPresent("C – Toutes séries"), "j06-detail-poules");
         etape(() -> { cliquerSiPresent("← Jour J"); cliquerSiPresent("F – Open du matin"); }, "j07-detail-arbre");
+    }
+
+    /**
+     * Annonces vocales (B017) : salle du tournoi de démonstration du jour J,
+     * annonce automatique activée ; envoi d'un match en « Appel vocal », puis
+     * « Annoncer » (voix indisponible sous Linux : annonce affichée).
+     */
+    void etapesB017(Coquille[] coq) {
+        etape(() -> {
+            coq[0] = new Coquille(ctx, () -> { });
+            scene.setRoot(coq[0].build());
+            Path jj = ctx.tousLesTournois().stream()
+                    .filter(x -> x.tournoi().getNom().equals(com.pingmanager.ui.infra.TournoiDemoJourJ.NOM))
+                    .findFirst().orElseThrow().fichier();
+            Tournoi t = ctx.chargerTournoi(jj);
+            t.setModeAnnonce(com.pingmanager.model.ModeAnnonce.APPEL);
+            t.getAnnoncesVocales().setAnnonceAutomatique(true);
+            t.getAnnoncesVocales().setRappelMinutes(5);
+            ctx.enregistrerTournoi(t, jj);
+            coq[0].afficher("gestion");
+            try {
+                java.lang.reflect.Field r = Coquille.class.getDeclaredField("racine");
+                r.setAccessible(true);
+                javafx.scene.layout.BorderPane page = (javafx.scene.layout.BorderPane)
+                        ((javafx.scene.layout.BorderPane) r.get(coq[0])).getCenter();
+                page.setCenter(new EcranJourJ(ctx, jj, () -> { }).build());
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        }, "b017-salle");
+        etape(() -> cliquerDebut("Table "), null);
+        etape(() -> { }, "b017-apres-envoi-appel-vocal");
+        etape(() -> cliquerSiPresent("Annoncer"), null);
+        etape(() -> { }, "b017-annoncer-repli");
+        etape(() -> defiler(0.5), "b017-tables");
     }
 
     /** Déclenche le clic du n-ième nœud portant la classe de style donnée (lignes cliquables). */
