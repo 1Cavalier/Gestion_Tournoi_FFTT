@@ -8,7 +8,7 @@ statut: fait
 depend-de: []
 fichiers: [model/Joueur ou FicheLicence (portable), core (convocations), ui/ecran (réglages et consentement), persistence]
 branche: tache/B019-convocations-sms
-pr: PRNUM
+pr: 68
 ---
 
 ## Ce qu'il faut faire
