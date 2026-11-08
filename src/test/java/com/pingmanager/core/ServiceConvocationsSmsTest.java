@@ -214,6 +214,17 @@ class ServiceConvocationsSmsTest {
     }
 
     @Test
+    void numero_masque_dans_le_motif_d_echec_du_journal() {
+        consentir(hugo, "0612345678");
+        ServiceConvocationsSms bavard = new ServiceConvocationsSms(
+                (e, n, t) -> ResultatEnvoiSms.echec("numéro +33 6 12.34-56-78 injoignable (code 42)"));
+        bavard.convoquerJoueurs(tournoi, match, 1, MAINTENANT);
+        String detail = tournoi.getConvocationsSms().getJournal().get(0).detail();
+        assertFalse(detail.replaceAll("\\D", "").contains("612345678"), detail);
+        assertTrue(detail.contains("injoignable (code 42)"), detail);
+    }
+
+    @Test
     void match_avec_joueur_a_determiner_rien_n_est_envoye() {
         consentir(hugo, "0612345678");
         ResultatConvocationsSms r = service.convoquerJoueurs(tournoi, new Match(hugo, Joueur.aDeterminer()), 1,

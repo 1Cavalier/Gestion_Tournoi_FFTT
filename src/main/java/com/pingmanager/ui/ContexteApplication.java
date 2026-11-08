@@ -638,6 +638,24 @@ public final class ContexteApplication {
         cacheLectures.remove(fichier);
     }
 
+    /**
+     * B019 : à l'ouverture d'un tournoi, efface les numéros de portable s'il est
+     * terminé et enregistre le fichier si quelque chose a été effacé.
+     *
+     * @return le nombre de numéros effacés
+     */
+    public int effacerNumerosSmsSiTermine(Path fichier, java.time.LocalDateTime maintenant) {
+        if (lireTournoi(fichier).getConvocationsSms().getContacts().isEmpty()) {
+            return 0;
+        }
+        Tournoi tournoi = chargerTournoi(fichier);
+        int effaces = convocationsSms.effacerSiTermine(tournoi, maintenant);
+        if (effaces > 0) {
+            enregistrerTournoi(tournoi, fichier);
+        }
+        return effaces;
+    }
+
     private Path cibleBrouillon(Tournoi tournoi) {
         String base = (tournoi.getNom() == null || tournoi.getNom().isBlank())
                 ? "tournoi"

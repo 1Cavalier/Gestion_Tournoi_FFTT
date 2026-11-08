@@ -102,6 +102,12 @@ vraiment** : les messages s'affichent à l'écran (simulation).
 - Choix provisoire de l'agent : A.
 - Réponse de Quentin :
 
+### 2026-11-08 — Tournoi sans date : quand effacer les numéros ?
+- Contexte : l'effacement automatique (ouverture du jour J, de la complétion ou de l'écran SMS) suppose une date de dernier jour. Sans date, rien n'est effacé d'office ; seul l'effacement manuel du club reste.
+- Options : A) comme ça ; B) effacer N jours après le dernier envoi du journal ; C) interdire la saisie de numéros sans date.
+- Choix provisoire de l'agent : A (ne rien inventer).
+- Réponse de Quentin :
+
 ## Notes pour l'état du projet
 
 - B019 : convocations par SMS simulées. Classes : `core.ServiceConvocationsSms`,
@@ -122,6 +128,11 @@ vraiment** : les messages s'affichent à l'écran (simulation).
   existe et il est testé, mais `ContexteConvocation.de(…)` ne les reconnaît pas encore.
 - Vrai prestataire (Brevo) : implémenter `EnvoiSms` hors du cœur et remplacer
   `EnvoiSmsSimule` dans `ContexteApplication` (clé d'API hors du dépôt).
+
+## Passations
+
+- correcteur (2026-11-08) : motif d'échec du prestataire masqué (≥ 6 chiffres) avant journalisation ; « +33 (0)6… » accepté ; effacement aussi à l'ouverture de la complétion (`ContexteApplication.effacerNumerosSmsSiTermine`, enregistre si effacé).
+- correcteur : 1143 tests, 0 échec (`outils-dev/tests.sh`) ; question « tournoi sans date » ajoutée ; aucun test existant modifié.
 
 ## Fusion
 

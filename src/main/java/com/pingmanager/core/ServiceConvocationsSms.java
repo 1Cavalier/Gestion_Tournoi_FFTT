@@ -242,10 +242,19 @@ public final class ServiceConvocationsSms {
             }
             message = new MessageSms(maintenant, type, licence, nom, texte,
                     r.reussi() ? StatutEnvoiSms.ENVOYE : StatutEnvoiSms.ECHEC,
-                    r.reussi() ? r.identifiant() : r.motif());
+                    r.reussi() ? r.identifiant() : masquerNumeros(r.motif()));
         }
         cs.journaliser(message);
         messages.add(message);
+    }
+
+    /**
+     * RGPD : le motif d'échec du prestataire peut citer le numéro ; il resterait
+     * dans le journal après l'effacement. Toute suite d'au moins 6 chiffres
+     * (espaces, points, tirets, parenthèses, + compris) est masquée.
+     */
+    static String masquerNumeros(String texte) {
+        return texte == null ? null : texte.replaceAll("\\+?\\(?\\d(?:[\\s.\\-()\\u00a0\\u202f]*\\d){5,}", "••");
     }
 
     private static boolean connu(Joueur j) {

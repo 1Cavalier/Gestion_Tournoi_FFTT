@@ -19,6 +19,12 @@ class NumeroPortableTest {
     }
 
     @Test
+    void zero_de_tete_entre_parentheses_accepte() {
+        assertEquals(Optional.of("+33612345678"), NumeroPortable.normaliser("+33 (0)6 12 34 56 78"));
+        assertEquals(Optional.of("+33612345678"), NumeroPortable.normaliser("+33 (0) 6 12 34 56 78"));
+    }
+
+    @Test
     void numero_international_accepte() {
         assertEquals(Optional.of("+32470123456"), NumeroPortable.normaliser("+32 470 12 34 56"));
     }

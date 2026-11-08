@@ -21,7 +21,9 @@ public final class NumeroPortable {
         if (saisie == null) {
             return Optional.empty();
         }
-        String s = saisie.replaceAll("[\\s.\\-()\\u00a0\\u202f]", "");
+        // « +33 (0)6 … » : le zéro de tête entre parenthèses ne se compose pas.
+        String s = saisie.replaceAll("\\(\\s*0\\s*\\)", "")
+                .replaceAll("[\\s.\\-()\\u00a0\\u202f]", "");
         if (s.startsWith("00")) {
             s = "+" + s.substring(2);
         }
