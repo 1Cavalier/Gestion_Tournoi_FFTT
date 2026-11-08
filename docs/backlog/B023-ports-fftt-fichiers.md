@@ -33,5 +33,7 @@ Aucune pour l'instant.
 - 2026-11-08 developpeur : ports (`ExportResultatsFederaux`, défauts `listerParClub` / `rechercher`), `ServiceResultatsFederaux`, lecteurs/registres/export CSV dans `importation`, format dans `docs/FORMAT_ECHANGES_FFTT.md` ; 1075 tests, 0 échec (`outils-dev/tests.sh`).
 - Branchement : `ui.infra.RegistresImportes` (session seulement, superposé à la base) dans `ContexteApplication` ; boutons dans `EcranImportJoueurs` et sous le podium de `VuePhaseFinale` (tableau terminé). Interface non vue à l'écran.
 - À faire ensuite : relecture sécurité/architecture ; 3 questions pour Quentin dans le journal (conservation de l'import, classement au-delà du podium, clubs sans courriel) ; persistance non touchée.
+- 2026-11-08 verificateur-modele : +10 tests (`CsvHostileTest`, `ServiceResultatsFederauxIssuesTest`) ; export, forfaits/abandons, effectifs non ronds, ex aequo, aller-retour, CSV hostiles OK. BLOQUANT : `CsvFederal.lire` (l.113) tronque à 20 000 lignes sans anomalie (test `plus_de_20000_lignes_le_depassement_est_signale` rouge, à faire passer par le correcteur).
+- Mineurs : licence `ab1`/`AB1` non vue comme doublon (`LecteurLicencesCsv` l.86) ; `CsvFederal.cellule` ne neutralise pas " =1+1" (espace initial) ; `nettoyer` supprime les sauts de ligne internes.
 
 ## Résultat
