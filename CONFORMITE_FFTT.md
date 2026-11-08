@@ -62,6 +62,36 @@ Audit B040 (2026-11-06) :
   existe (sinon tirage glouton historique). Le 2e tour n'est pris en compte que si
   le tableau a réellement des exempts, et il passe après le 1er tour. Test `i305_1_…`.
 
+### Tableau final : déroulé, têtes de série, exempts, petite finale
+Audit B009 (2026-11-06). Tests : `ConformiteTableauFinalTest` (10 tests, tous verts).
+- **Têtes de série I.304.2** : ✅ règle fédérale. Pour des cadres de 2 à 128, le 1er
+  est dans la moitié haute, le 2e dans la moitié basse, et les 2^k premiers ne peuvent
+  se rencontrer qu'à partir du tour prévu (finale, demies, quarts…). Groupes 3-4 et 5-8
+  répartis un par demi / un par quart (cadre 32). Le tirage au sort *à l'intérieur* des
+  groupes pour un tableau sans poules n'existe pas (voir I.304 ci-dessus).
+- **Avancement des vainqueurs** : ✅ clause d'organisateur (le chapitre IX ne décrit pas
+  le déroulé d'un tableau). Vainqueur propagé par liens explicites, indépendant des
+  exempts ; correction d'un résultat répercutée tant que la suite n'est ni en cours ni jouée.
+- **Forfait, abandon, refus, disqualification** : ✅ réserve. Le texte fédéral ne dit rien
+  du tableau final : 3.5.3.1.1 admet l'abandon (maladie, blessure), 3.5.2.10 la
+  disqualification ; I.303 a) (0 point) ne vise que les poules. Comportement : l'adversaire
+  avance, le fautif est perdant (2e en finale, 4e en petite finale). Testé, y compris un
+  abandon avec score partiel et la correction forfait -> victoire de l'autre.
+- **Place des exempts** : ⚠️ texte muet (question `QUESTIONS.md`, non tranchée, rien
+  modifié). `genererTableau` (par classement) donne les exempts aux meilleures têtes de
+  série (testé, usage courant mais non écrit dans le règlement).
+- **Petite finale** : ✅ clause d'organisateur (option du tableau, décision de Quentin
+  du 5 novembre). Aucune règle fédérale pour les tournois (IX) ; seule mention : XI.407.2
+  (Classic Series, hors périmètre). Testée : perdants des demies uniquement, jamais un
+  finaliste, non jouable avant les deux demies, podium 3e / 4e. Pas ajoutée sous 4 joueurs
+  ou si une demie est un exempt. ⚠️ Abandon en demie : le fautif est placé en petite finale
+  (choix provisoire A, question ouverte dans `QUESTIONS.md`, non répondue).
+- Réserve technique (aucun effet aujourd'hui) : `TableauElimination.getFinale()` renvoie
+  le dernier tour, donc la petite finale une fois ajoutée ; seul `MoteurTournoi` l'appelle,
+  avant l'ajout.
+- Parties de classement (places 5 et suivantes) : non prévues par le logiciel ni par le texte.
+
+
 ---
 
 ## Inscription et configuration des tableaux (IX.104 / IX.111)

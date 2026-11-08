@@ -26,4 +26,8 @@ Aucune pour l'instant.
 
 ## Passations
 
+- controleur-conformite : audit I.304.2, déroulé, forfaits/abandons, exempts, petite finale ; aucun écart certain, 10 tests ajoutés (`ConformiteTableauFinalTest`), tous verts.
+- Questions au journal `2026-11-06-tache-B009-tableau-final.md` : exempts, abandon en demie (déjà ouvertes), parties de classement.
+- Pour le correcteur : rien à corriger ; `CONFORMITE_FFTT.md` mis à jour.
+
 ## Résultat
