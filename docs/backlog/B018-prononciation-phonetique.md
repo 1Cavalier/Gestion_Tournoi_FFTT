@@ -39,4 +39,7 @@ Aucune pour l'instant.
 - Points d'attention : `AnnonceVocale` a un 5e composant `licences` (constructeur à 4 arguments gardé) ; `TexteAnnonceVocale.nomPropre` devenu public ; constante `PresentationProfil.APPEL_A_VENIR` retirée (inutilisée).
 - Non vérifié : voix réelle (Windows) et écran jour J à l'œil ; profil capturé sous Xvfb (correct). 3 questions dans le journal `docs/journal/2026-11-08-tache-B018-prononciation.md`.
 
+- 2026-11-08 `verificateur-modele` : 2 classes de tests ajoutées (18 tests, 1410 au total, 4 en échec voulu). Injection SSML impossible (balayage de tous les caractères), registre, résolveur et ancien fichier OK.
+- Défauts : `ValidationPrononciation` refuse é précomposé mais accepte e+U+0301 et refuse 2 diacritiques empilés (mineurs) ; `DepotApplication.lirePrononciations` (l.~425) lève `JsonException` sur un élément non objet ou une section de mauvais type : démarrage bloqué au lieu d'ignorer.
+
 ## Résultat
