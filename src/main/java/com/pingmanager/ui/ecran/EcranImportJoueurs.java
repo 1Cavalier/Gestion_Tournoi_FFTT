@@ -135,7 +135,44 @@ final class EcranImportJoueurs {
                         + "(classement, séparation des clubs, I.302). Sans licence, le joueur reçoit un identifiant "
                         + "interne stable (nom + prénom + club). Formats : Excel .xlsx, LibreOffice .ods, CSV "
                         + "(« ; », « , » ou tabulation), JSON. L'ancien .xls doit être réenregistré en .xlsx."),
-                Ui.ligne(10, choisir, modeleXlsx, modeleCsv), choisi);
+                Ui.ligne(10, choisir, modeleXlsx, modeleCsv), choisi, baseFederale());
+    }
+
+    /**
+     * B023 : import de la base des licenciés et des clubs fournie par le club
+     * (format provisoire, docs/FORMAT_ECHANGES_FFTT.md). Gardée le temps de la session.
+     */
+    private Node baseFederale() {
+        Label resultat = Ui.discret("");
+        resultat.setWrapText(true);
+        Button licencies = Ui.boutonSecondaire("Licenciés du club (CSV)…");
+        licencies.setOnAction(e -> importerBase(true, resultat));
+        Button clubs = Ui.boutonSecondaire("Clubs (CSV)…");
+        clubs.setOnAction(e -> importerBase(false, resultat));
+        return new VBox(6,
+                Ui.gras("Base des licenciés et des clubs"),
+                Ui.aide("Fichiers licencies.csv et clubs.csv fournis par le club (format provisoire PingManager, "
+                        + "en attendant l'accès à la base fédérale). Ils complètent la recherche de licences et "
+                        + "de clubs le temps de la session ; rien n'est enregistré."),
+                Ui.ligne(10, licencies, clubs), resultat);
+    }
+
+    private void importerBase(boolean licencies, Label resultat) {
+        FileChooser fc = new FileChooser();
+        fc.setTitle(licencies ? "Fichier des licenciés" : "Fichier des clubs");
+        fc.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("CSV ou tableur (csv, xlsx, ods)", "*.csv", "*.txt", "*.xlsx", "*.ods"),
+                new FileChooser.ExtensionFilter("Tous les fichiers", "*.*"));
+        File f = fc.showOpenDialog(fenetre());
+        if (f == null) {
+            return;
+        }
+        try {
+            resultat.setText(licencies ? contexte.registresImportes().importerLicencies(f.toPath())
+                    : contexte.registresImportes().importerClubs(f.toPath()));
+        } catch (LecteurTableur.ImportException ex) {
+            resultat.setText("Fichier non importé : " + ex.getMessage());
+        }
     }
 
     private Node carteDestination() {
