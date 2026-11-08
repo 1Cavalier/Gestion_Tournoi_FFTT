@@ -45,7 +45,6 @@ final class EcranPrononciations {
         Button retour = Ui.boutonLien("← Jour J");
         retour.setOnAction(e -> onRetour.run());
 
-        liste.getStyleClass().add("prononciation-liste");
         liste.setPrefHeight(460);
         liste.setCellFactory(v -> new ListCell<>() {
             @Override

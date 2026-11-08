@@ -10,6 +10,7 @@ import com.pingmanager.model.CompteUtilisateur;
 import com.pingmanager.model.PrononciationClub;
 import com.pingmanager.model.PrononciationJoueur;
 import com.pingmanager.persistence.json.Json;
+import com.pingmanager.persistence.json.JsonException;
 import com.pingmanager.persistence.json.JsonParser;
 import com.pingmanager.persistence.json.JsonWriter;
 
@@ -423,17 +424,37 @@ public final class DepotApplication implements RegistreClubs {
      * SSML cassé ou d'empêcher le démarrage.
      */
     private static void lirePrononciations(Json o, RegistrePrononciations registre) {
-        if (o.has("joueurs")) {
-            for (Json j : o.get("joueurs").elements()) {
+        if (!o.estObjet()) {
+            return; // section abîmée : ignorée, le reste du fichier est relu
+        }
+        for (Json j : entreesObjets(o.get("joueurs"))) {
+            try {
                 registre.definirJoueur(j.getString("licence", null), j.getString("prenom", ""),
                         j.getString("nom", ""));
+            } catch (JsonException e) {
+                // champ de mauvais type : entrée ignorée
             }
         }
-        if (o.has("clubs")) {
-            for (Json c : o.get("clubs").elements()) {
+        for (Json c : entreesObjets(o.get("clubs"))) {
+            try {
                 registre.definirClub(c.getString("numero", null), c.getString("nom", ""), c.getString("ipa", ""));
+            } catch (JsonException e) {
+                // champ de mauvais type : entrée ignorée
             }
         }
+    }
+
+    /** Éléments objets d'un tableau ; tout le reste (autre type, élément non objet) est ignoré. */
+    private static List<Json> entreesObjets(Json tableau) {
+        List<Json> objets = new ArrayList<>();
+        if (tableau.estTableau()) {
+            for (Json e : tableau.elements()) {
+                if (e.estObjet()) {
+                    objets.add(e);
+                }
+            }
+        }
+        return objets;
     }
 
     // ==================================================================

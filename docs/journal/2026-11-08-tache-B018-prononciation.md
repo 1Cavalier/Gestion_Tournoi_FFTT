@@ -91,6 +91,11 @@ que par des tests sans son. L'écran du profil a été capturé sous Xvfb
   `PageCompte` (la pastille « Bientôt » disparaît). Résolveur branché dans
   `ContexteApplication`. Section CSS « Prononciation phonétique des noms (B018) ».
 
+## Passations
+
+- correcteur : lecture des `prononciations` tolérante (section, tableau ou élément de mauvais type ignoré) ; validation API sur la forme NFD, stockage NFC, diacritiques empilés acceptés.
+- correcteur : classes CSS orphelines retirées, javadocs remises à leur place et imports au lieu de noms qualifiés (`ContexteApplication`, `EcranSalle`) ; 1412 tests, 0 échec (`outils-dev/tests.sh`).
+
 ## Fusion
 
 (à compléter par l'intégrateur)

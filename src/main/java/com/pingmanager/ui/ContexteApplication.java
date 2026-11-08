@@ -10,6 +10,8 @@ import com.pingmanager.core.Territoires;
 import com.pingmanager.model.Coordonnees;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.core.RegistreClubs;
+import com.pingmanager.core.RegistrePrononciations;
+import com.pingmanager.core.ResolveurPrononciationRegistre;
 import com.pingmanager.core.RegistreLicences;
 import com.pingmanager.core.ResultatLiaisonClub;
 import com.pingmanager.core.ServiceAuthentification;
@@ -131,7 +133,7 @@ public final class ContexteApplication {
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
 
         // B018 : prononciations des noms (registre de l'application) dans les annonces vocales.
-        annoncesVocales.service().definirResolveur(new com.pingmanager.core.ResolveurPrononciationRegistre(
+        annoncesVocales.service().definirResolveur(new ResolveurPrononciationRegistre(
                 depot.prononciations(), this::numeroClubDuJoueur));
 
         amorcerProfilDemo();
@@ -881,9 +883,8 @@ public final class ContexteApplication {
         return convocationsSms;
     }
 
-    /** Annonces vocales de la salle (B017), une file pour toute l'application. */
     /** B018 : registre des prononciations phonétiques (sauvegardé par {@link #sauvegarder()}). */
-    public com.pingmanager.core.RegistrePrononciations prononciations() {
+    public RegistrePrononciations prononciations() {
         return depot.prononciations();
     }
 
@@ -900,6 +901,7 @@ public final class ContexteApplication {
         }
     }
 
+    /** Annonces vocales de la salle (B017), une file pour toute l'application. */
     public com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales() {
         return annoncesVocales;
     }

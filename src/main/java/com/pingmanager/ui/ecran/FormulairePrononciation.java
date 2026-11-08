@@ -115,7 +115,6 @@ final class FormulairePrononciation {
         });
 
         VBox racine = new VBox(10, g, Ui.actions(enregistrer, ecouter), message, basculer, aide);
-        racine.getStyleClass().add("prononciation-formulaire");
         return racine;
     }
 

@@ -1,5 +1,6 @@
 package com.pingmanager.core;
 
+import java.text.Normalizer;
 import java.util.Locale;
 
 /**
@@ -31,25 +32,28 @@ public final class ValidationPrononciation {
         if (saisie == null) {
             return ResultatSaisiePrononciation.acceptee("");
         }
-        String ipa = saisie.strip().replaceAll("\\s+", " ");
-        if (ipa.isEmpty()) {
+        // Contrôle sur la forme décomposée (NFD) : « é » précomposé = « e » + accent combinant.
+        String decompose = Normalizer.normalize(saisie, Normalizer.Form.NFD).strip().replaceAll("\\s+", " ");
+        if (decompose.isEmpty()) {
             return ResultatSaisiePrononciation.acceptee("");
         }
+        // Forme stockée stable (NFC) : une même prononciation s'enregistre toujours pareil.
+        String ipa = Normalizer.normalize(decompose, Normalizer.Form.NFC);
         int longueur = ipa.codePointCount(0, ipa.length());
         if (longueur > LONGUEUR_MAX) {
             return ResultatSaisiePrononciation.refusee("Prononciation trop longue : " + longueur
                     + " caractères pour " + LONGUEUR_MAX + " au plus.");
         }
-        int precedent = ' ';
-        for (int i = 0; i < ipa.length(); ) {
-            int c = ipa.codePointAt(i);
+        boolean apresSymbole = false; // vrai après un symbole, suivi ou non de diacritiques
+        for (int i = 0; i < decompose.length(); ) {
+            int c = decompose.codePointAt(i);
             if (Character.isUpperCase(c)) {
                 return ResultatSaisiePrononciation.refusee("Pas de majuscule en alphabet phonétique : « "
                         + new String(Character.toChars(c)) + " » à écrire « "
                         + new String(Character.toChars(c)).toLowerCase(Locale.ROOT) + " ».");
             }
             if (estDiacritique(c)) {
-                if (!estSymbole(precedent)) {
+                if (!apresSymbole) {
                     return ResultatSaisiePrononciation.refusee(
                             "Un signe diacritique (comme le tilde des nasales) doit suivre un symbole.");
                 }
@@ -57,7 +61,7 @@ public final class ValidationPrononciation {
                 return ResultatSaisiePrononciation.refusee("Caractère non autorisé : " + afficher(c)
                         + ". Utilisez les symboles de l'alphabet phonétique.");
             }
-            precedent = c;
+            apresSymbole = estDiacritique(c) ? apresSymbole : estSymbole(c);
             i += Character.charCount(c);
         }
         return ResultatSaisiePrononciation.acceptee(ipa);

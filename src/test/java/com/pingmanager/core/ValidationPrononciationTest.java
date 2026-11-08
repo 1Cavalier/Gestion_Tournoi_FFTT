@@ -61,4 +61,20 @@ class ValidationPrononciationTest {
         assertFalse(trop.valide());
         assertTrue(trop.motif().contains("trop longue"), trop.motif());
     }
+
+    @Test
+    void forme_enregistree_stable_quelle_que_soit_la_saisie_composee_ou_decomposee() {
+        String decompose = ValidationPrononciation.verifier("e\u0301").ipa();
+        String compose = ValidationPrononciation.verifier("\u00E9").ipa();
+        assertEquals("\u00E9", compose);
+        assertEquals(compose, decompose);
+        // Le tilde des nasales n'a pas de forme précomposée : il reste combinant.
+        assertEquals("\u0254\u0303", ValidationPrononciation.verifier("\u0254\u0303").ipa());
+    }
+
+    @Test
+    void diacritique_apres_un_separateur_reste_refuse() {
+        assertFalse(ValidationPrononciation.verifier("a \u0303").valide());
+        assertFalse(ValidationPrononciation.verifier("\u0303\u0308a").valide());
+    }
 }

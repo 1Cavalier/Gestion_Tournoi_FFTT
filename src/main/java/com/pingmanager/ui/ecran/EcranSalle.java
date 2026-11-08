@@ -193,16 +193,16 @@ final class EcranSalle {
         return this;
     }
 
-    /**
-     * Branche les annonces vocales (B017) : annonce automatique au lancement
-     * selon l'annonce choisie, bouton « Annoncer » sur chaque table, rappels.
-     */
     /** Branche l'écran « Prononciation des noms » (B018), ouvert depuis le menu « Voix ». */
     EcranSalle avecPrononciations(Runnable ouvrir) {
         this.ouvrirPrononciations = ouvrir;
         return this;
     }
 
+    /**
+     * Branche les annonces vocales (B017) : annonce automatique au lancement
+     * selon l'annonce choisie, bouton « Annoncer » sur chaque table, rappels.
+     */
     EcranSalle avecAnnoncesVocales(com.pingmanager.ui.infra.DiffuseurAnnonces diffuseur) {
         this.voix = diffuseur;
         diffuseur.surDiffusion(r -> Platform.runLater(() -> recevoirAnnonce(r)));
@@ -515,8 +515,7 @@ final class EcranSalle {
         }
         menu.getItems().addAll(auto, contexte, new SeparatorMenuItem(), repetitions, rappel, debit, choixVoix);
         if (ouvrirPrononciations != null) {
-            javafx.scene.control.MenuItem prononciations = new javafx.scene.control.MenuItem(
-                    "Prononciation des noms…");
+            MenuItem prononciations = new MenuItem("Prononciation des noms…");
             prononciations.setOnAction(e -> ouvrirPrononciations.run());
             menu.getItems().addAll(new SeparatorMenuItem(), prononciations);
         }
