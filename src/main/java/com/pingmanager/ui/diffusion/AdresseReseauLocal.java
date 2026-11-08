@@ -20,25 +20,24 @@ public final class AdresseReseauLocal {
 
     /**
      * Choisit l'adresse d'écoute parmi les adresses des interfaces actives :
-     * d'abord une adresse IPv4 privée (192.168.x.x, 10.x.x.x, 172.16-31.x.x),
-     * puis toute autre IPv4 qui n'est ni de bouclage ni locale au lien. Vide si
-     * aucune ne convient (pas de réseau local).
+     * uniquement une adresse IPv4 privée (10/8, 172.16/12, 192.168/16). Une
+     * adresse publique n'est jamais retenue : le suivi serait alors exposé à
+     * Internet. Vide si aucune ne convient (pas de réseau local).
      */
     public static Optional<InetAddress> choisir(List<InetAddress> candidates) {
-        InetAddress repli = null;
         for (InetAddress a : candidates) {
-            if (!(a instanceof Inet4Address) || a.isLoopbackAddress() || a.isLinkLocalAddress()
-                    || a.isAnyLocalAddress() || a.isMulticastAddress()) {
-                continue;
-            }
-            if (a.isSiteLocalAddress()) {
+            if (estPriveeIpv4(a)) {
                 return Optional.of(a);
             }
-            if (repli == null) {
-                repli = a;
-            }
         }
-        return Optional.ofNullable(repli);
+        return Optional.empty();
+    }
+
+    /** Vrai pour une adresse IPv4 privée (10/8, 172.16/12, 192.168/16, RFC 1918). */
+    static boolean estPriveeIpv4(InetAddress a) {
+        // isSiteLocalAddress() couvre exactement ces trois plages en IPv4 ;
+        // bouclage, lien local (169.254), multidiffusion et 0.0.0.0 en sont exclus.
+        return a instanceof Inet4Address && a.isSiteLocalAddress();
     }
 
     /** Adresse du réseau local de cet ordinateur, ou vide s'il n'est relié à aucun réseau. */

@@ -97,7 +97,8 @@ public final class DiffusionSuivi {
         Optional<InetAddress> adresse = reseau.get();
         if (adresse.isEmpty()) {
             return new ResultatDemarrage(Motif.PAS_DE_RESEAU_LOCAL, "",
-                    "Aucun réseau local détecté : reliez l'ordinateur au Wi-Fi de la salle, puis réessayez.");
+                    "Aucun réseau local privé détecté (adresse 192.168.x.x, 10.x.x.x ou 172.16-31.x.x) : "
+                    + "reliez l'ordinateur au Wi-Fi de la salle, puis réessayez. Le suivi n'est jamais ouvert sur Internet.");
         }
         port = portDemande;
         try {

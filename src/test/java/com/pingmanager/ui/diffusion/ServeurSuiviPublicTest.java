@@ -176,7 +176,8 @@ class ServeurSuiviPublicTest {
         InetAddress privee = InetAddress.getByAddress(new byte[]{(byte) 192, (byte) 168, 1, 12});
         InetAddress ipv6 = InetAddress.getByName("fe80::1");
         assertEquals(Optional.of(privee), AdresseReseauLocal.choisir(List.of(boucle, lien, ipv6, publique, privee)));
-        assertEquals(Optional.of(publique), AdresseReseauLocal.choisir(List.of(boucle, publique)));
+        // Audit sécurité : une adresse publique n'est plus un repli (suivi jamais exposé à Internet).
+        assertEquals(Optional.empty(), AdresseReseauLocal.choisir(List.of(boucle, publique)));
         assertEquals(Optional.empty(), AdresseReseauLocal.choisir(List.of(boucle, lien, ipv6)));
     }
 }

@@ -77,7 +77,7 @@ l'écran du jour J, avec une affiche imprimable.
   immuable prise sur le fil JavaFX), `PagesSuivi` (HTML échappé, sans
   JavaScript, meta refresh 30 s, charte v2 avec thème sombre automatique,
   GET/HEAD seulement, 405 sinon), `Html` (échappement, paramètres bornés),
-  `ServeurSuiviPublic` (4 fils démons, en-têtes CSP / nosniff / no-store, 414
+  `ServeurSuiviPublic` (16 fils démons, délais de requête 5 s / réponse 15 s, en-têtes CSP / nosniff / no-store, 414
   sur URL trop longue), `AdresseReseauLocal` (IPv4 privée, jamais toutes les
   interfaces), `DiffusionSuivi` (port 1024-65535, motifs de refus, cycle de vie).
 - `ContexteApplication.diffusionSuivi()`, arrêté par `fermer()` ;
@@ -85,6 +85,11 @@ l'écran du jour J, avec une affiche imprimable.
   imprimable (`PrinterJob`), publication après chaque action, arrêt quand la
   page quitte la fenêtre.
 - Format JSON inchangé ; démo inchangée.
+
+## Passations
+
+- correcteur : audit corrigé (16 fils + délais `sun.net.httpserver.maxReqTime/maxRspTime/idleInterval`, connexions lentes coupées ; erreurs journalisées par `System.Logger` sans trace au client ; IPv4 privées seules, plus de repli public).
+- correcteur : tests de l'audit retournés pour exiger le bon comportement ; `ServeurSuiviPublicTest` (nouveau sur la branche) attend désormais « vide » pour une IPv4 publique ; 1154 tests, 0 échec.
 
 ## Fusion
 

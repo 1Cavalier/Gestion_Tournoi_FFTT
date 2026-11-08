@@ -29,13 +29,37 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>Sécurité : seules GET et HEAD sont servies (405 sinon), le corps des
  * requêtes n'est jamais lu, les pages ne lisent qu'un {@link InstantaneSuivi}
  * immuable publié par le fil JavaFX ({@link #publier}) : aucun fil du serveur ne
- * touche au tournoi. Quatre fils au plus, démons, arrêtés par {@link #arreter}.</p>
+ * touche au tournoi. Seize fils au plus, démons, arrêtés par {@link #arreter} ;
+ * une connexion qui n'envoie pas sa requête complète dans le délai est coupée
+ * (sinon quelques connexions lentes suffiraient à geler tous les fils).</p>
  */
 public final class ServeurSuiviPublic implements AutoCloseable {
 
     /** Longueur maximale acceptée du chemin d'une URL. */
     static final int LONGUEUR_MAX_CHEMIN = 128;
-    private static final int FILS = 4;
+    static final int FILS = 16;
+    /** Délai (secondes) pour recevoir les en-têtes d'une requête complète. */
+    static final int DELAI_REQUETE_S = 5;
+    /** Délai (secondes) pour envoyer une réponse entière. */
+    static final int DELAI_REPONSE_S = 15;
+    /** Durée (secondes) au-delà de laquelle une connexion inactive est fermée. */
+    static final int DELAI_INACTIVITE_S = 30;
+
+    private static final System.Logger JOURNAL = System.getLogger(ServeurSuiviPublic.class.getName());
+
+    static {
+        // Lues une seule fois par le JDK, à la première création d'un HttpServer :
+        // posées ici, avant tout demarrer(). Une valeur déjà fixée par l'utilisateur est gardée.
+        poserSiAbsente("sun.net.httpserver.maxReqTime", DELAI_REQUETE_S);
+        poserSiAbsente("sun.net.httpserver.maxRspTime", DELAI_REPONSE_S);
+        poserSiAbsente("sun.net.httpserver.idleInterval", DELAI_INACTIVITE_S);
+    }
+
+    private static void poserSiAbsente(String cle, int secondes) {
+        if (System.getProperty(cle) == null) {
+            System.setProperty(cle, Integer.toString(secondes));
+        }
+    }
 
     private final HttpServer serveur;
     private final ExecutorService fils;
@@ -162,7 +186,9 @@ public final class ServeurSuiviPublic implements AutoCloseable {
                 sortie.write(corps);
             }
         } catch (RuntimeException e) {
-            // Une page qui échoue ne doit jamais arrêter le serveur ni laisser fuiter une trace.
+            // Une page qui échoue ne doit jamais arrêter le serveur ni laisser fuiter une trace
+            // au client : la trace reste dans le journal de l'application.
+            JOURNAL.log(System.Logger.Level.WARNING, "Suivi sur téléphone : erreur en servant une page", e);
             try {
                 echange.sendResponseHeaders(500, -1);
             } catch (IOException | RuntimeException deja) {

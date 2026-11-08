@@ -40,23 +40,54 @@ class ServeurSuiviSecuriteTest {
                 .timeout(Duration.ofSeconds(3)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    /** DEFAUT (moyenne) : 4 connexions qui n'envoient qu'une requête partielle gèlent les 4 fils, sans délai. */
+    private static Socket ouvrirConnexionLente(ServeurSuiviPublic serveur) throws IOException {
+        Socket s = new Socket(serveur.adresse(), serveur.port());
+        s.getOutputStream().write("GET / HTTP/1.1\r\nHost: x\r\nX-Lent:".getBytes(StandardCharsets.US_ASCII));
+        s.getOutputStream().flush();
+        return s;
+    }
+
+    /** Correction audit (moyenne) : des connexions qui n'envoient qu'une requête partielle ne gèlent plus le serveur. */
     @Test
-    void quatre_connexions_lentes_bloquent_le_serveur() throws Exception {
+    void quatre_connexions_lentes_ne_bloquent_pas_le_serveur() throws Exception {
         assertEquals(200, get("/").statusCode());
         List<Socket> lentes = new ArrayList<>();
         try {
             for (int i = 0; i < 4; i++) {
-                Socket s = new Socket(serveur.adresse(), serveur.port());
-                s.getOutputStream().write("GET / HTTP/1.1\r\nHost: x\r\nX-Lent:".getBytes(StandardCharsets.US_ASCII));
-                s.getOutputStream().flush();
-                lentes.add(s);
+                lentes.add(ouvrirConnexionLente(serveur));
             }
             Thread.sleep(500);
-            // Le comportement attendu serait de répondre encore (ou de couper les lentes) : ce test échoue
-            // quand le défaut est corrigé (délai de lecture ou plus de fils), et doit alors être retourné.
-            assertThrows(IOException.class, () -> get("/"),
-                    "Le serveur répond encore : défaut corrigé, retourner ce test");
+            assertEquals(200, get("/").statusCode(), "Le serveur doit répondre malgré les connexions lentes");
+        } finally {
+            for (Socket s : lentes) {
+                s.close();
+            }
+        }
+    }
+
+    /** Correction audit (moyenne) : autant de connexions lentes que de fils sont coupées après le délai de requête. */
+    @Test
+    void connexions_lentes_coupees_apres_le_delai_puis_le_serveur_repond() throws Exception {
+        List<Socket> lentes = new ArrayList<>();
+        try {
+            for (int i = 0; i < ServeurSuiviPublic.FILS; i++) {
+                lentes.add(ouvrirConnexionLente(serveur));
+            }
+            long limite = (ServeurSuiviPublic.DELAI_REQUETE_S + 5) * 1000L;
+            for (Socket s : lentes) {
+                s.setSoTimeout((int) limite);
+                // -1 (fin de flux) ou une réponse d'erreur suivie de la fermeture : la connexion est coupée.
+                long debut = System.nanoTime();
+                try {
+                    while (s.getInputStream().read() != -1) {
+                        // lire jusqu'à la fermeture
+                    }
+                } catch (java.net.SocketException coupee) {
+                    // réinitialisée par le serveur : coupée aussi
+                }
+                assertTrue((System.nanoTime() - debut) / 1_000_000 < limite, "connexion lente non coupée");
+            }
+            assertEquals(200, get("/").statusCode());
         } finally {
             for (Socket s : lentes) {
                 s.close();
@@ -116,9 +147,36 @@ class ServeurSuiviSecuriteTest {
         }
     }
 
-    /** DEFAUT (faible) : l'écoute sur une IPv4 publique est acceptée par AdresseReseauLocal (repli). */
+    /** Correction audit (faible) : une IPv4 publique n'est jamais retenue pour écouter. */
     @Test
-    void adresse_publique_acceptee_en_repli() throws Exception {
-        assertTrue(AdresseReseauLocal.choisir(List.of(InetAddress.getByName("8.8.8.8"))).isPresent());
+    void adresse_publique_jamais_retenue() throws Exception {
+        assertTrue(AdresseReseauLocal.choisir(List.of(InetAddress.getByName("8.8.8.8"))).isEmpty());
+        assertTrue(AdresseReseauLocal.choisir(List.of(InetAddress.getByName("172.32.0.1"),
+                InetAddress.getByName("100.64.0.1"), InetAddress.getByName("0.0.0.0"))).isEmpty());
+    }
+
+    @Test
+    void seules_les_trois_plages_privees_sont_retenues() throws Exception {
+        for (String privee : new String[] {"10.0.0.1", "10.255.255.254", "172.16.0.1", "172.31.255.254",
+                "192.168.0.1", "192.168.255.254"}) {
+            InetAddress a = InetAddress.getByName(privee);
+            assertEquals(java.util.Optional.of(a), AdresseReseauLocal.choisir(List.of(a)), privee);
+        }
+        InetAddress publique = InetAddress.getByName("8.8.8.8");
+        InetAddress privee = InetAddress.getByName("10.1.2.3");
+        assertEquals(java.util.Optional.of(privee), AdresseReseauLocal.choisir(List.of(publique, privee)));
+    }
+
+    @Test
+    void sans_adresse_privee_pas_de_serveur_et_message_clair() {
+        DiffusionSuivi diffusion = new DiffusionSuivi(InstantaneSuiviTest.HORLOGE, java.util.Optional::empty);
+        try {
+            DiffusionSuivi.ResultatDemarrage r = diffusion.demarrer(8080, InstantaneSuiviTest.demo());
+            assertEquals(DiffusionSuivi.Motif.PAS_DE_RESEAU_LOCAL, r.motif());
+            assertTrue(r.message().contains("privé"), r.message());
+            assertFalse(diffusion.estDemarre());
+        } finally {
+            diffusion.arreter();
+        }
     }
 }
