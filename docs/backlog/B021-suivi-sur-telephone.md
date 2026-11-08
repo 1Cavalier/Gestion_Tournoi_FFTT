@@ -32,4 +32,8 @@ Les joueurs et le public suivent sur leur **téléphone**, sans application à i
 
 ## Passations
 
+- developpeur (2026-11-08) : package `ui.diffusion` (instantané immuable pris sur le fil JavaFX, pages HTML échappées sans JS, serveur JDK GET/HEAD seulement, adresse du réseau local, port configurable) + carte « Suivi sur téléphone » dans `EcranJourJ` (adresse en grand, affiche imprimable, arrêt en quittant le jour J et dans `ContexteApplication.fermer()`).
+- Tests : `InstantaneSuiviTest`, `PagesSuiviTest` (échappement, démo, aucune licence affichée), `ServeurSuiviPublicTest` (vrai serveur port 0 : POST/PUT/DELETE/PATCH → 405, HEAD, 414, arrêt) ; 1144 verts via `outils-dev/tests.sh`.
+- À relire : écran non vérifié visuellement (carte, affiche, impression) ; 4 questions dans le journal (QR code, port enregistré, arrêt en quittant le jour J, recherche par licence).
+
 ## Résultat
