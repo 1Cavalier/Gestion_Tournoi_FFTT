@@ -316,7 +316,20 @@ final class EcranSalle {
         demander.setOnAction(e -> memoriserAnnonce(null));
         annonce.getItems().addAll(new SeparatorMenuItem(), demander);
 
-        HBox actions = Ui.ligne(10, annonce, lancer, proposer);
+        // B016 : feuille de match imprimée à chaque envoi sur une table (mémorisé pour ce tournoi).
+        CheckBox feuille = new CheckBox("Feuille à l'envoi");
+        feuille.setSelected(tournoi.imprimerFeuilleALEnvoi());
+        feuille.setDisable(ferme());
+        feuille.setTooltip(new Tooltip("Imprime la feuille de match de chaque rencontre envoyée sur une table "
+                + "(imprimante par défaut si le système le permet, sinon le PDF s'ouvre). Sans cette option, "
+                + "« Feuille » sur une table occupée l'imprime à la demande."));
+        feuille.setOnAction(e -> {
+            tournoi.setImprimerFeuilleALEnvoi(feuille.isSelected());
+            apresAction(true, feuille.isSelected()
+                    ? "La feuille de match sera imprimée à chaque envoi sur une table."
+                    : "Les feuilles de match ne s'impriment plus à l'envoi (bouton « Feuille » sur chaque table).");
+        });
+        HBox actions = Ui.ligne(10, feuille, annonce, lancer, proposer);
         if (ouvrirSms != null) {
             Button boutonSms = Ui.boutonSecondaire("SMS…");
             boutonSms.setTooltip(new Tooltip("Convocations par SMS : réglages, numéros consentis, journal des envois."));
@@ -541,7 +554,19 @@ final class EcranSalle {
                 joueurDetail = null;
                 afficher();
             });
-            carte.getChildren().addAll(new VBox(0, tableau, tour), a, b, duree, terminer);
+            Button feuilleMatch = Ui.boutonLien("Feuille");
+            feuilleMatch.setTooltip(new Tooltip("Imprimer la feuille de match de cette table."));
+            feuilleMatch.setOnAction(e -> {
+                ImpressionJourJ.Message msg = ImpressionJourJ.imprimer(
+                        ImpressionJourJ.feuilleMatch(tournoi, m.match()), false);
+                if (msg.erreur()) {
+                    messageErreur = msg.texte();
+                } else {
+                    messageSucces = msg.texte();
+                }
+                afficher();
+            });
+            carte.getChildren().addAll(new VBox(0, tableau, tour), a, b, duree, terminer, feuilleMatch);
             if (annulationsAConfirmer.contains(c.numero())) {
                 Button oui = Ui.boutonSecondaire("Oui, annuler");
                 oui.getStyleClass().add("jourj-danger");
@@ -1117,7 +1142,13 @@ final class EcranSalle {
                 apresAction(true, PresentationSalle.messageProposition(r) + smsEnvoyes);
                 return;
             }
-            apresAction(r.aLance(), PresentationSalle.messageProposition(r));
+            String texte = PresentationSalle.messageProposition(r);
+            if (r.aLance()) {
+                List<Match> lances = new ArrayList<>();
+                r.getLancements().forEach(l -> lances.add(l.match().match()));
+                texte += feuillesALEnvoi(lances);
+            }
+            apresAction(r.aLance(), texte);
         });
     }
 
@@ -1133,8 +1164,25 @@ final class EcranSalle {
                 joueurDetail = null;
                 smsEnvoyes = smsApresLancement(m, table, mode);
             }
-            apresAction(r.estReussi(), PresentationSalle.message(r, bord.getNombreDeTables()) + smsEnvoyes);
+            String texte = PresentationSalle.message(r, bord.getNombreDeTables());
+            if (r.estReussi()) {
+                texte += feuillesALEnvoi(List.of(m));
+            }
+            apresAction(r.estReussi(), texte + smsEnvoyes);
         });
+    }
+
+    /**
+     * B016 : si l'option est cochée, imprime les feuilles des matchs qui viennent
+     * d'être envoyés ; rend la phrase à ajouter au message (vide sinon). Un
+     * échec d'impression n'annule jamais l'envoi.
+     */
+    private String feuillesALEnvoi(List<Match> envoyes) {
+        if (!tournoi.imprimerFeuilleALEnvoi() || envoyes.isEmpty()) {
+            return "";
+        }
+        ImpressionJourJ.Message msg = ImpressionJourJ.imprimer(ImpressionJourJ.feuillesMatchs(tournoi, envoyes), true);
+        return (msg.erreur() ? " Feuille non imprimée : " : " ") + msg.texte();
     }
 
     private void annulerAffectation(Match m) {

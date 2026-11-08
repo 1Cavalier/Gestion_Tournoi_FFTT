@@ -70,6 +70,9 @@ public final class ContexteApplication {
     // Base FFTT (interrogée seulement) — remplacée un jour par la vraie source.
     private final RegistreClubs clubsFFTT;
     private final RegistreLicences licencesFFTT;
+    // B023 : licenciés et clubs importés d'un fichier, superposés à la base (session seulement).
+    private final com.pingmanager.ui.infra.RegistresImportes registresImportes =
+            new com.pingmanager.ui.infra.RegistresImportes();
 
     // Ports concrets.
     private final EmailConsole email;
@@ -98,8 +101,8 @@ public final class ContexteApplication {
     public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT) {
         this.dossierDonnees = dossierDonnees;
         this.fichierDepot = dossierDonnees.resolve(DepotApplication.NOM_FICHIER);
-        this.clubsFFTT = clubsFFTT;
-        this.licencesFFTT = licencesFFTT;
+        this.clubsFFTT = registresImportes.clubs(clubsFFTT);
+        this.licencesFFTT = registresImportes.licences(licencesFFTT);
 
         // Le service de fichiers tournoi porte le dépôt applicatif : une seule
         // instance en mémoire, un seul fichier sur disque (clubs, comptes, accès,
@@ -114,9 +117,9 @@ public final class ContexteApplication {
         Horloge horloge = Horloge.systeme();
 
         this.authentification = new ServiceAuthentification(hachage);
-        this.liaisonLicence = new ServiceLiaisonLicence(licencesFFTT);
-        this.liaisonClub = new ServiceLiaisonClub(clubsFFTT, code, email, hachage, horloge);
-        this.eligibilite = new EligibiliteTournoi(clubsFFTT);
+        this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
+        this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
+        this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
 
         amorcerProfilDemo();
@@ -571,6 +574,11 @@ public final class ContexteApplication {
     /** @return les licenciés correspondant à une saisie (nom, prénom ou numéro). */
     public List<FicheLicence> rechercherLicences(String texte, int max) {
         return licencesFFTT.rechercher(texte, max);
+    }
+
+    /** B023 : import des licenciés et des clubs depuis un fichier fourni par le club. */
+    public com.pingmanager.ui.infra.RegistresImportes registresImportes() {
+        return registresImportes;
     }
 
     /** @return les clubs (base FFTT) que le compte connecté administre. */

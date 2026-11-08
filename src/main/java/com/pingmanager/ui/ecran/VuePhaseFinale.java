@@ -182,7 +182,27 @@ public final class VuePhaseFinale {
         titres.getChildren().addAll(Ui.titre("Tableau final — " + tableau.getNom()), Ui.discret(sous));
         String etat = diagnostic.getEtat() == DiagnosticPhaseFinale.Etat.TERMINEE ? Ui.ETAT_OK
                 : diagnostic.estConstruite() || diagnostic.peutConstruire() ? Ui.ETAT_RECOMMANDE : Ui.ETAT_OPTIONNEL;
-        return Ui.enteteAvecActions(titres, Ui.pastille(PresentationPhaseFinale.titreEtat(diagnostic), etat));
+        Node pastille = Ui.pastille(PresentationPhaseFinale.titreEtat(diagnostic), etat);
+        if (tournoi == null || !diagnostic.estConstruite()) {
+            return Ui.enteteAvecActions(titres, pastille);
+        }
+        // B016 : arbre imprimable pour l'affichage en salle, résultats déjà saisis compris.
+        Button imprimer = Ui.boutonSecondaire("Imprimer le tableau final");
+        imprimer.setTooltip(new javafx.scene.control.Tooltip("PDF de l'arbre (A4 paysage, A3 au-delà de 16 places) "
+                + "avec les résultats déjà saisis, à afficher en salle."));
+        imprimer.setOnAction(e -> imprimer(ImpressionJourJ.arbre(tournoi, tableau)));
+        return Ui.enteteAvecActions(titres, Ui.ligne(10, imprimer, pastille));
+    }
+
+    /** Enregistre et ouvre la feuille, puis affiche le résultat en haut de la page. */
+    private void imprimer(ImpressionJourJ.Preparation preparation) {
+        ImpressionJourJ.Message m = ImpressionJourJ.imprimer(preparation, false);
+        if (m.erreur()) {
+            messageErreur = m.texte();
+        } else {
+            messageSucces = m.texte();
+        }
+        rafraichir();
     }
 
     static Node rappel(String texte) {
@@ -269,7 +289,66 @@ public final class VuePhaseFinale {
             corps.getChildren().add(h);
         }
         corps.getChildren().add(Ui.aide(PresentationPhaseFinale.notePodium(podium)));
+        if (ServicePhaseFinale.estTerminee(elim)) {
+            corps.getChildren().add(blocExportResultats());
+        }
         return Ui.carte("Podium", corps);
+    }
+
+    /**
+     * B023 : export des résultats du tableau terminé (parties.csv, classements.csv),
+     * format provisoire en attendant le format fédéral (IX.107).
+     */
+    private Node blocExportResultats() {
+        Label message = Ui.discret("");
+        message.setWrapText(true);
+        Button exporter = Ui.boutonSecondaire("Exporter les résultats (CSV)…");
+        exporter.setOnAction(e -> {
+            com.pingmanager.core.ResultatPreparationExport prep =
+                    new com.pingmanager.core.ServiceResultatsFederaux().construire(tournoi, tableau);
+            if (!prep.estExportable()) {
+                message.setText(prep.getMotif().getLibelle());
+                return;
+            }
+            javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+            dc.setTitle("Dossier où enregistrer les résultats du tableau « " + tableau.getNom() + " »");
+            java.io.File dossier = dc.showDialog(racine.getScene() == null ? null : racine.getScene().getWindow());
+            if (dossier == null) {
+                return;
+            }
+            com.pingmanager.importation.ExportResultatsCsv export = new com.pingmanager.importation.ExportResultatsCsv();
+            String nom = tableau.getNom().replaceAll("[^\\p{L}\\p{N}]+", "-").replaceAll("^-|-$", "");
+            String prefixe = "resultats-" + (nom.isEmpty() ? "tableau" : nom) + "-";
+            StringBuilder sb = new StringBuilder();
+            try {
+                for (com.pingmanager.core.FichierExporte f : export.produire(prep.getResultats().orElseThrow())) {
+                    Path cible = cibleLibre(dossier.toPath(), prefixe + f.getNom());
+                    java.nio.file.Files.write(cible, f.getContenu());
+                    sb.append(sb.length() == 0 ? "Enregistré : " : ", ").append(cible.getFileName());
+                }
+                sb.append(" (").append(export.nomFormat()).append(").");
+                prep.getAvertissements().forEach(a -> sb.append("\n").append(a));
+                message.setText(sb.toString());
+            } catch (java.io.IOException ex) {
+                message.setText("Export impossible : " + ex.getMessage());
+            }
+        });
+        return new VBox(6, exporter, message);
+    }
+
+    /**
+     * Fichier à écrire sans écraser un export précédent : « nom.csv », sinon
+     * « nom-2.csv », « nom-3.csv »…
+     */
+    static Path cibleLibre(Path dossier, String nomFichier) {
+        Path cible = dossier.resolve(nomFichier);
+        int point = nomFichier.lastIndexOf('.');
+        String base = point < 0 ? nomFichier : nomFichier.substring(0, point);
+        String extension = point < 0 ? "" : nomFichier.substring(point);
+        for (int n = 2; java.nio.file.Files.exists(cible); n++) {
+            cible = dossier.resolve(base + "-" + n + extension);
+        }
+        return cible;
     }
 
     /** L'arbre des rencontres, dessiné aux coordonnées de {@link DispositionArbre}. */
@@ -480,6 +559,11 @@ public final class VuePhaseFinale {
             messageSucces = PresentationPhaseFinale.messageResultat(joue, tableau.getPhaseFinale());
             enregistrerPuisRafraichir();
         });
+        if (tournoi != null && PresentationPhaseFinale.estSaisissable(m)) {
+            Button feuille = Ui.boutonLien("Imprimer la feuille de match");
+            feuille.setOnAction(e -> imprimer(ImpressionJourJ.feuilleMatch(tournoi, m)));
+            panneau.getChildren().add(feuille);
+        }
         ScrollPane defilant = Ui.defilant(panneau);
         defilant.getStyleClass().add("pf-cote");
         BorderPane.setMargin(defilant, new Insets(24, 24, 24, 0));
