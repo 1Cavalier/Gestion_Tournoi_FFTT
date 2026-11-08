@@ -21,8 +21,8 @@ Couleur du tableau reprise si B015 est faite.
 
 ## Critères de fin
 
-- [ ] contenu des documents testé
-- [ ] boutons d'impression dans les poules, l'arbre et la salle
+- [x] contenu des documents testé
+- [x] boutons d'impression dans les poules, l'arbre et la salle
 - [ ] `mvn -B test` à 0 échec
 
 ## Contraintes / décisions de Quentin
@@ -32,5 +32,9 @@ Format provisoire (cahier des charges v0, section 9) : **feuille de match** et *
 Aucune pour l'instant.
 
 ## Passations
+
+- developpeur-jour-j (8 nov.) : contenu des feuilles dans `core.feuilles` (testé, sans PDFBox), rendu `ui.infra.RenduPdfFeuilles`, boutons poules / arbre / salle, option « Feuille à l'envoi » (JSON `feuilleALEnvoi` facultatif).
+  Tests 1046 → 1079, 0 échec (`outils-dev/tests.sh`) ; PDF et écrans regardés (captures hors dépôt `/tmp/captures/B016/`).
+  À vérifier : impression directe sous Windows ; 3 questions dans le journal (sens de « feuille de rencontre », impression directe, 5 colonnes au meilleur des 3).
 
 ## Résultat
