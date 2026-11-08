@@ -36,4 +36,8 @@ Aucune pour l'instant.
 
 ## Passations
 
+- 2026-11-06 `developpeur` : cœur (textes GSM 7 bits en un SMS, port `EnvoiSms`, consentement, limite, journal, effacement), persistance `convocationsSms` rétrocompatible, simulation `EnvoiSmsSimule`, envoi au lancement (annonce B037 + case « envoi automatique »), écran minimal « SMS… » depuis le jour J. Tests 1046 → 1100, 0 échec.
+- Reste pour `developpeur-interface` : mise en forme de `EcranConvocationsSms` (aucun CSS propre), saisie du numéro et du consentement dans le formulaire d'inscription (non faite).
+- 4 questions pour Quentin dans `docs/journal/2026-11-06-tache-B019-convocations-sms.md` (double condition d'envoi, limite 300, moment de l'effacement, accents remplacés).
+
 ## Résultat
