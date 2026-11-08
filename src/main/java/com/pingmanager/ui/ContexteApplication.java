@@ -130,6 +130,10 @@ public final class ContexteApplication {
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
 
+        // B018 : prononciations des noms (registre de l'application) dans les annonces vocales.
+        annoncesVocales.service().definirResolveur(new com.pingmanager.core.ResolveurPrononciationRegistre(
+                depot.prononciations(), this::numeroClubDuJoueur));
+
         amorcerProfilDemo();
     }
 
@@ -878,6 +882,24 @@ public final class ContexteApplication {
     }
 
     /** Annonces vocales de la salle (B017), une file pour toute l'application. */
+    /** B018 : registre des prononciations phonétiques (sauvegardé par {@link #sauvegarder()}). */
+    public com.pingmanager.core.RegistrePrononciations prononciations() {
+        return depot.prononciations();
+    }
+
+    /** B018 : numéro du club d'un licencié (base des licences), vide si inconnu. */
+    public Optional<String> numeroClubDuJoueur(String licence) {
+        if (licence == null || licence.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return licencesFFTT.trouverParLicence(licence.trim()).map(FicheLicence::getNumeroClub)
+                    .filter(n -> n != null && !n.isBlank());
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
+    }
+
     public com.pingmanager.ui.infra.DiffuseurAnnonces annoncesVocales() {
         return annoncesVocales;
     }

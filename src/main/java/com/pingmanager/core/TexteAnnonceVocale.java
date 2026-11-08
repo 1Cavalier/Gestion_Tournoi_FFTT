@@ -83,7 +83,7 @@ public final class TexteAnnonceVocale {
      * « LE-GALL » → « Le-Gall », « D'ARTOIS » → « D'Artois » ; un nom déjà en
      * minuscules est gardé tel quel.
      */
-    static String nomPropre(String nom) {
+    public static String nomPropre(String nom) {
         if (nom.isEmpty() || !nom.equals(nom.toUpperCase(Locale.FRENCH))) {
             return nom;
         }
