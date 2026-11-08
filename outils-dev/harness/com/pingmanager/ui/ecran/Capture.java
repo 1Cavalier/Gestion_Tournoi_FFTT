@@ -624,7 +624,7 @@ public class Capture extends Application {
         }, "vue-ensemble-tournoi");
         etape(() -> {
             coq[0].afficher("gestion");
-            cliquer("Suivre le tournoi");
+            cliquerDebut(PresentationGestionTournois.BOUTON_JOUR_J);
         }, "jour-j");
         etape(() -> coq[0].afficher("stats"), "page-a-venir");
         etape(() -> coq[0].afficher("tournois"), "tournois-carte", 2500);
@@ -641,7 +641,7 @@ public class Capture extends Application {
             coq[0] = new Coquille(ctx, () -> { });
             scene.setRoot(coq[0].build());
             coq[0].afficher("gestion");
-            cliquer("Suivre le tournoi");
+            cliquerDebut(PresentationGestionTournois.BOUTON_JOUR_J);
         }, "j01-jour-j");
         etape(() -> defiler(1.0), "j01b-jour-j-bas");
         // B037 : annonce, joueurs en attente, lancer un match, annuler, jour suivant.

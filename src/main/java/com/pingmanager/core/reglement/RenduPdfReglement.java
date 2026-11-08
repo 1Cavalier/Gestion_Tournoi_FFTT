@@ -183,7 +183,7 @@ public final class RenduPdfReglement {
 
         float largeur(String s, PDFont f, float taille) {
             try {
-                return f.getStringWidth(propre(s)) / 1000f * taille;
+                return f.getStringWidth(imprimable(s, f)) / 1000f * taille;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -312,7 +312,7 @@ public final class RenduPdfReglement {
                 }
                 sb.append(m.texte());
             }
-            cs.showText(sb.toString());
+            cs.showText(imprimable(sb.toString(), f));
             cs.endText();
         }
 
@@ -439,7 +439,7 @@ public final class RenduPdfReglement {
             for (int i = 0; i < total; i++) {
                 PDPage p = doc.getPage(i);
                 try (PDPageContentStream c = new PDPageContentStream(doc, p, PDPageContentStream.AppendMode.APPEND, true, true)) {
-                    String texte = propre(titre) + "   ·   page " + (i + 1) + " / " + total;
+                    String texte = imprimable(titre + "   ·   page " + (i + 1) + " / " + total, normale);
                     float taille = 8.5f;
                     float w = normale.getStringWidth(texte) / 1000f * taille;
                     c.beginText();
@@ -465,6 +465,36 @@ public final class RenduPdfReglement {
     static String propre(String s) {
         return s == null ? "" : s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
                 .replace(' ', ' ').replace(' ', ' ');
+    }
+
+    /**
+     * Texte nettoyé où chaque caractère que la police ne sait pas encoder (CJK, emoji…)
+     * devient « ? » : un titre ou un nom exotique ne fait plus échouer tout le PDF.
+     * Même règle que {@code ui.infra.RenduPdfFeuilles.imprimable} (le cœur ne peut pas
+     * dépendre de {@code ui}). Sert à la mesure comme au dessin.
+     */
+    static String imprimable(String s, PDFont f) {
+        String t = propre(s);
+        StringBuilder sb = null;
+        for (int i = 0; i < t.length(); ) {
+            int cp = t.codePointAt(i);
+            int n = Character.charCount(cp);
+            boolean ok;
+            try {
+                f.encode(t.substring(i, i + n));
+                ok = true;
+            } catch (IllegalArgumentException | IOException e) {
+                ok = false;
+            }
+            if (!ok && sb == null) {
+                sb = new StringBuilder(t.length()).append(t, 0, i);
+            }
+            if (sb != null) {
+                sb.append(ok ? t.substring(i, i + n) : "?");
+            }
+            i += n;
+        }
+        return sb == null ? t : sb.toString();
     }
 
     private static float[] rgb(int hex) {
