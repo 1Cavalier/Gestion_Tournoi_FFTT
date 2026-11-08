@@ -39,6 +39,13 @@ public final class Tournoi {
     private ModeAnnonce modeAnnonce;
 
     /**
+     * Imprimer la feuille de match quand un match est envoyé sur une table
+     * (B016), mémorisé pour ce tournoi ; {@code false} par défaut (impression
+     * à la demande seulement).
+     */
+    private boolean feuilleALEnvoi;
+
+    /**
      * Stratégie d'ordonnancement choisie par le club (B025), ou {@code null} tant
      * qu'aucun choix n'est fait ({@link StrategieOrdonnancement#PAR_DEFAUT} s'applique).
      */
@@ -268,6 +275,16 @@ public final class Tournoi {
     /** Mémorise (ou oublie, avec {@code null}) la façon d'annoncer les rencontres. */
     public void setModeAnnonce(ModeAnnonce modeAnnonce) {
         this.modeAnnonce = modeAnnonce;
+    }
+
+    /** Imprime-t-on la feuille de match à l'envoi d'un match sur une table ? */
+    public boolean imprimerFeuilleALEnvoi() {
+        return feuilleALEnvoi;
+    }
+
+    /** Active ou coupe l'impression de la feuille de match à l'envoi sur une table. */
+    public void setImprimerFeuilleALEnvoi(boolean actif) {
+        this.feuilleALEnvoi = actif;
     }
 
     /** @return la stratégie d'ordonnancement applicable : celle du club, sinon la stratégie par défaut. */
