@@ -88,6 +88,25 @@ class ServiceConvocationsSmsTest {
     }
 
     @Test
+    void saisie_facultative_vide_ou_recevable_sans_refus_et_sans_rien_enregistrer() {
+        assertTrue(ServiceConvocationsSms.refusSaisieFacultative("", false).isEmpty());
+        assertTrue(ServiceConvocationsSms.refusSaisieFacultative(null, true).isEmpty());
+        assertTrue(ServiceConvocationsSms.refusSaisieFacultative("06 12 34 56 78", true).isEmpty());
+        assertEquals(ResultatContactSms.Motif.CONSENTEMENT_MANQUANT,
+                ServiceConvocationsSms.refusSaisieFacultative("06 12 34 56 78", false).orElseThrow().motif());
+        assertEquals(ResultatContactSms.Motif.NUMERO_INVALIDE,
+                ServiceConvocationsSms.refusSaisieFacultative("01 23 45 67 89", true).orElseThrow().motif());
+        assertTrue(tournoi.getConvocationsSms().getContacts().isEmpty());
+    }
+
+    @Test
+    void effacement_automatique_le_lendemain_du_dernier_jour() {
+        assertEquals(JOUR.plusDays(1), ServiceConvocationsSms.dateEffacementAutomatique(tournoi));
+        tournoi.ajouterJour(JOUR.plusDays(1));
+        assertEquals(JOUR.plusDays(2), ServiceConvocationsSms.dateEffacementAutomatique(tournoi));
+    }
+
+    @Test
     void retrait_du_consentement_efface_le_numero() {
         consentir(hugo, "0612345678");
         assertTrue(service.retirerContact(tournoi, "1"));

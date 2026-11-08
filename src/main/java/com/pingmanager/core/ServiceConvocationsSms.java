@@ -69,6 +69,26 @@ public final class ServiceConvocationsSms {
         return new ResultatContactSms(ResultatContactSms.Motif.ENREGISTRE, numero.get());
     }
 
+    /**
+     * Contrôle une saisie <b>facultative</b> avant de l'enregistrer (formulaire
+     * d'inscription) : rien n'est enregistré ni modifié.
+     *
+     * @return vide si la saisie est vide (rien à garder) ou recevable ; sinon le
+     *         refus (consentement manquant, numéro non reconnu)
+     */
+    public static Optional<ResultatContactSms> refusSaisieFacultative(String saisie, boolean consentement) {
+        if (saisie == null || saisie.isBlank()) {
+            return Optional.empty();
+        }
+        if (!consentement) {
+            return Optional.of(new ResultatContactSms(ResultatContactSms.Motif.CONSENTEMENT_MANQUANT, ""));
+        }
+        if (NumeroPortable.normaliser(saisie).isEmpty()) {
+            return Optional.of(new ResultatContactSms(ResultatContactSms.Motif.NUMERO_INVALIDE, ""));
+        }
+        return Optional.empty();
+    }
+
     /** Retire le numéro d'un licencié (retrait du consentement). */
     public boolean retirerContact(Tournoi tournoi, String numeroLicence) {
         return tournoi.getConvocationsSms().retirerContact(numeroLicence);
@@ -99,6 +119,15 @@ public final class ServiceConvocationsSms {
     public static boolean estTermine(Tournoi tournoi, LocalDate aujourdhui) {
         LocalDate dernier = dernierJour(tournoi);
         return dernier != null && aujourdhui.isAfter(dernier);
+    }
+
+    /**
+     * Date à partir de laquelle les numéros sont effacés d'eux-mêmes : le
+     * lendemain du dernier jour du tournoi, ou {@code null} si aucune date n'est connue.
+     */
+    public static LocalDate dateEffacementAutomatique(Tournoi tournoi) {
+        LocalDate dernier = dernierJour(tournoi);
+        return dernier == null ? null : dernier.plusDays(1);
     }
 
     private static LocalDate dernierJour(Tournoi t) {
