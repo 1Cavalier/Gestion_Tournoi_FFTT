@@ -115,11 +115,15 @@ feuille dès qu'un match part sur une table ; sinon, bouton « Feuille » sur ch
 
 ## Fusion
 
-À compléter par l'`integrateur`.
+Fusion de `origin/main` (B009, B040 : nouvel ordre du cadre, placement I.302) sans conflit ;
+`verifier-fusion.py` : OK, rien à signaler. Un test de B016
+(`arbre_imprime_scores_vainqueur_table_et_abandon`) supposait trois vrais matchs au premier
+tour avec 16 joueurs ; le nouvel ordre du cadre y place des exempts. Mise en place du test
+adaptée (24 joueurs, exempts écartés), assertions inchangées.
 
 ## Chiffres
 
-- Tests : 1046 → 1096 (mesurés par `outils-dev/tests.sh`, Maven Central inaccessible), 0 échec
+- Tests : 1046 → 1115 (après fusion de main) (mesurés par `outils-dev/tests.sh`, Maven Central inaccessible), 0 échec
 - Version de la démo : inchangée
 
 ## Passations

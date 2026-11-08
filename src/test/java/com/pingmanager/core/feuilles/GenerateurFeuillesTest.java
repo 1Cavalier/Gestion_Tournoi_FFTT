@@ -384,9 +384,10 @@ class GenerateurFeuillesTest {
 
     @Test
     void arbre_imprime_scores_vainqueur_table_et_abandon() {
-        Tournoi t = tournoiLance(16);
+        Tournoi t = tournoiLance(24);
         Tableau tableau = avecTableauFinal(t);
         List<Match> premiers = tableau.getPhaseFinale().getPremierTour().getMatchs();
+        premiers = premiers.stream().filter(x -> !x.estBye()).toList();
         Match joue = premiers.get(0);
         assertTrue(phaseFinale.saisirScore(tableau, joue, victoire(joue, false)).estValide());
         Match abandon = premiers.get(1);
