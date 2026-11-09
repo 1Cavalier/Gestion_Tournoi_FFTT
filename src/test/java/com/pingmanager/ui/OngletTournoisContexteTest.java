@@ -24,7 +24,9 @@ class OngletTournoisContexteTest {
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
         List<ContexteApplication.TournoiFichier> tous = ctx.tousLesTournois();
         assertEquals(2, tous.size(), "le National B de Brunoy et sa copie au jour J");
-        assertTrue(tous.stream().allMatch(tf -> tf.tournoi().getStatut() == StatutTournoi.PUBLIE));
+        // Le vrai National B en brouillon, sa copie de démo publiée.
+        assertEquals(StatutTournoi.BROUILLON, ctx.chargerTournoi(ctx.fichierTournoiDemo()).getStatut());
+        assertEquals(StatutTournoi.PUBLIE, ctx.chargerTournoi(ctx.fichierTournoiJourJDemo()).getStatut());
 
         // Joueur : inscrit à la copie au jour J.
         List<ContexteApplication.TournoiFichier> joueur = ctx.mesTournoisJoueur(tous);
@@ -33,10 +35,12 @@ class OngletTournoisContexteTest {
         // Club : le National B de Brunoy et sa copie au jour J.
         assertEquals(2, ctx.mesTournoisClub(tous).size());
 
-        // Brunoy rechargé depuis le disque : rempli par les joueurs fictifs.
-        var brunoy = ctx.chargerTournoi(ctx.fichierTournoiDemo());
-        assertTrue(RemplissageTableaux.nombreDeParticipants(brunoy) > 200);
-        assertNotNull(brunoy.getAdresse().getCoordonnees());
+        // La copie rechargée depuis le disque : remplie par les joueurs fictifs.
+        var copie = ctx.chargerTournoi(ctx.fichierTournoiJourJDemo());
+        assertTrue(RemplissageTableaux.nombreDeParticipants(copie) > 200);
+        assertNotNull(copie.getAdresse().getCoordonnees());
+        // Le vrai National B : aucun inscrit.
+        assertEquals(0, RemplissageTableaux.nombreDeParticipants(ctx.chargerTournoi(ctx.fichierTournoiDemo())));
         assertEquals(DonneesDemo.LICENCE_QUENTIN, ctx.ficheLicenceLiee().orElseThrow().getNumeroLicence());
         assertNotNull(ctx.positionDuJoueur());
     }

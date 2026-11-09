@@ -31,7 +31,7 @@ import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
 import com.pingmanager.ui.infra.TournoiDemoBrunoyJourJ;
-import com.pingmanager.ui.infra.TournoisDemo;
+import com.pingmanager.ui.infra.TournoiDemoBrunoy;
 import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
 import com.pingmanager.ui.infra.EnvoiSmsSimule;
@@ -230,8 +230,11 @@ public final class ContexteApplication {
      * v16 (09/11/2026) : seul le National B de Brunoy reste, plus sa copie au jour J, presque
      * pleine ({@link TournoiDemoBrunoyJourJ}) ; les cinq autres tournois publiés et l'ancien
      * tournoi de démonstration du jour J sont supprimés, tout autre tournoi est archivé.
+     * v17 (09/11/2026) : le National B revient à son état réel (brouillon, sans n°
+     * d'homologation ni inscrit, règlement du club du 9 novembre) ; seule sa copie au jour J
+     * garde un faux numéro et des personnes fictives.
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v16";
+    private static final String VERSION_DEMO = ".demo-brunoy-v17";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
@@ -375,7 +378,7 @@ public final class ContexteApplication {
     }
 
     /**
-     * Crée une seule fois le brouillon de démo du National B de Brunoy
+     * Crée une seule fois le National B de Brunoy, en brouillon comme le vrai
      * ({@link TournoiDemoBrunoy}), toutes sections remplies. S'il existe déjà
      * (éventuellement modifié par l'utilisateur), il n'est pas touché ; pour
      * repartir de la version d'origine, supprimer son fichier.
@@ -390,7 +393,7 @@ public final class ContexteApplication {
         try {
             java.nio.file.Files.createDirectories(cible.getParent());
             Tournoi t = java.nio.file.Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
-                    : TournoisDemo.brunoyPublieEtRempli(DonneesDemo.JOUEURS_FICTIFS);
+                    : TournoiDemoBrunoy.construire();
             service.nouveau(t, new RegistreDisciplinaire());
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (java.io.IOException | RuntimeException e) {

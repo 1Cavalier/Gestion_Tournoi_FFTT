@@ -2,7 +2,6 @@ package com.pingmanager.ui.infra;
 
 import com.pingmanager.core.JoueurDepuisLicence;
 import com.pingmanager.core.ServiceInscription;
-import com.pingmanager.model.Coordonnees;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.StatutTournoi;
@@ -16,9 +15,9 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Tournoi <b>publié</b> de la démo : le National B de Brunoy, publié (n° d'homologation
- * fictif) et rempli par des joueurs fictifs. Sa copie au jour J est
- * {@link TournoiDemoBrunoyJourJ}.
+ * Outils des tournois de démo : remplissage par des joueurs fictifs et publication.
+ * Utilisés par la copie de démonstration du National B ({@link TournoiDemoBrunoyJourJ}) ;
+ * le vrai National B ({@link TournoiDemoBrunoy}) reste en brouillon, sans inscrit.
  *
  * <p>Toutes les inscriptions passent par {@link ServiceInscription} : quotas, tableau
  * dames imposé, tableaux consécutifs, points, catégories, capacité et liste d'attente
@@ -26,34 +25,10 @@ import java.util.Random;
  */
 public final class TournoisDemo {
 
-    /** Numéro d'homologation fictif de Brunoy (le vrai sera délivré par la FFTT). */
+    /** Numéro d'homologation fictif de la copie de démo (le vrai sera délivré par la FFTT). */
     public static final String HOMOLOGATION_BRUNOY_DEMO = "DÉMO-NB-2027-091 (fictif)";
 
     private TournoisDemo() {
-    }
-
-    // ==================================================================
-    // Brunoy : publié et rempli
-    // ==================================================================
-
-    /**
-     * Objectifs de remplissage du National B (inscrits + attente) : complets avec liste
-     * d'attente (A, H), complet sans attente (C), à moitié (B, E, L…), presque vides (F, K, M).
-     */
-    private static final Map<String, Integer> CIBLES_BRUNOY = Map.ofEntries(
-            Map.entry("A", 70), Map.entry("B", 31), Map.entry("C", 60), Map.entry("D", 21),
-            Map.entry("E", 44), Map.entry("F", 5), Map.entry("G", 17),
-            Map.entry("H", 66), Map.entry("I", 27), Map.entry("J", 50), Map.entry("K", 8),
-            Map.entry("L", 36), Map.entry("M", 3));
-
-    /** National B de Brunoy, publié (n° d'homologation fictif) et rempli par des joueurs fictifs. */
-    public static Tournoi brunoyPublieEtRempli(List<FicheLicence> joueurs) {
-        Tournoi t = TournoiDemoBrunoy.construire();
-        t.setNumeroHomologation(HOMOLOGATION_BRUNOY_DEMO);
-        t.setAdresse(t.getAdresse().avecCoordonnees(new Coordonnees(48.6929, 2.5115)));
-        publier(t);
-        remplir(t, joueurs, CIBLES_BRUNOY, 7L, null);
-        return t;
     }
 
     /**
