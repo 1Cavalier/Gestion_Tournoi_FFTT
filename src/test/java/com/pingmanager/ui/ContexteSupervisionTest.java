@@ -33,7 +33,7 @@ class ContexteSupervisionTest {
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, DonneesDemo.MDP_ULTRA_ADMIN).isPresent());
         assertTrue(ctx.estUltraAdmin());
         assertFalse(ctx.estOrganisateur(), "l'ultra admin n'est rattaché à aucun club");
-        assertEquals(8, ctx.fichiersTournois().size(), "Brunoy + jour J + 5 tournois publiés de démo + Paris 15");
+        assertEquals(3, ctx.fichiersTournois().size(), "Brunoy + sa copie au jour J + Paris 15");
 
         ctx.deconnecter();
         ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/");
@@ -53,9 +53,9 @@ class ContexteSupervisionTest {
                 tournois.resolve("Tournoi_National_B_Brunoy_2027-demo" + DepotTournoi.EXTENSION));
 
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        // Hors tournois publiés des autres clubs de la démo (onglet Tournois).
-        List<Path> restants = ctx.fichiersTournois().stream()
-                .filter(p -> !p.getFileName().toString().startsWith("Demo_")).toList();
+        // Hors copie au jour J du National B.
+        Path copieJourJ = ctx.fichierTournoiJourJDemo().toAbsolutePath();
+        List<Path> restants = ctx.fichiersTournois().stream().filter(p -> !p.equals(copieJourJ)).toList();
         assertEquals(1, restants.size(), restants.toString());
         assertEquals(13, ctx.chargerTournoi(restants.get(0)).getTableaux().size(), "version de la réunion");
         assertTrue(Files.exists(tournois.resolve("archives").resolve("open" + DepotTournoi.EXTENSION)));
@@ -64,6 +64,6 @@ class ContexteSupervisionTest {
         Tournoi nouveau = new Tournoi("Nouveau", "Brunoy", LocalDate.of(2027, 6, 5));
         ctx.creerBrouillon(nouveau);
         ContexteApplication ctx2 = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertEquals(8, ctx2.fichiersTournois().size(), "dont le tournoi de démonstration du jour J");
+        assertEquals(3, ctx2.fichiersTournois().size(), "Brunoy, sa copie au jour J et le nouveau");
     }
 }

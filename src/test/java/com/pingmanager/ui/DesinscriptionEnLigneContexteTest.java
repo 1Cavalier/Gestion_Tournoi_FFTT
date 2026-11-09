@@ -1,8 +1,11 @@
 package com.pingmanager.ui;
 
+import com.pingmanager.core.JoueurDepuisLicence;
 import com.pingmanager.core.RemplissageTableaux;
 import com.pingmanager.core.ServiceAgenda;
+import com.pingmanager.core.ServiceInscription;
 import com.pingmanager.core.ServiceInscriptionEnLigne;
+import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
@@ -26,8 +29,20 @@ class DesinscriptionEnLigneContexteTest {
         return ctx;
     }
 
+    /**
+     * Inscrit le compte de démo à un tableau du National B (encore en inscription) et renvoie
+     * ce tournoi tel que le voit « Mes tournois ». Depuis la démo v16, son seul autre tournoi
+     * est la copie au jour J, où ses tableaux sont déjà en pointage.
+     */
     private static ContexteApplication.TournoiFichier inscrit(ContexteApplication ctx, String licence) {
-        return ctx.mesTournoisJoueur(ctx.tousLesTournois()).get(0);
+        Path nb = ctx.fichierTournoiDemo().toAbsolutePath();
+        Tournoi t = ctx.chargerTournoi(nb);
+        Joueur q = JoueurDepuisLicence.creer(ctx.ficheLicenceLiee().orElseThrow(), t);
+        ServiceInscription service = ServiceInscription.sansContrainteSuccession();
+        assertTrue(t.getTableaux().stream().anyMatch(tab -> service.inscrire(t, q, tab).estAccepte()));
+        ctx.enregistrerTournoi(t, nb);
+        return ctx.mesTournoisJoueur(ctx.tousLesTournois()).stream()
+                .filter(tf -> tf.fichier().toAbsolutePath().equals(nb)).findFirst().orElseThrow();
     }
 
     @Test

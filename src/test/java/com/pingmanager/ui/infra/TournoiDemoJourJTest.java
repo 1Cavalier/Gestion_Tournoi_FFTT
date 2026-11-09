@@ -16,7 +16,6 @@ import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.persistence.DepotTournoi;
-import com.pingmanager.ui.ContexteApplication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -153,16 +152,5 @@ class TournoiDemoJourJTest {
         TableauDeBordSalle relu = salle.tableauDeBord(DepotTournoi.charger(f).getTournoi());
         assertEquals(3, relu.nombreTablesOccupees());
         assertEquals(java.time.Duration.ofMinutes(15), relu.table(2).ecoule());
-    }
-
-    @Test
-    void visible_dans_la_gestion_des_tournois_de_quentin() {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
-        Path f = ctx.fichierTournoiJourJDemo().toAbsolutePath();
-        assertTrue(ctx.tournoisRecents().stream().anyMatch(p -> p.getFichier().equals(f)), "dans les récents");
-        Tournoi t = ctx.chargerTournoi(f);
-        assertEquals(TournoiDemoJourJ.NOM, t.getNom());
-        assertTrue(ctx.estTournoiDuCompte(t));
     }
 }

@@ -30,7 +30,7 @@ import com.pingmanager.persistence.DepotTournoi;
 import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
-import com.pingmanager.ui.infra.TournoiDemoJourJ;
+import com.pingmanager.ui.infra.TournoiDemoBrunoyJourJ;
 import com.pingmanager.ui.infra.TournoisDemo;
 import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
@@ -205,7 +205,6 @@ public final class ContexteApplication {
         rafraichirTournoiDemo();
         amorcerTournoiDemo();
         amorcerTournoiJourJDemo();
-        amorcerAutresTournoisDemo();
     }
 
     /**
@@ -228,24 +227,47 @@ public final class ContexteApplication {
      * en parallèle, tableaux E (poules terminées) et F (tableau final en cours, table 3)
      * avec petite finale.
      * v15 (05/11/2026) : les deux v14 réunies (fusions du 5 novembre réparées).
+     * v16 (09/11/2026) : seul le National B de Brunoy reste, plus sa copie au jour J, presque
+     * pleine ({@link TournoiDemoBrunoyJourJ}) ; les cinq autres tournois publiés et l'ancien
+     * tournoi de démonstration du jour J sont supprimés, tout autre tournoi est archivé.
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v15";
+    private static final String VERSION_DEMO = ".demo-brunoy-v16";
 
+    /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
+    private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
+            "Demo_Regional_Creteil_2026", "Demo_Departemental_Loiret_2027", "Demo_National_A_Lyon_2027",
+            "Demo_Regional_Lille_2027", "Demo_Promotionnel_Rennes_2026");
+
+    /**
+     * Au changement de {@link #VERSION_DEMO}, une seule fois : supprime les anciennes démos,
+     * archive dans {@code tournois/archives} tout autre fichier de tournoi du dossier (National B
+     * compris : il est recréé juste après depuis le code, la version précédente reste aux
+     * archives) et vide la liste des récents. Ne restent que le National B et sa copie au jour J.
+     */
     private void rafraichirTournoiDemo() {
-        Path marqueur = dossierDonnees.resolve("tournois").resolve(VERSION_DEMO);
-        if (java.nio.file.Files.exists(marqueur)) {
+        Path dossier = dossierDonnees.resolve("tournois");
+        Path marqueur = dossier.resolve(VERSION_DEMO);
+        if (Files.exists(marqueur)) {
             return;
         }
         try {
-            java.nio.file.Files.createDirectories(marqueur.getParent());
-            java.nio.file.Files.deleteIfExists(fichierTournoiDemo()); // recréé juste après par amorcerTournoiDemo
-            java.nio.file.Files.deleteIfExists(fichierTournoiJourJDemo()); // idem (amorcerTournoiJourJDemo)
-            for (String nom : NOMS_AUTRES_DEMOS) {
-                java.nio.file.Files.deleteIfExists(fichierAutreDemo(nom));
+            Files.createDirectories(dossier);
+            for (String nom : ANCIENNES_DEMOS) {
+                Files.deleteIfExists(dossier.resolve(nom + "-demo" + DepotTournoi.EXTENSION));
             }
-            java.nio.file.Files.writeString(marqueur, "Tournoi de démo recréé le " + java.time.LocalDate.now() + "\n");
-        } catch (java.io.IOException e) {
-            System.err.println("Mise à jour du tournoi de Brunoy non faite : " + e.getMessage());
+            Files.deleteIfExists(fichierTournoiJourJDemo()); // recréé par amorcerTournoiJourJDemo
+            Path archives = dossier.resolve("archives");
+            for (Path f : fichiersTournois()) {
+                depot.oublierRecent(f);
+                if (f.toAbsolutePath().startsWith(dossier.toAbsolutePath())) {
+                    Files.createDirectories(archives);
+                    Files.move(f, archives.resolve(f.getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+            sauvegarder();
+            Files.writeString(marqueur, "Démo recréée le " + java.time.LocalDate.now() + "\n");
+        } catch (IOException e) {
+            System.err.println("Mise à jour des tournois de démo non faite : " + e.getMessage());
         }
     }
 
@@ -376,13 +398,13 @@ public final class ContexteApplication {
         }
     }
 
-    /** Fichier du tournoi de démonstration du jour J (club de Brunoy). */
+    /** Fichier de la copie au jour J du National B de Brunoy. */
     public Path fichierTournoiJourJDemo() {
-        return dossierDonnees.resolve("tournois").resolve("Demo_Jour_J_Brunoy_2026-demo" + DepotTournoi.EXTENSION);
+        return dossierDonnees.resolve("tournois").resolve("Tournoi_National_B_Brunoy_2027-jour-J-demo" + DepotTournoi.EXTENSION);
     }
 
     /**
-     * Crée une seule fois le tournoi de démonstration du jour J ({@link TournoiDemoJourJ}) et
+     * Crée une seule fois la copie au jour J du National B ({@link TournoiDemoBrunoyJourJ}) et
      * l'ajoute aux récents, pour qu'il apparaisse dans « Gestion des tournois » des comptes de
      * Brunoy. S'il existe déjà (éventuellement pointé ou joué depuis), il n'est pas touché.
      */
@@ -396,40 +418,12 @@ public final class ContexteApplication {
         try {
             Files.createDirectories(cible.getParent());
             Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
-                    : TournoiDemoJourJ.construire(DonneesDemo.JOUEURS_FICTIFS);
+                    : TournoiDemoBrunoyJourJ.construire(DonneesDemo.JOUEURS_FICTIFS,
+                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElse(null));
             service.nouveau(t, new RegistreDisciplinaire());
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (IOException | RuntimeException e) {
-            System.err.println("Tournoi de démonstration du jour J non créé : " + e.getMessage());
-        }
-    }
-
-    /** Noms de fichier des autres tournois publiés de démo (carte de l'onglet Tournois). */
-    private static final List<String> NOMS_AUTRES_DEMOS = List.of("Demo_Regional_Creteil_2026",
-            "Demo_Departemental_Loiret_2027", "Demo_National_A_Lyon_2027", "Demo_Regional_Lille_2027",
-            "Demo_Promotionnel_Rennes_2026");
-
-    private Path fichierAutreDemo(String nom) {
-        return dossierDonnees.resolve("tournois").resolve(nom + "-demo" + DepotTournoi.EXTENSION);
-    }
-
-    /** Crée une seule fois les autres tournois publiés de démo (fichiers absents seulement). */
-    private void amorcerAutresTournoisDemo() {
-        if (NOMS_AUTRES_DEMOS.stream().allMatch(n -> Files.exists(fichierAutreDemo(n)))) {
-            return;
-        }
-        try {
-            Map<String, Tournoi> demos = TournoisDemo.autres(DonneesDemo.JOUEURS_FICTIFS, clubsFFTT,
-                    licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElse(null));
-            for (Map.Entry<String, Tournoi> e : demos.entrySet()) {
-                Path f = fichierAutreDemo(e.getKey());
-                if (!Files.exists(f)) {
-                    Files.createDirectories(f.getParent());
-                    DepotTournoi.sauvegarder(e.getValue(), f);
-                }
-            }
-        } catch (java.io.IOException | RuntimeException e) {
-            System.err.println("Tournois de démo non créés : " + e.getMessage());
+            System.err.println("Copie au jour J du National B non créée : " + e.getMessage());
         }
     }
 
