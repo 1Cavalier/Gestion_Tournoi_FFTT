@@ -1,5 +1,24 @@
 package com.pingmanager.ui.infra;
 
+import com.pingmanager.core.ServiceCycleTournoi;
+import com.pingmanager.core.reglement.LibellesTableau;
+import com.pingmanager.model.AffectationJugeArbitre;
+import com.pingmanager.model.ArticleOptionnel;
+import com.pingmanager.model.ConfigurationTableau;
+import com.pingmanager.model.GradeJugeArbitre;
+import com.pingmanager.model.GrilleRecompenses;
+import com.pingmanager.model.HorairesTableau;
+import com.pingmanager.model.InfosReglement;
+import com.pingmanager.model.LotTables;
+import com.pingmanager.model.OptionsReglement;
+import com.pingmanager.model.Paiement;
+import com.pingmanager.model.PhasePoints;
+import com.pingmanager.model.PolitiqueBalles;
+import com.pingmanager.model.Recompense;
+import com.pingmanager.model.RoleJugeArbitre;
+import com.pingmanager.model.TarifInscription;
+import com.pingmanager.model.format.RegistreFormats;
+import java.time.LocalTime;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePhaseFinale;
@@ -27,7 +46,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tournoi de démonstration du <b>jour J</b>, organisé par le club de Brunoy (donc
+ * <b>Jeu de données des tests</b> (n'est plus créé dans l'application depuis la démo v16,
+ * remplacé par {@link TournoiDemoBrunoyJourJ}). Ancien tournoi de démonstration du <b>jour J</b>, organisé par le club de Brunoy (donc
  * visible dans « Gestion des tournois » pour les comptes de Brunoy), le samedi
  * 14 novembre 2026. Ses six tableaux montrent chaque étape du juge-arbitre :
  *
@@ -79,22 +99,22 @@ public final class TournoiDemoJourJ {
      */
     public static Tournoi construire(List<FicheLicence> joueurs, Instant maintenant) {
         LocalDate jour = LocalDate.of(2026, 11, 14);
-        Tournoi t = TournoisDemo.base(NOM, "Brunoy", DonneesDemo.CLUB_BRUNOY, NiveauTournoi.DEPARTEMENTAL,
+        Tournoi t = base(NOM, "Brunoy", DonneesDemo.CLUB_BRUNOY, NiveauTournoi.DEPARTEMENTAL,
                 List.of(jour), AdresseTournoi.de("157 route de Brie", "91800", "Brunoy"),
                 new Coordonnees(48.6929, 2.5115), "D-91-2026-JJ");
-        TournoisDemo.ajouter(t, "A – ≤ 899 pts", jour, 9, 0, 24, TournoisDemo.b().pointMax(899), 7,
-                TournoisDemo.gr(40, 20, 10));
-        TournoisDemo.ajouter(t, "B – ≤ 1299 pts", jour, 10, 30, 12, TournoisDemo.b().pointMax(1299), 8,
-                TournoisDemo.gr(60, 30, 15));
-        TournoisDemo.ajouter(t, "C – Toutes séries", jour, 9, 30, 12, TournoisDemo.b().toutesSeries(), 10,
-                TournoisDemo.gr(120, 60, 30));
-        TournoisDemo.ajouter(t, "D – Dames", jour, 13, 0, 12,
-                TournoisDemo.b().toutesSeries().sexeRequis(Sexe.FEMME), 7, TournoisDemo.gr(50, 25, 10));
-        TournoisDemo.ajouter(t, "E – ≤ 1599 pts", jour, 14, 0, 12,
-                TournoisDemo.b().pointMax(1599).petiteFinale(true), 8, TournoisDemo.gr(70, 35, 15));
-        TournoisDemo.ajouter(t, "F – Open du matin", jour, 8, 30, 16,
-                TournoisDemo.b().toutesSeries().petiteFinale(true), 9, TournoisDemo.gr(90, 45, 20));
-        TournoisDemo.finaliser(t, LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 11, 12, 20, 0));
+        ajouter(t, "A – ≤ 899 pts", jour, 9, 0, 24, b().pointMax(899), 7,
+                gr(40, 20, 10));
+        ajouter(t, "B – ≤ 1299 pts", jour, 10, 30, 12, b().pointMax(1299), 8,
+                gr(60, 30, 15));
+        ajouter(t, "C – Toutes séries", jour, 9, 30, 12, b().toutesSeries(), 10,
+                gr(120, 60, 30));
+        ajouter(t, "D – Dames", jour, 13, 0, 12,
+                b().toutesSeries().sexeRequis(Sexe.FEMME), 7, gr(50, 25, 10));
+        ajouter(t, "E – ≤ 1599 pts", jour, 14, 0, 12,
+                b().pointMax(1599).petiteFinale(true), 8, gr(70, 35, 15));
+        ajouter(t, "F – Open du matin", jour, 8, 30, 16,
+                b().toutesSeries().petiteFinale(true), 9, gr(90, 45, 20));
+        finaliser(t, LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 11, 12, 20, 0));
         // A à D d'abord (même tirage des inscriptions qu'avant l'ajout de E et F).
         TournoisDemo.remplir(t, joueurs, Map.of("A", 17, "B", 15, "C", 12, "D", 9, "E", 12, "F", 16), 29L, null);
 
@@ -241,4 +261,56 @@ public final class TournoiDemoJourJ {
         }
         return List.of(res);
     }
+
+    // --- Construction (anciens outils de TournoisDemo) ---
+
+    static Tournoi base(String nom, String club, String numClub, NiveauTournoi niveau, List<LocalDate> jours,
+                                AdresseTournoi adresse, Coordonnees pos, String homologation) {
+        Tournoi t = new Tournoi(nom, club, jours);
+        t.setNumeroAffiliationClub(numClub);
+        t.setNiveau(niveau);
+        t.setPeriode(jours.get(0), jours.get(jours.size() - 1));
+        t.setAdresse(adresse.avecCoordonnees(pos));
+        t.setNumeroHomologation(homologation + " (fictif)");
+        t.setPhasePoints(PhasePoints.PREMIERE);
+        t.setCorrespondant("ORGANISATEUR", "Démo", "tournoi@" + numClub + ".demo", null, null);
+        t.ajouterJugeArbitre(new AffectationJugeArbitre("JUGE", "Fictif", null, "Licence fictive (JA)",
+                GradeJugeArbitre.JA3, null, RoleJugeArbitre.PRINCIPAL));
+        t.setLotsTables(List.of(new LotTables(16, "Cornilleau", "Bleue")));
+        t.setPaiement(new Paiement(Paiement.Mode.HELLOASSO,
+                "https://www.helloasso.com/associations/exemple-" + numClub + "/evenements/tournoi"));
+        t.setOptionsReglement(new OptionsReglement(OptionsReglement.Mode.GENERE,
+                List.of(ArticleOptionnel.de(ArticleOptionnel.Type.DROIT_IMAGE))));
+        return t;
+    }
+
+    static void finaliser(Tournoi t, LocalDateTime ouverture, LocalDateTime cloture) {
+        t.setInfosReglement(InfosReglement.builder()
+                .ouvertureInscriptions(ouverture)
+                .clotureInscriptions(cloture)
+                .politiqueBalles(PolitiqueBalles.FOURNIES_PAR_ORGANISATEUR)
+                .build());
+        t.setDotationGlobale(new ServiceCycleTournoi().calculerDotationGlobale(t));
+        TournoisDemo.publier(t);
+    }
+
+    static ConfigurationTableau.Builder b() {
+        return ConfigurationTableau.depuisFormat(RegistreFormats.formatParDefaut()).tailleMaxListeAttente(6);
+    }
+
+    static void ajouter(Tournoi t, String nom, LocalDate jour, int h, int min, int places,
+                                ConfigurationTableau.Builder b, double prix, GrilleRecompenses g) {
+        Tableau tab = new Tableau(nom, b.placesMax(places).tarif(new TarifInscription(prix, prix + 2))
+                .recompenses(g).build());
+        tab.setType(LibellesTableau.type(tab.getConfiguration()));
+        LocalDateTime debut = LocalDateTime.of(jour, LocalTime.of(h, min));
+        tab.setHoraires(new HorairesTableau(debut.minusMinutes(60), debut.minusMinutes(20), debut));
+        t.ajouterTableau(tab);
+    }
+
+    static GrilleRecompenses gr(int v, int f, int d) {
+        return GrilleRecompenses.builder().place(1, Recompense.argent(v)).place(2, Recompense.argent(f))
+                .plage(3, 4, Recompense.argent(d)).build();
+    }
+
 }

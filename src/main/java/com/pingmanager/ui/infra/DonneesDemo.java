@@ -142,9 +142,8 @@ public final class DonneesDemo {
 
                 Autres licences de test : 9411003 (Paul Durand, Brunoy), 7511002 (Claire Martin, Paris 15).
                 Joueurs fictifs : licences 9900001 et suivantes (inscrits aux tournois de démo).
-                Tournois publiés de démo (onglet Tournois) : National B de Brunoy (n° d'homologation
-                fictif), régional de Créteil, départemental du Loiret, national A de Lyon, régional
-                de Lille, promotionnel de Rennes (en cours le 2 novembre 2026).
+                Tournois de démo : National B de Brunoy (publié, n° d'homologation fictif) et sa
+                copie au jour J, presque pleine, samedi en cours (Gestion des tournois → Suivre).
                 Autre club de test      : 07500123 (TT Paris 15).
                 """;
     }

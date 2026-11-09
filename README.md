@@ -24,24 +24,34 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 413 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 418 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
 
 ### Au premier lancement
-- Les **données de démonstration** sont créées : clubs, licenciés fictifs, le
-  National B de Brunoy (10-11 avril 2027, 13 tableaux, 233 inscrits fictifs),
-  cinq autres tournois publiés (Créteil, Loiret, Lyon, Lille, Rennes) et un
-  tournoi de démonstration du jour J.
+- Les **données de démonstration** sont créées : clubs, licenciés fictifs et
+  deux tournois du club de Brunoy :
+  - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux, publié, 233
+    inscrits fictifs), le tournoi préparé de A à Z ;
+  - sa **copie au jour J** (« … – jour J (copie de démo) ») : mêmes tableaux,
+    756 inscrits sur 768 places, samedi en cours. Dans l'ordre des horaires du
+    samedi : tableau final entamé (un match en cours, table 1), poules
+    terminées (tableau final à tirer), poules en cours (trois parties aux
+    tables 4, 7 et 9), pointage clôturé (tirage à lancer), pointage ouvert ;
+    les autres tableaux et tout le dimanche sont encore en inscription. Le
+    compte de démo y est inscrit aux 2e et 4e tableaux du samedi.
+- Quand la version de la démo change, les autres fichiers de tournoi du dossier
+  sont **archivés** dans `tournois/archives` (jamais supprimés), et les deux
+  tournois de démo sont recréés.
 - Les **comptes de démo** (club de Brunoy, joueur licencié, supervision) sont
   affichés dans la **console** au démarrage.
 - Les données sont rangées dans `~/.pingmanager/pingmanager/` (ou
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée et la démo est recréée au
-  lancement suivant.
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v16 actuellement) et la
+  démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone
 Le jour J, l'application peut ouvrir un petit serveur web en lecture seule
