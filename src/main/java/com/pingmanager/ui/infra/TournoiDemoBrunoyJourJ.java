@@ -7,7 +7,11 @@ import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.ServicePointage;
 import com.pingmanager.core.ServiceSalle;
+import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.Coordonnees;
+import com.pingmanager.model.GradeJugeArbitre;
+import com.pingmanager.model.Paiement;
+import com.pingmanager.model.RoleJugeArbitre;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
@@ -43,8 +47,9 @@ import java.util.Map;
  *   <li>les suivants, et tous ceux du dimanche, encore en inscription.</li>
  * </ol>
  *
- * <p>Le National B lui-même n'est pas modifié. Joueurs, clubs et n° d'homologation sont
- * fictifs ; toutes les étapes passent par les services du cœur.</p>
+ * <p>Le vrai National B (en brouillon) n'est pas modifié. Joueurs, clubs, juges-arbitres,
+ * correspondant, lien de paiement et n° d'homologation sont <b>fictifs</b> ; toutes les
+ * étapes passent par les services du cœur.</p>
  */
 public final class TournoiDemoBrunoyJourJ {
 
@@ -79,6 +84,7 @@ public final class TournoiDemoBrunoyJourJ {
         t.setNom(NOM);
         t.setNumeroHomologation(TournoisDemo.HOMOLOGATION_BRUNOY_DEMO);
         t.setAdresse(t.getAdresse().avecCoordonnees(new Coordonnees(48.6929, 2.5115)));
+        personnesFictives(t);
         TournoisDemo.publier(t);
 
         List<Tableau> samedi = tableauxDuJour(t, t.getJours().first());
@@ -108,6 +114,29 @@ public final class TournoiDemoBrunoyJourJ {
             pointageOuvert(samedi.get(4), pointage);
         }
         return t;
+    }
+
+    /** Juge-arbitre principal fictif de la copie (grade minimum du national B, IX.104). */
+    public static final AffectationJugeArbitre JA_FICTIF = new AffectationJugeArbitre("ARBITRE", "Jean",
+            null, "Licence fictive (JA démo)", GradeJugeArbitre.JA3, null, RoleJugeArbitre.PRINCIPAL);
+    /** Juge-arbitre adjoint fictif de la copie. */
+    public static final AffectationJugeArbitre ADJOINT_FICTIF = new AffectationJugeArbitre("ADJOINT", "Julie",
+            null, "Licence fictive (adjoint démo)", GradeJugeArbitre.JA2, null, RoleJugeArbitre.ADJOINT);
+
+    /**
+     * Remplace les vraies personnes du National B (juges-arbitres, correspondant) par des
+     * personnes fictives, et le lien de paiement par un exemple : la copie de démo ne
+     * montre ni ne contacte personne de réel.
+     */
+    static void personnesFictives(Tournoi t) {
+        for (AffectationJugeArbitre ja : List.copyOf(t.getJugesArbitres())) {
+            t.retirerJugeArbitre(ja.getNumeroLicence());
+        }
+        t.ajouterJugeArbitre(JA_FICTIF);
+        t.ajouterJugeArbitre(ADJOINT_FICTIF);
+        t.setCorrespondant("ORGANISATEUR", "Démo", "tournoi-demo@pingmanager.invalid", null, null);
+        t.setPaiement(new Paiement(Paiement.Mode.HELLOASSO,
+                "https://www.helloasso.com/associations/exemple-demo/evenements/tournoi"));
     }
 
     /**

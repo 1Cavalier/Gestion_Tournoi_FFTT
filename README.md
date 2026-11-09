@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 418 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 420 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -32,9 +32,15 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
 ### Au premier lancement
 - Les **données de démonstration** sont créées : clubs, licenciés fictifs et
   deux tournois du club de Brunoy :
-  - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux, publié, 233
-    inscrits fictifs), le tournoi préparé de A à Z ;
-  - sa **copie au jour J** (« … – jour J (copie de démo) ») : mêmes tableaux,
+  - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux), le vrai
+    tournoi du club, à son état réel : **brouillon**, sans numéro
+    d'homologation ni inscrit, avec les vraies personnes (juges-arbitres
+    Samuel LOOBUYCK et William PRIOU, contact Serge BOULIER). Son règlement
+    généré reprend les 20 articles du règlement du club (version du
+    9 novembre 2026) ;
+  - sa **copie au jour J** (« … – jour J (copie de démo) »), publiée avec un
+    **faux numéro d'homologation et des personnes fictives** (juges-arbitres,
+    correspondant, lien de paiement) : mêmes tableaux,
     756 inscrits sur 768 places, samedi en cours. Dans l'ordre des horaires du
     samedi : tableau final entamé (un match en cours, table 1), poules
     terminées (tableau final à tirer), poules en cours (trois parties aux
@@ -50,7 +56,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée (v16 actuellement) et la
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v17 actuellement) et la
   démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone

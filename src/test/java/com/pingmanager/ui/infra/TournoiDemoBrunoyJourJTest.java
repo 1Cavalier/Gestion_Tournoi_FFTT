@@ -143,10 +143,28 @@ class TournoiDemoBrunoyJourJTest {
     }
 
     @Test
-    void national_b_non_modifie() {
-        demo();
-        Tournoi nb = TournoisDemo.brunoyPublieEtRempli(DonneesDemo.JOUEURS_FICTIFS);
-        assertTrue(nb.getTableaux().stream().allMatch(x -> x.getStatut() == StatutTableau.INSCRIPTION));
+    void faux_numero_et_personnes_fictives_seulement_dans_la_copie() {
+        Tournoi copie = demo();
+        assertEquals(TournoisDemo.HOMOLOGATION_BRUNOY_DEMO, copie.getNumeroHomologation());
+        assertTrue(copie.getNumeroHomologation().contains("fictif"));
+        assertEquals(List.of(TournoiDemoBrunoyJourJ.JA_FICTIF, TournoiDemoBrunoyJourJ.ADJOINT_FICTIF),
+                copie.getJugesArbitres());
+        assertFalse(copie.getCorrespondantEmail().contains("gmail"));
+        assertFalse(copie.getPaiement().getLien().contains("cttb-brunoy"));
+        String reglement = new com.pingmanager.core.reglement.GenerateurReglement().generer(copie).articles()
+                .stream().flatMap(a -> a.blocs().stream()).map(b -> b.texteBrut())
+                .reduce("", (x, y) -> x + "\n" + y);
+        for (String reel : List.of("LOOBUYCK", "PRIOU", "BOULIER", "sboulier", "cttb-brunoy")) {
+            assertFalse(reglement.contains(reel), "personne ou lien réel dans la copie : " + reel);
+        }
+
+        // Le vrai National B, lui, reste en brouillon, avec ses vraies personnes.
+        Tournoi nb = TournoiDemoBrunoy.construire();
+        assertEquals(StatutTournoi.BROUILLON, nb.getStatut());
+        assertTrue(nb.getNumeroHomologation() == null || nb.getNumeroHomologation().isBlank());
+        assertEquals("LOOBUYCK", nb.getJugeArbitrePrincipal().orElseThrow().getNom());
+        assertTrue(nb.getTableaux().stream().allMatch(x -> x.getStatut() == StatutTableau.INSCRIPTION
+                && x.getInscrits().isEmpty()));
     }
 
     @Test
@@ -186,6 +204,8 @@ class TournoiDemoBrunoyJourJTest {
         Path copie = ctx.fichierTournoiJourJDemo().toAbsolutePath();
         assertTrue(fichiers.contains(copie));
         assertTrue(fichiers.contains(ctx.fichierTournoiDemo().toAbsolutePath()));
+        assertEquals(StatutTournoi.BROUILLON, ctx.chargerTournoi(ctx.fichierTournoiDemo()).getStatut(),
+                "le vrai National B, en brouillon");
         assertTrue(ctx.tournoisRecents().stream().anyMatch(p -> p.getFichier().equals(copie)), "dans les récents");
         Tournoi t = ctx.chargerTournoi(copie);
         assertEquals(TournoiDemoBrunoyJourJ.NOM, t.getNom());

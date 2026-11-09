@@ -40,22 +40,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Brouillon de démonstration : <b>Tournoi National B de Brunoy 2027</b>, repris
- * du règlement validé par le club (26 octobre 2026) : samedi 10 et dimanche 11 avril
- * 2027 au 157 Route de Brie, 13 tableaux (7 le samedi dont le Toutes séries dames en
- * dernier, 6 le dimanche avec le Non numérotés), dotation de 3 390 €, aucun
- * remboursement, 20 tables + salle d'échauffement de 8, balles fournies par le club,
- * juge-arbitre pas encore désigné.
+ * Le <b>vrai</b> Tournoi National B de Brunoy 2027, à l'état réel : <b>brouillon</b>,
+ * sans numéro d'homologation ni inscrit. Repris du règlement du club (version
+ * reçue le 9 novembre 2026, 20 articles), qu'il régénère à l'identique : samedi 10 et
+ * dimanche 11 avril 2027 au 157 Route de Brie, 13 tableaux (7 le samedi dont le Toutes
+ * séries dames en dernier, 6 le dimanche avec le Non numérotés), dotation de 3 390 €,
+ * aucun remboursement, 20 tables + salle d'échauffement de 8, balles fournies par le
+ * club, juge-arbitre Samuel LOOBUYCK (JA3) assisté de William PRIOU (JA2), contact
+ * Serge BOULIER, inscriptions sur HelloAsso du 1er février au 9 avril 2027 à 20 h.
  *
- * <p>Toutes les sections sont remplies pour voir l'interface « en vrai » :
- * 14 tableaux avec horaires, places, prix et dotations ; échéances ; règles
- * d'inscription (tableaux par jour, dotation réduite, forfaits) ; juge-arbitrage,
- * balles et tables ; paiement HelloAsso et articles du règlement.</p>
- *
- * <p>Restent volontairement à compléter, comme dans le projet : le numéro
- * d'homologation et le nom du gymnase. Le juge-arbitre et l'adjoint sont les
- * officiels <b>fictifs</b> de la base de démo, et le lien HelloAsso est un
- * exemple à remplacer par celui de la vraie billetterie.</p>
+ * <p>Reste à compléter : le numéro d'homologation (délivré par la FFTT) et les numéros
+ * de licence des juges-arbitres. La copie de démonstration, avec un faux numéro et des
+ * personnes fictives, est {@link TournoiDemoBrunoyJourJ}.</p>
  */
 public final class TournoiDemoBrunoy {
 
@@ -89,7 +85,7 @@ public final class TournoiDemoBrunoy {
         t.ajouterJugeArbitre(new AffectationJugeArbitre("PRIOU", "William", null, "Licence à renseigner (W. Priou)",
                 GradeJugeArbitre.JA2, null, RoleJugeArbitre.ADJOINT));
 
-        // --- Tableaux (règlement validé par le club, 26 octobre 2026) ---
+        // --- Tableaux (règlement du club, article 4) ---
         // Une lettre par tableau, dans l'ordre du planning :
         // samedi A ≤ 600, B ≤ 1500, C ≤ 900, D ≤ 1800, E ≤ 1200, F ≤ 2000, G – Toutes séries dames (en dernier) ;
         // dimanche H ≤ 800, I ≤ 1600, J ≤ 1000, K ≤ 1900, L ≤ 1300, M – Non numérotés (hors n° 1 à 999).
@@ -150,7 +146,6 @@ public final class TournoiDemoBrunoy {
                 Periode.JOUR_J, new Regle(Remboursement.AUCUN, 0, false)), false));
 
         // --- Informations sportives ---
-        // Pas encore de juge-arbitre désigné (reste à compléter dans le règlement).
         // 20 tables de compétition (Cornilleau, Joola bleue) + une salle d'échauffement de 8 tables.
         t.setLotsTables(List.of(new LotTables(20, "Cornilleau, Joola", "Bleue")));
         t.setTablesEchauffement(8);
