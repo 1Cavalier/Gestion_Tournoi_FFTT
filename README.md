@@ -36,8 +36,8 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
     tournoi du club, à son état réel : **brouillon**, sans numéro
     d'homologation ni inscrit, avec les vraies personnes (juges-arbitres
     Samuel LOOBUYCK et William PRIOU, contact Serge BOULIER). Son règlement
-    généré reprend les 20 articles du règlement du club (version du
-    9 novembre 2026) ;
+    généré reprend les 21 articles du règlement du club (version du
+    10 novembre 2026) ;
   - sa **copie au jour J** (« … – jour J (copie de démo) »), publiée avec un
     **faux numéro d'homologation et des personnes fictives** (juges-arbitres,
     correspondant, lien de paiement) : mêmes tableaux,

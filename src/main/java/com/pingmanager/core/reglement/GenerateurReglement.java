@@ -919,9 +919,12 @@ public final class GenerateurReglement {
                         : "") + ". Boissons chaudes et fraîches, sandwichs et petite restauration y sont proposés : "
                         + "joueurs, accompagnateurs et spectateurs peuvent se restaurer sur place tout au long de la "
                         + "journée, sans quitter la compétition."));
-                case "OUVERTURE_SALLE" -> article(titre, p("La salle ouvre à "
+                case "OUVERTURE_SALLE" -> article(titre, p("Les portes de la salle s'ouvrent dès "
                         + (a.param(ArticleOptionnel.HEURE) != null ? a.param(ArticleOptionnel.HEURE)
-                        : trou("heure d'ouverture de la salle")) + " chaque jour du tournoi."));
+                        : trou("heure d'ouverture de la salle")) + " chaque jour du tournoi : venez tôt pour "
+                        + "vous changer, " + (t.getTablesEchauffement() > 0 ? "vous échauffer" : "prendre vos marques")
+                        + " et aborder le pointage sereinement. Accompagnateurs et spectateurs sont les "
+                        + "bienvenus pour encourager les joueurs !"));
                 case "TIRAGE_AU_SORT" -> article(titre, p("Le tirage au sort public des poules de chaque tableau a lieu "
                         + (a.param(ArticleOptionnel.MINUTES) != null ? a.param(ArticleOptionnel.MINUTES) + " minutes après"
                         : "à") + " la fin de son pointage, à la table du juge-arbitre."));

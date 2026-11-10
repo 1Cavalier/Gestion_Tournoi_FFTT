@@ -42,12 +42,13 @@ import java.util.Map;
 /**
  * Le <b>vrai</b> Tournoi National B de Brunoy 2027, à l'état réel : <b>brouillon</b>,
  * sans numéro d'homologation ni inscrit. Repris du règlement du club (version
- * reçue le 9 novembre 2026, 20 articles), qu'il régénère à l'identique : samedi 10 et
+ * du 10 novembre 2026, 21 articles), qu'il régénère : samedi 10 et
  * dimanche 11 avril 2027 au 157 Route de Brie, 13 tableaux (7 le samedi dont le Toutes
  * séries dames en dernier, 6 le dimanche avec le Non numérotés), dotation de 3 390 €,
  * aucun remboursement, 20 tables + salle d'échauffement de 8, balles fournies par le
  * club, juge-arbitre Samuel LOOBUYCK (JA3) assisté de William PRIOU (JA2), contact
- * Serge BOULIER, inscriptions sur HelloAsso du 1er février au 9 avril 2027 à 20 h.
+ * Serge BOULIER, inscriptions sur HelloAsso du 17 janvier 2027 à 10 h au 9 avril 2027 à 19 h,
+ * salle ouverte dès 7 h.
  *
  * <p>Reste à compléter : le numéro d'homologation (délivré par la FFTT) et les numéros
  * de licence des juges-arbitres. La copie de démonstration, avec un faux numéro et des
@@ -119,11 +120,11 @@ public final class TournoiDemoBrunoy {
 
         // --- Échéances, balles, aire de jeu ---
         t.setInfosReglement(InfosReglement.builder()
-                .ouvertureInscriptions(LocalDateTime.of(2027, 2, 1, 0, 0))
-                .clotureInscriptions(LocalDateTime.of(2027, 4, 9, 20, 0))
+                .ouvertureInscriptions(LocalDateTime.of(2027, 1, 17, 10, 0))
+                .clotureInscriptions(LocalDateTime.of(2027, 4, 9, 19, 0))
                 .politiqueBalles(PolitiqueBalles.FOURNIES_PAR_ORGANISATEUR)
                 .couleurBalles(CouleurBalles.BLANCHE)
-                .marqueBalles("Nittaku, Tibhar, Butterfly, DHS, Joola, Vicats, Andro et Cornilleau")
+                .marqueBalles("Donic P40+ 3 étoiles")
                 .aireDeJeu(new AireDeJeu(12.0, 6.0, 500))
                 .build());
 
@@ -146,8 +147,8 @@ public final class TournoiDemoBrunoy {
                 Periode.JOUR_J, new Regle(Remboursement.AUCUN, 0, false)), false));
 
         // --- Informations sportives ---
-        // 20 tables de compétition (Cornilleau, Joola bleue) + une salle d'échauffement de 8 tables.
-        t.setLotsTables(List.of(new LotTables(20, "Cornilleau, Joola", "Bleue")));
+        // 20 tables de compétition (marque non précisée) + une salle d'échauffement de 8 tables.
+        t.setLotsTables(List.of(new LotTables(20, null, null)));
         t.setTablesEchauffement(8);
 
         // --- Complémentaire : règlement généré, paiement, conditions ---
@@ -161,7 +162,8 @@ public final class TournoiDemoBrunoy {
                         ArticleOptionnel.TITRE, "Remise des récompenses",
                         ArticleOptionnel.TEXTE, "Les dotations sont versées en espèces ou par chèque ; une coupe "
                                 + "récompense chaque vainqueur et une médaille chaque finaliste et demi-finaliste. "
-                                + "Un joueur absent à la remise perd sa dotation, sauf accord du juge-arbitre.")))));
+                                + "Un joueur absent à la remise perd sa dotation, sauf accord du juge-arbitre.")),
+                new ArticleOptionnel(ArticleOptionnel.Type.OUVERTURE_SALLE, Map.of(ArticleOptionnel.HEURE, "7h")))));
         t.setAccepteLicencePromotionnelle(false);
         t.setAccepteJoueursEtrangers(false);
         t.setCategoriesExclues(List.of(com.pingmanager.model.CategorieAge.POUSSIN)); // choix du club

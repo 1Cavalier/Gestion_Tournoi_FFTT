@@ -44,12 +44,15 @@ class TournoiDemoBrunoyTest {
         assertTrue(txt.contains("organise les samedi 10 et dimanche 11 avril 2027 un tournoi national B intitulé "
                 + "« Tournoi National B de Brunoy 2027 », au 157 Route de Brie, 91800 Brunoy. Le tournoi est doté de "
                 + "3 390 € en espèces."), txt);
-        assertTrue(txt.contains("du lundi 1er février 2027 au vendredi 9 avril 2027 à 20h"), txt);
+        assertTrue(txt.contains("du dimanche 17 janvier 2027 à 10h au vendredi 9 avril 2027 à 19h"), txt);
         assertTrue(txt.contains("Les poussins (garçons et filles) ne sont pas admis."), txt);
-        assertTrue(txt.contains("Le tournoi se déroule sur 20 tables (Cornilleau, Joola bleue)"), txt);
+        assertTrue(txt.contains("Le tournoi se déroule sur 20 tables, conformes aux normes"), txt);
         assertTrue(txt.contains("Une salle d'échauffement de 8 tables est à la disposition des joueurs."), txt);
-        assertTrue(txt.contains("Les balles, en plastique blanches de marque Nittaku, Tibhar, Butterfly, DHS, Joola, "
-                + "Vicats, Andro et Cornilleau, agréées, sont fournies par le club."), txt);
+        assertTrue(txt.contains("Les balles, en plastique blanches de marque Donic P40+ 3 étoiles, agréées, "
+                + "sont fournies par le club."), txt);
+        assertTrue(txt.contains("Les portes de la salle s'ouvrent dès 7h chaque jour du tournoi : venez tôt pour "
+                + "vous changer, vous échauffer et aborder le pointage sereinement. Accompagnateurs et spectateurs "
+                + "sont les bienvenus pour encourager les joueurs !"), txt);
         assertTrue(txt.contains("Pour tout renseignement : Serge BOULIER, sboulier@gmail.com."), txt);
         assertTrue(txt.contains("Que le forfait intervienne pendant la période d'inscription, après la clôture des "
                 + "inscriptions ou le jour du tournoi, aucun remboursement n'est effectué : toute inscription est "
