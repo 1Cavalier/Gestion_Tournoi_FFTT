@@ -50,7 +50,7 @@ class TournoisDemoTest {
                 t.getPaiement().getLien());
     }
 
-    /** Règlement du club reçu le 9 novembre 2026 : 20 articles, régénérés à l'identique. */
+    /** Règlement du club, version du 10 novembre 2026 : 21 articles. */
     @Test
     void reglement_du_national_b_conforme_au_reglement_du_club() {
         DocumentReglement d = new GenerateurReglement().generer(TournoiDemoBrunoy.construire());
@@ -59,16 +59,17 @@ class TournoisDemoTest {
                 "Nombre de tableaux par joueur", "Déroulement", "Inscriptions", "Droits d'engagement",
                 "Dotations", "Pointage", "Juge-arbitrage", "Matériel", "Tenue et comportement", "Résultats",
                 "Responsabilité", "Droit à l'image et données personnelles", "Buvette",
-                "Remise des récompenses", "Acceptation", "Contact"), titres);
+                "Remise des récompenses", "Ouverture de la salle", "Acceptation", "Contact"), titres);
         assertTrue(article(d, 1).contains("3 390 €"), article(d, 1));
         assertTrue(article(d, 2).contains("[à compléter"), "numéro d'homologation pas encore délivré");
         assertTrue(article(d, 3).contains("2e phase 2026-2027"), article(d, 3));
         assertTrue(article(d, 7).contains("https://www.helloasso.com/associations/cttb-brunoy/evenements/tournoi-national-b-2027"));
-        assertTrue(article(d, 7).contains("1er février 2027"), article(d, 7));
+        assertTrue(article(d, 7).contains("dimanche 17 janvier 2027 à 10h"), article(d, 7));
         assertTrue(article(d, 11).contains("Samuel LOOBUYCK"), article(d, 11));
         assertTrue(article(d, 11).contains("William PRIOU (JA2)"), article(d, 11));
         assertTrue(article(d, 12).contains("20 tables"), article(d, 12));
-        assertTrue(article(d, 20).contains("Serge BOULIER, sboulier@gmail.com"), article(d, 20));
+        assertTrue(article(d, 19).contains("dès 7h"), article(d, 19));
+        assertTrue(article(d, 21).contains("Serge BOULIER, sboulier@gmail.com"), article(d, 21));
     }
 
     @Test
