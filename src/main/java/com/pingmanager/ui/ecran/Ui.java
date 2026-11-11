@@ -57,12 +57,66 @@ final class Ui {
     // Conteneurs
     // ------------------------------------------------------------------
 
-    /** Colonne de page (marges standard), largeur max donnée. */
+    /**
+     * Colonne de page (marges standard). Décision de Quentin (11 novembre 2026) : toutes
+     * les pages occupent <b>toute la largeur</b> de la fenêtre ; ce sont les grilles
+     * adaptatives ({@link #grilleAdaptative}) qui recomposent le contenu selon la place.
+     * Le paramètre historique {@code largeurMax} n'est plus appliqué (conservé pour ne pas
+     * toucher à tous les écrans d'un coup).
+     */
     static VBox page(double largeurMax, Node... contenu) {
         VBox v = new VBox(20, contenu);
         v.getStyleClass().add("page");
-        v.setMaxWidth(largeurMax);
+        v.setMaxWidth(Double.MAX_VALUE);
         return v;
+    }
+
+    /**
+     * Grille adaptative : les éléments se répartissent sur {@code colonnesMax} colonnes de
+     * même largeur quand la place le permet, sinon sur un diviseur de ce nombre (4 → 2 → 1,
+     * 3 → 1), chaque colonne gardant au moins {@code largeurMinColonne} pixels.
+     */
+    static javafx.scene.layout.GridPane grilleAdaptative(int colonnesMax, double largeurMinColonne,
+                                                         List<? extends Node> elements) {
+        javafx.scene.layout.GridPane g = new javafx.scene.layout.GridPane();
+        g.getStyleClass().add("grille-adaptative");
+        g.setMinWidth(0);
+        g.setMaxWidth(Double.MAX_VALUE);
+        int[] actuel = {-1};
+        Runnable composer = () -> {
+            int n = DispositionGrille.colonnes(g.getWidth(), g.getHgap(), colonnesMax, largeurMinColonne);
+            if (n == actuel[0]) {
+                return;
+            }
+            actuel[0] = n;
+            g.getChildren().clear();
+            g.getColumnConstraints().clear();
+            for (int c = 0; c < n; c++) {
+                javafx.scene.layout.ColumnConstraints cc = new javafx.scene.layout.ColumnConstraints();
+                cc.setPercentWidth(100.0 / n);
+                cc.setHgrow(Priority.ALWAYS);
+                cc.setFillWidth(true);
+                g.getColumnConstraints().add(cc);
+            }
+            for (int i = 0; i < elements.size(); i++) {
+                Node e = elements.get(i);
+                if (e instanceof Region r) {
+                    r.setMinWidth(0);
+                    r.setMaxWidth(Double.MAX_VALUE);
+                    r.setMaxHeight(Double.MAX_VALUE);
+                }
+                javafx.scene.layout.GridPane.setFillHeight(e, true);
+                g.add(e, i % n, i / n);
+            }
+        };
+        g.widthProperty().addListener((o, a, b) -> composer.run());
+        composer.run();
+        return g;
+    }
+
+    /** Titre d'une grande section de page (police d'affichage). */
+    static Label titreSection(String texte) {
+        return label(texte, "titre-section");
     }
 
     /** Page défilante : la colonne est posée dans un ScrollPane transparent. */
@@ -556,6 +610,28 @@ final class Ui {
         VBox v = new VBox(8, ronds, cadres);
         v.getStyleClass().add("legende");
         return v;
+    }
+
+    /**
+     * Légende compacte, sur une seule bande (vue d'ensemble du dossier) : à gauche ce
+     * dont dépend chaque élément (ronds), à droite les trois états (pastilles). Elle passe
+     * à la ligne d'elle-même quand la fenêtre est étroite.
+     */
+    static FlowPane legendeCompacte(Collection<Niveau> presentes) {
+        FlowPane f = new FlowPane(16, 8);
+        f.getStyleClass().addAll("legende", "legende-compacte");
+        f.getChildren().add(label("Nécessaire pour :", "legende-titre"));
+        for (Niveau n : Niveau.values()) {
+            if (presentes.contains(n)) {
+                f.getChildren().add(ligne(6, puceDependance(n), new Label(dependance(n))));
+            }
+        }
+        Region filet = new Region();
+        filet.getStyleClass().add("legende-filet");
+        f.getChildren().addAll(filet, label("État :", "legende-titre"),
+                pastille("rempli", CADRE_OK), pastille("à remplir", CADRE_MANQUANT),
+                pastille("facultatif", CADRE_FACULTATIF));
+        return f;
     }
 
     private static Region echantillon(String cadre) {

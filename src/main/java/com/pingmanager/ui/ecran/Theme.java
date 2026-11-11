@@ -37,9 +37,32 @@ public final class Theme {
         if (css == null) {
             throw new IllegalStateException("Feuille de style introuvable : " + FEUILLE);
         }
+        chargerPolicesAffichage();
         scene.getStylesheets().add(css.toExternalForm());
         appliquer(scene.getRoot());
         scene.rootProperty().addListener((obs, ancien, nouveau) -> appliquer(nouveau));
+    }
+
+    /** Polices d'affichage embarquées (titres) : Bricolage Grotesque, licence OFL. */
+    private static final List<String> POLICES_AFFICHAGE = List.of(
+            "/com/pingmanager/polices/BricolageGrotesque-Bold.ttf",
+            "/com/pingmanager/polices/BricolageGrotesque-ExtraBold.ttf");
+
+    /**
+     * Enregistre les polices des titres auprès de JavaFX (familles « Bricolage Grotesque »
+     * et « Bricolage Grotesque ExtraBold », utilisées par {@code theme.css}). Une police
+     * absente n'empêche rien : la feuille retombe sur la police du texte.
+     */
+    private static void chargerPolicesAffichage() {
+        for (String chemin : POLICES_AFFICHAGE) {
+            try (java.io.InputStream in = Theme.class.getResourceAsStream(chemin)) {
+                if (in != null) {
+                    Font.loadFont(in, 12);
+                }
+            } catch (java.io.IOException e) {
+                // Police facultative : on garde la police du texte.
+            }
+        }
     }
 
     /** Passe du clair au sombre (ou l'inverse) sur la scène donnée. */
