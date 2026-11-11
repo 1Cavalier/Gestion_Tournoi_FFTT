@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 452 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 454 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -155,9 +155,14 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   défaut, en parallèle) avec chacune des trois stratégies, sur les mêmes
   tirages ; durée d'un match tirée selon une loi exponentielle entre un
   minimum et un maximum, de moyenne réglable (20 min, de 10 à 50 par défaut).
-  Résultats : fin moyenne, fin 9 fois sur 10, attente, risque de débordement,
-  tableau par tableau. Avec assez de tables, l'écran dit que le choix de
-  stratégie ne change rien.
+  Indicateurs : début des tableaux à l'heure / léger retard / gros retard
+  (+30 min ; début réel = dernière poule lancée), fin moyenne (jour et heure),
+  cas rares de fin tôt et tard (1 fois sur 20), attente d'un joueur sur
+  1 tableau et sur 2 tableaux ou plus, plus longue attente, occupation des
+  tables, risque de débordement ; puis le détail par tableau pour chaque
+  stratégie. Avec assez de tables, l'écran dit que le choix de stratégie ne
+  change rien. Les joueurs fictifs ajoutés par « Compléter » ne sont inscrits
+  que sur un tableau.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
 - Feuilles de match et de poule imprimables (format provisoire 3 × 5).
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).

@@ -188,6 +188,10 @@ public final class SimulateurTournoi {
         int parties;
         LocalDateTime fin;
         final List<Long> attentes = new ArrayList<>();
+        /** Premier lancement de chaque poule (début réel du tableau : la dernière à commencer). */
+        final Map<Poule, LocalDateTime> debutPoule = new IdentityHashMap<>();
+        final Map<Match, Poule> pouleDe = new IdentityHashMap<>();
+        LocalDateTime premierLancement;
 
         EtatTableau(ScenarioSimulation.TableauSimule def, int rang, LocalTime heureLimite) {
             this.def = def;
@@ -220,6 +224,10 @@ public final class SimulateurTournoi {
         private final Map<LocalDate, long[]> occupation = new TreeMap<>();
         private final Map<LocalDate, LocalDateTime[]> bornes = new TreeMap<>();
         private final List<Long> attentes = new ArrayList<>();
+        private final List<Long> attentesUnTableau = new ArrayList<>();
+        private final List<Long> attentesPlusieursTableaux = new ArrayList<>();
+        /** Licence → nombre de tableaux simulés où le joueur est inscrit. */
+        private final Map<String, Integer> tableauxParJoueur = new HashMap<>();
         private long attenteMax = -1;
         private String joueurAttenteMax;
         private long sequence;
@@ -238,6 +246,9 @@ public final class SimulateurTournoi {
                     continue;
                 }
                 etats.add(new EtatTableau(t, rang++, scenario.getHeureLimite()));
+                for (Joueur j : t.joueurs()) {
+                    tableauxParJoueur.merge(j.getNumeroLicence(), 1, Integer::sum);
+                }
             }
         }
 
@@ -287,6 +298,7 @@ public final class SimulateurTournoi {
                 e.poules = moteur.preparerPoules(e.def.joueurs(), e.def.format(), melanger(e.rang * 2L + 1));
                 for (Poule p : e.poules) {
                     for (Match m : p.getMatchs()) {
+                        e.pouleDe.put(m, p);
                         ajouter(m, e, PhaseMatch.POULE);
                     }
                 }
@@ -328,11 +340,23 @@ public final class SimulateurTournoi {
             Match m = mo.getMatch();
             EtatTableau e = tableauDe.get(m);
             ordonnanceur.lancer(p, maintenant);
+            if (e.premierLancement == null) {
+                e.premierLancement = maintenant;
+            }
+            Poule poule = e.pouleDe.get(m);
+            if (poule != null) {
+                e.debutPoule.putIfAbsent(poule, maintenant);
+            }
             for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
                 LocalDateTime dispo = plusTard(e.def.debut(), libreDepuis.get(j.getNumeroLicence()));
                 long attente = Math.max(0, Duration.between(dispo, maintenant).toMinutes());
                 attentes.add(attente);
                 e.attentes.add(attente);
+                if (tableauxParJoueur.getOrDefault(j.getNumeroLicence(), 1) > 1) {
+                    attentesPlusieursTableaux.add(attente);
+                } else {
+                    attentesUnTableau.add(attente);
+                }
                 if (attente > attenteMax) {
                     attenteMax = attente;
                     joueurAttenteMax = j.getNomComplet();
@@ -468,7 +492,7 @@ public final class SimulateurTournoi {
                 long max = e.attentes.stream().mapToLong(Long::longValue).max().orElse(0);
                 bilans.add(new ResultatSimulation.BilanTableau(e.def.nom(), e.def.debut(),
                         termine ? e.fin : null, e.finSouhaitee, e.def.joueurs().size(), e.parties,
-                        moyenne(e.attentes), max));
+                        moyenne(e.attentes), max, retardDebut(e)));
             }
             long jeu = 0;
             long disponible = 0;
@@ -480,7 +504,28 @@ public final class SimulateurTournoi {
             double taux = disponible == 0 ? 0 : Math.min(1.0, (double) jeu / disponible);
             return new ResultatSimulation(strategie, scenario.getGraine(), scenario.getNombreDeTables(), debut, fin,
                     bilans, ignores, parties, moyenne(attentes), Math.max(0, attenteMax), joueurAttenteMax,
-                    taux, complete);
+                    taux, complete, attentesUnTableau.isEmpty() ? -1 : moyenne(attentesUnTableau),
+                    attentesPlusieursTableaux.isEmpty() ? -1 : moyenne(attentesPlusieursTableaux));
+        }
+
+        /**
+         * Retard du début réel sur l'heure prévue : le tableau a vraiment commencé
+         * quand sa dernière poule a commencé (sans poules : son premier match).
+         */
+        private Long retardDebut(EtatTableau e) {
+            LocalDateTime reel;
+            if (e.poules != null && !e.poules.isEmpty()) {
+                if (e.debutPoule.size() < e.poules.size()) {
+                    return null;
+                }
+                reel = null;
+                for (LocalDateTime t : e.debutPoule.values()) {
+                    reel = plusTard(reel, t);
+                }
+            } else {
+                reel = e.premierLancement;
+            }
+            return reel == null ? null : Math.max(0, Duration.between(e.def.debut(), reel).toMinutes());
         }
     }
 

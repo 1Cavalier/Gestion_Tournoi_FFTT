@@ -30,9 +30,9 @@ class SimulationMonteCarloTest {
     void les_tirages_different_les_uns_des_autres() {
         StatistiquesSimulation s = simulateur.simulerPlusieurs(JeuDeSimulation.petitTournoi(6, 11),
                 StrategieOrdonnancement.PAR_DEFAUT, 40);
-        assertTrue(s.finP10().isBefore(s.finP90()), "dispersion des heures de fin");
-        assertFalse(s.finMediane().isBefore(s.finP10()));
-        assertFalse(s.finP90().isAfter(s.finMax()));
+        assertTrue(s.finTot().isBefore(s.finTard()), "dispersion des heures de fin");
+        assertFalse(s.finMediane().isBefore(s.finTot()));
+        assertFalse(s.finTard().isAfter(s.finMax()));
     }
 
     @Test
@@ -82,5 +82,39 @@ class SimulationMonteCarloTest {
         assertTrue(s.probabiliteDebordement() >= 0 && s.probabiliteDebordement() <= 1);
         assertThrows(IllegalArgumentException.class,
                 () -> simulateur.simulerPlusieurs(JeuDeSimulation.petitTournoi(2, 3), StrategieOrdonnancement.PAR_DEFAUT, 0));
+    }
+
+    @Test
+    void debut_des_tableaux_a_l_heure_avec_assez_de_tables_en_retard_sinon() {
+        // Un tableau seul (aucun joueur occupé ailleurs) sur 40 tables : toujours à l'heure.
+        ScenarioSimulation seul = ScenarioSimulation.builder().nombreDeTables(40).graine(4)
+                .tableau(JeuDeSimulation.petitTournoi(40, 4).getTableaux().get(2)).build();
+        StatistiquesSimulation large = simulateur.simulerPlusieurs(seul, StrategieOrdonnancement.PAR_DEFAUT, 20);
+        assertEquals(1.0, large.debutALHeure(), 1e-9, "40 tables : toutes les poules commencent à l'heure");
+        // Avec des joueurs encore occupés dans le tableau précédent, le suivant peut attendre.
+        assertTrue(simulateur.simulerPlusieurs(JeuDeSimulation.petitTournoi(40, 4), StrategieOrdonnancement.PAR_DEFAUT,
+                20).debutALHeure() <= 1.0);
+        StatistiquesSimulation serre = simulateur.simulerPlusieurs(JeuDeSimulation.petitTournoi(2, 4),
+                StrategieOrdonnancement.PAR_DEFAUT, 20);
+        assertTrue(serre.debutGrosRetard() > 0, "2 tables : des tableaux commencent avec plus de 30 min de retard");
+        assertEquals(1.0, serre.debutALHeure() + serre.debutLegerRetard() + serre.debutGrosRetard(), 1e-9);
+        for (StatistiquesSimulation.StatTableau t : serre.tableaux()) {
+            assertTrue(t.retardDebutMoyen() >= 0);
+            assertNotNull(t.debutPrevu());
+        }
+    }
+
+    @Test
+    void attente_separee_des_joueurs_sur_un_tableau_et_sur_plusieurs() {
+        // Six joueurs du tableau A jouent aussi le B.
+        StatistiquesSimulation s = simulateur.simulerPlusieurs(JeuDeSimulation.petitTournoi(4, 4),
+                StrategieOrdonnancement.PAR_DEFAUT, 20);
+        assertTrue(s.attenteUnTableau() >= 0);
+        assertTrue(s.attentePlusieursTableaux() >= 0);
+        assertTrue(s.plusLongueAttente() >= s.attenteMoyenne());
+        ScenarioSimulation seul = ScenarioSimulation.builder().nombreDeTables(4).graine(1)
+                .tableau(JeuDeSimulation.petitTournoi(4, 4).getTableaux().get(2)).build();
+        assertEquals(-1, simulateur.simulerPlusieurs(seul, StrategieOrdonnancement.PAR_DEFAUT, 5)
+                .attentePlusieursTableaux(), "aucun joueur sur deux tableaux");
     }
 }
