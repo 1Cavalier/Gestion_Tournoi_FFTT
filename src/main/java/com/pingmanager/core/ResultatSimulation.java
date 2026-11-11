@@ -33,12 +33,15 @@ import java.util.Optional;
  * @param attenteUnTableau  attente moyenne par partie des joueurs inscrits dans un seul tableau
  *                          (minutes, -1 s'il n'y en a pas)
  * @param attentePlusieursTableaux même chose pour les joueurs inscrits dans deux tableaux ou plus
+ * @param tempsAnnexesMoyen temps moyen autour du jeu par match (appel, échauffement, pauses,
+ *                          temps morts, feuille), en minutes
  */
 public record ResultatSimulation(StrategieOrdonnancement strategie, long graine, int nombreDeTables,
                                  LocalDateTime debut, LocalDateTime fin, List<BilanTableau> tableaux,
                                  List<TableauIgnore> ignores, int nombreParties, double attenteMoyenne,
                                  long attenteMaximale, String joueurAttenteMax, double occupationTables,
-                                 boolean complete, double attenteUnTableau, double attentePlusieursTableaux) {
+                                 boolean complete, double attenteUnTableau, double attentePlusieursTableaux,
+                                 double tempsAnnexesMoyen) {
 
     public ResultatSimulation {
         Objects.requireNonNull(strategie, "strategie");
@@ -53,7 +56,7 @@ public record ResultatSimulation(StrategieOrdonnancement strategie, long graine,
                               long attenteMaximale, String joueurAttenteMax, double occupationTables,
                               boolean complete) {
         this(strategie, graine, nombreDeTables, debut, fin, tableaux, ignores, nombreParties, attenteMoyenne,
-                attenteMaximale, joueurAttenteMax, occupationTables, complete, -1, -1);
+                attenteMaximale, joueurAttenteMax, occupationTables, complete, -1, -1, 0);
     }
 
     /**

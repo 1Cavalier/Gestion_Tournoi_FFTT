@@ -40,6 +40,7 @@ import java.util.Objects;
  * @param plusLongueAttente       plus longue attente d'un tirage, en moyenne sur les tirages
  * @param occupationMoyenne       part moyenne du temps où les tables sont occupées (0 à 1)
  * @param probabiliteDebordement  part des tirages où au moins un tableau finit après son heure souhaitée
+ * @param tempsAnnexesMoyen       temps moyen autour du jeu par match, en minutes
  * @param tiragesIncomplets       tirages arrêtés avant la fin (blocage)
  * @param tableaux                statistiques par tableau, dans l'ordre du scénario
  */
@@ -49,7 +50,8 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
                                      double debutLegerRetard, double debutGrosRetard, double attenteMoyenne,
                                      double attenteUnTableau, double attentePlusieursTableaux,
                                      double plusLongueAttente, double occupationMoyenne,
-                                     double probabiliteDebordement, int tiragesIncomplets,
+                                     double probabiliteDebordement, double tempsAnnexesMoyen,
+                                     int tiragesIncomplets,
                                      List<StatTableau> tableaux) {
 
     /** Retard de début toléré pour être « à l'heure », en minutes. */
@@ -86,6 +88,7 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
         double attente = 0;
         double plusLongue = 0;
         double occupation = 0;
+        double annexes = 0;
         Moyenne unTableau = new Moyenne();
         Moyenne plusieurs = new Moyenne();
         int debordements = 0;
@@ -102,6 +105,7 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
             attente += r.attenteMoyenne();
             plusLongue += r.attenteMaximale();
             occupation += r.occupationTables();
+            annexes += r.tempsAnnexesMoyen();
             unTableau.ajouter(r.attenteUnTableau());
             plusieurs.ajouter(r.attentePlusieursTableaux());
             if (!r.tableauxQuiDebordent().isEmpty()) {
@@ -141,7 +145,7 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
                 heure(quantile(f, 0.05)), heure(quantile(f, 0.5)), heure(quantile(f, 0.95)),
                 f.length == 0 ? null : heure((double) f[f.length - 1]), (double) aLHeure / d, (double) leger / d,
                 (double) gros / d, attente / n, unTableau.valeur(), plusieurs.valeur(), plusLongue / n,
-                occupation / n, (double) debordements / n, incomplets, tableaux);
+                occupation / n, (double) debordements / n, annexes / n, incomplets, tableaux);
     }
 
     /** Moyenne des valeurs connues (les -1 « aucun joueur » sont ignorés) ; -1 si aucune. */

@@ -4,6 +4,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.format.FormatTournoi;
 import com.pingmanager.ordonnancement.EstimateurDuree;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -55,6 +56,7 @@ public final class ScenarioSimulation {
     private final EstimateurDuree estimateur;
     private final double variabilite;
     private final LoiDureeMatch loiDuree;
+    private final TempsAnnexesMatch tempsAnnexes;
     private final LocalTime heureLimite;
 
     private ScenarioSimulation(Builder b) {
@@ -66,6 +68,7 @@ public final class ScenarioSimulation {
         this.loiDuree = b.loiDuree != null ? b.loiDuree : LoiDureeMatch.autour(DUREE_PARTIE_PAR_DEFAUT);
         this.estimateur = b.estimateur != null ? b.estimateur : new EstimateurDuree(loiDuree.getMoyenne());
         this.variabilite = b.variabilite;
+        this.tempsAnnexes = b.tempsAnnexes != null ? b.tempsAnnexes : TempsAnnexesMatch.PAR_DEFAUT;
         this.heureLimite = b.heureLimite;
     }
 
@@ -104,6 +107,15 @@ public final class ScenarioSimulation {
         return loiDuree;
     }
 
+    /**
+     * Temps autour du jeu de chaque match (appel et rappel, échauffement, pauses
+     * entre manches, temps morts, retour de la feuille) : la table et les joueurs
+     * sont occupés pendant ce temps, en plus de la durée du jeu.
+     */
+    public TempsAnnexesMatch getTempsAnnexes() {
+        return tempsAnnexes;
+    }
+
     /** Heure limite de la journée pour un tableau sans fin théorique. */
     public LocalTime getHeureLimite() {
         return heureLimite;
@@ -125,7 +137,7 @@ public final class ScenarioSimulation {
 
     private Builder copie() {
         Builder b = builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
-                .variabilite(variabilite).loiDuree(loiDuree).heureLimite(heureLimite);
+                .variabilite(variabilite).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes).heureLimite(heureLimite);
         tableaux.forEach(b::tableau);
         return b;
     }
@@ -142,6 +154,7 @@ public final class ScenarioSimulation {
         private EstimateurDuree estimateur;
         private double variabilite = 0.2;
         private LoiDureeMatch loiDuree;
+        private TempsAnnexesMatch tempsAnnexes;
         private LocalTime heureLimite = HEURE_LIMITE_PAR_DEFAUT;
 
         public Builder tableau(TableauSimule t) {
@@ -178,6 +191,12 @@ public final class ScenarioSimulation {
         /** Loi des durées d'un match en cinq manches ({@code null} : autour de la durée de départ). */
         public Builder loiDuree(LoiDureeMatch v) {
             this.loiDuree = v;
+            return this;
+        }
+
+        /** Temps autour du jeu ({@code null} : {@link TempsAnnexesMatch#PAR_DEFAUT}). */
+        public Builder tempsAnnexes(TempsAnnexesMatch v) {
+            this.tempsAnnexes = v;
             return this;
         }
 

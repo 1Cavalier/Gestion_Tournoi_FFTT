@@ -117,4 +117,19 @@ class SimulationMonteCarloTest {
         assertEquals(-1, simulateur.simulerPlusieurs(seul, StrategieOrdonnancement.PAR_DEFAUT, 5)
                 .attentePlusieursTableaux(), "aucun joueur sur deux tableaux");
     }
+
+    @Test
+    void les_temps_autour_du_match_rallongent_la_journee() {
+        ScenarioSimulation sans = ScenarioSimulation.builder().nombreDeTables(6).graine(3)
+                .tempsAnnexes(com.pingmanager.ordonnancement.TempsAnnexesMatch.AUCUN)
+                .tableau(JeuDeSimulation.petitTournoi(6, 3).getTableaux().get(0)).build();
+        ScenarioSimulation avec = ScenarioSimulation.builder().nombreDeTables(6).graine(3)
+                .tableau(JeuDeSimulation.petitTournoi(6, 3).getTableaux().get(0)).build();
+        StatistiquesSimulation a = simulateur.simulerPlusieurs(sans, StrategieOrdonnancement.PAR_DEFAUT, 20);
+        StatistiquesSimulation b = simulateur.simulerPlusieurs(avec, StrategieOrdonnancement.PAR_DEFAUT, 20);
+        assertEquals(0, a.tempsAnnexesMoyen(), 1e-9);
+        assertTrue(b.tempsAnnexesMoyen() > 5, "appel, échauffement, pauses, temps morts, feuille : plus de 5 min");
+        assertTrue(b.finMoyenne().isAfter(a.finMoyenne().plusMinutes(20)),
+                "mis bout à bout, ces minutes repoussent nettement la fin");
+    }
 }
