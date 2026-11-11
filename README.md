@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 471 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 473 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -118,7 +118,9 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 - Cycle BROUILLON → DEMANDE D'HOMOLOGATION → HOMOLOGUÉ → PUBLIÉ (ou ANNULÉ),
   dossier verrouillé dès la demande, refus avec motif.
 - Règlement généré (aperçu et PDF), figé après publication ; feuille
-  d'engagement en PDF.
+  d'engagement en PDF. Avec une salle d'échauffement, l'article « Matériel »
+  précise que le juge-arbitre peut en utiliser les tables comme tables de
+  match en cas de nécessité (3.3.1.2.2).
 - Gestion des tournois du club : tournoi actuel, frise en 4 étapes, historique.
 - Remplissage et finances : taux de remplissage, recettes attendues,
   encaissé, dotation promise, solde.

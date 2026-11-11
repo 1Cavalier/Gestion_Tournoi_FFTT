@@ -874,6 +874,12 @@ public final class GenerateurReglement {
             sb.append(" Une salle d'échauffement de ").append(t.getTablesEchauffement())
                     .append(t.getTablesEchauffement() > 1 ? " tables" : " table")
                     .append(" est à la disposition des joueurs.");
+            // 3.3.1.2.2 : le juge-arbitre programme les parties selon l'horaire et
+            // les tables disponibles ; il peut donc y ajouter les tables d'échauffement.
+            sb.append(" En cas de nécessité, pour faire avancer le tournoi plus rapidement et éviter des "
+                    + "attentes trop longues, le juge-arbitre peut décider d'utiliser des tables de la salle "
+                    + "d'échauffement comme tables de match, pourvu qu'elles soient elles aussi conformes "
+                    + "(3.3.1.2.2).");
         }
 
         InfosReglement ir = t.getInfosReglement();
