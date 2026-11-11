@@ -4,6 +4,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.LigneClassement;
 import com.pingmanager.model.Poule;
 import com.pingmanager.model.Qualifie;
+import com.pingmanager.model.Sexe;
 import com.pingmanager.model.TableauElimination;
 
 import java.util.ArrayList;
@@ -165,6 +166,19 @@ public final class PlacementQualifiesService {
         boolean[] seedEnHaut = calculerDemiParSeed(cadre);
         int[] quartParSeed = calculerQuartParSeed(cadre);
 
+        // Exempts (décision de Quentin du 11 novembre 2026, README section 6) :
+        // un tableau incomplet ne saute jamais plus d'un tour. Les places
+        // d'exempt sont les seeds n+1..cadre, qui font face (ordre standard :
+        // seed s contre cadre+1-s) aux seeds 1..cadre-n, c'est-à-dire aux 1ers
+        // de poule dans l'ordre des poules (puis, s'il y a plus d'exempts que
+        // de poules, aux premiers 2es tirés). Chaque exempt est donc opposé à
+        // un vrai joueur : jamais deux exempts face à face, le 2e tour est
+        // complet. Ces places sont réservées pendant tout le tirage, puis
+        // vidées à la fin.
+        for (int seed = n + 1; seed <= cadre; seed++) {
+            parSeed[seed] = PLACE_EXEMPT;
+        }
+
         // Placement des 2es : demi opposé à leur 1er. On mémorise le seed attribué
         // à chaque 2e, par poule, pour pouvoir contraindre les 3es ensuite.
         // I.304.1 / I.305.1 : le 2e tour ne compte que si le tableau est
@@ -204,8 +218,20 @@ public final class PlacementQualifiesService {
         }
         placerSurPositionsLibres(autres, parSeed, cadre, incomplet, rng);
 
+        for (int seed = 1; seed <= cadre; seed++) {
+            if (parSeed[seed] == PLACE_EXEMPT) {
+                parSeed[seed] = null;
+            }
+        }
         return parSeed;
     }
+
+    /**
+     * Marque provisoire d'une place d'exempt pendant le tirage (jamais renvoyée :
+     * remplacée par {@code null} à la fin de {@link #calculerPlacement}). Sans
+     * club, elle ne crée aucun conflit d'association.
+     */
+    private static final Joueur PLACE_EXEMPT = new Joueur("__EXEMPT__", "Exempt", "", Sexe.HOMME, null, 0);
 
     /** Nombre maximal de places essayées par la recherche avec retour arrière. */
     private static final int BUDGET_RETOUR_ARRIERE = 200_000;
