@@ -20,7 +20,8 @@ public enum StrategieOrdonnancement {
     /** (1) Finir au plus vite les tableaux qui ont commencé tôt pour libérer de la place. */
     AVANCER_TABLEAUX_COMMENCES(
             "Avancer les tableaux commencés tôt",
-            "Les tableaux qui ont commencé le plus tôt passent en premier, jusqu'à la finale. "
+            "Les tableaux qui ont commencé le plus tôt passent en premier, et dans un tableau les "
+                    + "tours les plus avancés d'abord, jusqu'à la finale. "
                     + "Ils se terminent vite, leurs joueurs repartent et la salle se libère "
                     + "pour les tableaux suivants.",
             "Les tableaux qui commencent plus tard peuvent prendre du retard au départ."),
@@ -29,10 +30,10 @@ public enum StrategieOrdonnancement {
     FAIRE_AVANCER_PETIT_A_PETIT(
             "Tout faire avancer petit à petit",
             "Tous les tableaux avancent ensemble, par vagues : d'abord les poules, puis les "
-                    + "premiers tours, puis les tours suivants. Aucun tableau ne prend beaucoup "
-                    + "d'avance sur les autres.",
-            "Les premiers tableaux finissent plus tard : leurs joueurs restent plus longtemps "
-                    + "dans la salle."),
+                    + "premiers tours, puis les tours suivants. Dans un tableau, un tour ne commence "
+                    + "que lorsque le tour précédent est entièrement fini : on joue tour par tour.",
+            "Des tables restent parfois libres en attendant la fin d'un tour : la journée finit "
+                    + "plus tard et les joueurs attendent davantage entre deux matchs."),
 
     /** (3) Lancer d'abord les matchs qui attendent depuis le plus longtemps. */
     MINIMISER_ATTENTE(

@@ -1,19 +1,18 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.ComparaisonStrategies;
-import com.pingmanager.core.ResultatSimulation;
 import com.pingmanager.core.ScenarioSimulation;
 import com.pingmanager.core.SimulateurTournoi;
+import com.pingmanager.core.StatistiquesSimulation;
 import com.pingmanager.model.StrategieOrdonnancement;
 import com.pingmanager.model.Tournoi;
+import com.pingmanager.ordonnancement.LoiDureeMatch;
 import com.pingmanager.ui.ContexteApplication;
+import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
@@ -31,8 +30,9 @@ import java.util.List;
 /**
  * Écran « Prévisions et stratégie » (B025), ouvert depuis la deuxième version
  * de l'écran du tournoi : le club choisit sa stratégie principale (expliquée en
- * clair, enregistrée aussitôt), lance une simulation accélérée de la journée et
- * la compare à une autre stratégie.
+ * clair, enregistrée aussitôt) et lance une simulation statistique de la
+ * journée : le tournoi est rejoué de nombreuses fois (durées de match tirées au
+ * hasard entre un minimum et un maximum) avec chacune des trois stratégies.
  *
  * <p>Mots, chiffres et couleurs viennent de {@link PresentationPrevisions}
  * (testée sans JavaFX) ; le calcul, de {@link SimulateurTournoi}.</p>
@@ -130,49 +130,62 @@ final class EcranPrevisions {
         TextField tables = Ui.champ("16");
         tables.setText(String.valueOf(PresentationPrevisions.tablesProposees(tournoi)));
         tables.setPrefColumnCount(5);
+        TextField tirages = Ui.champ(String.valueOf(PresentationPrevisions.TIRAGES_PAR_DEFAUT));
+        tirages.setText(String.valueOf(PresentationPrevisions.TIRAGES_PAR_DEFAUT));
+        tirages.setPrefColumnCount(5);
+        TextField moyenne = champMinutes(PresentationPrevisions.DUREE_MOYENNE);
+        TextField minimum = champMinutes(PresentationPrevisions.DUREE_MINIMUM);
+        TextField maximum = champMinutes(PresentationPrevisions.DUREE_MAXIMUM);
         TextField graine = Ui.champ("1");
         graine.setText("1");
         graine.setPrefColumnCount(8);
         CheckBox completer = new CheckBox("Compléter les tableaux jusqu'à leurs places maximales (joueurs fictifs)");
         completer.setWrapText(true);
 
-        ComboBox<StrategieOrdonnancement> comparer = new ComboBox<>();
-        comparer.getItems().add(null);
-        comparer.getItems().addAll(StrategieOrdonnancement.values());
-        comparer.setCellFactory(l -> celluleStrategie());
-        comparer.setButtonCell(celluleStrategie());
-        comparer.getSelectionModel().selectFirst();
-
-        Button lancer = Ui.boutonPrimaire("Lancer la simulation");
+        Button lancer = Ui.boutonPrimaire("Simuler les trois stratégies");
         lancer.setDefaultButton(true);
-        lancer.setOnAction(e -> simuler(tables.getText(), graine.getText(), completer.isSelected(),
-                comparer.getValue()));
+        lancer.setOnAction(e -> simuler(lancer, tables.getText(), tirages.getText(), moyenne.getText(),
+                minimum.getText(), maximum.getText(), graine.getText(), completer.isSelected()));
 
-        HBox reglages = Ui.ligne(16, Ui.champEtiquete("Tables", tables), Ui.champEtiquete("Graine", graine),
-                Ui.champEtiquete("Comparer avec", comparer));
+        HBox reglages = Ui.ligne(16, Ui.champEtiquete("Tables", tables), Ui.champEtiquete("Tirages", tirages),
+                Ui.champEtiquete("Graine", graine));
         reglages.setAlignment(Pos.BOTTOM_LEFT);
-        Label avertissement = Ui.aide(PresentationPrevisions.AVERTISSEMENT
-                + " Une même graine redonne exactement le même résultat.");
+        HBox durees = Ui.ligne(16, Ui.champEtiquete("Durée moyenne d'un match (min)", moyenne),
+                Ui.champEtiquete("Minimum (min)", minimum), Ui.champEtiquete("Maximum (min)", maximum));
+        durees.setAlignment(Pos.BOTTOM_LEFT);
+        Label aideDurees = Ui.aide("Pour un match en cinq manches ; trois manches : deux tiers, sept manches : "
+                + "quatre tiers. La moyenne doit être plus proche du minimum que du maximum.");
+        aideDurees.setWrapText(true);
+        Label avertissement = Ui.aide(PresentationPrevisions.AVERTISSEMENT_STATISTIQUE
+                + " Une même graine redonne exactement les mêmes statistiques.");
         avertissement.setWrapText(true);
-        return Ui.carte("Simuler la journée", reglages, completer, avertissement, Ui.actions(lancer),
-                messageSimulation);
+        return Ui.carte("Simuler la journée", reglages, durees, aideDurees, completer, avertissement,
+                Ui.actions(lancer), messageSimulation);
     }
 
-    private static ListCell<StrategieOrdonnancement> celluleStrategie() {
-        return new ListCell<>() {
-            @Override
-            protected void updateItem(StrategieOrdonnancement s, boolean vide) {
-                super.updateItem(s, vide);
-                setText(vide ? null : (s == null ? "Aucune comparaison" : s.getLibelle()));
-            }
-        };
+    private static TextField champMinutes(int valeur) {
+        TextField t = Ui.champ(String.valueOf(valeur));
+        t.setText(String.valueOf(valeur));
+        t.setPrefColumnCount(4);
+        return t;
     }
 
-    private void simuler(String saisieTables, String saisieGraine, boolean completer,
-                         StrategieOrdonnancement autre) {
+    private void simuler(Button lancer, String saisieTables, String saisieTirages, String saisieMoyenne,
+                         String saisieMinimum, String saisieMaximum, String saisieGraine, boolean completer) {
         Integer tables = PresentationPrevisions.lireTables(saisieTables);
         if (tables == null) {
             Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_TABLES);
+            return;
+        }
+        Integer tirages = PresentationPrevisions.lireTirages(saisieTirages);
+        if (tirages == null) {
+            Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_TIRAGES);
+            return;
+        }
+        PresentationPrevisions.ReglageDurees durees =
+                PresentationPrevisions.lireDurees(saisieMoyenne, saisieMinimum, saisieMaximum);
+        if (durees.erreur() != null) {
+            Ui.erreur(messageSimulation, durees.erreur());
             return;
         }
         Long graine = PresentationPrevisions.lireGraine(saisieGraine);
@@ -180,83 +193,96 @@ final class EcranPrevisions {
             Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_GRAINE);
             return;
         }
-        messageSimulation.setText("");
-        ScenarioSimulation scenario = SimulateurTournoi.scenarioDepuis(tournoi, tables, graine, completer);
+        ScenarioSimulation base = SimulateurTournoi.scenarioDepuis(tournoi, tables, graine, completer);
+        ScenarioSimulation.Builder b = ScenarioSimulation.builder().nombreDeTables(tables).graine(graine)
+                .loiDuree(durees.loi()).heureLimite(base.getHeureLimite());
+        base.getTableaux().forEach(b::tableau);
+        ScenarioSimulation scenario = b.build();
         StrategieOrdonnancement choisie = tournoi.getStrategieOrdonnancement();
-        ResultatSimulation resultat = simulateur.simuler(scenario, choisie);
-        zoneResultat.getChildren().setAll(carteResultat(resultat));
-        if (autre != null) {
-            ComparaisonStrategies c = new ComparaisonStrategies(resultat, simulateur.simuler(scenario, autre));
-            zoneResultat.getChildren().add(carteComparaison(c));
-        }
-        Ui.apparition(zoneResultat);
+
+        // Plusieurs centaines de tournois rejoués : calcul hors du fil de l'interface.
+        lancer.setDisable(true);
+        Ui.succes(messageSimulation, "Simulation en cours (" + tirages + " tirages × 3 stratégies)…");
+        Task<List<StatistiquesSimulation>> calcul = new Task<>() {
+            @Override
+            protected List<StatistiquesSimulation> call() {
+                return simulateur.comparerToutes(scenario, tirages);
+            }
+        };
+        calcul.setOnSucceeded(e -> {
+            lancer.setDisable(false);
+            messageSimulation.setText("");
+            List<StatistiquesSimulation> stats = calcul.getValue();
+            zoneResultat.getChildren().setAll(carteStrategies(stats, choisie, durees.loi()));
+            stats.stream().filter(s -> s.strategie() == choisie).findFirst()
+                    .ifPresent(s -> zoneResultat.getChildren().add(carteTableaux(s)));
+            Ui.apparition(zoneResultat);
+        });
+        calcul.setOnFailed(e -> {
+            lancer.setDisable(false);
+            Ui.erreur(messageSimulation, "La simulation a échoué : " + calcul.getException().getMessage());
+        });
+        Thread fil = new Thread(calcul, "simulation-previsions");
+        fil.setDaemon(true);
+        fil.start();
     }
 
-    private Node carteResultat(ResultatSimulation r) {
-        Label titre = Ui.titreCarte("Prévision avec « " + r.strategie().getLibelle() + " »");
-        titre.setWrapText(true);
-        if (r.tableaux().isEmpty()) {
-            return Ui.carte(titre, Ui.etatVideCompact(PresentationPrevisions.synthese(r)));
+    private Node carteStrategies(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie,
+                                 LoiDureeMatch loi) {
+        Label verdict = Ui.texte(PresentationPrevisions.verdictStrategies(stats, choisie));
+        verdict.setWrapText(true);
+        GridPane grille = grille(stats.size() + 1);
+        grille.add(Ui.enteteColonne("Indicateur"), 0, 0);
+        for (int i = 0; i < stats.size(); i++) {
+            StrategieOrdonnancement s = stats.get(i).strategie();
+            Label entete = Ui.enteteColonne(s.getLibelle() + (s == choisie ? " (votre choix)" : ""));
+            entete.setWrapText(true);
+            grille.add(entete, i + 1, 0);
         }
-        List<PresentationPrevisions.Chiffre> chiffres = PresentationPrevisions.chiffres(r);
-        Node[] tuiles = new Node[chiffres.size()];
-        for (int i = 0; i < chiffres.size(); i++) {
-            PresentationPrevisions.Chiffre c = chiffres.get(i);
-            VBox tuile = Ui.tuileChiffre(c.valeur(), c.libelle());
-            if (c.alerte()) {
-                tuile.getChildren().get(0).getStyleClass().add("prevision-alerte");
+        List<PresentationPrevisions.LigneStrategies> lignes = PresentationPrevisions.lignesStrategies(stats);
+        for (int k = 0; k < lignes.size(); k++) {
+            PresentationPrevisions.LigneStrategies l = lignes.get(k);
+            Label indicateur = Ui.texte(l.indicateur());
+            indicateur.setWrapText(true);
+            grille.add(indicateur, 0, k + 1);
+            for (int i = 0; i < l.valeurs().size(); i++) {
+                grille.add(valeur(l.valeurs().get(i), l.meilleure() == i), i + 1, k + 1);
             }
-            tuiles[i] = tuile;
         }
-        Label synthese = Ui.discret(PresentationPrevisions.synthese(r));
+        Label synthese = Ui.discret(PresentationPrevisions.syntheseStatistique(stats, loi));
         synthese.setWrapText(true);
+        Label legende = Ui.aide("En gras : la meilleure valeur. « 9 fois sur 10 » : sur l'ensemble des tirages, "
+                + "neuf sur dix font mieux que cette valeur.");
+        legende.setWrapText(true);
+        return Ui.carte(Ui.titreCarte("Les trois stratégies comparées"), verdict, grille, synthese, legende);
+    }
 
+    private Node carteTableaux(StatistiquesSimulation s) {
+        Label titre = Ui.titreCarte("Tableau par tableau avec « " + s.strategie().getLibelle() + " »");
+        titre.setWrapText(true);
         GridPane grille = grille(6);
-        String[] entetes = {"Tableau", "Début", "Fin prévue", "Fin souhaitée", "Attente moy.", "État"};
+        String[] entetes = {"Tableau", "Fin moyenne", "9 fois sur 10 avant", "Fin souhaitée", "Attente moy.",
+                "Risque"};
         for (int i = 0; i < entetes.length; i++) {
             grille.add(Ui.enteteColonne(entetes[i]), i, 0);
         }
-        List<PresentationPrevisions.LigneTableau> lignes = PresentationPrevisions.lignes(r);
+        List<PresentationPrevisions.LigneTableauStat> lignes = PresentationPrevisions.lignesTableaux(s);
         for (int k = 0; k < lignes.size(); k++) {
-            PresentationPrevisions.LigneTableau l = lignes.get(k);
+            PresentationPrevisions.LigneTableauStat l = lignes.get(k);
             int rang = k + 1;
             Label nom = Ui.gras(l.nom());
             nom.setWrapText(true);
             grille.add(nom, 0, rang);
-            grille.add(Ui.texte(l.debut()), 1, rang);
-            grille.add(Ui.texte(l.fin()), 2, rang);
+            grille.add(Ui.texte(l.finMoyenne()), 1, rang);
+            grille.add(Ui.texte(l.finP90()), 2, rang);
             grille.add(Ui.discret(l.finSouhaitee()), 3, rang);
             grille.add(Ui.texte(l.attente()), 4, rang);
-            grille.add(Ui.pastille(l.etat(), l.statut()), 5, rang);
+            grille.add(Ui.pastille(l.risque(), l.statut()), 5, rang);
         }
-        return Ui.carte(titre, Ui.rangeeTuiles(tuiles), synthese, grille);
-    }
-
-    private Node carteComparaison(ComparaisonStrategies c) {
-        Label verdict = Ui.texte(PresentationPrevisions.verdict(c));
-        verdict.setWrapText(true);
-        GridPane grille = grille(3);
-        grille.add(Ui.enteteColonne("Indicateur"), 0, 0);
-        Label a = Ui.enteteColonne(c.premiere().strategie().getLibelle());
-        a.setWrapText(true);
-        Label b = Ui.enteteColonne(c.seconde().strategie().getLibelle());
-        b.setWrapText(true);
-        grille.add(a, 1, 0);
-        grille.add(b, 2, 0);
-        List<PresentationPrevisions.LigneComparaison> lignes = PresentationPrevisions.comparaison(c);
-        for (int k = 0; k < lignes.size(); k++) {
-            PresentationPrevisions.LigneComparaison l = lignes.get(k);
-            int rang = k + 1;
-            Label indicateur = Ui.texte(l.indicateur());
-            indicateur.setWrapText(true);
-            grille.add(indicateur, 0, rang);
-            grille.add(valeur(l.premiere(), l.meilleure() == 1), 1, rang);
-            grille.add(valeur(l.seconde(), l.meilleure() == 2), 2, rang);
+        if (lignes.isEmpty()) {
+            return Ui.carte(titre, Ui.etatVideCompact("Aucun tableau simulé."));
         }
-        Label legende = Ui.aide("En gras : la meilleure valeur. Mêmes poules, mêmes résultats et mêmes durées "
-                + "de parties : seul l'ordre de lancement change.");
-        legende.setWrapText(true);
-        return Ui.carte("Comparaison de deux stratégies", verdict, grille, legende);
+        return Ui.carte(titre, grille);
     }
 
     private static Label valeur(String texte, boolean meilleure) {

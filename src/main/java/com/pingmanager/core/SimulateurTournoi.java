@@ -14,6 +14,7 @@ import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.CategorieDuree;
+import com.pingmanager.ordonnancement.LoiDureeMatch;
 import com.pingmanager.ordonnancement.MatchOrdonnancable;
 import com.pingmanager.ordonnancement.Ordonnanceur;
 import com.pingmanager.ordonnancement.PhaseMatch;
@@ -62,10 +63,10 @@ public final class SimulateurTournoi {
     /** Heure de début des matchs d'un tableau sans horaire. */
     public static final LocalTime DEBUT_PAR_DEFAUT = LocalTime.of(9, 0);
 
-    private final MoteurTournoi moteur = new MoteurTournoi();
-    private final ProgressionTableau progression = new ProgressionTableau();
+    /** Nombre de tirages par défaut d'une simulation statistique. */
+    public static final int TIRAGES_PAR_DEFAUT = 100;
 
-    /** Simule le scénario avec la stratégie donnée. */
+    /** Simule le scénario avec la stratégie donnée (un seul tirage, celui de la graine). */
     public ResultatSimulation simuler(ScenarioSimulation scenario, StrategieOrdonnancement strategie) {
         Objects.requireNonNull(scenario, "scenario");
         Objects.requireNonNull(strategie, "strategie");
@@ -76,6 +77,48 @@ public final class SimulateurTournoi {
     public ComparaisonStrategies comparer(ScenarioSimulation scenario, StrategieOrdonnancement premiere,
                                           StrategieOrdonnancement seconde) {
         return new ComparaisonStrategies(simuler(scenario, premiere), simuler(scenario, seconde));
+    }
+
+    /**
+     * Simulation statistique (méthode de Monte-Carlo) : rejoue le tournoi
+     * {@code tirages} fois avec la stratégie donnée. Chaque tirage a sa propre
+     * graine, dérivée de celle du scénario : poules, tableau final, vainqueurs et
+     * durées des matchs (loi {@link ScenarioSimulation#getLoiDuree()}) changent
+     * d'un tirage à l'autre. Les tirages sont joués en parallèle ; le résultat ne
+     * dépend que de la graine du scénario et du nombre de tirages.
+     */
+    public StatistiquesSimulation simulerPlusieurs(ScenarioSimulation scenario, StrategieOrdonnancement strategie,
+                                                   int tirages) {
+        Objects.requireNonNull(scenario, "scenario");
+        Objects.requireNonNull(strategie, "strategie");
+        if (tirages < 1) {
+            throw new IllegalArgumentException("Il faut au moins un tirage.");
+        }
+        List<ResultatSimulation> resultats = java.util.stream.IntStream.range(0, tirages).parallel()
+                .mapToObj(k -> simuler(scenario.avecGraine(graineDuTirage(scenario.getGraine(), k)), strategie))
+                .toList();
+        return StatistiquesSimulation.depuis(strategie, scenario.getNombreDeTables(), resultats);
+    }
+
+    /**
+     * Simule toutes les stratégies sur les mêmes tirages (tirage k identique pour
+     * chaque stratégie : mêmes poules, mêmes résultats, mêmes durées de match),
+     * pour que les écarts mesurés ne viennent que de la stratégie.
+     */
+    public List<StatistiquesSimulation> comparerToutes(ScenarioSimulation scenario, int tirages) {
+        List<StatistiquesSimulation> stats = new ArrayList<>();
+        for (StrategieOrdonnancement s : StrategieOrdonnancement.values()) {
+            stats.add(simulerPlusieurs(scenario, s, tirages));
+        }
+        return stats;
+    }
+
+    /** Graine du tirage k : bien brassée, pour que deux tirages voisins diffèrent vraiment. */
+    static long graineDuTirage(long graine, int k) {
+        long z = graine + 0x9E3779B97F4A7C15L * (k + 1L);
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        return z ^ (z >>> 31);
     }
 
     // ------------------------------------------------------------------
@@ -162,6 +205,9 @@ public final class SimulateurTournoi {
         private final ScenarioSimulation scenario;
         private final StrategieOrdonnancement strategie;
         private final Ordonnanceur ordonnanceur;
+        // Propres à chaque déroulé : les tirages peuvent tourner en parallèle.
+        private final MoteurTournoi moteur = new MoteurTournoi();
+        private final ProgressionTableau progression = new ProgressionTableau();
         private final List<EtatTableau> etats = new ArrayList<>();
         private final List<ResultatSimulation.TableauIgnore> ignores = new ArrayList<>();
         private final Map<Match, EtatTableau> tableauDe = new IdentityHashMap<>();
@@ -293,8 +339,11 @@ public final class SimulateurTournoi {
                 }
             }
             Random r = new Random(melanger(cleDe(mo).hashCode()));
-            List<Manche> manches = tirerScore(m, r);
-            Duration duree = duree(mo, e, manches.size(), r);
+            // u : rang de la durée dans sa loi (0 = la plus courte). Un match long
+            // a plus de chances d'aller en cinq manches.
+            double u = r.nextDouble();
+            List<Manche> manches = tirerScore(m, r, u);
+            Duration duree = duree(mo, e, u);
             LocalDateTime fin = maintenant.plus(duree);
             enCours.add(new EnCours(mo, fin, manches, sequence++));
             LocalDate jour = maintenant.toLocalDate();
@@ -345,12 +394,16 @@ public final class SimulateurTournoi {
             }
         }
 
-        /** Vainqueur tiré selon l'écart de points ; score réaliste en manches de 11. */
-        private List<Manche> tirerScore(Match m, Random r) {
+        /**
+         * Vainqueur tiré selon l'écart de points ; score réaliste en manches de 11.
+         * Manches du perdant selon le rang {@code u} de la durée : 3-0 pour un
+         * match court, 3-2 pour un match long.
+         */
+        private List<Manche> tirerScore(Match m, Random r, double u) {
             int n = Math.max(1, m.getNombreManchesGagnantes());
             double ecart = m.getJoueurA().getPoints() - m.getJoueurB().getPoints();
             boolean gagneA = r.nextDouble() < 1.0 / (1.0 + Math.exp(-ecart / 250.0));
-            int perdues = r.nextInt(n); // manches du perdant : 0 à n - 1
+            int perdues = Math.min(n - 1, (int) (u * n)); // manches du perdant : 0 à n - 1
             List<Boolean> pourVainqueur = new ArrayList<>();
             for (int i = 0; i < n - 1; i++) {
                 pourVainqueur.add(true);
@@ -373,14 +426,19 @@ public final class SimulateurTournoi {
             return manches;
         }
 
-        /** Durée : estimation de la catégorie, plus longue en 5 manches, ± variabilité du scénario. */
-        private Duration duree(MatchOrdonnancable mo, EtatTableau e, int manches, Random r) {
+        /**
+         * Durée tirée dans la loi du scénario (exponentielle entre un minimum et
+         * un maximum), mise à l'échelle de la durée estimée de la catégorie du
+         * match et de son nombre de manches (référence : trois manches gagnantes).
+         */
+        private Duration duree(MatchOrdonnancable mo, EtatTableau e, double u) {
             int n = Math.max(1, mo.getMatch().getNombreManchesGagnantes());
-            Duration base = scenario.getEstimateur().estimer(
+            LoiDureeMatch loi = scenario.getLoiDuree();
+            Duration estimee = scenario.getEstimateur().estimer(
                     CategorieDuree.depuisNiveau(mo.getPhase(), e.def.niveauPoints(), PALIER_NIVEAU));
-            double facteur = 0.85 + 0.3 * (manches - n) / Math.max(1, n - 1);
-            facteur *= 1.0 + scenario.getVariabilite() * (2 * r.nextDouble() - 1);
-            return Duration.ofSeconds(Math.max(60, Math.round(base.toSeconds() * facteur)));
+            double facteur = (estimee.toSeconds() / (double) loi.getMoyenne().toSeconds()) * (n / 3.0);
+            double minutes = loi.quantileMinutes(u) * facteur;
+            return Duration.ofSeconds(Math.max(60, Math.round(minutes * 60)));
         }
 
         /** Clé stable d'une partie : ne dépend pas de l'ordre de lancement. */

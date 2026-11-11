@@ -3,9 +3,13 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.ComparaisonStrategies;
 import com.pingmanager.core.ResultatSimulation;
 import com.pingmanager.core.ResultatSimulation.BilanTableau;
+import com.pingmanager.core.StatistiquesSimulation;
+import com.pingmanager.core.StatistiquesSimulation.StatTableau;
 import com.pingmanager.model.StrategieOrdonnancement;
 import com.pingmanager.model.Tournoi;
+import com.pingmanager.ordonnancement.LoiDureeMatch;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -225,6 +229,258 @@ final class PresentationPrevisions {
                 : "avec " + (attente > 0 ? seconde : premiere) + ", les joueurs attendent en moyenne "
                 + minutes(Math.abs(attente)) + " de moins par partie";
         return phraseFin + " ; " + phraseAttente + ".";
+    }
+
+    // ------------------------------------------------------------------
+    // Simulation statistique : réglages
+    // ------------------------------------------------------------------
+
+    static final int TIRAGES_PAR_DEFAUT = 100;
+    static final String ERREUR_TIRAGES = "Indiquez un nombre de tirages entre 1 et 1000.";
+    static final String ERREUR_DUREES = "Indiquez les durées d'un match en minutes (nombres entiers).";
+    /** Durées par défaut d'un match en trois manches gagnantes : moyenne, minimum, maximum (minutes). */
+    static final int DUREE_MOYENNE = 20;
+    static final int DUREE_MINIMUM = 10;
+    static final int DUREE_MAXIMUM = 50;
+    static final String AVERTISSEMENT_STATISTIQUE = "Le tournoi est rejoué de nombreuses fois : à chaque "
+            + "tirage, d'autres poules, d'autres vainqueurs (selon les points) et d'autres durées de match, "
+            + "tirées entre le minimum et le maximum (les matchs longs sont rares). Les trois stratégies "
+            + "jouent exactement les mêmes tirages : les écarts viennent de la stratégie seule. "
+            + "Le juge-arbitre reste maître de l'ordre des parties.";
+
+    /** @return le nombre de tirages saisi (vide : {@value #TIRAGES_PAR_DEFAUT}), ou {@code null} s'il est invalide. */
+    static Integer lireTirages(String saisie) {
+        String s = saisie == null ? "" : saisie.trim();
+        if (s.isEmpty()) {
+            return TIRAGES_PAR_DEFAUT;
+        }
+        try {
+            int n = Integer.parseInt(s);
+            return n >= 1 && n <= 1000 ? n : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Loi des durées lue à l'écran, ou le message d'erreur à afficher. */
+    record ReglageDurees(LoiDureeMatch loi, String erreur) {
+    }
+
+    /** @return la loi des durées d'un match (moyenne, minimum, maximum en minutes), ou l'erreur. */
+    static ReglageDurees lireDurees(String moyenne, String minimum, String maximum) {
+        Integer moy = entier(moyenne, DUREE_MOYENNE);
+        Integer min = entier(minimum, DUREE_MINIMUM);
+        Integer max = entier(maximum, DUREE_MAXIMUM);
+        if (moy == null || min == null || max == null) {
+            return new ReglageDurees(null, ERREUR_DUREES);
+        }
+        try {
+            return new ReglageDurees(new LoiDureeMatch(Duration.ofMinutes(moy), Duration.ofMinutes(min),
+                    Duration.ofMinutes(max)), null);
+        } catch (IllegalArgumentException e) {
+            return new ReglageDurees(null, e.getMessage());
+        }
+    }
+
+    private static Integer entier(String saisie, int defaut) {
+        String s = saisie == null ? "" : saisie.trim();
+        if (s.isEmpty()) {
+            return defaut;
+        }
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Simulation statistique : les trois stratégies
+    // ------------------------------------------------------------------
+
+    /** Écart (minutes) en deçà duquel deux heures de fin moyennes sont jugées équivalentes. */
+    static final int ECART_NEGLIGEABLE = 5;
+
+    /**
+     * Une ligne du tableau des stratégies : l'indicateur, la valeur de chaque
+     * stratégie (dans l'ordre reçu) et l'index de la meilleure (-1 à égalité).
+     */
+    record LigneStrategies(String indicateur, List<String> valeurs, int meilleure) {
+        LigneStrategies {
+            valeurs = List.copyOf(valeurs);
+        }
+    }
+
+    /** @return les indicateurs comparés pour chaque stratégie. */
+    static List<LigneStrategies> lignesStrategies(List<StatistiquesSimulation> stats) {
+        boolean jours = plusieursJours(stats);
+        List<LigneStrategies> lignes = new ArrayList<>();
+        lignes.add(ligne("Fin moyenne", stats, s -> secondes(s.finMoyenne()),
+                s -> s.finMoyenne() == null ? "—" : heure(s.finMoyenne(), jours)));
+        lignes.add(ligne("9 fois sur 10, fini avant", stats, s -> secondes(s.finP90()),
+                s -> s.finP90() == null ? "—" : heure(s.finP90(), jours)));
+        lignes.add(ligne("Fourchette de fin (1 fois sur 10 → 9 fois sur 10)", stats,
+                s -> s.finP10() == null || s.finP90() == null ? Long.MAX_VALUE
+                        : secondes(s.finP90()) - secondes(s.finP10()),
+                s -> s.finP10() == null ? "—" : heure(s.finP10(), jours) + " – " + heure(s.finP90(), jours)));
+        lignes.add(ligne("Attente moyenne d'un joueur", stats, s -> Math.round(s.attenteMoyenne()),
+                s -> minutes(Math.round(s.attenteMoyenne()))));
+        lignes.add(ligne("Plus longue attente (9 fois sur 10)", stats, s -> Math.round(s.attenteMaxP90()),
+                s -> minutes(Math.round(s.attenteMaxP90()))));
+        lignes.add(ligne("Occupation des tables", stats, s -> -Math.round(s.occupationMoyenne() * 100),
+                s -> Math.round(s.occupationMoyenne() * 100) + " %"));
+        lignes.add(ligne("Risque qu'un tableau déborde", stats, s -> Math.round(s.probabiliteDebordement() * 100),
+                s -> pourcent(s.probabiliteDebordement())));
+        return lignes;
+    }
+
+    private static LigneStrategies ligne(String indicateur, List<StatistiquesSimulation> stats,
+                                         java.util.function.ToLongFunction<StatistiquesSimulation> cle,
+                                         java.util.function.Function<StatistiquesSimulation, String> texte) {
+        List<String> valeurs = new ArrayList<>();
+        int meilleure = -1;
+        long meilleurScore = Long.MAX_VALUE;
+        boolean egalite = false;
+        for (int i = 0; i < stats.size(); i++) {
+            valeurs.add(texte.apply(stats.get(i)));
+            long c = cle.applyAsLong(stats.get(i));
+            if (c < meilleurScore) {
+                meilleurScore = c;
+                meilleure = i;
+                egalite = false;
+            } else if (c == meilleurScore) {
+                egalite = true;
+            }
+        }
+        return new LigneStrategies(indicateur, valeurs, egalite ? -1 : meilleure);
+    }
+
+    /**
+     * @return la phrase qui résume ce que la simulation apprend : quelle stratégie
+     *         finit le plus tôt, laquelle fait le moins attendre, et si le choix
+     *         compte vraiment avec ce nombre de tables.
+     */
+    static String verdictStrategies(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
+        if (stats.isEmpty() || stats.stream().allMatch(s -> s.finMoyenne() == null)) {
+            return "Rien à simuler : aucun tableau n'a assez de joueurs.";
+        }
+        StatistiquesSimulation tot = stats.get(0);
+        StatistiquesSimulation tard = stats.get(0);
+        StatistiquesSimulation attente = stats.get(0);
+        for (StatistiquesSimulation s : stats) {
+            if (secondes(s.finMoyenne()) < secondes(tot.finMoyenne())) {
+                tot = s;
+            }
+            if (secondes(s.finMoyenne()) > secondes(tard.finMoyenne())) {
+                tard = s;
+            }
+            if (s.attenteMoyenne() < attente.attenteMoyenne()) {
+                attente = s;
+            }
+        }
+        long ecart = (secondes(tard.finMoyenne()) - secondes(tot.finMoyenne())) / 60;
+        long ecartAttente = Math.round(stats.stream().mapToDouble(StatistiquesSimulation::attenteMoyenne).max()
+                .orElse(0) - attente.attenteMoyenne());
+        StringBuilder sb = new StringBuilder();
+        if (ecart < ECART_NEGLIGEABLE && ecartAttente < 2) {
+            sb.append("Avec ").append(tot.nombreDeTables()).append(" tables, la salle n'est presque jamais "
+                    + "saturée : les trois stratégies donnent le même résultat à quelques minutes près. "
+                    + "Essayez avec moins de tables pour voir à partir de quand le choix compte.");
+            return sb.toString();
+        }
+        sb.append("« ").append(tot.strategie().getLibelle()).append(" » finit en moyenne le plus tôt");
+        if (ecart >= ECART_NEGLIGEABLE) {
+            sb.append(" (").append(minutes(ecart)).append(" avant « ").append(tard.strategie().getLibelle())
+                    .append(" »)");
+        }
+        sb.append(". ");
+        if (attente.strategie() == tot.strategie()) {
+            sb.append("C'est aussi celle qui fait le moins attendre les joueurs.");
+        } else {
+            sb.append("Les joueurs attendent le moins avec « ").append(attente.strategie().getLibelle())
+                    .append(" »");
+            if (ecartAttente > 0) {
+                sb.append(" (jusqu'à ").append(minutes(ecartAttente)).append(" de moins par partie)");
+            }
+            sb.append('.');
+        }
+        if (choisie != null && choisie != tot.strategie() && choisie != attente.strategie()) {
+            sb.append(" Votre stratégie « ").append(choisie.getLibelle())
+                    .append(" » n'est la meilleure sur aucun de ces deux points.");
+        }
+        return sb.toString();
+    }
+
+    /** Une ligne par tableau pour une stratégie : fin moyenne, fin 9 fois sur 10, heure souhaitée, risque. */
+    record LigneTableauStat(String nom, String finMoyenne, String finP90, String finSouhaitee, String risque,
+                            StatutPastille statut, String attente) {
+    }
+
+    /** @return une ligne par tableau, dans l'ordre du tournoi. */
+    static List<LigneTableauStat> lignesTableaux(StatistiquesSimulation s) {
+        boolean jours = plusieursJours(List.of(s));
+        List<LigneTableauStat> lignes = new ArrayList<>();
+        for (StatTableau t : s.tableaux()) {
+            double p = t.probabiliteDebordement();
+            StatutPastille statut = p < 0.1 ? StatutPastille.SUCCES
+                    : (p < 0.5 ? StatutPastille.ATTENTION : StatutPastille.ERREUR);
+            String risque = p == 0 ? "À l'heure" : "Déborde " + pourcent(p) + " des fois";
+            lignes.add(new LigneTableauStat(t.nom(), t.finMoyenne() == null ? "—" : heure(t.finMoyenne(), jours),
+                    t.finP90() == null ? "—" : heure(t.finP90(), jours),
+                    t.finSouhaitee() == null ? "—" : heure(t.finSouhaitee(), jours), risque, statut,
+                    minutes(Math.round(t.attenteMoyenne()))));
+        }
+        return lignes;
+    }
+
+    /** @return la phrase sous le tableau des stratégies (tirages, tables, loi des durées, blocages). */
+    static String syntheseStatistique(List<StatistiquesSimulation> stats, LoiDureeMatch loi) {
+        if (stats.isEmpty()) {
+            return "";
+        }
+        StatistiquesSimulation s = stats.get(0);
+        StringBuilder sb = new StringBuilder();
+        sb.append(s.tirages()).append(s.tirages() > 1 ? " tirages" : " tirage").append(" par stratégie sur ")
+                .append(s.nombreDeTables()).append(s.nombreDeTables() > 1 ? " tables" : " table");
+        if (loi != null) {
+            sb.append(" ; un match en cinq manches dure ").append(minutes(loi.getMoyenne().toMinutes()))
+                    .append(" en moyenne, de ").append(minutes(loi.getMinimum().toMinutes())).append(" à ")
+                    .append(minutes(loi.getMaximum().toMinutes()));
+        }
+        sb.append('.');
+        int bloques = stats.stream().mapToInt(StatistiquesSimulation::tiragesIncomplets).sum();
+        if (bloques > 0) {
+            sb.append(" ").append(bloques).append(" tirage(s) n'ont pas pu aller au bout.");
+        }
+        return sb.toString();
+    }
+
+    static String pourcent(double p) {
+        long v = Math.round(p * 100);
+        return (v == 0 && p > 0 ? "< 1" : String.valueOf(v)) + " %";
+    }
+
+    private static long secondes(LocalDateTime t) {
+        return t == null ? Long.MAX_VALUE : t.toEpochSecond(java.time.ZoneOffset.UTC);
+    }
+
+    private static boolean plusieursJours(List<StatistiquesSimulation> stats) {
+        LocalDate premier = null;
+        for (StatistiquesSimulation s : stats) {
+            for (StatTableau t : s.tableaux()) {
+                for (LocalDateTime h : new LocalDateTime[]{t.finSouhaitee(), t.finMoyenne(), t.finP90()}) {
+                    if (h == null) {
+                        continue;
+                    }
+                    if (premier == null) {
+                        premier = h.toLocalDate();
+                    } else if (!premier.equals(h.toLocalDate())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------

@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 433 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 452 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -143,10 +143,21 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   libre ; pointé et payé à la table. Clause du club (Règles d'inscription) :
   un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
 - Pointage et repêchage de la liste d'attente, tirage reproductible des
-  poules et du tableau final (conforme I.302 à I.305).
+  poules et du tableau final (conforme I.302 à I.305). Tableau incomplet :
+  un seul tour d'exempts, le 2e tour est toujours complet, les exempts vont
+  d'abord aux 1ers de poule (décision du 11 novembre 2026).
 - Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
   chronomètre et explication, « Lancer un match », plan de salle, stratégies
-  d'ordonnancement.
+  d'ordonnancement. « Petit à petit » joue vraiment tour par tour (un tour ne
+  démarre qu'une fois le précédent fini) ; « tableaux commencés tôt » fait
+  passer les tours avancés d'abord.
+- Prévisions : le tournoi est rejoué de nombreuses fois (100 tirages par
+  défaut, en parallèle) avec chacune des trois stratégies, sur les mêmes
+  tirages ; durée d'un match tirée selon une loi exponentielle entre un
+  minimum et un maximum, de moyenne réglable (20 min, de 10 à 50 par défaut).
+  Résultats : fin moyenne, fin 9 fois sur 10, attente, risque de débordement,
+  tableau par tableau. Avec assez de tables, l'écran dit que le choix de
+  stratégie ne change rien.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
 - Feuilles de match et de poule imprimables (format provisoire 3 × 5).
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
@@ -277,7 +288,6 @@ parenthèses.
 
 **Règlement sportif**
 - « Poule 1 » de l'article I.305.2 = poule A ? (oui)
-- Place des exempts dans le tableau final.
 - Petite finale quand un joueur abandonne en demi-finale.
 - Parties de classement pour les places 5 et suivantes ? (non)
 - Ordre des rencontres de poule I.301 à confirmer sur un vrai tournoi.

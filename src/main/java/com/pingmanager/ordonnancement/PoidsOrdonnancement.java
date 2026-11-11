@@ -29,6 +29,21 @@ public final class PoidsOrdonnancement {
     private double poidsTableauCommence = 0.0;
 
     /**
+     * Tour par tour : un match du tableau final n'est proposé que lorsque tous
+     * les matchs des tours précédents de son tableau sont terminés (stratégie
+     * « petit à petit »). Faux par défaut : un match est proposé dès que ses deux
+     * joueurs sont connus et libres.
+     */
+    private boolean tourParTour = false;
+
+    /**
+     * Points de priorité par tour d'avance dans le tableau final (0 au 1er tour,
+     * 1 au suivant…) : favorise les tours avancés pour atteindre vite la finale
+     * (stratégie « tableaux commencés tôt »). Nul par défaut.
+     */
+    private double poidsProfondeur = 0.0;
+
+    /**
      * Traduit la stratégie choisie par le club en poids de l'ordonnanceur.
      *
      * <ul>
@@ -49,12 +64,19 @@ public final class PoidsOrdonnancement {
             p.setPoidsVague(20.0);
             p.setPoidsAttente(0.2);
             p.setPoidsDeblocage(1.0);
+            // Vraie conduite par vagues : un tour ne démarre qu'une fois le
+            // précédent fini dans son tableau, même si des tables sont libres.
+            p.setTourParTour(true);
         } else if (strategie == StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES) {
-            // 1 point par minute d'ancienneté du tableau contre 0,3 par minute d'attente.
+            // 10 points par minute d'ancienneté du tableau contre 0,3 par minute
+            // d'attente : l'ordre des tableaux prime presque toujours ; à
+            // l'intérieur d'un tableau, les tours avancés passent devant pour
+            // atteindre la finale au plus vite.
             p.setPoidsVague(0.0);
             p.setPoidsAttente(0.3);
             p.setPoidsDeblocage(1.0);
-            p.setPoidsTableauCommence(1.0);
+            p.setPoidsTableauCommence(10.0);
+            p.setPoidsProfondeur(30.0);
         }
         // MINIMISER_ATTENTE : valeurs par défaut (réglage historique).
         return p;
@@ -90,6 +112,22 @@ public final class PoidsOrdonnancement {
 
     public void setPointsParMinuteAttente(double pointsParMinuteAttente) {
         this.pointsParMinuteAttente = pointsParMinuteAttente;
+    }
+
+    public boolean isTourParTour() {
+        return tourParTour;
+    }
+
+    public void setTourParTour(boolean tourParTour) {
+        this.tourParTour = tourParTour;
+    }
+
+    public double getPoidsProfondeur() {
+        return poidsProfondeur;
+    }
+
+    public void setPoidsProfondeur(double poidsProfondeur) {
+        this.poidsProfondeur = poidsProfondeur;
     }
 
     public double getPoidsTableauCommence() {

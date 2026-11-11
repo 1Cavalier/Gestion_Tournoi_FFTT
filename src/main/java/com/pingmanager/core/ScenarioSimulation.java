@@ -3,6 +3,7 @@ package com.pingmanager.core;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.format.FormatTournoi;
 import com.pingmanager.ordonnancement.EstimateurDuree;
+import com.pingmanager.ordonnancement.LoiDureeMatch;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -53,13 +54,17 @@ public final class ScenarioSimulation {
     private final long graine;
     private final EstimateurDuree estimateur;
     private final double variabilite;
+    private final LoiDureeMatch loiDuree;
     private final LocalTime heureLimite;
 
     private ScenarioSimulation(Builder b) {
         this.tableaux = List.copyOf(b.tableaux);
         this.nombreDeTables = b.nombreDeTables;
         this.graine = b.graine;
-        this.estimateur = b.estimateur != null ? b.estimateur : new EstimateurDuree(DUREE_PARTIE_PAR_DEFAUT);
+        // Loi des durées : donnée, sinon « autour » de la durée de départ. Sans
+        // estimateur, la moyenne de la loi sert de durée de départ.
+        this.loiDuree = b.loiDuree != null ? b.loiDuree : LoiDureeMatch.autour(DUREE_PARTIE_PAR_DEFAUT);
+        this.estimateur = b.estimateur != null ? b.estimateur : new EstimateurDuree(loiDuree.getMoyenne());
         this.variabilite = b.variabilite;
         this.heureLimite = b.heureLimite;
     }
@@ -80,9 +85,23 @@ public final class ScenarioSimulation {
         return estimateur;
     }
 
-    /** Écart relatif maximal de la durée réelle d'une partie autour de l'estimation (0,2 = ±20 %). */
+    /**
+     * Ancien réglage de dispersion (écart uniforme ±x %), conservé pour la
+     * compatibilité des appels : il n'est plus utilisé, la dispersion des durées
+     * vient désormais de {@link #getLoiDuree()}.
+     */
+    @Deprecated
     public double getVariabilite() {
         return variabilite;
+    }
+
+    /**
+     * Loi de la durée d'un match en cinq manches (minimum, moyenne, maximum) ;
+     * elle est mise à l'échelle de la durée estimée de chaque catégorie de match
+     * et du nombre de manches (trois ou sept).
+     */
+    public LoiDureeMatch getLoiDuree() {
+        return loiDuree;
     }
 
     /** Heure limite de la journée pour un tableau sans fin théorique. */
@@ -97,9 +116,16 @@ public final class ScenarioSimulation {
         return b.build();
     }
 
+    /** Copie avec une autre graine (un autre tirage : poules, tableau, résultats, durées). */
+    public ScenarioSimulation avecGraine(long autreGraine) {
+        Builder b = copie();
+        b.graine(autreGraine);
+        return b.build();
+    }
+
     private Builder copie() {
         Builder b = builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
-                .variabilite(variabilite).heureLimite(heureLimite);
+                .variabilite(variabilite).loiDuree(loiDuree).heureLimite(heureLimite);
         tableaux.forEach(b::tableau);
         return b;
     }
@@ -115,6 +141,7 @@ public final class ScenarioSimulation {
         private long graine = 1L;
         private EstimateurDuree estimateur;
         private double variabilite = 0.2;
+        private LoiDureeMatch loiDuree;
         private LocalTime heureLimite = HEURE_LIMITE_PAR_DEFAUT;
 
         public Builder tableau(TableauSimule t) {
@@ -145,6 +172,12 @@ public final class ScenarioSimulation {
                 throw new IllegalArgumentException("La variabilité doit être dans [0, 1[.");
             }
             this.variabilite = v;
+            return this;
+        }
+
+        /** Loi des durées d'un match en cinq manches ({@code null} : autour de la durée de départ). */
+        public Builder loiDuree(LoiDureeMatch v) {
+            this.loiDuree = v;
             return this;
         }
 
