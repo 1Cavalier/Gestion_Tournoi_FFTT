@@ -314,6 +314,10 @@ final class EcranPrevisions {
         Label verdict = Ui.texte(PresentationPrevisions.verdictStrategies(stats, choisie));
         verdict.setWrapText(true);
         GridPane grille = grille(stats.size() + 1);
+        for (int i = 1; i <= stats.size(); i++) {
+            grille.getColumnConstraints().get(i).setMinWidth(170);
+            grille.getColumnConstraints().get(i).setPercentWidth(20);
+        }
         grille.add(Ui.enteteColonne("Indicateur"), 0, 0);
         for (int i = 0; i < stats.size(); i++) {
             StrategieOrdonnancement s = stats.get(i).strategie();
@@ -373,41 +377,77 @@ final class EcranPrevisions {
         }
     }
 
-    /** Chaque tableau, les trois stratégies côte à côte. */
+    /**
+     * Chaque tableau, les trois stratégies côte à côte : un indicateur à la fois
+     * (boutons), une seule valeur par case, la meilleure en gras.
+     */
     private Node carteParTableau(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
-        List<PresentationPrevisions.TableauCompare> tableaux = PresentationPrevisions.tableauxCompares(stats);
-        if (tableaux.isEmpty()) {
+        if (stats.isEmpty() || stats.get(0).tableaux().isEmpty()) {
             return Ui.carte(Ui.titreCarte("Par tableau"), Ui.etatVideCompact("Aucun tableau simulé."));
         }
-        GridPane grille = grille(stats.size() + 1);
+        VBox detail = new VBox(8);
+        ToggleGroup groupe = new ToggleGroup();
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (PresentationPrevisions.IndicateurTableau ind : PresentationPrevisions.IndicateurTableau.values()) {
+            ToggleButton b = new ToggleButton(ind.libelle());
+            b.setUserData(ind);
+            boutons.add(b);
+        }
+        groupe.selectedToggleProperty().addListener((obs, avant, apres) -> {
+            if (apres == null) {
+                avant.setSelected(true); // toujours un indicateur affiché
+                return;
+            }
+            PresentationPrevisions.IndicateurTableau ind = (PresentationPrevisions.IndicateurTableau) apres.getUserData();
+            Label explication = Ui.aide(ind.explication());
+            explication.setWrapText(true);
+            detail.getChildren().setAll(explication, grilleIndicateur(stats, choisie, ind));
+        });
+        HBox choix = Ui.segment(groupe, boutons.toArray(new ToggleButton[0]));
+        boutons.get(0).setSelected(true);
+        return Ui.carte(Ui.titreCarte("Par tableau : les trois stratégies côte à côte"), choix, detail);
+    }
+
+    private Node grilleIndicateur(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie,
+                                  PresentationPrevisions.IndicateurTableau ind) {
+        GridPane grille = grille(stats.size() + 2);
+        // Largeurs minimales : heures sur une ligne, colonnes des stratégies égales.
+        grille.getColumnConstraints().get(1).setMinWidth(90);
+        for (int i = 2; i < stats.size() + 2; i++) {
+            grille.getColumnConstraints().get(i).setMinWidth(170);
+            grille.getColumnConstraints().get(i).setPercentWidth(22);
+        }
         grille.add(Ui.enteteColonne("Tableau"), 0, 0);
+        grille.add(Ui.enteteColonne("Début prévu"), 1, 0);
         for (int i = 0; i < stats.size(); i++) {
             StrategieOrdonnancement s = stats.get(i).strategie();
             Label e = Ui.enteteColonne(s.getLibelle() + (s == choisie ? " (votre choix)" : ""));
             e.setWrapText(true);
-            grille.add(e, i + 1, 0);
+            grille.add(e, i + 2, 0);
         }
-        for (int k = 0; k < tableaux.size(); k++) {
-            PresentationPrevisions.TableauCompare t = tableaux.get(k);
-            Label nom = Ui.gras(t.nom());
+        List<PresentationPrevisions.LigneIndicateur> lignes = PresentationPrevisions.grilleIndicateur(stats, ind);
+        for (int k = 0; k < lignes.size(); k++) {
+            PresentationPrevisions.LigneIndicateur l = lignes.get(k);
+            int rang = k + 1;
+            Label nom = Ui.gras(l.nom());
             nom.setWrapText(true);
-            grille.add(nom, 0, k + 1);
-            for (int i = 0; i < t.cellules().size(); i++) {
-                PresentationPrevisions.CelluleTableau c = t.cellules().get(i);
-                VBox cellule = new VBox(2,
-                        valeur("Finit vers " + c.fin(), t.finitLePlusTot() == i),
-                        Ui.discret("Au plus tard (rare) : " + c.finTard()),
-                        Ui.texte("Commence : " + c.debut()),
-                        Ui.texte("Attente : " + c.attente()),
-                        Ui.pastille("Après l'heure visée : " + c.risque(), c.statut()));
-                grille.add(cellule, i + 1, k + 1);
+            grille.add(nom, 0, rang);
+            grille.add(Ui.discret(l.debutPrevu()), 1, rang);
+            for (int i = 0; i < l.valeurs().size(); i++) {
+                Node v;
+                if (l.statuts() != null) {
+                    Label p = Ui.pastille(l.valeurs().get(i), l.statuts().get(i));
+                    if (l.meilleure() == i) {
+                        p.getStyleClass().add("prevision-meilleure");
+                    }
+                    v = p;
+                } else {
+                    v = valeur(l.valeurs().get(i), l.meilleure() == i);
+                }
+                grille.add(v, i + 2, rang);
             }
         }
-        Label legende = Ui.aide("En gras : la stratégie qui finit ce tableau le plus tôt. Avec « Avancer les "
-                + "tableaux commencés tôt », chaque tableau joue sa finale à son heure ; avec « Tout faire avancer "
-                + "petit à petit », les finales sont gardées pour la fin de la journée.");
-        legende.setWrapText(true);
-        return Ui.carte(Ui.titreCarte("Par tableau : les trois stratégies côte à côte"), grille, legende);
+        return grille;
     }
 
     private static Label valeur(String texte, boolean meilleure) {

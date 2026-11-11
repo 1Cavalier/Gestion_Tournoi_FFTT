@@ -122,20 +122,38 @@ class PresentationPrevisionsStatistiqueTest {
     }
 
     @Test
-    void comparaison_par_tableau_trois_strategies_cote_a_cote() {
+    void par_tableau_un_indicateur_a_la_fois_une_valeur_par_strategie() {
         List<StatistiquesSimulation> stats = List.of(
                 stat(StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES, 40, 20, 0.3),
                 stat(StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT, 10, 30, 0),
                 stat(StrategieOrdonnancement.MINIMISER_ATTENTE, 25, 15, 0.6));
-        List<PresentationPrevisions.TableauCompare> t = PresentationPrevisions.tableauxCompares(stats);
-        assertEquals(1, t.size());
-        assertEquals("A", t.get(0).nom());
-        assertEquals(3, t.get(0).cellules().size());
-        assertEquals(1, t.get(0).finitLePlusTot());
-        assertEquals("18 h 40", t.get(0).cellules().get(0).fin());
-        assertEquals("Jamais", t.get(0).cellules().get(1).risque());
-        assertEquals(StatutPastille.ERREUR, t.get(0).cellules().get(2).statut());
-        assertTrue(PresentationPrevisions.tableauxCompares(List.of()).isEmpty());
+        List<PresentationPrevisions.LigneIndicateur> fin = PresentationPrevisions.grilleIndicateur(stats,
+                PresentationPrevisions.IndicateurTableau.FIN);
+        assertEquals(1, fin.size());
+        assertEquals("A", fin.get(0).nom());
+        assertEquals("9 h 00", fin.get(0).debutPrevu());
+        assertEquals(List.of("18 h 40", "18 h 10", "18 h 25"), fin.get(0).valeurs(), "sans date répétée");
+        assertEquals(1, fin.get(0).meilleure());
+        assertNull(fin.get(0).statuts());
+        assertEquals(List.of("+ 12 min", "+ 12 min", "+ 12 min"), PresentationPrevisions.grilleIndicateur(stats,
+                PresentationPrevisions.IndicateurTableau.RETARD).get(0).valeurs());
+        assertEquals(-1, PresentationPrevisions.grilleIndicateur(stats,
+                PresentationPrevisions.IndicateurTableau.RETARD).get(0).meilleure(), "égalité");
+        PresentationPrevisions.LigneIndicateur dep = PresentationPrevisions.grilleIndicateur(stats,
+                PresentationPrevisions.IndicateurTableau.DEPASSEMENT).get(0);
+        assertEquals(List.of("30 %", "Jamais", "60 %"), dep.valeurs());
+        assertEquals(List.of(StatutPastille.ATTENTION, StatutPastille.SUCCES, StatutPastille.ERREUR), dep.statuts());
+        assertEquals(2, PresentationPrevisions.grilleIndicateur(stats,
+                PresentationPrevisions.IndicateurTableau.ATTENTE).get(0).meilleure());
+        assertTrue(PresentationPrevisions.grilleIndicateur(List.of(), PresentationPrevisions.IndicateurTableau.FIN).isEmpty());
+    }
+
+    @Test
+    void heure_apres_minuit_dite_du_lendemain() {
+        java.time.LocalDate samedi = java.time.LocalDate.of(2027, 4, 10);
+        assertEquals("14 h 13", PresentationPrevisions.heureDuJour(samedi.atTime(14, 13), samedi));
+        assertEquals("2 h 41 (lendemain)", PresentationPrevisions.heureDuJour(samedi.plusDays(1).atTime(2, 41), samedi));
+        assertEquals("—", PresentationPrevisions.heureDuJour(null, samedi));
     }
 
     @Test

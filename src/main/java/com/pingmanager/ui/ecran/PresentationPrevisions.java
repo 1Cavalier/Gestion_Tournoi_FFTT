@@ -510,52 +510,127 @@ final class PresentationPrevisions {
         return stats.stream().filter(x -> x.strategie() == s).findFirst().orElse(null);
     }
 
-    /** Ce que montre une stratégie pour un tableau, dans la comparaison côte à côte. */
-    record CelluleTableau(String debut, String fin, String finTard, String attente, String risque,
-                          StatutPastille statut) {
+    /**
+     * Ce que l'on compare tableau par tableau, un indicateur à la fois : une
+     * seule valeur par case, pour lire d'un coup d'œil quelle stratégie fait
+     * mieux sur chaque tableau.
+     */
+    enum IndicateurTableau {
+        FIN("Fin moyenne", "Heure moyenne de la finale du tableau. En gras : la plus tôt."),
+        FIN_TARD("Fin au plus tard", "Cas rare : 1 tirage sur 20 finit plus tard. En gras : la plus tôt."),
+        RETARD("Retard au début", "Retard moyen du lancement de la dernière poule sur l'heure prévue. "
+                + "En gras : le plus faible."),
+        ATTENTE("Attente", "Attente moyenne d'un joueur du tableau avant chaque match. En gras : la plus courte."),
+        DEPASSEMENT("Après l'heure visée", "Part des tirages où le tableau finit après l'heure visée de la journée. "
+                + "En gras : la plus faible.");
+
+        private final String libelle;
+        private final String explication;
+
+        IndicateurTableau(String libelle, String explication) {
+            this.libelle = libelle;
+            this.explication = explication;
+        }
+
+        String libelle() {
+            return libelle;
+        }
+
+        String explication() {
+            return explication;
+        }
     }
 
     /**
-     * Un tableau comparé sous les trois stratégies : une cellule par stratégie
-     * (dans l'ordre reçu) et l'index de celle qui le finit le plus tôt (-1 à égalité).
+     * Une ligne de la grille par tableau : nom, début prévu, la valeur de chaque
+     * stratégie (dans l'ordre reçu), l'index de la meilleure (-1 à égalité) et,
+     * pour le dépassement, la couleur de chaque valeur ({@code null} sinon).
      */
-    record TableauCompare(String nom, List<CelluleTableau> cellules, int finitLePlusTot) {
-        TableauCompare {
-            cellules = List.copyOf(cellules);
+    record LigneIndicateur(String nom, String debutPrevu, List<String> valeurs, int meilleure,
+                           List<StatutPastille> statuts) {
+        LigneIndicateur {
+            valeurs = List.copyOf(valeurs);
+            statuts = statuts == null ? null : List.copyOf(statuts);
         }
     }
 
-    /** @return chaque tableau, avec les trois stratégies côte à côte. */
-    static List<TableauCompare> tableauxCompares(List<StatistiquesSimulation> stats) {
-        List<TableauCompare> resultat = new ArrayList<>();
+    /**
+     * @return une ligne par tableau pour l'indicateur choisi, triées par heure de
+     *         début prévue ; les heures sont données dans la journée du tableau
+     *         (« 2 h 41 (lendemain) » après minuit).
+     */
+    static List<LigneIndicateur> grilleIndicateur(List<StatistiquesSimulation> stats, IndicateurTableau indicateur) {
+        List<LigneIndicateur> lignes = new ArrayList<>();
         if (stats.isEmpty()) {
-            return resultat;
+            return lignes;
         }
-        List<List<LigneTableauStat>> parStrategie = new ArrayList<>();
-        for (StatistiquesSimulation s : stats) {
-            parStrategie.add(lignesTableaux(s));
-        }
+        List<Integer> ordre = new ArrayList<>();
         for (int k = 0; k < stats.get(0).tableaux().size(); k++) {
-            List<CelluleTableau> cellules = new ArrayList<>();
-            int meilleur = -1;
-            long meilleureFin = Long.MAX_VALUE;
+            ordre.add(k);
+        }
+        List<StatTableau> reference = stats.get(0).tableaux();
+        ordre.sort(java.util.Comparator.comparing((Integer k) -> secondes(reference.get(k).debutPrevu()))
+                .thenComparing(k -> reference.get(k).nom()));
+        for (int k : ordre) {
+            StatTableau ref = reference.get(k);
+            LocalDate jour = ref.debutPrevu() == null ? null : ref.debutPrevu().toLocalDate();
+            List<String> valeurs = new ArrayList<>();
+            List<StatutPastille> statuts = indicateur == IndicateurTableau.DEPASSEMENT ? new ArrayList<>() : null;
+            int meilleure = -1;
+            long meilleurScore = Long.MAX_VALUE;
             boolean egalite = false;
             for (int i = 0; i < stats.size(); i++) {
-                LigneTableauStat l = parStrategie.get(i).get(k);
-                cellules.add(new CelluleTableau(l.debut(), l.finMoyenne(), l.finTard(), l.attente(), l.risque(),
-                        l.statut()));
-                long fin = secondes(stats.get(i).tableaux().get(k).finMoyenne()) / 60;
-                if (fin < meilleureFin) {
-                    meilleureFin = fin;
-                    meilleur = i;
+                StatTableau t = stats.get(i).tableaux().get(k);
+                long score;
+                String texte;
+                if (indicateur == IndicateurTableau.FIN) {
+                    score = secondes(t.finMoyenne()) / 60;
+                    texte = heureDuJour(t.finMoyenne(), jour);
+                } else if (indicateur == IndicateurTableau.FIN_TARD) {
+                    score = secondes(t.finTard()) / 60;
+                    texte = heureDuJour(t.finTard(), jour);
+                } else if (indicateur == IndicateurTableau.RETARD) {
+                    score = t.retardDebutMoyen() < 0 ? Long.MAX_VALUE : Math.round(t.retardDebutMoyen());
+                    texte = t.retardDebutMoyen() < 0 ? "Ne commence pas"
+                            : (score <= StatistiquesSimulation.RETARD_A_L_HEURE ? "À l'heure" : "+ " + minutes(score));
+                } else if (indicateur == IndicateurTableau.ATTENTE) {
+                    score = Math.round(t.attenteMoyenne());
+                    texte = minutes(score);
+                } else {
+                    double p = t.probabiliteDebordement();
+                    score = Math.round(p * 100);
+                    texte = p == 0 ? "Jamais" : pourcent(p);
+                    statuts.add(p < 0.1 ? StatutPastille.SUCCES
+                            : (p < 0.5 ? StatutPastille.ATTENTION : StatutPastille.ERREUR));
+                }
+                valeurs.add(texte);
+                if (score < meilleurScore) {
+                    meilleurScore = score;
+                    meilleure = i;
                     egalite = false;
-                } else if (fin == meilleureFin) {
+                } else if (score == meilleurScore) {
                     egalite = true;
                 }
             }
-            resultat.add(new TableauCompare(stats.get(0).tableaux().get(k).nom(), cellules, egalite ? -1 : meilleur));
+            lignes.add(new LigneIndicateur(ref.nom(), ref.debutPrevu() == null ? "—" : heure(ref.debutPrevu(), false),
+                    valeurs, egalite ? -1 : meilleure, statuts));
         }
-        return resultat;
+        return lignes;
+    }
+
+    /** « 14 h 13 » dans la journée {@code jour}, « 2 h 41 (lendemain) » le jour suivant. */
+    static String heureDuJour(LocalDateTime t, LocalDate jour) {
+        if (t == null) {
+            return "—";
+        }
+        if (jour == null || t.toLocalDate().equals(jour)) {
+            return heure(t, false);
+        }
+        long jours = java.time.temporal.ChronoUnit.DAYS.between(jour, t.toLocalDate());
+        if (jours == 1) {
+            return heure(t, false) + " (lendemain)";
+        }
+        return heure(t, true);
     }
 
     // ------------------------------------------------------------------
