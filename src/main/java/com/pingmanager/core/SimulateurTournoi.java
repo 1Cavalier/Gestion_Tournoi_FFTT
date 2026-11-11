@@ -114,6 +114,20 @@ public final class SimulateurTournoi {
         return stats;
     }
 
+    /**
+     * Simule chaque journée séparément (les journées sont indépendantes : aucun
+     * mélange de leurs données) et, pour chacune, les trois stratégies sur les
+     * mêmes tirages.
+     */
+    public java.util.SortedMap<LocalDate, List<StatistiquesSimulation>> comparerToutesParJour(
+            ScenarioSimulation scenario, int tirages) {
+        java.util.SortedMap<LocalDate, List<StatistiquesSimulation>> parJour = new java.util.TreeMap<>();
+        for (Map.Entry<LocalDate, ScenarioSimulation> jour : scenario.parJour().entrySet()) {
+            parJour.put(jour.getKey(), comparerToutes(jour.getValue(), tirages));
+        }
+        return parJour;
+    }
+
     /** Graine du tirage k : bien brassée, pour que deux tirages voisins diffèrent vraiment. */
     static long graineDuTirage(long graine, int k) {
         long z = graine + 0x9E3779B97F4A7C15L * (k + 1L);
@@ -266,6 +280,7 @@ public final class SimulateurTournoi {
             while (maintenant != null) {
                 demarrerTableaux(maintenant);
                 poserAttentes();
+                ordonnanceur.setTableauxAttendus(tableauxAttendus(maintenant));
                 for (PropositionLancement p : ordonnanceur.proposerLancements(maintenant)) {
                     lancer(p, maintenant);
                 }
@@ -279,6 +294,17 @@ public final class SimulateurTournoi {
                 }
             }
             return bilan(debut);
+        }
+
+        /** Tableaux du même jour qui n'ont pas encore commencé (finales en fin de journée). */
+        private List<String> tableauxAttendus(LocalDateTime maintenant) {
+            List<String> attendus = new ArrayList<>();
+            for (EtatTableau e : etats) {
+                if (!e.demarre && e.def.debut().toLocalDate().equals(maintenant.toLocalDate())) {
+                    attendus.add(e.def.nom());
+                }
+            }
+            return attendus;
         }
 
         private LocalDateTime prochainEvenement() {

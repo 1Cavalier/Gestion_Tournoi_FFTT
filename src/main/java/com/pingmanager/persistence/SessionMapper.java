@@ -191,6 +191,16 @@ final class SessionMapper {
         if (p.getPoidsTableauCommence() != 0.0) {
             o.set("poidsTableauCommence", p.getPoidsTableauCommence());
         }
+        // Stratégies réelles (B025) : écrites seulement si elles servent.
+        if (p.getPoidsProfondeur() != 0.0) {
+            o.set("poidsProfondeur", p.getPoidsProfondeur());
+        }
+        if (p.isTourParTour()) {
+            o.set("tourParTour", true);
+        }
+        if (p.isFinalesEnFinDeJournee()) {
+            o.set("finalesEnFinDeJournee", true);
+        }
         return o;
     }
 
@@ -205,6 +215,9 @@ final class SessionMapper {
         p.setPointsParMinuteAttente(o.getDouble("pointsParMinuteAttente", 1.0));
         // B025 : absent des anciennes sessions → critère inactif.
         p.setPoidsTableauCommence(o.getDouble("poidsTableauCommence", 0.0));
+        p.setPoidsProfondeur(o.getDouble("poidsProfondeur", 0.0));
+        p.setTourParTour(o.getBoolean("tourParTour", false));
+        p.setFinalesEnFinDeJournee(o.getBoolean("finalesEnFinDeJournee", false));
         return p;
     }
 }

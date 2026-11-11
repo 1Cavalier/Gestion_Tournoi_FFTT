@@ -44,6 +44,16 @@ public final class PoidsOrdonnancement {
     private double poidsProfondeur = 0.0;
 
     /**
+     * Finales en fin de journée (stratégie « petit à petit ») : la finale (et la
+     * petite finale) d'un tableau n'est proposée que lorsque tous les autres
+     * matchs de la journée sont finis, tous tableaux confondus, et que tous les
+     * tableaux du jour ont commencé. Les finales se jouent ainsi ensemble, en
+     * fin de journée. Faux par défaut : chaque tableau joue sa finale dès qu'elle
+     * est prête, à son propre horaire.
+     */
+    private boolean finalesEnFinDeJournee = false;
+
+    /**
      * Traduit la stratégie choisie par le club en poids de l'ordonnanceur.
      *
      * <ul>
@@ -67,6 +77,8 @@ public final class PoidsOrdonnancement {
             // Vraie conduite par vagues : un tour ne démarre qu'une fois le
             // précédent fini dans son tableau, même si des tables sont libres.
             p.setTourParTour(true);
+            // Toutes les finales gardées pour la fin de la journée.
+            p.setFinalesEnFinDeJournee(true);
         } else if (strategie == StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES) {
             // 10 points par minute d'ancienneté du tableau contre 0,3 par minute
             // d'attente : l'ordre des tableaux prime presque toujours ; à
@@ -120,6 +132,14 @@ public final class PoidsOrdonnancement {
 
     public void setTourParTour(boolean tourParTour) {
         this.tourParTour = tourParTour;
+    }
+
+    public boolean isFinalesEnFinDeJournee() {
+        return finalesEnFinDeJournee;
+    }
+
+    public void setFinalesEnFinDeJournee(boolean finalesEnFinDeJournee) {
+        this.finalesEnFinDeJournee = finalesEnFinDeJournee;
     }
 
     public double getPoidsProfondeur() {

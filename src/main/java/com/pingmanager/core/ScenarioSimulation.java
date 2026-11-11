@@ -128,6 +128,39 @@ public final class ScenarioSimulation {
         return b.build();
     }
 
+    /**
+     * Découpe le scénario par journée (jour de début des matchs de chaque
+     * tableau), dans l'ordre chronologique. Les journées sont indépendantes :
+     * chacune se simule seule, sans mélanger ses données avec celles des autres.
+     */
+    public java.util.SortedMap<java.time.LocalDate, ScenarioSimulation> parJour() {
+        java.util.SortedMap<java.time.LocalDate, List<TableauSimule>> groupes = new java.util.TreeMap<>();
+        for (TableauSimule t : tableaux) {
+            groupes.computeIfAbsent(t.debut().toLocalDate(), k -> new ArrayList<>()).add(t);
+        }
+        java.util.SortedMap<java.time.LocalDate, ScenarioSimulation> jours = new java.util.TreeMap<>();
+        for (java.util.Map.Entry<java.time.LocalDate, List<TableauSimule>> g : groupes.entrySet()) {
+            Builder b = copieSansTableaux();
+            g.getValue().forEach(b::tableau);
+            jours.put(g.getKey(), b.build());
+        }
+        return jours;
+    }
+
+    /**
+     * Copie où chaque tableau doit être fini à la même heure {@code fin}, le jour
+     * de son début (heure de fin visée, réglable) : remplace les fins théoriques.
+     */
+    public ScenarioSimulation avecFinVisee(LocalTime fin) {
+        Objects.requireNonNull(fin, "fin");
+        Builder b = copieSansTableaux().heureLimite(fin);
+        for (TableauSimule t : tableaux) {
+            b.tableau(new TableauSimule(t.nom(), t.debut(), t.joueurs(), t.format(), t.petiteFinale(),
+                    t.debut().toLocalDate().atTime(fin), t.niveauPoints()));
+        }
+        return b.build();
+    }
+
     /** Copie avec une autre graine (un autre tirage : poules, tableau, résultats, durées). */
     public ScenarioSimulation avecGraine(long autreGraine) {
         Builder b = copie();
@@ -136,10 +169,14 @@ public final class ScenarioSimulation {
     }
 
     private Builder copie() {
-        Builder b = builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
-                .variabilite(variabilite).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes).heureLimite(heureLimite);
+        Builder b = copieSansTableaux();
         tableaux.forEach(b::tableau);
         return b;
+    }
+
+    private Builder copieSansTableaux() {
+        return builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
+                .variabilite(variabilite).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes).heureLimite(heureLimite);
     }
 
     public static Builder builder() {

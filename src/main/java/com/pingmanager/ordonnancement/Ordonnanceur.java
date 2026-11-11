@@ -194,7 +194,8 @@ public final class Ordonnanceur {
         List<MatchOrdonnancable> jouables = new ArrayList<>();
         Map<MatchOrdonnancable, Double> scores = new HashMap<>();
         for (MatchOrdonnancable mo : matchs) {
-            if (estJouable(mo, ctx.occupes) && !(poids.isTourParTour() && ctx.retenuParLeTour(mo))) {
+            if (estJouable(mo, ctx.occupes) && !(poids.isTourParTour() && ctx.retenuParLeTour(mo))
+                    && !(poids.isFinalesEnFinDeJournee() && ctx.finaleRetenue(mo))) {
                 jouables.add(mo);
                 scores.put(mo, score(mo, maintenant, ctx));
             }
@@ -232,6 +233,22 @@ public final class Ordonnanceur {
             joueursReserves.add(b);
         }
         return propositions;
+    }
+
+    /** Tableaux du jour qui n'ont pas encore commencé (identifiants), pour « finales en fin de journée ». */
+    private Set<String> tableauxAttendus = Set.of();
+
+    /**
+     * Déclare les tableaux de la journée pas encore commencés (aucun match chargé) :
+     * avec « finales en fin de journée », aucune finale n'est proposée tant qu'il
+     * en reste. Vide par défaut.
+     */
+    public void setTableauxAttendus(java.util.Collection<String> identifiants) {
+        this.tableauxAttendus = identifiants == null ? Set.of() : Set.copyOf(identifiants);
+    }
+
+    public Set<String> getTableauxAttendus() {
+        return tableauxAttendus;
     }
 
     /** Index, dans les tables libres (croissantes), de la meilleure table pour ce tableau, ou -1. */
@@ -666,6 +683,53 @@ public final class Ordonnanceur {
         /** Tour le moins avancé encore à finir, par tableau (poules : -1), calculé à la demande. */
         private Map<String, Integer> tourMinimalRestant;
         private final Map<Match, Integer> memoProfondeur = new IdentityHashMap<>();
+
+        /** Tour de la finale de chaque tableau (le plus avancé de son tableau final), calculé à la demande. */
+        private Map<String, Integer> tourDeLaFinale;
+        /** Vrai s'il reste, tous tableaux confondus, un match à jouer qui n'est pas une finale. */
+        private Boolean resteAutreChoseQueDesFinales;
+
+        /** Vrai si ce match est une finale (ou une petite finale) de son tableau final. */
+        boolean estFinale(MatchOrdonnancable mo) {
+            if (mo.getPhase() == PhaseMatch.POULE) {
+                return false;
+            }
+            if (tourDeLaFinale == null) {
+                tourDeLaFinale = new HashMap<>();
+                for (MatchOrdonnancable x : matchs) {
+                    if (x.getPhase() != PhaseMatch.POULE) {
+                        tourDeLaFinale.merge(x.getIdentifiantTableau(),
+                                profondeur(x.getMatch(), memoProfondeur), Math::max);
+                    }
+                }
+            }
+            Integer f = tourDeLaFinale.get(mo.getIdentifiantTableau());
+            return f != null && profondeur(mo.getMatch(), memoProfondeur) == f;
+        }
+
+        /**
+         * Finales en fin de journée : vrai si ce match est une finale et qu'il
+         * reste autre chose à jouer dans la journée (un autre match, ou un
+         * tableau du jour pas encore commencé).
+         */
+        boolean finaleRetenue(MatchOrdonnancable mo) {
+            if (!estFinale(mo)) {
+                return false;
+            }
+            if (!tableauxAttendus.isEmpty()) {
+                return true;
+            }
+            if (resteAutreChoseQueDesFinales == null) {
+                resteAutreChoseQueDesFinales = false;
+                for (MatchOrdonnancable r : restants) {
+                    if (!estFinale(r)) {
+                        resteAutreChoseQueDesFinales = true;
+                        break;
+                    }
+                }
+            }
+            return resteAutreChoseQueDesFinales;
+        }
 
         /**
          * Tour par tour : vrai si le tableau de ce match a encore des matchs à

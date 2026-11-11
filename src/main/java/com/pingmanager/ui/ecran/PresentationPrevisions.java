@@ -378,7 +378,12 @@ final class PresentationPrevisions {
                 s -> Math.round(s.debutLegerRetard() * 100), s -> pourcent(s.debutLegerRetard())));
         lignes.add(ligne("Début en gros retard (plus de " + StatistiquesSimulation.GROS_RETARD + " min)", stats,
                 s -> Math.round(s.debutGrosRetard() * 100), s -> pourcent(s.debutGrosRetard())));
-        lignes.add(ligne("Fin moyenne", stats, s -> secondes(s.finMoyenne()), s -> dateEtHeure(s.finMoyenne())));
+        lignes.add(ligne("Première finale (en moyenne)", stats, s -> secondes(s.premiereFinale()),
+                s -> dateEtHeure(s.premiereFinale())));
+        lignes.add(ligne("Fin moyenne d'un tableau", stats, s -> secondes(s.finMoyenneTableau()),
+                s -> dateEtHeure(s.finMoyenneTableau())));
+        lignes.add(ligne("Fin de la journée (moyenne)", stats, s -> secondes(s.finMoyenne()),
+                s -> dateEtHeure(s.finMoyenne())));
         lignes.add(ligne("Cas rare : fin tôt (1 fois sur 20)", stats, s -> secondes(s.finTot()),
                 s -> dateEtHeure(s.finTot())));
         lignes.add(ligne("Cas rare : fin tard (1 fois sur 20)", stats, s -> secondes(s.finTard()),
@@ -391,7 +396,7 @@ final class PresentationPrevisions {
                 s -> minutes(Math.round(s.plusLongueAttente()))));
         lignes.add(ligne("Occupation des tables", stats, s -> -Math.round(s.occupationMoyenne() * 100),
                 s -> Math.round(s.occupationMoyenne() * 100) + " %"));
-        lignes.add(ligne("Risque qu'un tableau déborde", stats, s -> Math.round(s.probabiliteDebordement() * 100),
+        lignes.add(ligne("Risque qu'un tableau finisse après l'heure visée", stats, s -> Math.round(s.probabiliteDebordement() * 100),
                 s -> pourcent(s.probabiliteDebordement())));
         return lignes;
     }
@@ -483,6 +488,17 @@ final class PresentationPrevisions {
             }
             sb.append('.');
         }
+        StatistiquesSimulation vagues = trouver(stats, StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT);
+        StatistiquesSimulation tot1 = trouver(stats, StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES);
+        if (vagues != null && tot1 != null && vagues.premiereFinale() != null && tot1.premiereFinale() != null) {
+            sb.append(" Avec « ").append(tot1.strategie().getLibelle()).append(" », chaque tableau joue sa finale "
+                    + "à son heure : la première vers ").append(heure(tot1.premiereFinale(), false))
+                    .append(", un tableau finit en moyenne vers ").append(heure(tot1.finMoyenneTableau(), false))
+                    .append(". Avec « ").append(vagues.strategie().getLibelle())
+                    .append(" », toutes les finales sont gardées pour la fin : de ")
+                    .append(heure(vagues.premiereFinale(), false)).append(" à ")
+                    .append(heure(vagues.finMoyenne(), false)).append('.');
+        }
         if (choisie != null && choisie != tot.strategie() && choisie != attente.strategie()) {
             sb.append(" Votre stratégie « ").append(choisie.getLibelle())
                     .append(" » n'est la meilleure sur aucun de ces deux points.");
@@ -490,9 +506,102 @@ final class PresentationPrevisions {
         return sb.toString();
     }
 
-    /** Colonnes du détail par tableau, en mots simples. */
-    static final List<String> COLONNES_TABLEAUX = List.of("Tableau", "Commence", "Finit en moyenne",
-            "Finit au plus tard (rare)", "Doit finir à", "Attente moyenne", "Dépassement");
+    private static StatistiquesSimulation trouver(List<StatistiquesSimulation> stats, StrategieOrdonnancement s) {
+        return stats.stream().filter(x -> x.strategie() == s).findFirst().orElse(null);
+    }
+
+    /** Ce que montre une stratégie pour un tableau, dans la comparaison côte à côte. */
+    record CelluleTableau(String debut, String fin, String finTard, String attente, String risque,
+                          StatutPastille statut) {
+    }
+
+    /**
+     * Un tableau comparé sous les trois stratégies : une cellule par stratégie
+     * (dans l'ordre reçu) et l'index de celle qui le finit le plus tôt (-1 à égalité).
+     */
+    record TableauCompare(String nom, List<CelluleTableau> cellules, int finitLePlusTot) {
+        TableauCompare {
+            cellules = List.copyOf(cellules);
+        }
+    }
+
+    /** @return chaque tableau, avec les trois stratégies côte à côte. */
+    static List<TableauCompare> tableauxCompares(List<StatistiquesSimulation> stats) {
+        List<TableauCompare> resultat = new ArrayList<>();
+        if (stats.isEmpty()) {
+            return resultat;
+        }
+        List<List<LigneTableauStat>> parStrategie = new ArrayList<>();
+        for (StatistiquesSimulation s : stats) {
+            parStrategie.add(lignesTableaux(s));
+        }
+        for (int k = 0; k < stats.get(0).tableaux().size(); k++) {
+            List<CelluleTableau> cellules = new ArrayList<>();
+            int meilleur = -1;
+            long meilleureFin = Long.MAX_VALUE;
+            boolean egalite = false;
+            for (int i = 0; i < stats.size(); i++) {
+                LigneTableauStat l = parStrategie.get(i).get(k);
+                cellules.add(new CelluleTableau(l.debut(), l.finMoyenne(), l.finTard(), l.attente(), l.risque(),
+                        l.statut()));
+                long fin = secondes(stats.get(i).tableaux().get(k).finMoyenne()) / 60;
+                if (fin < meilleureFin) {
+                    meilleureFin = fin;
+                    meilleur = i;
+                    egalite = false;
+                } else if (fin == meilleureFin) {
+                    egalite = true;
+                }
+            }
+            resultat.add(new TableauCompare(stats.get(0).tableaux().get(k).nom(), cellules, egalite ? -1 : meilleur));
+        }
+        return resultat;
+    }
+
+    // ------------------------------------------------------------------
+    // Heure de fin visée et journées
+    // ------------------------------------------------------------------
+
+    static final String FIN_VISEE_PAR_DEFAUT = "20:00";
+    static final String ERREUR_FIN_VISEE = "Indiquez l'heure de fin visée sous la forme 20:00 (ou 20 h 30).";
+
+    /** @return l'heure saisie (« 20:00 », « 20h30 », « 20 h », vide : 20:00), ou {@code null}. */
+    static java.time.LocalTime lireFinVisee(String saisie) {
+        String s = saisie == null || saisie.isBlank() ? FIN_VISEE_PAR_DEFAUT : saisie.trim().toLowerCase();
+        s = s.replace(" ", "").replace('h', ':');
+        if (s.endsWith(":")) {
+            s = s + "00";
+        }
+        String[] parties = s.split(":");
+        try {
+            int h = Integer.parseInt(parties[0]);
+            int m = parties.length > 1 ? Integer.parseInt(parties[1]) : 0;
+            if (parties.length > 2 || h < 0 || h > 23 || m < 0 || m > 59) {
+                return null;
+            }
+            return java.time.LocalTime.of(h, m);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** « 20:00 » : l'heure proposée pour une journée (la fin théorique la plus tardive, sinon 20:00). */
+    static String finViseeProposee(java.util.Collection<LocalDateTime> finsTheoriques) {
+        LocalDateTime max = null;
+        for (LocalDateTime t : finsTheoriques) {
+            if (t != null && (max == null || t.isAfter(max))) {
+                max = t;
+            }
+        }
+        return max == null ? FIN_VISEE_PAR_DEFAUT : String.format("%02d:%02d", max.getHour(), max.getMinute());
+    }
+
+    /** « Samedi 10 avril » : libellé d'une journée. */
+    static String libelleJour(LocalDate jour) {
+        String j = jour.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRENCH);
+        String m = jour.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRENCH);
+        return Character.toUpperCase(j.charAt(0)) + j.substring(1) + " " + jour.getDayOfMonth() + " " + m;
+    }
 
     /**
      * Une ligne par tableau pour une stratégie : début prévu et retard moyen,

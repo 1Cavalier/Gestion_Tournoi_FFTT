@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 459 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 470 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -148,19 +148,23 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   d'abord aux 1ers de poule (décision du 11 novembre 2026).
 - Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
   chronomètre et explication, « Lancer un match », plan de salle, stratégies
-  d'ordonnancement. « Petit à petit » joue vraiment tour par tour (un tour ne
-  démarre qu'une fois le précédent fini) ; « tableaux commencés tôt » fait
-  passer les tours avancés d'abord.
-- Prévisions : le tournoi est rejoué de nombreuses fois (100 tirages par
+  d'ordonnancement. « Tableaux commencés tôt » : chaque tableau avance seul,
+  tours avancés d'abord, et joue sa finale à son heure. « Petit à petit » :
+  tour par tour dans chaque tableau, et toutes les finales gardées pour la fin
+  de la journée (aucune finale tant qu'un autre match ou un tableau du jour
+  reste à jouer). Réglages conservés par la sauvegarde de session.
+- Prévisions : chaque journée est simulée séparément, avec sa propre heure de
+  fin visée (réglable) ; le tournoi est rejoué de nombreuses fois (100 tirages par
   défaut, en parallèle) avec chacune des trois stratégies, sur les mêmes
   tirages ; durée d'un match tirée selon une loi exponentielle entre un
   minimum et un maximum, de moyenne réglable (20 min, de 10 à 50 par défaut).
   Indicateurs : début des tableaux à l'heure / léger retard / gros retard
   (+30 min ; début réel = dernière poule lancée), fin moyenne (jour et heure),
-  cas rares de fin tôt et tard (1 fois sur 20), attente d'un joueur sur
+  première finale, fin moyenne d'un tableau, cas rares de fin tôt et tard
+  (1 fois sur 20), attente d'un joueur sur
   1 tableau et sur 2 tableaux ou plus, plus longue attente, occupation des
-  tables, risque de débordement ; puis le détail par tableau pour chaque
-  stratégie. Avec assez de tables, l'écran dit que le choix de stratégie ne
+  tables, risque de finir après l'heure visée ; puis chaque tableau avec les
+  trois stratégies côte à côte. Avec assez de tables, l'écran dit que le choix de stratégie ne
   change rien. Temps autour du jeu, ajoutés à chaque match (table et joueurs
   occupés) : appel et rappel d'un joueur qui n'a pas entendu, échauffement
   2 min (3.4.3.1), pauses entre manches (3.4.4.1.1), temps morts (3.4.4.2),

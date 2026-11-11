@@ -148,6 +148,16 @@ final class EcranPrevisions {
         TextField pause = champCourt(PresentationPrevisions.PAUSE_SECONDES);
         TextField tempsMort = champCourt(PresentationPrevisions.TEMPS_MORT_POURCENT);
         TextField feuille = champCourt(PresentationPrevisions.FEUILLE);
+        // Une heure de fin visée par journée (les journées sont simulées séparément).
+        java.util.Map<java.time.LocalDate, TextField> finsVisees = new java.util.LinkedHashMap<>();
+        HBox lignesFins = Ui.ligne(16);
+        lignesFins.setAlignment(Pos.BOTTOM_LEFT);
+        for (java.util.Map.Entry<java.time.LocalDate, List<java.time.LocalDateTime>> j : finsTheoriquesParJour().entrySet()) {
+            TextField f = champCourt(PresentationPrevisions.finViseeProposee(j.getValue()));
+            f.setPrefColumnCount(5);
+            finsVisees.put(j.getKey(), f);
+            lignesFins.getChildren().add(Ui.champEtiquete("Fin visée – " + PresentationPrevisions.libelleJour(j.getKey()), f));
+        }
         CheckBox completer = new CheckBox("Compléter les tableaux jusqu'à leurs places maximales (joueurs fictifs)");
         completer.setWrapText(true);
 
@@ -161,8 +171,17 @@ final class EcranPrevisions {
                 Ui.erreur(messageSimulation, annexes.erreur());
                 return;
             }
+            java.util.Map<java.time.LocalDate, java.time.LocalTime> fins = new java.util.HashMap<>();
+            for (java.util.Map.Entry<java.time.LocalDate, TextField> f : finsVisees.entrySet()) {
+                java.time.LocalTime h = PresentationPrevisions.lireFinVisee(f.getValue().getText());
+                if (h == null) {
+                    Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_FIN_VISEE);
+                    return;
+                }
+                fins.put(f.getKey(), h);
+            }
             simuler(lancer, tables.getText(), tirages.getText(), moyenne.getText(), minimum.getText(),
-                    maximum.getText(), graine.getText(), completer.isSelected(), annexes.temps());
+                    maximum.getText(), graine.getText(), completer.isSelected(), annexes.temps(), fins);
         });
 
         HBox reglages = Ui.ligne(16, Ui.champEtiquete("Tables", tables), Ui.champEtiquete("Tirages", tirages),
@@ -191,9 +210,21 @@ final class EcranPrevisions {
         Label avertissement = Ui.aide(PresentationPrevisions.AVERTISSEMENT_STATISTIQUE
                 + " Une même graine redonne exactement les mêmes statistiques.");
         avertissement.setWrapText(true);
-        return Ui.carte("Simuler la journée", reglages, durees, aideDurees, Ui.titreCarte("Temps autour du match"),
+        Label aideFins = Ui.aide("Chaque journée est simulée seule. Un tableau « déborde » s'il finit après "
+                + "l'heure visée de sa journée : changez-la pour voir l'effet sur le risque.");
+        aideFins.setWrapText(true);
+        return Ui.carte("Simuler les journées", reglages, lignesFins, aideFins, durees, aideDurees, Ui.titreCarte("Temps autour du match"),
                 autour1, autour2, aideAutour, completer, avertissement,
                 Ui.actions(lancer), messageSimulation);
+    }
+
+    /** Journées du tournoi (jour de début des matchs) et fins théoriques de leurs tableaux. */
+    private java.util.SortedMap<java.time.LocalDate, List<java.time.LocalDateTime>> finsTheoriquesParJour() {
+        java.util.SortedMap<java.time.LocalDate, List<java.time.LocalDateTime>> jours = new java.util.TreeMap<>();
+        for (ScenarioSimulation.TableauSimule t : SimulateurTournoi.scenarioDepuis(tournoi, 1, 1, false).getTableaux()) {
+            jours.computeIfAbsent(t.debut().toLocalDate(), k -> new ArrayList<>()).add(t.finSouhaitee());
+        }
+        return jours;
     }
 
     private static TextField champCourt(String valeur) {
@@ -212,7 +243,8 @@ final class EcranPrevisions {
 
     private void simuler(Button lancer, String saisieTables, String saisieTirages, String saisieMoyenne,
                          String saisieMinimum, String saisieMaximum, String saisieGraine, boolean completer,
-                         TempsAnnexesMatch annexes) {
+                         TempsAnnexesMatch annexes,
+                         java.util.Map<java.time.LocalDate, java.time.LocalTime> finsVisees) {
         Integer tables = PresentationPrevisions.lireTables(saisieTables);
         if (tables == null) {
             Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_TABLES);
@@ -240,22 +272,32 @@ final class EcranPrevisions {
         base.getTableaux().forEach(b::tableau);
         ScenarioSimulation scenario = b.build();
         StrategieOrdonnancement choisie = tournoi.getStrategieOrdonnancement();
+        // Une journée à la fois, chacune avec son heure de fin visée.
+        java.util.SortedMap<java.time.LocalDate, ScenarioSimulation> jours = new java.util.TreeMap<>();
+        for (java.util.Map.Entry<java.time.LocalDate, ScenarioSimulation> j : scenario.parJour().entrySet()) {
+            java.time.LocalTime fin = finsVisees.getOrDefault(j.getKey(),
+                    PresentationPrevisions.lireFinVisee(PresentationPrevisions.FIN_VISEE_PAR_DEFAUT));
+            jours.put(j.getKey(), j.getValue().avecFinVisee(fin));
+        }
 
         // Plusieurs centaines de tournois rejoués : calcul hors du fil de l'interface.
         lancer.setDisable(true);
-        Ui.succes(messageSimulation, "Simulation en cours (" + tirages + " tirages × 3 stratégies)…");
-        Task<List<StatistiquesSimulation>> calcul = new Task<>() {
+        Ui.succes(messageSimulation, "Simulation en cours (" + jours.size() + " journée(s), " + tirages
+                + " tirages × 3 stratégies)…");
+        Task<java.util.SortedMap<java.time.LocalDate, List<StatistiquesSimulation>>> calcul = new Task<>() {
             @Override
-            protected List<StatistiquesSimulation> call() {
-                return simulateur.comparerToutes(scenario, tirages);
+            protected java.util.SortedMap<java.time.LocalDate, List<StatistiquesSimulation>> call() {
+                java.util.SortedMap<java.time.LocalDate, List<StatistiquesSimulation>> r = new java.util.TreeMap<>();
+                for (java.util.Map.Entry<java.time.LocalDate, ScenarioSimulation> j : jours.entrySet()) {
+                    r.put(j.getKey(), simulateur.comparerToutes(j.getValue(), tirages));
+                }
+                return r;
             }
         };
         calcul.setOnSucceeded(e -> {
             lancer.setDisable(false);
             messageSimulation.setText("");
-            List<StatistiquesSimulation> stats = calcul.getValue();
-            zoneResultat.getChildren().setAll(carteStrategies(stats, choisie, durees.loi()),
-                    carteParTableau(stats, choisie));
+            afficherJournees(calcul.getValue(), choisie, durees.loi());
             Ui.apparition(zoneResultat);
         });
         calcul.setOnFailed(e -> {
@@ -297,61 +339,75 @@ final class EcranPrevisions {
         return Ui.carte(Ui.titreCarte("Comparaison des stratégies"), verdict, grille, synthese, legende);
     }
 
-    /** Détail par tableau, une stratégie à la fois (choix par boutons, celle du club d'abord). */
-    private Node carteParTableau(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
-        VBox detail = new VBox();
-        ToggleGroup groupe = new ToggleGroup();
-        List<ToggleButton> boutons = new ArrayList<>();
-        for (StatistiquesSimulation s : stats) {
-            ToggleButton b = new ToggleButton(s.strategie().getLibelle());
-            b.setUserData(s);
-            boutons.add(b);
+    /** Une journée à la fois (boutons s'il y en a plusieurs) : comparaison, puis tableau par tableau. */
+    private void afficherJournees(java.util.SortedMap<java.time.LocalDate, List<StatistiquesSimulation>> parJour,
+                                  StrategieOrdonnancement choisie, LoiDureeMatch loi) {
+        zoneResultat.getChildren().clear();
+        if (parJour.isEmpty()) {
+            zoneResultat.getChildren().add(Ui.carte(Ui.etatVideCompact("Aucun tableau à simuler.")));
+            return;
         }
-        HBox choix = Ui.segment(groupe, boutons.toArray(new ToggleButton[0]));
-        groupe.selectedToggleProperty().addListener((obs, avant, apres) -> {
-            if (apres == null) {
-                avant.setSelected(true); // toujours une stratégie affichée
-                return;
+        VBox detail = new VBox(16);
+        if (parJour.size() > 1) {
+            ToggleGroup groupe = new ToggleGroup();
+            List<ToggleButton> boutons = new ArrayList<>();
+            for (java.time.LocalDate jour : parJour.keySet()) {
+                ToggleButton b = new ToggleButton(PresentationPrevisions.libelleJour(jour));
+                b.setUserData(jour);
+                boutons.add(b);
             }
-            detail.getChildren().setAll(grilleTableaux((StatistiquesSimulation) apres.getUserData()));
-        });
-        for (ToggleButton b : boutons) {
-            if (((StatistiquesSimulation) b.getUserData()).strategie() == choisie) {
-                b.setSelected(true);
-            }
-        }
-        if (groupe.getSelectedToggle() == null && !boutons.isEmpty()) {
+            groupe.selectedToggleProperty().addListener((obs, avant, apres) -> {
+                if (apres == null) {
+                    avant.setSelected(true); // toujours une journée affichée
+                    return;
+                }
+                List<StatistiquesSimulation> stats = parJour.get((java.time.LocalDate) apres.getUserData());
+                detail.getChildren().setAll(carteStrategies(stats, choisie, loi), carteParTableau(stats, choisie));
+            });
+            zoneResultat.getChildren().addAll(Ui.segment(groupe, boutons.toArray(new ToggleButton[0])), detail);
             boutons.get(0).setSelected(true);
+        } else {
+            List<StatistiquesSimulation> stats = parJour.values().iterator().next();
+            detail.getChildren().setAll(carteStrategies(stats, choisie, loi), carteParTableau(stats, choisie));
+            zoneResultat.getChildren().add(detail);
         }
-        return Ui.carte(Ui.titreCarte("Par tableau"), choix, detail);
     }
 
-    private Node grilleTableaux(StatistiquesSimulation s) {
-        List<PresentationPrevisions.LigneTableauStat> lignes = PresentationPrevisions.lignesTableaux(s);
-        if (lignes.isEmpty()) {
-            return Ui.etatVideCompact("Aucun tableau simulé.");
+    /** Chaque tableau, les trois stratégies côte à côte. */
+    private Node carteParTableau(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
+        List<PresentationPrevisions.TableauCompare> tableaux = PresentationPrevisions.tableauxCompares(stats);
+        if (tableaux.isEmpty()) {
+            return Ui.carte(Ui.titreCarte("Par tableau"), Ui.etatVideCompact("Aucun tableau simulé."));
         }
-        List<String> entetes = PresentationPrevisions.COLONNES_TABLEAUX;
-        GridPane grille = grille(entetes.size());
-        for (int i = 0; i < entetes.size(); i++) {
-            Label e = Ui.enteteColonne(entetes.get(i));
+        GridPane grille = grille(stats.size() + 1);
+        grille.add(Ui.enteteColonne("Tableau"), 0, 0);
+        for (int i = 0; i < stats.size(); i++) {
+            StrategieOrdonnancement s = stats.get(i).strategie();
+            Label e = Ui.enteteColonne(s.getLibelle() + (s == choisie ? " (votre choix)" : ""));
             e.setWrapText(true);
-            grille.add(e, i, 0);
+            grille.add(e, i + 1, 0);
         }
-        for (int k = 0; k < lignes.size(); k++) {
-            PresentationPrevisions.LigneTableauStat l = lignes.get(k);
-            int rang = k + 1;
-            Label nom = Ui.gras(l.nom());
+        for (int k = 0; k < tableaux.size(); k++) {
+            PresentationPrevisions.TableauCompare t = tableaux.get(k);
+            Label nom = Ui.gras(t.nom());
             nom.setWrapText(true);
-            grille.add(nom, 0, rang);
-            grille.add(Ui.texte(l.debut()), 1, rang);
-            grille.add(Ui.texte(l.finMoyenne()), 2, rang);
-            grille.add(Ui.texte(l.finTard()), 3, rang);
-            grille.add(Ui.discret(l.finSouhaitee()), 4, rang);
-            grille.add(Ui.texte(l.attente()), 5, rang);
-            grille.add(Ui.pastille(l.risque(), l.statut()), 6, rang);
+            grille.add(nom, 0, k + 1);
+            for (int i = 0; i < t.cellules().size(); i++) {
+                PresentationPrevisions.CelluleTableau c = t.cellules().get(i);
+                VBox cellule = new VBox(2,
+                        valeur("Finit vers " + c.fin(), t.finitLePlusTot() == i),
+                        Ui.discret("Au plus tard (rare) : " + c.finTard()),
+                        Ui.texte("Commence : " + c.debut()),
+                        Ui.texte("Attente : " + c.attente()),
+                        Ui.pastille("Après l'heure visée : " + c.risque(), c.statut()));
+                grille.add(cellule, i + 1, k + 1);
+            }
         }
-        return grille;
+        Label legende = Ui.aide("En gras : la stratégie qui finit ce tableau le plus tôt. Avec « Avancer les "
+                + "tableaux commencés tôt », chaque tableau joue sa finale à son heure ; avec « Tout faire avancer "
+                + "petit à petit », les finales sont gardées pour la fin de la journée.");
+        legende.setWrapText(true);
+        return Ui.carte(Ui.titreCarte("Par tableau : les trois stratégies côte à côte"), grille, legende);
     }
 
     private static Label valeur(String texte, boolean meilleure) {

@@ -230,8 +230,28 @@ public final class ServiceSalle {
             // B024 : tables et salles réservées, préférences des tableaux (aucune sans plan).
             this.ordonnanceur.setReservations(new ServicePlanSalle().reservations(tournoi));
             recenser();
+            this.ordonnanceur.setTableauxAttendus(tableauxDuJourPasCommences());
             restaurerOccupation();
             poserAttentes();
+        }
+
+        /**
+         * Tableaux du jour (début des matchs aujourd'hui) pas encore lancés : avec la
+         * stratégie « petit à petit », les finales attendent qu'ils soient joués.
+         */
+        private List<String> tableauxDuJourPasCommences() {
+            List<String> attendus = new ArrayList<>();
+            if (maintenant == null) {
+                return attendus;
+            }
+            for (Tableau t : tournoi.getTableaux()) {
+                boolean commence = t.getStatut() == StatutTableau.LANCE || t.getStatut() == StatutTableau.PHASE_FINALE;
+                LocalDateTime debut = t.getHoraires() == null ? null : t.getHoraires().getDebutMatchs();
+                if (!commence && debut != null && debut.toLocalDate().equals(maintenant.toLocalDate())) {
+                    attendus.add(t.getNom());
+                }
+            }
+            return attendus;
         }
 
         private void recenser() {
