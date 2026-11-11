@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 420 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 433 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -56,7 +56,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée (v17 actuellement) et la
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v18 actuellement) et la
   démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone
@@ -112,7 +112,9 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 **Préparation du tournoi**
 - Nouveau tournoi avec calendrier, puis choix imposé : tout préparer dans
   PingManager, ou importer un classeur (tableaux et joueurs).
-- Sections Général, Tableaux (horaires calculés), Sportif, Complémentaire.
+- Sections Général, Tableaux (horaires calculés, par défaut 1 h 30 entre deux
+  tableaux et 2 h entre deux blocs), Sportif, Complémentaire. Plafond de points
+  seul affiché « NC à 1499 » (non classés jusqu'au plafond).
 - Cycle BROUILLON → DEMANDE D'HOMOLOGATION → HOMOLOGUÉ → PUBLIÉ (ou ANNULÉ),
   dossier verrouillé dès la demande, refus avec motif.
 - Règlement généré (aperçu et PDF), figé après publication ; feuille
@@ -136,6 +138,10 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   désinscription, agenda du compte et export .ics.
 
 **Jour J**
+- **Inscription sur place** (bouton « Inscrire sur place… ») : un joueur du
+  tournoi ou un licencié, à un tableau qui n'a pas commencé et qui a une place
+  libre ; pointé et payé à la table. Clause du club (Règles d'inscription) :
+  un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
 - Pointage et repêchage de la liste d'attente, tirage reproductible des
   poules et du tableau final (conforme I.302 à I.305).
 - Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec

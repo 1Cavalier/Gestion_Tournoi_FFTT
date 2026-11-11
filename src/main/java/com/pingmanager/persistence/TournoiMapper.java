@@ -293,6 +293,7 @@ public final class TournoiMapper {
         o.set("tableauBonusJoueuses", q.getTableauBonusJoueuses());
         o.set("tableauBonusObligatoire", q.isTableauBonusObligatoire());
         o.set("tableauxConsecutifsInterdits", q.isTableauxConsecutifsInterdits());
+        o.set("tableauxApresElimination", q.getTableauxApresElimination());
         return o;
     }
 
@@ -315,7 +316,9 @@ public final class TournoiMapper {
         }
         return q.avecTableauBonusJoueuses(bonus)
                 .avecTableauBonusObligatoire(o.getBoolean("tableauBonusObligatoire", false))
-                .avecTableauxConsecutifsInterdits(o.getBoolean("tableauxConsecutifsInterdits", false));
+                .avecTableauxConsecutifsInterdits(o.getBoolean("tableauxConsecutifsInterdits", false))
+                // Absent des fichiers antérieurs au 11/11/2026 : non autorisé.
+                .avecTableauxApresElimination(Math.max(0, o.getInt("tableauxApresElimination", 0)));
     }
 
     static Json ecrireMaintien(com.pingmanager.model.ConditionsMaintien c) {

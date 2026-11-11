@@ -146,8 +146,14 @@ final class EcranJourJ {
                 this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
                 .avecSms(contexte.convocationsSms(), this::afficherSms)
                 .avecAnnoncesVocales(contexte.annoncesVocales())
-                .avecPrononciations(this::afficherPrononciations);
+                .avecPrononciations(this::afficherPrononciations)
+                .avecInscriptionSurPlace(this::afficherInscriptionSurPlace);
         racine.setCenter(principal.build());
+    }
+
+    /** Inscription sur place à un tableau qui n'a pas commencé ; retour à l'écran principal. */
+    private void afficherInscriptionSurPlace() {
+        racine.setCenter(new EcranInscriptionSurPlace(contexte, tournoi, this::enregistrer, this::afficherListe).build());
     }
 
     /** B018 : prononciation des noms des joueurs et des clubs ; retour à l'écran principal. */

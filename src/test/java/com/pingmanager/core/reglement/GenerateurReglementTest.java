@@ -162,7 +162,7 @@ class GenerateurReglementTest {
         DocumentReglement.Grille g = (DocumentReglement.Grille) article(d, "Dotations").blocs().stream()
                 .filter(b -> b instanceof DocumentReglement.Grille).findFirst().orElseThrow();
         assertEquals(List.of("Tableau", "Points", "Vainqueur", "Finaliste", "½ finalistes (chacun)", "Total"), g.entetes());
-        assertEquals(List.of("A", "≤ 600 pts", "60 €", "30 €", "15 €", "120 €"), g.lignes().get(0));
+        assertEquals(List.of("A", "NC à 600", "60 €", "30 €", "15 €", "120 €"), g.lignes().get(0));
         assertEquals(List.of("Dames", "Toutes séries", "100 €", "Coupe", "—", "100 € + lots"), g.lignes().get(1));
     }
 
@@ -172,7 +172,7 @@ class GenerateurReglementTest {
         DocumentReglement.Grille g = (DocumentReglement.Grille) article(d, "Tableaux").blocs().get(1);
         assertEquals(List.of("Tableau", "Jour", "Fin du pointage", "Début", "Points", "Joueurs admis", "Places",
                 "Tarif d'inscription*"), g.entetes());
-        assertEquals(List.of("A", "Samedi 17 avril", "8h", "8h30", "≤ 600 pts", "Tous", "60", "9 €"), g.lignes().get(0));
+        assertEquals(List.of("A", "Samedi 17 avril", "8h", "8h30", "NC à 600", "Tous", "60", "9 €"), g.lignes().get(0));
         assertEquals(List.of("Dames", "Dimanche 18 avril", "14h30", "15h", "Toutes séries", "Dames", "48", "9 €"),
                 g.lignes().get(1));
         assertTrue(g.note().startsWith("* Tarif de l'inscription en ligne ; voir les modalités à l'article 8 « Droits "

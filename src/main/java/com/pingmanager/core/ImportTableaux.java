@@ -30,13 +30,13 @@ public final class ImportTableaux {
     public record Definition(int ligne, String nom, Integer pointsMin, Integer pointsMax, Sexe sexe,
                              LocalDate jour, LocalTime heure, Integer places, Integer attente, Double tarif) {
 
-        /** « 500 à 899 pts », « ≤ 1299 pts », « Toutes séries ». */
+        /** « 500 à 899 pts », « NC à 1299 », « Toutes séries ». */
         public String libellePoints() {
             if (pointsMin == null && pointsMax == null) {
                 return "Toutes séries";
             }
             if (pointsMin == null) {
-                return "≤ " + pointsMax + " pts";
+                return "NC à " + pointsMax;
             }
             return pointsMax == null ? "≥ " + pointsMin + " pts" : pointsMin + " à " + pointsMax + " pts";
         }

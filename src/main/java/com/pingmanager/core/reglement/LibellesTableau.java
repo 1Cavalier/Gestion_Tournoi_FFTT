@@ -17,13 +17,16 @@ public final class LibellesTableau {
     private LibellesTableau() {
     }
 
-    /** « 500 à 899 pts », « ≤ 1299 pts », « Toutes séries (hors n° 1 à 1000) ». */
+    /**
+     * « 500 à 899 pts », « NC à 1299 » (plafond seul : des non classés à ce plafond),
+     * « Toutes séries (hors n° 1 à 1000) ».
+     */
     public static String points(ConfigurationTableau c) {
         String base;
         if (c.getModeLimite() == ModeLimiteClassement.TRANCHE) {
             base = c.getPointsMin() + " à " + c.getPointsMax() + " pts";
         } else if (c.getModeLimite() == ModeLimiteClassement.POINT_MAX) {
-            base = "≤ " + c.getPointsMax() + " pts";
+            base = "NC à " + c.getPointsMax();
         } else {
             base = "Toutes séries";
         }

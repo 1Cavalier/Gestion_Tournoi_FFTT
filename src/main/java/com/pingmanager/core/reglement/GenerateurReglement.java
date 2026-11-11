@@ -377,6 +377,14 @@ public final class GenerateurReglement {
             blocs.add(p("Un joueur ou une joueuse ne peut pas s'inscrire à deux tableaux qui se suivent dans "
                     + "la journée."));
         }
+        if (q.isInscriptionApresEliminationAutorisee()) {
+            int n = q.getTableauxApresElimination();
+            String combien = n == 1 ? "à un tableau supplémentaire" : "à " + n + " tableaux supplémentaires au plus";
+            blocs.add(p("Un joueur ou une joueuse éliminé d'un tableau peut s'inscrire sur place, le jour même, "
+                    + combien + (q.aLimite() ? ", au-delà de cette limite," : "")
+                    + " parmi ceux qui n'ont pas encore commencé et dans la limite des places disponibles. "
+                    + "L'engagement se règle à la table du juge-arbitre, au tarif sur place."));
+        }
         if (note && !obligationEcrite) {
             String quand = feminin.getHoraires() == null || feminin.getHoraires().getJour() == null ? "le jour où il est joué"
                     : "le " + Formats.jourLong(feminin.getHoraires().getJour()).replaceFirst(" \\d{4}$", "");

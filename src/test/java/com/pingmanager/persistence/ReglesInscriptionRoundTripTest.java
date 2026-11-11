@@ -45,7 +45,8 @@ class ReglesInscriptionRoundTripTest {
         t.setPhasePoints(PhasePoints.DEUXIEME);
         t.setQuotasTableaux(QuotasTableaux.parJour(Map.of(
                 SAM, new QuotasTableaux.Quota(2, 3), DIM, new QuotasTableaux.Quota(1, null)))
-                .avecTableauBonusJoueuses("Toutes séries dames"));
+                .avecTableauBonusJoueuses("Toutes séries dames")
+                .avecTableauxApresElimination(1));
         t.setConditionsMaintien(new ConditionsMaintien(8, LocalDate.of(2027, 4, 15),
                 ConditionsMaintien.ModeReduction.ABSENTS, 0, 5, 10));
         t.setPolitiqueForfaits(new PolitiqueForfaits(Map.of(
@@ -64,6 +65,7 @@ class ReglesInscriptionRoundTripTest {
         assertEquals("Toutes séries dames", r.getQuotasTableaux().getTableauBonusJoueuses());
         assertEquals(new QuotasTableaux.Quota(2, 3), r.getQuotasTableaux().pour(SAM));
         assertEquals(new QuotasTableaux.Quota(1, null), r.getQuotasTableaux().pour(DIM));
+        assertEquals(1, r.getQuotasTableaux().getTableauxApresElimination());
         ConditionsMaintien m = r.getConditionsMaintien();
         assertEquals(8, m.getMinimumInscrits());
         assertEquals(LocalDate.of(2027, 4, 15), m.getDateDecision());
@@ -87,10 +89,28 @@ class ReglesInscriptionRoundTripTest {
         Tournoi r = relu(tournoi());
         assertNull(r.getPhasePoints());
         assertFalse(r.getQuotasTableaux().aLimite());
+        assertEquals(0, r.getQuotasTableaux().getTableauxApresElimination(), "non autorisé par défaut");
         assertEquals(0, r.getConditionsMaintien().getMinimumInscrits());
         assertFalse(r.getPolitiqueForfaits().estComplete());
         assertFalse(r.getPaiement().estPret());
         assertEquals(List.of(ArticleOptionnel.Type.DROIT_IMAGE),
                 r.getOptionsReglement().getArticles().stream().map(ArticleOptionnel::type).toList());
+    }
+
+    @Test
+    void fichier_anterieur_sans_la_clause_apres_elimination() {
+        com.pingmanager.persistence.json.Json o = TournoiMapper.ecrireQuotas(
+                QuotasTableaux.identiques(2, 3).avecTableauxApresElimination(2));
+        assertEquals(2, TournoiMapper.lireQuotas(o).getTableauxApresElimination());
+        com.pingmanager.persistence.json.Json ancien = com.pingmanager.persistence.json.Json.objet();
+        o.entrees().forEach((k, v) -> {
+            if (!k.equals("tableauxApresElimination")) {
+                ancien.set(k, v);
+            }
+        });
+        QuotasTableaux q = TournoiMapper.lireQuotas(ancien);
+        assertEquals(0, q.getTableauxApresElimination());
+        assertFalse(q.isInscriptionApresEliminationAutorisee());
+        assertEquals(new QuotasTableaux.Quota(2, 3), q.getTousLesJours());
     }
 }

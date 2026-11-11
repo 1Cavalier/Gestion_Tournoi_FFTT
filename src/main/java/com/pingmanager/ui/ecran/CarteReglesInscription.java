@@ -63,6 +63,9 @@ final class CarteReglesInscription {
     private final CheckBox bonusObligatoire =
             new CheckBox("Obligatoire : le jour où il est joué, une joueuse doit s'inscrire à ce tableau");
     private final CheckBox consecutifs = new CheckBox("Interdire deux tableaux qui se suivent dans la journée");
+    private final CheckBox apresElimination = new CheckBox("Après une élimination, autoriser l'inscription sur place "
+            + "à un tableau qui n'a pas encore commencé");
+    private final TextField tableauxApresElimination = court("1");
 
     // Maintien
     private final TextField minimum = court("—");
@@ -214,11 +217,21 @@ final class CarteReglesInscription {
         consecutifs.setSelected(q.isTableauxConsecutifsInterdits());
         VBox blocConsecutifs = new VBox(4, consecutifs, Ui.note("Un joueur inscrit à un tableau ne peut pas "
                 + "prendre celui qui le précède ou le suit le même jour. Contrôlé à l'inscription."));
+        apresElimination.setWrapText(true);
+        apresElimination.setSelected(q.isInscriptionApresEliminationAutorisee());
+        tableauxApresElimination.setText(String.valueOf(Math.max(1, q.getTableauxApresElimination())));
+        tableauxApresElimination.disableProperty().bind(apresElimination.selectedProperty().not());
+        VBox blocElimination = new VBox(4, apresElimination,
+                Ui.ligne(8, Ui.discret("Tableaux supplémentaires au plus, le même jour :"), tableauxApresElimination),
+                Ui.note("Clause du club : un joueur éliminé d'un tableau peut en prendre un autre, au-delà de sa "
+                        + "limite du jour, s'il n'a pas commencé et qu'il reste des places. Inscription au jour J, "
+                        + "dans « Inscrire sur place »."));
         // Aperçu du texte de l'article, recalculé à chaque changement d'option.
         apercu.getStyleClass().add("encart-regles");
         java.util.List<javafx.beans.Observable> sources = new ArrayList<>(List.of(joueurs.textProperty(),
                 joueuses.textProperty(), varie.selectedProperty(), tableauBonus.valueProperty(),
-                bonusObligatoire.selectedProperty(), consecutifs.selectedProperty()));
+                bonusObligatoire.selectedProperty(), consecutifs.selectedProperty(),
+                apresElimination.selectedProperty(), tableauxApresElimination.textProperty()));
         parJour.values().forEach(c -> {
             sources.add(c[0].textProperty());
             sources.add(c[1].textProperty());
@@ -231,7 +244,7 @@ final class CarteReglesInscription {
                         + "si elles prennent le tableau dames."),
                 identiques, varie,
                 jours.size() < 2 ? Ui.discret("Tournoi sur un seul jour : un seul réglage.") : lignesJours,
-                blocBonus, blocConsecutifs,
+                blocBonus, blocConsecutifs, blocElimination,
                 Ui.gras("Ce que dira le règlement"), apercu);
     }
 
@@ -275,7 +288,8 @@ final class CarteReglesInscription {
             }
             return base.avecTableauBonusJoueuses(bonus())
                     .avecTableauBonusObligatoire(bonusObligatoire.isSelected())
-                    .avecTableauxConsecutifsInterdits(consecutifs.isSelected());
+                    .avecTableauxConsecutifsInterdits(consecutifs.isSelected())
+                    .avecTableauxApresElimination(apresEliminationLu(false));
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -301,7 +315,32 @@ final class CarteReglesInscription {
     private QuotasTableaux lireQuotas() {
         return lireLimites()
                 .avecTableauBonusObligatoire(bonusObligatoire.isSelected())
-                .avecTableauxConsecutifsInterdits(consecutifs.isSelected());
+                .avecTableauxConsecutifsInterdits(consecutifs.isSelected())
+                .avecTableauxApresElimination(apresEliminationLu(true));
+    }
+
+    /**
+     * Nombre de tableaux après élimination : 0 si la case n'est pas cochée, sinon au moins 1.
+     *
+     * @param signaler marquer le champ en erreur si la saisie est invalide
+     */
+    private int apresEliminationLu(boolean signaler) {
+        if (!apresElimination.isSelected()) {
+            return 0;
+        }
+        Integer n;
+        try {
+            n = lu(tableauxApresElimination);
+        } catch (IllegalArgumentException e) {
+            n = null;
+        }
+        if (n == null || n < 1 || n > 5) {
+            if (signaler) {
+                Ui.marquerErreur(tableauxApresElimination);
+            }
+            throw new IllegalArgumentException("Tableaux après élimination : un nombre entre 1 et 5.");
+        }
+        return n;
     }
 
     private QuotasTableaux lireLimites() {

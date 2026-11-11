@@ -88,24 +88,26 @@ public final class TournoiDemoBrunoy {
 
         // --- Tableaux (règlement du club, article 4) ---
         // Une lettre par tableau, dans l'ordre du planning :
-        // samedi A ≤ 600, B ≤ 1500, C ≤ 900, D ≤ 1800, E ≤ 1200, F ≤ 2000, G – Toutes séries dames (en dernier) ;
-        // dimanche H ≤ 800, I ≤ 1600, J ≤ 1000, K ≤ 1900, L ≤ 1300, M – Non numérotés (hors n° 1 à 999).
+        // Plafonds en xx99, affichés « NC à 599 » (non classés jusqu'au plafond), décision du 11/11/2026 :
+        // samedi A NC-599, B NC-1499, C NC-899, D NC-1799, E NC-1199, F NC-1999, G – Toutes séries dames
+        // (en dernier) ; dimanche H NC-799, I NC-1599, J NC-999, K NC-1899, L NC-1299, M – Non numérotés
+        // (hors n° 1 à 999).
         // Ordre et horaires : ordonnancement automatique (un tableau sur deux par jour, faible /
-        // moyen alternés, dames en dernier), écarts 1 h puis 1 h 30, à partir de 8 h 30 :
-        // 8 h 30, 9 h 30, 11 h, 12 h, 13 h 30, 14 h 30, 16 h. Fin du pointage 30 min avant.
+        // moyen alternés, dames en dernier), 1 h 30 entre deux tableaux et 2 h entre deux blocs, à
+        // partir de 8 h 30 : 8 h 30, 10 h, 12 h, 13 h 30, 15 h 30, 17 h, 19 h. Fin du pointage 30 min avant.
         // Dotation : vainqueur, finaliste, chaque ½ finaliste, chaque ¼ de finaliste.
-        t.ajouterTableau(points("A", 600, gr(60, 30, 15, 10)));
-        t.ajouterTableau(points("H", 800, gr(70, 35, 20, 10)));
-        t.ajouterTableau(points("C", 900, gr(70, 35, 20, 10)));
-        t.ajouterTableau(points("J", 1000, gr(80, 40, 20, 10)));
-        t.ajouterTableau(points("E", 1200, gr(90, 45, 25, 15)));
-        t.ajouterTableau(points("L", 1300, gr(100, 50, 25, 15)));
-        t.ajouterTableau(points("B", 1500, gr(110, 55, 30, 15)));
-        t.ajouterTableau(points("I", 1600, gr(120, 60, 30, 15)));
-        t.ajouterTableau(points("D", 1800, gr(130, 65, 35, 20)));
-        // Tableaux ≤ 1900, ≤ 2000 et Non numérotés : 10 € en ligne (9 € pour les autres).
-        t.ajouterTableau(tableau("K", base(60).pointMax(1900).tarif(DIX_EUROS), gr(140, 70, 35, 20)));
-        t.ajouterTableau(tableau("F", base(60).pointMax(2000).tarif(DIX_EUROS), gr(150, 75, 40, 20)));
+        t.ajouterTableau(points("A", 599, gr(60, 30, 15, 10)));
+        t.ajouterTableau(points("H", 799, gr(70, 35, 20, 10)));
+        t.ajouterTableau(points("C", 899, gr(70, 35, 20, 10)));
+        t.ajouterTableau(points("J", 999, gr(80, 40, 20, 10)));
+        t.ajouterTableau(points("E", 1199, gr(90, 45, 25, 15)));
+        t.ajouterTableau(points("L", 1299, gr(100, 50, 25, 15)));
+        t.ajouterTableau(points("B", 1499, gr(110, 55, 30, 15)));
+        t.ajouterTableau(points("I", 1599, gr(120, 60, 30, 15)));
+        t.ajouterTableau(points("D", 1799, gr(130, 65, 35, 20)));
+        // Tableaux NC-1899, NC-1999 et Non numérotés : 10 € en ligne (9 € pour les autres).
+        t.ajouterTableau(tableau("K", base(60).pointMax(1899).tarif(DIX_EUROS), gr(140, 70, 35, 20)));
+        t.ajouterTableau(tableau("F", base(60).pointMax(1999).tarif(DIX_EUROS), gr(150, 75, 40, 20)));
         t.ajouterTableau(tableau(NON_NUMEROTES, base(60).toutesSeries().exclusionRangNational(999).tarif(DIX_EUROS),
                 gr(200, 100, 50, 20)));
         // Tableau dames : dotation en part des inscriptions (50 / 30 / 10 / 10 %), pas de ¼ de finale doté.
@@ -114,7 +116,7 @@ public final class TournoiDemoBrunoy {
                         .place(1, Recompense.partInscriptions(50)).place(2, Recompense.partInscriptions(30))
                         .plage(3, 4, Recompense.partInscriptions(10)).build()));
         OrdonnancementTableaux.appliquer(OrdonnancementTableaux.proposer(t.getTableaux(), List.of(SAMEDI, DIMANCHE),
-                        LocalTime.of(8, 30), List.of(Duration.ofMinutes(60), Duration.ofMinutes(90)), true),
+                        LocalTime.of(8, 30), List.of(Duration.ofMinutes(90), Duration.ofMinutes(120)), true),
                 Duration.ofMinutes(30), Duration.ofMinutes(60));
         t.setDotationGlobale(new ServiceCycleTournoi().calculerDotationGlobale(t));
 
@@ -130,13 +132,15 @@ public final class TournoiDemoBrunoy {
 
         // --- Règles d'inscription ---
         // 2 tableaux par jour ; le samedi, 3 pour les joueuses avec le Toutes séries dames, qui leur
-        // est obligatoire ce jour-là. Jamais deux tableaux qui se suivent.
+        // est obligatoire ce jour-là. Jamais deux tableaux qui se suivent. Un joueur éliminé peut
+        // s'inscrire sur place à un tableau de plus, pas encore commencé (décision du 11/11/2026).
         t.setQuotasTableaux(QuotasTableaux.parJour(Map.of(
                         SAMEDI, new QuotasTableaux.Quota(2, 3),
                         DIMANCHE, new QuotasTableaux.Quota(2, 2)))
                 .avecTableauBonusJoueuses(DAMES)
                 .avecTableauBonusObligatoire(true)
-                .avecTableauxConsecutifsInterdits(true));
+                .avecTableauxConsecutifsInterdits(true)
+                .avecTableauxApresElimination(1));
         // Moins de 50 % des places occupées : la dotation peut être réduite (sans taux fixé).
         t.setConditionsMaintien(new ConditionsMaintien(0, null,
                 ConditionsMaintien.ModeReduction.REMPLISSAGE, 50, 0, 0));
