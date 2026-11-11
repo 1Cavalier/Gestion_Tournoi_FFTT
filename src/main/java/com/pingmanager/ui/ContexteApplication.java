@@ -236,7 +236,7 @@ public final class ContexteApplication {
      * v18 (11/11/2026) : National B mis à jour (règlement du 10 novembre, plafonds « NC à xx99 »,
      * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v18";
+    private static final String VERSION_DEMO = ".demo-brunoy-v19";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
