@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -193,7 +194,7 @@ public final class Ordonnanceur {
         List<MatchOrdonnancable> jouables = new ArrayList<>();
         Map<MatchOrdonnancable, Double> scores = new HashMap<>();
         for (MatchOrdonnancable mo : matchs) {
-            if (estJouable(mo, ctx.occupes)) {
+            if (estJouable(mo, ctx.occupes) && !(poids.isTourParTour() && ctx.retenuParLeTour(mo))) {
                 jouables.add(mo);
                 scores.put(mo, score(mo, maintenant, ctx));
             }
@@ -306,7 +307,33 @@ public final class Ordonnanceur {
             score += poids.getPoidsTableauCommence() * minutesTableau;
         }
 
+        // 5) Tours avancés d'abord (B025, stratégie « tableaux commencés tôt »).
+        if (poids.getPoidsProfondeur() != 0.0 && mo.getPhase() != PhaseMatch.POULE) {
+            score += poids.getPoidsProfondeur() * profondeur(mo.getMatch(), new IdentityHashMap<>());
+        }
+
         return score;
+    }
+
+    /**
+     * Tour d'un match du tableau final compté depuis le premier tour (0), d'après
+     * ses matchs sources : un match sans source est au 1er tour, sinon un tour
+     * de plus que sa source la plus avancée.
+     */
+    static int profondeur(Match m, Map<Match, Integer> memo) {
+        Integer connu = memo.get(m);
+        if (connu != null) {
+            return connu;
+        }
+        int p = 0;
+        if (m.getSourceA() != null) {
+            p = Math.max(p, 1 + profondeur(m.getSourceA(), memo));
+        }
+        if (m.getSourceB() != null) {
+            p = Math.max(p, 1 + profondeur(m.getSourceB(), memo));
+        }
+        memo.put(m, p);
+        return p;
     }
 
     /**
@@ -634,6 +661,29 @@ public final class Ordonnanceur {
             }
             // Le match lui-même figure dans l'union s'il est encore à jouer.
             return restants.contains(mo) ? union - 1 : union;
+        }
+
+        /** Tour le moins avancé encore à finir, par tableau (poules : -1), calculé à la demande. */
+        private Map<String, Integer> tourMinimalRestant;
+        private final Map<Match, Integer> memoProfondeur = new IdentityHashMap<>();
+
+        /**
+         * Tour par tour : vrai si le tableau de ce match a encore des matchs à
+         * finir dans un tour précédent (ou des poules à finir).
+         */
+        boolean retenuParLeTour(MatchOrdonnancable mo) {
+            if (mo.getPhase() == PhaseMatch.POULE) {
+                return false;
+            }
+            if (tourMinimalRestant == null) {
+                tourMinimalRestant = new HashMap<>();
+                for (MatchOrdonnancable r : restants) {
+                    int t = r.getPhase() == PhaseMatch.POULE ? -1 : profondeur(r.getMatch(), memoProfondeur);
+                    tourMinimalRestant.merge(r.getIdentifiantTableau(), t, Math::min);
+                }
+            }
+            Integer min = tourMinimalRestant.get(mo.getIdentifiantTableau());
+            return min != null && min < profondeur(mo.getMatch(), memoProfondeur);
         }
 
         long minutesDepuisDebutTableau(MatchOrdonnancable mo) {
