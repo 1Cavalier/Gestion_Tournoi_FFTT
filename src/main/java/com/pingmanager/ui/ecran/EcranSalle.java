@@ -146,6 +146,8 @@ final class EcranSalle {
     private com.pingmanager.ui.infra.DiffuseurAnnonces voix;
     /** Ouvre l'écran « Prononciation des noms » (B018), ou null. */
     private Runnable ouvrirPrononciations;
+    /** Ouvre l'écran « Inscrire sur place », ou null. */
+    private Runnable ouvrirInscriptionSurPlace;
     /**
      * Annonces non dites (voix indisponible) : zone gardée d'un affichage à
      * l'autre, complétée sans redessiner la page (une saisie de score en cours
@@ -190,6 +192,12 @@ final class EcranSalle {
     EcranSalle avecSms(com.pingmanager.core.ServiceConvocationsSms service, Runnable ouvrirReglages) {
         this.sms = service;
         this.ouvrirSms = ouvrirReglages;
+        return this;
+    }
+
+    /** Branche l'écran « Inscrire sur place » (bouton en tête de page). */
+    EcranSalle avecInscriptionSurPlace(Runnable ouvrir) {
+        this.ouvrirInscriptionSurPlace = ouvrir;
         return this;
     }
 
@@ -450,6 +458,16 @@ final class EcranSalle {
                 ouvrirSms.run();
             });
             actions.getChildren().add(0, boutonSms);
+        }
+        if (ouvrirInscriptionSurPlace != null) {
+            Button surPlace = Ui.boutonSecondaire("Inscrire sur place…");
+            surPlace.setTooltip(new Tooltip("Inscrire un joueur, par exemple éliminé d'un tableau, à un tableau "
+                    + "qui n'a pas encore commencé."));
+            surPlace.setOnAction(e -> {
+                arreterMinuterie();
+                ouvrirInscriptionSurPlace.run();
+            });
+            actions.getChildren().add(0, surPlace);
         }
         HBox haut = Ui.ligne(16, gauche, actions);
         haut.setAlignment(javafx.geometry.Pos.TOP_LEFT);

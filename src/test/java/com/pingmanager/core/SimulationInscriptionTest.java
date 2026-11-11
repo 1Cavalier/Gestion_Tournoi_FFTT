@@ -108,7 +108,7 @@ class SimulationInscriptionTest {
         Joueur j = new Joueur("3", "Z", "Quentin", Sexe.HOMME, "Brunoy", 923);
         var r = service.simuler(to, j, List.of(t(to, "C")));
         assertEquals(Motif.NON_ELIGIBLE, r.get(t(to, "C")).getMotif());
-        assertEquals("Vos 923 points dépassent la limite du tableau (≤ 900 pts)",
+        assertEquals("Vos 923 points dépassent la limite du tableau (NC à 900)",
                 MotifsInscription.texte(r.get(t(to, "C")), to, j, t(to, "C")));
         assertEquals("Tableau réservé aux dames", MotifsInscription.texte(
                 service.simuler(to, j, List.of(t(to, "G"))).get(t(to, "G")), to, j, t(to, "G")));

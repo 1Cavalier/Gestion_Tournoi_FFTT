@@ -15,6 +15,11 @@ import java.util.TreeMap;
  * joueuses inscrites, le même jour, à un tableau précis — en général le tableau
  * Toutes séries dames : {@link #getTableauBonusJoueuses()}. Sans ce tableau, une
  * joueuse est limitée comme un joueur.</p>
+ *
+ * <p><b>Nouveau tableau après élimination</b> (clause d'organisateur) : un joueur
+ * éliminé d'un tableau peut s'inscrire, le même jour, à un tableau qui n'a pas encore
+ * commencé, au-delà de sa limite du jour, dans la limite de
+ * {@link #getTableauxApresElimination()} tableaux supplémentaires (0 = non autorisé).</p>
  */
 public final class QuotasTableaux {
 
@@ -43,19 +48,25 @@ public final class QuotasTableaux {
     private final String tableauBonusJoueuses;
     private final boolean tableauBonusObligatoire;
     private final boolean tableauxConsecutifsInterdits;
+    private final int tableauxApresElimination;
 
     private QuotasTableaux(Quota tousLesJours, Map<LocalDate, Quota> parJour, String tableauBonusJoueuses,
-                           boolean tableauBonusObligatoire, boolean tableauxConsecutifsInterdits) {
+                           boolean tableauBonusObligatoire, boolean tableauxConsecutifsInterdits,
+                           int tableauxApresElimination) {
+        if (tableauxApresElimination < 0) {
+            throw new IllegalArgumentException("Le nombre de tableaux après élimination ne peut pas être négatif.");
+        }
         this.tousLesJours = tousLesJours == null ? SANS_LIMITE : tousLesJours;
         this.parJour = Collections.unmodifiableMap(new TreeMap<>(parJour == null ? Map.of() : parJour));
         this.tableauBonusJoueuses = tableauBonusJoueuses == null || tableauBonusJoueuses.isBlank()
                 ? null : tableauBonusJoueuses.trim();
         this.tableauBonusObligatoire = this.tableauBonusJoueuses != null && tableauBonusObligatoire;
         this.tableauxConsecutifsInterdits = tableauxConsecutifsInterdits;
+        this.tableauxApresElimination = tableauxApresElimination;
     }
 
     private QuotasTableaux(Quota tousLesJours, Map<LocalDate, Quota> parJour) {
-        this(tousLesJours, parJour, null, false, false);
+        this(tousLesJours, parJour, null, false, false, 0);
     }
 
     /**
@@ -64,7 +75,7 @@ public final class QuotasTableaux {
      */
     public QuotasTableaux avecTableauBonusJoueuses(String nomTableau) {
         return new QuotasTableaux(tousLesJours, parJour, nomTableau, tableauBonusObligatoire,
-                tableauxConsecutifsInterdits);
+                tableauxConsecutifsInterdits, tableauxApresElimination);
     }
 
     /**
@@ -74,12 +85,31 @@ public final class QuotasTableaux {
      */
     public QuotasTableaux avecTableauBonusObligatoire(boolean obligatoire) {
         return new QuotasTableaux(tousLesJours, parJour, tableauBonusJoueuses, obligatoire,
-                tableauxConsecutifsInterdits);
+                tableauxConsecutifsInterdits, tableauxApresElimination);
     }
 
     /** @param interdits un joueur ne peut pas s'inscrire à deux tableaux qui se suivent le même jour */
     public QuotasTableaux avecTableauxConsecutifsInterdits(boolean interdits) {
-        return new QuotasTableaux(tousLesJours, parJour, tableauBonusJoueuses, tableauBonusObligatoire, interdits);
+        return new QuotasTableaux(tousLesJours, parJour, tableauBonusJoueuses, tableauBonusObligatoire, interdits,
+                tableauxApresElimination);
+    }
+
+    /**
+     * @param nombre tableaux supplémentaires qu'un joueur éliminé peut prendre le même jour,
+     *               parmi ceux qui n'ont pas commencé ({@code 0} = non autorisé)
+     */
+    public QuotasTableaux avecTableauxApresElimination(int nombre) {
+        return new QuotasTableaux(tousLesJours, parJour, tableauBonusJoueuses, tableauBonusObligatoire,
+                tableauxConsecutifsInterdits, nombre);
+    }
+
+    /** @return tableaux supplémentaires autorisés après une élimination ({@code 0} = non autorisé). */
+    public int getTableauxApresElimination() {
+        return tableauxApresElimination;
+    }
+
+    public boolean isInscriptionApresEliminationAutorisee() {
+        return tableauxApresElimination > 0;
     }
 
     public boolean isTableauBonusObligatoire() {
@@ -151,8 +181,8 @@ public final class QuotasTableaux {
         return tousLesJours.aLimite() || parJour.values().stream().anyMatch(Quota::aLimite);
     }
 
-    /** @return vrai si une règle d'inscription est définie (limite, obligation ou consécutifs). */
+    /** @return vrai si une règle d'inscription est définie (limite, obligation, consécutifs, après élimination). */
     public boolean aUneRegle() {
-        return aLimite() || tableauBonusObligatoire || tableauxConsecutifsInterdits;
+        return aLimite() || tableauBonusObligatoire || tableauxConsecutifsInterdits || tableauxApresElimination > 0;
     }
 }

@@ -76,14 +76,14 @@ class TournoiDemoBrunoyTest {
     }
 
     @Test
-    void treize_tableaux_horaires_ecarts_1h_puis_1h30() {
+    void treize_tableaux_horaires_1h30_entre_tableaux_et_2h_entre_blocs() {
         Tournoi t = TournoiDemoBrunoy.construire();
         assertEquals(13, t.getTableaux().size());
         DocumentReglement d = new GenerateurReglement().generer(t);
         DocumentReglement.Grille g = grille(d, "Tableaux");
         assertEquals(List.of("Tableau", "Jour", "Fin du pointage", "Début", "Points", "Joueurs admis", "Places",
                 "Tarif d'inscription*"), g.entetes());
-        // Tarif en ligne : 10 € pour F (≤ 2000), K (≤ 1900) et M (Non numérotés), 9 € ailleurs.
+        // Tarif en ligne : 10 € pour F (NC à 1999), K (NC à 1899) et M (Non numérotés), 9 € ailleurs.
         assertEquals(List.of("9 €", "9 €", "9 €", "9 €", "9 €", "10 €", "9 €", "9 €", "9 €", "9 €", "10 €", "9 €", "10 €"),
                 g.lignes().stream().map(l -> l.get(7)).toList());
         assertTrue(g.note().startsWith("* Tarif de l'inscription en ligne ; voir les modalités à l'article 8 « Droits "
@@ -91,22 +91,22 @@ class TournoiDemoBrunoyTest {
         assertTrue(texte(d).contains("L'inscription coûte 9 € en ligne et 10 € sur place par tableau ; pour les tableaux "
                 + "F, K et M – Non numérotés, elle coûte 10 €, en ligne comme sur place."), texte(d));
         assertEquals(List.of(
-                        "A|Samedi 10 avril|8h|8h30", "B|Samedi 10 avril|9h|9h30",
-                        "C|Samedi 10 avril|10h30|11h", "D|Samedi 10 avril|11h30|12h",
-                        "E|Samedi 10 avril|13h|13h30", "F|Samedi 10 avril|14h|14h30",
-                        "G – Toutes séries dames|Samedi 10 avril|15h30|16h",
-                        "H|Dimanche 11 avril|8h|8h30", "I|Dimanche 11 avril|9h|9h30",
-                        "J|Dimanche 11 avril|10h30|11h", "K|Dimanche 11 avril|11h30|12h",
-                        "L|Dimanche 11 avril|13h|13h30", "M – Non numérotés|Dimanche 11 avril|14h|14h30"),
+                        "A|Samedi 10 avril|8h|8h30", "B|Samedi 10 avril|9h30|10h",
+                        "C|Samedi 10 avril|11h30|12h", "D|Samedi 10 avril|13h|13h30",
+                        "E|Samedi 10 avril|15h|15h30", "F|Samedi 10 avril|16h30|17h",
+                        "G – Toutes séries dames|Samedi 10 avril|18h30|19h",
+                        "H|Dimanche 11 avril|8h|8h30", "I|Dimanche 11 avril|9h30|10h",
+                        "J|Dimanche 11 avril|11h30|12h", "K|Dimanche 11 avril|13h|13h30",
+                        "L|Dimanche 11 avril|15h|15h30", "M – Non numérotés|Dimanche 11 avril|16h30|17h"),
                 g.lignes().stream().map(l -> String.join("|", l.subList(0, 4))).toList());
-        assertEquals(List.of("A", "Samedi 10 avril", "8h", "8h30", "≤ 600 pts", "Tous", "60", "9 €"), g.lignes().get(0));
-        assertEquals(List.of("G – Toutes séries dames", "Samedi 10 avril", "15h30", "16h", "Toutes séries", "Dames", "48",
+        assertEquals(List.of("A", "Samedi 10 avril", "8h", "8h30", "NC à 599", "Tous", "60", "9 €"), g.lignes().get(0));
+        assertEquals(List.of("G – Toutes séries dames", "Samedi 10 avril", "18h30", "19h", "Toutes séries", "Dames", "48",
                 "9 €"), g.lignes().get(6));
-        assertEquals(List.of("M – Non numérotés", "Dimanche 11 avril", "14h", "14h30", "Toutes séries (hors n° 1 à 999)",
+        assertEquals(List.of("M – Non numérotés", "Dimanche 11 avril", "16h30", "17h", "Toutes séries (hors n° 1 à 999)",
                 "Tous", "60", "10 €"), g.lignes().get(12));
         Tableau dames = t.getTableaux().stream()
                 .filter(x -> x.getConfiguration().getSexeRequis() == Sexe.FEMME).findFirst().orElseThrow();
-        assertEquals(LocalTime.of(16, 0), dames.getHoraires().getDebutMatchs().toLocalTime());
+        assertEquals(LocalTime.of(19, 0), dames.getHoraires().getDebutMatchs().toLocalTime());
     }
 
     @Test
@@ -147,6 +147,9 @@ class TournoiDemoBrunoyTest {
                 + "« G – Toutes séries dames » : ce tableau imposé s'ajoute à ses 2 tableaux au choix, soit 3 tableaux au "
                 + "maximum.\n"
                 + "Un joueur ou une joueuse ne peut pas s'inscrire à deux tableaux qui se suivent dans la journée.\n"
+                + "Un joueur ou une joueuse éliminé d'un tableau peut s'inscrire sur place, le jour même, à un tableau "
+                + "supplémentaire, au-delà de cette limite, parmi ceux qui n'ont pas encore commencé et dans la limite "
+                + "des places disponibles. L'engagement se règle à la table du juge-arbitre, au tarif sur place.\n"
                 + "Déroulement"), txt);
         assertTrue(txt.contains("9 € en ligne et 10 € sur place"));
         assertTrue(txt.contains("en ligne sur https://www.helloasso.com/"), txt);

@@ -208,6 +208,22 @@ public final class ServiceInscription {
         //    à défaut, ancienne règle unique avec exception féminine.
         QuotasTableaux quotas = tournoi.getQuotasTableaux();
         LocalDate jour = jourDe(tableauCible);
+
+        // Clause d'organisateur : un joueur éliminé d'un tableau du jour peut prendre jusqu'à
+        // N tableaux de plus, parmi ceux qui n'ont pas commencé. Les tableaux dont il est
+        // éliminé ne comptent plus pour la règle des tableaux qui se suivent.
+        List<Tableau> elimine = new ArrayList<>();
+        if (quotas.isInscriptionApresEliminationAutorisee() && jour != null
+                && EliminationTableau.nAPasCommence(tableauCible)) {
+            for (Tableau t : dejaInscrit) {
+                if (jour.equals(jourDe(t)) && EliminationTableau.estElimine(t, joueur)) {
+                    elimine.add(t);
+                }
+            }
+        }
+        int bonusElimination = elimine.isEmpty() ? 0 : quotas.getTableauxApresElimination();
+        List<Tableau> enLice = new ArrayList<>(dejaInscrit);
+        enLice.removeAll(elimine);
         if (quotas.aLimite() && jour != null) {
             List<Tableau> memeJour = new ArrayList<>();
             for (Tableau t : dejaInscrit) {
@@ -219,7 +235,7 @@ public final class ServiceInscription {
             boolean auTableauBonus = bonus != null && (bonus.equals(tableauCible.getNom())
                     || memeJour.stream().anyMatch(t -> bonus.equals(t.getNom())));
             Integer max = quotas.limite(jour, joueur.getSexe(), auTableauBonus);
-            if (max != null && memeJour.size() + 1 > max) {
+            if (max != null && memeJour.size() + 1 > max + bonusElimination) {
                 return ResultatInscriptionTournoi.quotaTableauxAtteint();
             }
         }
@@ -237,7 +253,7 @@ public final class ServiceInscription {
 
         // 2 ter) Pas deux tableaux qui se suivent le même jour (règle du tournoi).
         if (jour != null && quotas.isTableauxConsecutifsInterdits()) {
-            Tableau voisin = voisinInscrit(tournoi, tableauCible, jour, dejaInscrit);
+            Tableau voisin = voisinInscrit(tournoi, tableauCible, jour, enLice);
             if (voisin != null) {
                 return ResultatInscriptionTournoi.tableauxSuccessifs(voisin);
             }
@@ -248,14 +264,14 @@ public final class ServiceInscription {
             boolean inscritTableauSpecial = estInscritAuTableauSpecial(regle, dejaInscrit, tableauCible);
             int max = regle.maxPour(joueur, inscritTableauSpecial);
             // dejaInscrit.size() tableaux déjà pris ; en ajouter un dépasserait-il le quota ?
-            if (dejaInscrit.size() + 1 > max) {
+            if (dejaInscrit.size() + 1 > (long) max + bonusElimination) {
                 return ResultatInscriptionTournoi.quotaTableauxAtteint();
             }
         }
 
         // 3) Règle « pas deux tableaux qui se suivent ».
         ValidationInscription.ResultatValidation succ =
-                validationTableauxSuccessifs.verifier(joueur, tableauCible, dejaInscrit);
+                validationTableauxSuccessifs.verifier(joueur, tableauCible, enLice);
         if (!succ.estAutorise()) {
             return ResultatInscriptionTournoi.tableauxSuccessifs(succ.getTableauEnConflit());
         }

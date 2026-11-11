@@ -233,8 +233,10 @@ public final class ContexteApplication {
      * v17 (09/11/2026) : le National B revient à son état réel (brouillon, sans n°
      * d'homologation ni inscrit, règlement du club du 9 novembre) ; seule sa copie au jour J
      * garde un faux numéro et des personnes fictives.
+     * v18 (11/11/2026) : National B mis à jour (règlement du 10 novembre, plafonds « NC à xx99 »,
+     * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v17";
+    private static final String VERSION_DEMO = ".demo-brunoy-v18";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
