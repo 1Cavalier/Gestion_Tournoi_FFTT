@@ -15,6 +15,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -213,9 +214,8 @@ final class EcranPrevisions {
             lancer.setDisable(false);
             messageSimulation.setText("");
             List<StatistiquesSimulation> stats = calcul.getValue();
-            zoneResultat.getChildren().setAll(carteStrategies(stats, choisie, durees.loi()));
-            stats.stream().filter(s -> s.strategie() == choisie).findFirst()
-                    .ifPresent(s -> zoneResultat.getChildren().add(carteTableaux(s)));
+            zoneResultat.getChildren().setAll(carteStrategies(stats, choisie, durees.loi()),
+                    carteParTableau(stats, choisie));
             Ui.apparition(zoneResultat);
         });
         calcul.setOnFailed(e -> {
@@ -251,38 +251,67 @@ final class EcranPrevisions {
         }
         Label synthese = Ui.discret(PresentationPrevisions.syntheseStatistique(stats, loi));
         synthese.setWrapText(true);
-        Label legende = Ui.aide("En gras : la meilleure valeur. « 9 fois sur 10 » : sur l'ensemble des tirages, "
-                + "neuf sur dix font mieux que cette valeur.");
+        Label legende = Ui.aide("En gras : la meilleure valeur. Un tableau a vraiment commencé quand sa dernière "
+                + "poule a commencé. Cas rare : 1 tirage sur 20 finit plus tôt (ou plus tard) que cette heure.");
         legende.setWrapText(true);
-        return Ui.carte(Ui.titreCarte("Les trois stratégies comparées"), verdict, grille, synthese, legende);
+        return Ui.carte(Ui.titreCarte("Comparaison des stratégies"), verdict, grille, synthese, legende);
     }
 
-    private Node carteTableaux(StatistiquesSimulation s) {
-        Label titre = Ui.titreCarte("Tableau par tableau avec « " + s.strategie().getLibelle() + " »");
-        titre.setWrapText(true);
-        GridPane grille = grille(6);
-        String[] entetes = {"Tableau", "Fin moyenne", "9 fois sur 10 avant", "Fin souhaitée", "Attente moy.",
-                "Risque"};
-        for (int i = 0; i < entetes.length; i++) {
-            grille.add(Ui.enteteColonne(entetes[i]), i, 0);
+    /** Détail par tableau, une stratégie à la fois (choix par boutons, celle du club d'abord). */
+    private Node carteParTableau(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
+        VBox detail = new VBox();
+        ToggleGroup groupe = new ToggleGroup();
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (StatistiquesSimulation s : stats) {
+            ToggleButton b = new ToggleButton(s.strategie().getLibelle());
+            b.setUserData(s);
+            boutons.add(b);
         }
+        HBox choix = Ui.segment(groupe, boutons.toArray(new ToggleButton[0]));
+        groupe.selectedToggleProperty().addListener((obs, avant, apres) -> {
+            if (apres == null) {
+                avant.setSelected(true); // toujours une stratégie affichée
+                return;
+            }
+            detail.getChildren().setAll(grilleTableaux((StatistiquesSimulation) apres.getUserData()));
+        });
+        for (ToggleButton b : boutons) {
+            if (((StatistiquesSimulation) b.getUserData()).strategie() == choisie) {
+                b.setSelected(true);
+            }
+        }
+        if (groupe.getSelectedToggle() == null && !boutons.isEmpty()) {
+            boutons.get(0).setSelected(true);
+        }
+        return Ui.carte(Ui.titreCarte("Par tableau"), choix, detail);
+    }
+
+    private Node grilleTableaux(StatistiquesSimulation s) {
         List<PresentationPrevisions.LigneTableauStat> lignes = PresentationPrevisions.lignesTableaux(s);
+        if (lignes.isEmpty()) {
+            return Ui.etatVideCompact("Aucun tableau simulé.");
+        }
+        List<String> entetes = PresentationPrevisions.COLONNES_TABLEAUX;
+        GridPane grille = grille(entetes.size());
+        for (int i = 0; i < entetes.size(); i++) {
+            Label e = Ui.enteteColonne(entetes.get(i));
+            e.setWrapText(true);
+            grille.add(e, i, 0);
+        }
         for (int k = 0; k < lignes.size(); k++) {
             PresentationPrevisions.LigneTableauStat l = lignes.get(k);
             int rang = k + 1;
             Label nom = Ui.gras(l.nom());
             nom.setWrapText(true);
             grille.add(nom, 0, rang);
-            grille.add(Ui.texte(l.finMoyenne()), 1, rang);
-            grille.add(Ui.texte(l.finP90()), 2, rang);
-            grille.add(Ui.discret(l.finSouhaitee()), 3, rang);
-            grille.add(Ui.texte(l.attente()), 4, rang);
-            grille.add(Ui.pastille(l.risque(), l.statut()), 5, rang);
+            grille.add(Ui.texte(l.debut()), 1, rang);
+            grille.add(Ui.texte(l.finMoyenne()), 2, rang);
+            grille.add(Ui.texte(l.finTard()), 3, rang);
+            grille.add(Ui.discret(l.finSouhaitee()), 4, rang);
+            grille.add(Ui.texte(l.attente()), 5, rang);
+            grille.add(Ui.pastille(l.risque(), l.statut()), 6, rang);
         }
-        if (lignes.isEmpty()) {
-            return Ui.carte(titre, Ui.etatVideCompact("Aucun tableau simulé."));
-        }
-        return Ui.carte(titre, grille);
+        return grille;
     }
 
     private static Label valeur(String texte, boolean meilleure) {

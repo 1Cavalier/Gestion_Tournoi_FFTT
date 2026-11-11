@@ -311,27 +311,52 @@ final class PresentationPrevisions {
         }
     }
 
-    /** @return les indicateurs comparés pour chaque stratégie. */
+    /**
+     * @return les indicateurs comparés pour chaque stratégie, dans l'ordre de
+     *         l'écran : début des tableaux, fin, attentes, tables, débordement.
+     */
     static List<LigneStrategies> lignesStrategies(List<StatistiquesSimulation> stats) {
-        boolean jours = plusieursJours(stats);
         List<LigneStrategies> lignes = new ArrayList<>();
-        lignes.add(ligne("Fin moyenne", stats, s -> secondes(s.finMoyenne()),
-                s -> s.finMoyenne() == null ? "—" : heure(s.finMoyenne(), jours)));
-        lignes.add(ligne("9 fois sur 10, fini avant", stats, s -> secondes(s.finP90()),
-                s -> s.finP90() == null ? "—" : heure(s.finP90(), jours)));
-        lignes.add(ligne("Fourchette de fin (1 fois sur 10 → 9 fois sur 10)", stats,
-                s -> s.finP10() == null || s.finP90() == null ? Long.MAX_VALUE
-                        : secondes(s.finP90()) - secondes(s.finP10()),
-                s -> s.finP10() == null ? "—" : heure(s.finP10(), jours) + " – " + heure(s.finP90(), jours)));
-        lignes.add(ligne("Attente moyenne d'un joueur", stats, s -> Math.round(s.attenteMoyenne()),
-                s -> minutes(Math.round(s.attenteMoyenne()))));
-        lignes.add(ligne("Plus longue attente (9 fois sur 10)", stats, s -> Math.round(s.attenteMaxP90()),
-                s -> minutes(Math.round(s.attenteMaxP90()))));
+        lignes.add(ligne("Début à l'heure (" + StatistiquesSimulation.RETARD_A_L_HEURE + " min de retard au plus)",
+                stats, s -> -Math.round(s.debutALHeure() * 100), s -> pourcent(s.debutALHeure())));
+        lignes.add(ligne("Début en léger retard (" + StatistiquesSimulation.RETARD_A_L_HEURE + " à "
+                        + StatistiquesSimulation.GROS_RETARD + " min)", stats,
+                s -> Math.round(s.debutLegerRetard() * 100), s -> pourcent(s.debutLegerRetard())));
+        lignes.add(ligne("Début en gros retard (plus de " + StatistiquesSimulation.GROS_RETARD + " min)", stats,
+                s -> Math.round(s.debutGrosRetard() * 100), s -> pourcent(s.debutGrosRetard())));
+        lignes.add(ligne("Fin moyenne", stats, s -> secondes(s.finMoyenne()), s -> dateEtHeure(s.finMoyenne())));
+        lignes.add(ligne("Cas rare : fin tôt (1 fois sur 20)", stats, s -> secondes(s.finTot()),
+                s -> dateEtHeure(s.finTot())));
+        lignes.add(ligne("Cas rare : fin tard (1 fois sur 20)", stats, s -> secondes(s.finTard()),
+                s -> dateEtHeure(s.finTard())));
+        lignes.add(ligne("Attente moyenne d'un joueur inscrit sur 1 tableau", stats,
+                s -> attenteCle(s.attenteUnTableau()), s -> attente(s.attenteUnTableau())));
+        lignes.add(ligne("Attente moyenne d'un joueur inscrit sur 2 tableaux ou plus", stats,
+                s -> attenteCle(s.attentePlusieursTableaux()), s -> attente(s.attentePlusieursTableaux())));
+        lignes.add(ligne("Plus longue attente", stats, s -> Math.round(s.plusLongueAttente()),
+                s -> minutes(Math.round(s.plusLongueAttente()))));
         lignes.add(ligne("Occupation des tables", stats, s -> -Math.round(s.occupationMoyenne() * 100),
                 s -> Math.round(s.occupationMoyenne() * 100) + " %"));
         lignes.add(ligne("Risque qu'un tableau déborde", stats, s -> Math.round(s.probabiliteDebordement() * 100),
                 s -> pourcent(s.probabiliteDebordement())));
         return lignes;
+    }
+
+    private static long attenteCle(double minutes) {
+        return minutes < 0 ? Long.MAX_VALUE : Math.round(minutes);
+    }
+
+    private static String attente(double minutes) {
+        return minutes < 0 ? "Aucun joueur" : minutes(Math.round(minutes));
+    }
+
+    /** « dim. 11/04, 21 h 03 » : le jour et l'heure. */
+    static String dateEtHeure(LocalDateTime t) {
+        if (t == null) {
+            return "—";
+        }
+        String jour = t.getDayOfWeek().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.FRENCH);
+        return String.format("%s %02d/%02d, %s", jour, t.getDayOfMonth(), t.getMonthValue(), heure(t, false));
     }
 
     private static LigneStrategies ligne(String indicateur, List<StatistiquesSimulation> stats,
@@ -411,9 +436,16 @@ final class PresentationPrevisions {
         return sb.toString();
     }
 
-    /** Une ligne par tableau pour une stratégie : fin moyenne, fin 9 fois sur 10, heure souhaitée, risque. */
-    record LigneTableauStat(String nom, String finMoyenne, String finP90, String finSouhaitee, String risque,
-                            StatutPastille statut, String attente) {
+    /** Colonnes du détail par tableau, en mots simples. */
+    static final List<String> COLONNES_TABLEAUX = List.of("Tableau", "Commence", "Finit en moyenne",
+            "Finit au plus tard (rare)", "Doit finir à", "Attente moyenne", "Dépassement");
+
+    /**
+     * Une ligne par tableau pour une stratégie : début prévu et retard moyen,
+     * fin moyenne, fin tard (cas rare), heure à ne pas dépasser, attente, risque.
+     */
+    record LigneTableauStat(String nom, String debut, String finMoyenne, String finTard, String finSouhaitee,
+                            String attente, String risque, StatutPastille statut) {
     }
 
     /** @return une ligne par tableau, dans l'ordre du tournoi. */
@@ -424,11 +456,20 @@ final class PresentationPrevisions {
             double p = t.probabiliteDebordement();
             StatutPastille statut = p < 0.1 ? StatutPastille.SUCCES
                     : (p < 0.5 ? StatutPastille.ATTENTION : StatutPastille.ERREUR);
-            String risque = p == 0 ? "À l'heure" : "Déborde " + pourcent(p) + " des fois";
-            lignes.add(new LigneTableauStat(t.nom(), t.finMoyenne() == null ? "—" : heure(t.finMoyenne(), jours),
-                    t.finP90() == null ? "—" : heure(t.finP90(), jours),
-                    t.finSouhaitee() == null ? "—" : heure(t.finSouhaitee(), jours), risque, statut,
-                    minutes(Math.round(t.attenteMoyenne()))));
+            String risque = p == 0 ? "Jamais" : pourcent(p) + " des fois";
+            String debut = t.debutPrevu() == null ? "—" : heure(t.debutPrevu(), jours);
+            if (t.retardDebutMoyen() < 0) {
+                debut += " (ne commence pas)";
+            } else if (Math.round(t.retardDebutMoyen()) > StatistiquesSimulation.RETARD_A_L_HEURE) {
+                debut += " (+" + minutes(Math.round(t.retardDebutMoyen())) + ")";
+            } else {
+                debut += " (à l'heure)";
+            }
+            lignes.add(new LigneTableauStat(t.nom(), debut,
+                    t.finMoyenne() == null ? "—" : heure(t.finMoyenne(), jours),
+                    t.finTard() == null ? "—" : heure(t.finTard(), jours),
+                    t.finSouhaitee() == null ? "—" : heure(t.finSouhaitee(), jours),
+                    minutes(Math.round(t.attenteMoyenne())), risque, statut));
         }
         return lignes;
     }
@@ -468,7 +509,7 @@ final class PresentationPrevisions {
         LocalDate premier = null;
         for (StatistiquesSimulation s : stats) {
             for (StatTableau t : s.tableaux()) {
-                for (LocalDateTime h : new LocalDateTime[]{t.finSouhaitee(), t.finMoyenne(), t.finP90()}) {
+                for (LocalDateTime h : new LocalDateTime[]{t.debutPrevu(), t.finSouhaitee(), t.finMoyenne(), t.finTard()}) {
                     if (h == null) {
                         continue;
                     }

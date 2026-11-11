@@ -17,9 +17,11 @@ class PresentationPrevisionsStatistiqueTest {
     private static StatistiquesSimulation stat(StrategieOrdonnancement s, int finMinutes, double attente,
                                                double debordement) {
         LocalDateTime fin = J.plusHours(18).plusMinutes(finMinutes);
-        StatTableau t = new StatTableau("A", J.plusHours(19), fin, fin.plusMinutes(20), debordement, attente);
+        StatTableau t = new StatTableau("A", J.plusHours(9), 12, J.plusHours(19), fin, fin.plusMinutes(20),
+                debordement, attente);
         return new StatistiquesSimulation(s, 100, 12, fin, fin.minusMinutes(20), fin, fin.plusMinutes(20),
-                fin.plusMinutes(40), attente, attente * 4, 0.7, debordement, 0, List.of(t));
+                fin.plusMinutes(40), 0.6, 0.3, 0.1, attente, attente - 2, attente + 5, attente * 4, 0.7,
+                debordement, 0, List.of(t));
     }
 
     @Test
@@ -42,11 +44,20 @@ class PresentationPrevisionsStatistiqueTest {
                 stat(StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT, 10, 30, 0.1),
                 stat(StrategieOrdonnancement.MINIMISER_ATTENTE, 25, 15, 0.2));
         List<PresentationPrevisions.LigneStrategies> lignes = PresentationPrevisions.lignesStrategies(stats);
-        assertEquals("Fin moyenne", lignes.get(0).indicateur());
-        assertEquals(List.of("18 h 40", "18 h 10", "18 h 25"), lignes.get(0).valeurs());
-        assertEquals(1, lignes.get(0).meilleure());
-        assertEquals(2, lignes.get(3).meilleure(), "attente moyenne la plus faible");
-        assertEquals(-1, lignes.get(5).meilleure(), "occupation égale : pas de meilleure");
+        assertEquals(List.of("Début à l'heure (5 min de retard au plus)", "Début en léger retard (5 à 30 min)",
+                "Début en gros retard (plus de 30 min)", "Fin moyenne", "Cas rare : fin tôt (1 fois sur 20)",
+                "Cas rare : fin tard (1 fois sur 20)", "Attente moyenne d'un joueur inscrit sur 1 tableau",
+                "Attente moyenne d'un joueur inscrit sur 2 tableaux ou plus", "Plus longue attente",
+                "Occupation des tables", "Risque qu'un tableau déborde"),
+                lignes.stream().map(PresentationPrevisions.LigneStrategies::indicateur).toList());
+        assertEquals("60 %", lignes.get(0).valeurs().get(0));
+        assertEquals(List.of("sam. 10/04, 18 h 40", "sam. 10/04, 18 h 10", "sam. 10/04, 18 h 25"),
+                lignes.get(3).valeurs());
+        assertEquals(1, lignes.get(3).meilleure());
+        assertEquals(2, lignes.get(6).meilleure(), "attente sur 1 tableau la plus faible");
+        assertEquals("13 min", lignes.get(6).valeurs().get(2));
+        assertEquals("20 min", lignes.get(7).valeurs().get(2));
+        assertEquals(-1, lignes.get(9).meilleure(), "occupation égale : pas de meilleure");
         String v = PresentationPrevisions.verdictStrategies(stats, StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES);
         assertTrue(v.startsWith("« Tout faire avancer petit à petit » finit en moyenne le plus tôt (30 min avant"), v);
         assertTrue(v.contains("attendent le moins avec « Faire attendre le moins possible les joueurs »"), v);
@@ -68,13 +79,15 @@ class PresentationPrevisionsStatistiqueTest {
         PresentationPrevisions.LigneTableauStat l = PresentationPrevisions.lignesTableaux(
                 stat(StrategieOrdonnancement.PAR_DEFAUT, 10, 12, 0.35)).get(0);
         assertEquals("A", l.nom());
+        assertEquals("9 h 00 (+12 min)", l.debut());
         assertEquals("18 h 10", l.finMoyenne());
-        assertEquals("18 h 30", l.finP90());
+        assertEquals("18 h 30", l.finTard());
         assertEquals("19 h 00", l.finSouhaitee());
-        assertEquals("Déborde 35 % des fois", l.risque());
+        assertEquals("35 % des fois", l.risque());
         assertEquals(StatutPastille.ATTENTION, l.statut());
-        assertEquals("À l'heure", PresentationPrevisions.lignesTableaux(
+        assertEquals("Jamais", PresentationPrevisions.lignesTableaux(
                 stat(StrategieOrdonnancement.PAR_DEFAUT, 10, 12, 0)).get(0).risque());
+        assertEquals(7, PresentationPrevisions.COLONNES_TABLEAUX.size());
         assertEquals("< 1 %", PresentationPrevisions.pourcent(0.004));
     }
 }

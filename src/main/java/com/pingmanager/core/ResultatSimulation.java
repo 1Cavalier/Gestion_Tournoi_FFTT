@@ -30,17 +30,30 @@ import java.util.Optional;
  * @param joueurAttenteMax  nom du joueur qui a le plus attendu ({@code null} si aucun)
  * @param occupationTables  part du temps où les tables sont occupées, de 0 à 1 (journée par journée)
  * @param complete          faux si la simulation s'est arrêtée avant la fin (blocage)
+ * @param attenteUnTableau  attente moyenne par partie des joueurs inscrits dans un seul tableau
+ *                          (minutes, -1 s'il n'y en a pas)
+ * @param attentePlusieursTableaux même chose pour les joueurs inscrits dans deux tableaux ou plus
  */
 public record ResultatSimulation(StrategieOrdonnancement strategie, long graine, int nombreDeTables,
                                  LocalDateTime debut, LocalDateTime fin, List<BilanTableau> tableaux,
                                  List<TableauIgnore> ignores, int nombreParties, double attenteMoyenne,
                                  long attenteMaximale, String joueurAttenteMax, double occupationTables,
-                                 boolean complete) {
+                                 boolean complete, double attenteUnTableau, double attentePlusieursTableaux) {
 
     public ResultatSimulation {
         Objects.requireNonNull(strategie, "strategie");
         tableaux = List.copyOf(tableaux);
         ignores = List.copyOf(ignores);
+    }
+
+    /** Sans le détail des attentes par nombre de tableaux (inconnu : -1). */
+    public ResultatSimulation(StrategieOrdonnancement strategie, long graine, int nombreDeTables,
+                              LocalDateTime debut, LocalDateTime fin, List<BilanTableau> tableaux,
+                              List<TableauIgnore> ignores, int nombreParties, double attenteMoyenne,
+                              long attenteMaximale, String joueurAttenteMax, double occupationTables,
+                              boolean complete) {
+        this(strategie, graine, nombreDeTables, debut, fin, tableaux, ignores, nombreParties, attenteMoyenne,
+                attenteMaximale, joueurAttenteMax, occupationTables, complete, -1, -1);
     }
 
     /**
@@ -54,9 +67,19 @@ public record ResultatSimulation(StrategieOrdonnancement strategie, long graine,
      * @param nombreParties   parties jouées
      * @param attenteMoyenne  attente moyenne de ses joueurs par partie, en minutes
      * @param attenteMaximale attente la plus longue dans ce tableau, en minutes
+     * @param retardDebut     retard du début réel sur l'heure prévue, en minutes : le début réel est
+     *                        le moment où la dernière poule commence (toutes les poules sont lancées) ;
+     *                        {@code null} si le tableau n'a pas pu commencer
      */
     public record BilanTableau(String nom, LocalDateTime debut, LocalDateTime fin, LocalDateTime finSouhaitee,
-                               int nombreJoueurs, int nombreParties, double attenteMoyenne, long attenteMaximale) {
+                               int nombreJoueurs, int nombreParties, double attenteMoyenne, long attenteMaximale,
+                               Long retardDebut) {
+
+        /** Sans retard de début connu. */
+        public BilanTableau(String nom, LocalDateTime debut, LocalDateTime fin, LocalDateTime finSouhaitee,
+                            int nombreJoueurs, int nombreParties, double attenteMoyenne, long attenteMaximale) {
+            this(nom, debut, fin, finSouhaitee, nombreJoueurs, nombreParties, attenteMoyenne, attenteMaximale, null);
+        }
 
         /** @return vrai si le tableau finit après l'heure souhaitée (ou n'a pas pu finir). */
         public boolean deborde() {
