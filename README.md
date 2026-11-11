@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 470 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 471 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -164,7 +164,9 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   (1 fois sur 20), attente d'un joueur sur
   1 tableau et sur 2 tableaux ou plus, plus longue attente, occupation des
   tables, risque de finir après l'heure visée ; puis chaque tableau avec les
-  trois stratégies côte à côte. Avec assez de tables, l'écran dit que le choix de stratégie ne
+  trois stratégies côte à côte, un indicateur à la fois (fin moyenne, fin au
+  plus tard, retard au début, attente, après l'heure visée), une valeur par
+  case, tableaux dans l'ordre de leur début. Avec assez de tables, l'écran dit que le choix de stratégie ne
   change rien. Temps autour du jeu, ajoutés à chaque match (table et joueurs
   occupés) : appel et rappel d'un joueur qui n'a pas entendu, échauffement
   2 min (3.4.3.1), pauses entre manches (3.4.4.1.1), temps morts (3.4.4.2),
