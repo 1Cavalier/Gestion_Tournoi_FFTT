@@ -3735,3 +3735,167 @@
     -fx-background-color: -surface-2;
     -fx-background-radius: 8;
 }
+
+/* =====================================================================
+   Refonte des écrans brouillon (11 novembre 2026) : pages pleine largeur,
+   titres en Bricolage Grotesque, dossier en blocs, étapes officielles,
+   parcours du tournoi importé
+   ===================================================================== */
+
+/* Titres d'affichage (polices embarquées, chargées par Theme). */
+.titre {
+    -fx-font-family: "Bricolage Grotesque ExtraBold";
+    -fx-font-weight: normal;
+    -fx-font-size: 30px;
+}
+
+.titre-section {
+    -fx-font-family: "Bricolage Grotesque";
+    -fx-font-weight: bold;
+    -fx-font-size: 21px;
+}
+
+.page {
+    -fx-padding: 24 36 40 36;
+}
+
+/* Légende compacte, sur une seule bande arrondie. */
+.legende.legende-compacte {
+    -fx-background-color: -bordure, -surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 999, 998;
+    -fx-padding: 10 18 10 18;
+    -fx-alignment: center-left;
+}
+
+.legende-filet {
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-max-width: 1px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -bordure-forte;
+}
+
+/* Dossier : grande carte, compteur global, blocs en grille. */
+.carte.section-dossier {
+    -fx-padding: 24 26 26 26;
+}
+
+.dossier-compteur {
+    -fx-font-family: "Bricolage Grotesque ExtraBold";
+    -fx-font-size: 24px;
+    -fx-text-fill: -primaire;
+}
+
+.progress-bar.jauge.jauge-dossier {
+    -fx-pref-height: 10px;
+    -fx-max-height: 10px;
+    -fx-padding: 0;
+}
+
+.grille-adaptative {
+    -fx-hgap: 18;
+    -fx-vgap: 18;
+}
+
+.bloc-dossier {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+    -fx-padding: 18;
+}
+
+.bloc-dossier:hover {
+    -fx-background-color: -primaire, -surface;
+}
+
+.bloc-dossier .completion-item {
+    -fx-padding: 8 0 8 0;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* Étapes officielles : trois grandes cartes. */
+.etape-officielle {
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 14, 13;
+    -fx-padding: 22;
+}
+
+.etape-officielle.etape-en-cours {
+    -fx-background-color: -primaire, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-effect: dropshadow(gaussian, -ombre, 14, 0, 0, 4);
+}
+
+.etape-numero {
+    -fx-alignment: center;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-text-fill: -texte-doux;
+    -fx-border-color: -bordure-forte;
+    -fx-border-width: 2;
+}
+
+.etape-en-cours .etape-numero {
+    -fx-background-color: -primaire;
+    -fx-border-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+.etape-faite .etape-numero {
+    -fx-background-color: -succes;
+    -fx-border-color: -succes;
+    -fx-text-fill: -sur-primaire;
+}
+
+.etape-surtitre {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+.etape-en-cours .etape-surtitre {
+    -fx-text-fill: -primaire;
+}
+
+.etape-titre {
+    -fx-font-family: "Bricolage Grotesque";
+    -fx-font-weight: bold;
+    -fx-font-size: 19px;
+}
+
+.etape-a-venir .etape-titre {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Tournoi importé : bandeau « Prêt pour le jour J ». */
+.bandeau-jour-j {
+    -fx-background-color: -primaire-fort;
+    -fx-background-radius: 14;
+    -fx-padding: 18 22 18 22;
+}
+
+.bandeau-jour-j .label {
+    -fx-text-fill: -sur-primaire;
+}
+
+.bandeau-jour-j .bandeau-jour-j-titre {
+    -fx-font-family: "Bricolage Grotesque";
+    -fx-font-weight: bold;
+    -fx-font-size: 19px;
+}
+
+.bandeau-jour-j .button {
+    -fx-background-color: -attention;
+    -fx-text-fill: -attention-texte;
+    -fx-font-weight: bold;
+}
+
+.fichier-depose {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 10;
+    -fx-padding: 10 12 10 12;
+}

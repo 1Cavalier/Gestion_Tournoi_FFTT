@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 473 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 480 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -122,6 +122,16 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   précise que le juge-arbitre peut en utiliser les tables comme tables de
   match en cas de nécessité (3.3.1.2.2).
 - Gestion des tournois du club : tournoi actuel, frise en 4 étapes, historique.
+- Vue d'ensemble d'un brouillon (refonte du 11 novembre) : pleine largeur,
+  « Préparation du dossier » avec légende sur une bande et quatre blocs en
+  grille (4, 2 ou 1 colonne selon la fenêtre, éléments manquants en premier),
+  puis « Homologation et publication » en trois grandes cartes (demande,
+  homologation obtenue, publication). Plus de bloc Inscriptions avant
+  l'homologation. Titres en Bricolage Grotesque (police embarquée, OFL).
+- Tournoi préparé ailleurs (mode import) : trois étapes, déposer le règlement
+  (PDF), importer le classeur, vérifier l'import (dates, horaire de chaque
+  tableau), puis bandeau d'accès au jour J.
+- Toutes les pages occupent la largeur de la fenêtre (`Ui.page`).
 - Remplissage et finances : taux de remplissage, recettes attendues,
   encaissé, dotation promise, solde.
 
@@ -334,6 +344,12 @@ parenthèses.
   recettes attendues).
 - Téléphone dans le compte utilisateur (absent : « Non renseigné »).
 - Tournoi annulé : verrous et règlement levés (oui).
+- Tournoi importé : le règlement déposé est-il obligatoire avant d'ouvrir le
+  jour J ? (non : le bandeau rappelle ce qui manque, le jour J reste ouvert dès
+  qu'il y a des tableaux).
+- Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
+  pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
+  étroite ? (pleine largeur, à juger à l'écran).
 
 ---
 
