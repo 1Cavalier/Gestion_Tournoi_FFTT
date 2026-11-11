@@ -20,20 +20,22 @@ public enum StrategieOrdonnancement {
     /** (1) Finir au plus vite les tableaux qui ont commencé tôt pour libérer de la place. */
     AVANCER_TABLEAUX_COMMENCES(
             "Avancer les tableaux commencés tôt",
-            "Les tableaux qui ont commencé le plus tôt passent en premier, et dans un tableau les "
-                    + "tours les plus avancés d'abord, jusqu'à la finale. "
-                    + "Ils se terminent vite, leurs joueurs repartent et la salle se libère "
-                    + "pour les tableaux suivants.",
-            "Les tableaux qui commencent plus tard peuvent prendre du retard au départ."),
+            "Chaque tableau avance le plus vite possible, indépendamment des autres : les tableaux qui "
+                    + "ont commencé le plus tôt passent en premier, les tours les plus avancés d'abord, et "
+                    + "chaque tableau joue sa finale dès qu'elle est prête, à son propre horaire. Ses "
+                    + "joueurs repartent tôt et la salle se libère pour les tableaux suivants.",
+            "Les tableaux qui commencent plus tard peuvent prendre du retard au départ, et les "
+                    + "finales s'étalent dans la journée."),
 
-    /** (2) Faire progresser tous les tableaux en même temps, par vagues. */
+    /** (2) Faire progresser tous les tableaux en même temps, par vagues, finales en fin de journée. */
     FAIRE_AVANCER_PETIT_A_PETIT(
             "Tout faire avancer petit à petit",
             "Tous les tableaux avancent ensemble, par vagues : d'abord les poules, puis les "
                     + "premiers tours, puis les tours suivants. Dans un tableau, un tour ne commence "
-                    + "que lorsque le tour précédent est entièrement fini : on joue tour par tour.",
-            "Des tables restent parfois libres en attendant la fin d'un tour : la journée finit "
-                    + "plus tard et les joueurs attendent davantage entre deux matchs."),
+                    + "que lorsque le tour précédent est entièrement fini. Toutes les finales sont "
+                    + "gardées pour la fin de la journée.",
+            "Des tables restent parfois libres en attendant la fin d'un tour ou des autres tableaux : "
+                    + "la journée finit plus tard et les joueurs attendent davantage entre deux matchs."),
 
     /** (3) Lancer d'abord les matchs qui attendent depuis le plus longtemps. */
     MINIMISER_ATTENTE(

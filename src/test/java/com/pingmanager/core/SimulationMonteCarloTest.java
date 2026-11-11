@@ -132,4 +132,47 @@ class SimulationMonteCarloTest {
         assertTrue(b.finMoyenne().isAfter(a.finMoyenne().plusMinutes(20)),
                 "mis bout à bout, ces minutes repoussent nettement la fin");
     }
+
+    @Test
+    void finales_etalees_avec_tableaux_commences_tot_groupees_en_fin_de_journee_avec_petit_a_petit() {
+        ScenarioSimulation sc = JeuDeSimulation.petitTournoi(12, 6);
+        StatistiquesSimulation tot = simulateur.simulerPlusieurs(sc, StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES, 20);
+        StatistiquesSimulation vagues = simulateur.simulerPlusieurs(sc, StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT, 20);
+        long etalementTot = java.time.Duration.between(tot.premiereFinale(), tot.finMoyenne()).toMinutes();
+        long etalementVagues = java.time.Duration.between(vagues.premiereFinale(), vagues.finMoyenne()).toMinutes();
+        assertTrue(tot.premiereFinale().isBefore(vagues.premiereFinale().minusMinutes(60)),
+                "le tableau de 9 h joue sa finale bien plus tôt");
+        assertTrue(etalementTot > 2 * etalementVagues, "finales étalées contre finales groupées : "
+                + etalementTot + " / " + etalementVagues + " min");
+        assertTrue(tot.finMoyenneTableau().isBefore(vagues.finMoyenneTableau()));
+    }
+
+    @Test
+    void chaque_journee_simulee_separement_avec_son_heure_de_fin_visee() {
+        ScenarioSimulation.TableauSimule samedi = JeuDeSimulation.petitTournoi(6, 1).getTableaux().get(0);
+        ScenarioSimulation.TableauSimule b = JeuDeSimulation.petitTournoi(6, 1).getTableaux().get(1);
+        ScenarioSimulation.TableauSimule dimanche = new ScenarioSimulation.TableauSimule(b.nom(),
+                b.debut().plusDays(1), b.joueurs(), b.format(), false, null, 0);
+        ScenarioSimulation deuxJours = ScenarioSimulation.builder().nombreDeTables(6).graine(1)
+                .tableau(samedi).tableau(dimanche).build();
+        var jours = deuxJours.parJour();
+        assertEquals(List.of(samedi.debut().toLocalDate(), dimanche.debut().toLocalDate()),
+                List.copyOf(jours.keySet()));
+        assertEquals(List.of("A"), jours.get(samedi.debut().toLocalDate()).getTableaux().stream()
+                .map(ScenarioSimulation.TableauSimule::nom).toList());
+        ScenarioSimulation vise = jours.get(dimanche.debut().toLocalDate()).avecFinVisee(java.time.LocalTime.of(18, 30));
+        assertEquals(dimanche.debut().toLocalDate().atTime(18, 30), vise.getTableaux().get(0).finSouhaitee());
+        var stats = simulateur.comparerToutesParJour(deuxJours, 5);
+        assertEquals(2, stats.size());
+        for (List<StatistiquesSimulation> s : stats.values()) {
+            assertEquals(1, s.get(0).tableaux().size(), "une journée ne contient que ses tableaux");
+        }
+        // Heure visée plus tôt : risque de débordement plus grand.
+        ScenarioSimulation j = jours.get(samedi.debut().toLocalDate());
+        double tot = simulateur.simulerPlusieurs(j.avecFinVisee(java.time.LocalTime.of(11, 0)),
+                StrategieOrdonnancement.PAR_DEFAUT, 10).probabiliteDebordement();
+        double tard = simulateur.simulerPlusieurs(j.avecFinVisee(java.time.LocalTime.of(23, 0)),
+                StrategieOrdonnancement.PAR_DEFAUT, 10).probabiliteDebordement();
+        assertTrue(tot > tard, tot + " > " + tard);
+    }
 }

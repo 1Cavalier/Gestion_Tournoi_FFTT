@@ -31,6 +31,8 @@ import java.util.Objects;
  * @param finMediane              1 fois sur 2
  * @param finTard                 cas rare de fin tard (1 fois sur 20, le tournoi finit après)
  * @param finMax                  fin la plus tardive observée
+ * @param premiereFinale          heure moyenne de la première finale (fin du premier tableau terminé)
+ * @param finMoyenneTableau       heure moyenne de fin d'un tableau (sa finale), tous tableaux confondus
  * @param debutALHeure            part des débuts de tableau à l'heure (0 à 1)
  * @param debutLegerRetard        part des débuts en léger retard
  * @param debutGrosRetard         part des débuts en gros retard (ou jamais commencés)
@@ -46,7 +48,8 @@ import java.util.Objects;
  */
 public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tirages, int nombreDeTables,
                                      LocalDateTime finMoyenne, LocalDateTime finTot, LocalDateTime finMediane,
-                                     LocalDateTime finTard, LocalDateTime finMax, double debutALHeure,
+                                     LocalDateTime finTard, LocalDateTime finMax, LocalDateTime premiereFinale,
+                                     LocalDateTime finMoyenneTableau, double debutALHeure,
                                      double debutLegerRetard, double debutGrosRetard, double attenteMoyenne,
                                      double attenteUnTableau, double attentePlusieursTableaux,
                                      double plusLongueAttente, double occupationMoyenne,
@@ -85,6 +88,8 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
     static StatistiquesSimulation depuis(StrategieOrdonnancement strategie, int tables,
                                          List<ResultatSimulation> resultats) {
         List<Long> fins = new ArrayList<>();
+        List<Long> premieres = new ArrayList<>();
+        List<Long> finsTableaux = new ArrayList<>();
         double attente = 0;
         double plusLongue = 0;
         double occupation = 0;
@@ -113,6 +118,16 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
             }
             if (!r.complete()) {
                 incomplets++;
+            }
+            long premiere = Long.MAX_VALUE;
+            for (ResultatSimulation.BilanTableau b : r.tableaux()) {
+                if (b.fin() != null) {
+                    premiere = Math.min(premiere, secondes(b.fin()));
+                    finsTableaux.add(secondes(b.fin()));
+                }
+            }
+            if (premiere != Long.MAX_VALUE) {
+                premieres.add(premiere);
             }
             for (ResultatSimulation.BilanTableau b : r.tableaux()) {
                 parTableau.computeIfAbsent(b.nom(), k -> new ArrayList<>()).add(b);
@@ -143,7 +158,9 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
         }
         return new StatistiquesSimulation(strategie, resultats.size(), tables, heure(moyenne(f)),
                 heure(quantile(f, 0.05)), heure(quantile(f, 0.5)), heure(quantile(f, 0.95)),
-                f.length == 0 ? null : heure((double) f[f.length - 1]), (double) aLHeure / d, (double) leger / d,
+                f.length == 0 ? null : heure((double) f[f.length - 1]),
+                heure(moyenne(premieres.stream().mapToLong(Long::longValue).toArray())),
+                heure(moyenne(finsTableaux.stream().mapToLong(Long::longValue).toArray())), (double) aLHeure / d, (double) leger / d,
                 (double) gros / d, attente / n, unTableau.valeur(), plusieurs.valeur(), plusLongue / n,
                 occupation / n, (double) debordements / n, annexes / n, incomplets, tableaux);
     }
