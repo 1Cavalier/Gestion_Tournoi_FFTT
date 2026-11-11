@@ -21,7 +21,7 @@ class PresentationPrevisionsStatistiqueTest {
                 debordement, attente);
         return new StatistiquesSimulation(s, 100, 12, fin, fin.minusMinutes(20), fin, fin.plusMinutes(20),
                 fin.plusMinutes(40), 0.6, 0.3, 0.1, attente, attente - 2, attente + 5, attente * 4, 0.7,
-                debordement, 0, List.of(t));
+                debordement, 6.4, 0, List.of(t));
     }
 
     @Test
@@ -89,5 +89,23 @@ class PresentationPrevisionsStatistiqueTest {
                 stat(StrategieOrdonnancement.PAR_DEFAUT, 10, 12, 0)).get(0).risque());
         assertEquals(7, PresentationPrevisions.COLONNES_TABLEAUX.size());
         assertEquals("< 1 %", PresentationPrevisions.pourcent(0.004));
+    }
+
+    @Test
+    void temps_autour_du_match_lus_et_annonces_dans_la_synthese() {
+        PresentationPrevisions.ReglageAnnexes ok = PresentationPrevisions.lireTempsAnnexes("", "", "", "", "", "", "");
+        assertNull(ok.erreur());
+        assertEquals(120, ok.temps().getEchauffement());
+        assertEquals(90, ok.temps().getFeuille(), "1,5 min");
+        assertEquals(0.15, ok.temps().getProbabiliteRappel(), 1e-9);
+        assertEquals(PresentationPrevisions.ERREUR_ANNEXES,
+                PresentationPrevisions.lireTempsAnnexes("un", "", "", "", "", "", "").erreur());
+        assertTrue(PresentationPrevisions.lireTempsAnnexes("", "", "", "", "90", "", "").erreur()
+                .contains("3.4.4.1.1"));
+        String synthese = PresentationPrevisions.syntheseStatistique(
+                List.of(stat(StrategieOrdonnancement.PAR_DEFAUT, 10, 12, 0)), null);
+        assertTrue(synthese.contains("chaque match occupe sa table 6 min 20 en moyenne"), synthese);
+        assertEquals("6 min 30", PresentationPrevisions.minutesDecimales(6.5));
+        assertEquals("7 min", PresentationPrevisions.minutesDecimales(6.999));
     }
 }

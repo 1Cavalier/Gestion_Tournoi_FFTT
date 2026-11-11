@@ -6,6 +6,7 @@ import com.pingmanager.core.StatistiquesSimulation;
 import com.pingmanager.model.StrategieOrdonnancement;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 import com.pingmanager.ui.ContexteApplication;
 import javafx.concurrent.Task;
 import javafx.geometry.Pos;
@@ -140,28 +141,66 @@ final class EcranPrevisions {
         TextField graine = Ui.champ("1");
         graine.setText("1");
         graine.setPrefColumnCount(8);
+        TextField appel = champCourt(PresentationPrevisions.APPEL);
+        TextField rappelPourcent = champCourt(PresentationPrevisions.RAPPEL_POURCENT);
+        TextField rappelMinutes = champCourt(PresentationPrevisions.RAPPEL_MINUTES);
+        TextField echauffement = champCourt(PresentationPrevisions.ECHAUFFEMENT);
+        TextField pause = champCourt(PresentationPrevisions.PAUSE_SECONDES);
+        TextField tempsMort = champCourt(PresentationPrevisions.TEMPS_MORT_POURCENT);
+        TextField feuille = champCourt(PresentationPrevisions.FEUILLE);
         CheckBox completer = new CheckBox("Compléter les tableaux jusqu'à leurs places maximales (joueurs fictifs)");
         completer.setWrapText(true);
 
         Button lancer = Ui.boutonPrimaire("Simuler les trois stratégies");
         lancer.setDefaultButton(true);
-        lancer.setOnAction(e -> simuler(lancer, tables.getText(), tirages.getText(), moyenne.getText(),
-                minimum.getText(), maximum.getText(), graine.getText(), completer.isSelected()));
+        lancer.setOnAction(e -> {
+            PresentationPrevisions.ReglageAnnexes annexes = PresentationPrevisions.lireTempsAnnexes(appel.getText(),
+                    rappelPourcent.getText(), rappelMinutes.getText(), echauffement.getText(), pause.getText(),
+                    tempsMort.getText(), feuille.getText());
+            if (annexes.erreur() != null) {
+                Ui.erreur(messageSimulation, annexes.erreur());
+                return;
+            }
+            simuler(lancer, tables.getText(), tirages.getText(), moyenne.getText(), minimum.getText(),
+                    maximum.getText(), graine.getText(), completer.isSelected(), annexes.temps());
+        });
 
         HBox reglages = Ui.ligne(16, Ui.champEtiquete("Tables", tables), Ui.champEtiquete("Tirages", tirages),
                 Ui.champEtiquete("Graine", graine));
         reglages.setAlignment(Pos.BOTTOM_LEFT);
-        HBox durees = Ui.ligne(16, Ui.champEtiquete("Durée moyenne d'un match (min)", moyenne),
+        HBox durees = Ui.ligne(16, Ui.champEtiquete("Durée moyenne du jeu (min)", moyenne),
                 Ui.champEtiquete("Minimum (min)", minimum), Ui.champEtiquete("Maximum (min)", maximum));
         durees.setAlignment(Pos.BOTTOM_LEFT);
-        Label aideDurees = Ui.aide("Pour un match en cinq manches ; trois manches : deux tiers, sept manches : "
+        Label aideDurees = Ui.aide("Durée du jeu seul, pour un match en cinq manches ; trois manches : deux tiers, sept manches : "
                 + "quatre tiers. La moyenne doit être plus proche du minimum que du maximum.");
         aideDurees.setWrapText(true);
+        HBox autour1 = Ui.ligne(16, Ui.champEtiquete("Appel (min)", appel),
+                Ui.champEtiquete("Joueur à rappeler (%)", rappelPourcent),
+                Ui.champEtiquete("Retard d'un rappel (min)", rappelMinutes),
+                Ui.champEtiquete("Échauffement (min)", echauffement));
+        autour1.setAlignment(Pos.BOTTOM_LEFT);
+        HBox autour2 = Ui.ligne(16, Ui.champEtiquete("Pause entre manches (s)", pause),
+                Ui.champEtiquete("Temps mort pris (% par joueur)", tempsMort),
+                Ui.champEtiquete("Retour de la feuille (min)", feuille));
+        autour2.setAlignment(Pos.BOTTOM_LEFT);
+        Label aideAutour = Ui.aide("Temps autour du match, ajoutés à la durée du jeu : la table et les joueurs "
+                + "restent occupés. Échauffement de 2 min avant la partie (3.4.3.1), pause d'une minute au plus "
+                + "entre deux manches (3.4.4.1.1), un temps mort d'une minute au plus par joueur (3.4.4.2). "
+                + "Un joueur qui n'entend pas son nom doit être rappelé.");
+        aideAutour.setWrapText(true);
         Label avertissement = Ui.aide(PresentationPrevisions.AVERTISSEMENT_STATISTIQUE
                 + " Une même graine redonne exactement les mêmes statistiques.");
         avertissement.setWrapText(true);
-        return Ui.carte("Simuler la journée", reglages, durees, aideDurees, completer, avertissement,
+        return Ui.carte("Simuler la journée", reglages, durees, aideDurees, Ui.titreCarte("Temps autour du match"),
+                autour1, autour2, aideAutour, completer, avertissement,
                 Ui.actions(lancer), messageSimulation);
+    }
+
+    private static TextField champCourt(String valeur) {
+        TextField t = Ui.champ(valeur);
+        t.setText(valeur);
+        t.setPrefColumnCount(4);
+        return t;
     }
 
     private static TextField champMinutes(int valeur) {
@@ -172,7 +211,8 @@ final class EcranPrevisions {
     }
 
     private void simuler(Button lancer, String saisieTables, String saisieTirages, String saisieMoyenne,
-                         String saisieMinimum, String saisieMaximum, String saisieGraine, boolean completer) {
+                         String saisieMinimum, String saisieMaximum, String saisieGraine, boolean completer,
+                         TempsAnnexesMatch annexes) {
         Integer tables = PresentationPrevisions.lireTables(saisieTables);
         if (tables == null) {
             Ui.erreur(messageSimulation, PresentationPrevisions.ERREUR_TABLES);
@@ -196,7 +236,7 @@ final class EcranPrevisions {
         }
         ScenarioSimulation base = SimulateurTournoi.scenarioDepuis(tournoi, tables, graine, completer);
         ScenarioSimulation.Builder b = ScenarioSimulation.builder().nombreDeTables(tables).graine(graine)
-                .loiDuree(durees.loi()).heureLimite(base.getHeureLimite());
+                .loiDuree(durees.loi()).tempsAnnexes(annexes).heureLimite(base.getHeureLimite());
         base.getTableaux().forEach(b::tableau);
         ScenarioSimulation scenario = b.build();
         StrategieOrdonnancement choisie = tournoi.getStrategieOrdonnancement();

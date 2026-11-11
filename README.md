@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 454 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 459 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -161,7 +161,11 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   1 tableau et sur 2 tableaux ou plus, plus longue attente, occupation des
   tables, risque de débordement ; puis le détail par tableau pour chaque
   stratégie. Avec assez de tables, l'écran dit que le choix de stratégie ne
-  change rien. Les joueurs fictifs ajoutés par « Compléter » ne sont inscrits
+  change rien. Temps autour du jeu, ajoutés à chaque match (table et joueurs
+  occupés) : appel et rappel d'un joueur qui n'a pas entendu, échauffement
+  2 min (3.4.3.1), pauses entre manches (3.4.4.1.1), temps morts (3.4.4.2),
+  retour de la feuille ; environ 7 min par match avec les réglages par
+  défaut, tous modifiables à l'écran. Les joueurs fictifs ajoutés par « Compléter » ne sont inscrits
   que sur un tableau.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
 - Feuilles de match et de poule imprimables (format provisoire 3 × 5).
@@ -314,6 +318,10 @@ parenthèses.
   maison) ? Garder la recherche par licence ?
 - Délai de désinscription en ligne (jusqu'à la fin des inscriptions).
 - Seuils de couleur des matchs proposés (fixes : 10 et 20 minutes).
+- Prévisions : temps autour du match par défaut (appel 1 min, 15 % de
+  rappels de 3 min, échauffement 2 min, 30 s de pause entre manches, 20 % de
+  temps mort par joueur, feuille 1 min 30) à confirmer sur un vrai tournoi ;
+  la durée moyenne du jeu (20 min) est désormais le jeu seul.
 - Tarif et dotation dans les finances (tarif en ligne, dotation sur les
   recettes attendues).
 - Téléphone dans le compte utilisateur (absent : « Non renseigné »).

@@ -8,6 +8,7 @@ import com.pingmanager.core.StatistiquesSimulation.StatTableau;
 import com.pingmanager.model.StrategieOrdonnancement;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -294,6 +295,59 @@ final class PresentationPrevisions {
         }
     }
 
+    /** Temps autour du jeu lus à l'écran, ou le message d'erreur à afficher. */
+    record ReglageAnnexes(TempsAnnexesMatch temps, String erreur) {
+    }
+
+    static final String ERREUR_ANNEXES = "Indiquez les temps autour du match en nombres (minutes, secondes "
+            + "ou pourcentages, par exemple 1,5).";
+
+    /** Valeurs proposées à l'écran (celles de {@link TempsAnnexesMatch#PAR_DEFAUT}). */
+    static final String APPEL = "1";
+    static final String RAPPEL_POURCENT = "15";
+    static final String RAPPEL_MINUTES = "3";
+    static final String ECHAUFFEMENT = "2";
+    static final String PAUSE_SECONDES = "30";
+    static final String TEMPS_MORT_POURCENT = "20";
+    static final String FEUILLE = "1,5";
+
+    /**
+     * @return les temps autour du jeu : appel (min), joueur à rappeler (%), retard
+     *         d'un rappel (min), échauffement (min), pause entre manches (s),
+     *         temps mort pris par un joueur (%), retour de la feuille (min).
+     */
+    static ReglageAnnexes lireTempsAnnexes(String appel, String rappelPourcent, String rappelMinutes,
+                                           String echauffement, String pauseSecondes, String tempsMortPourcent,
+                                           String feuille) {
+        Double a = nombre(appel, APPEL);
+        Double rp = nombre(rappelPourcent, RAPPEL_POURCENT);
+        Double rm = nombre(rappelMinutes, RAPPEL_MINUTES);
+        Double e = nombre(echauffement, ECHAUFFEMENT);
+        Double p = nombre(pauseSecondes, PAUSE_SECONDES);
+        Double tm = nombre(tempsMortPourcent, TEMPS_MORT_POURCENT);
+        Double f = nombre(feuille, FEUILLE);
+        if (a == null || rp == null || rm == null || e == null || p == null || tm == null || f == null) {
+            return new ReglageAnnexes(null, ERREUR_ANNEXES);
+        }
+        try {
+            return new ReglageAnnexes(TempsAnnexesMatch.builder()
+                    .appel((int) Math.round(a * 60)).probabiliteRappel(rp / 100).rappel((int) Math.round(rm * 60))
+                    .echauffement((int) Math.round(e * 60)).pauseEntreManches((int) Math.round(p))
+                    .probabiliteTempsMort(tm / 100).feuille((int) Math.round(f * 60)).build(), null);
+        } catch (IllegalArgumentException ex) {
+            return new ReglageAnnexes(null, ex.getMessage());
+        }
+    }
+
+    private static Double nombre(String saisie, String defaut) {
+        String s = saisie == null || saisie.isBlank() ? defaut : saisie.trim();
+        try {
+            return Double.parseDouble(s.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     // ------------------------------------------------------------------
     // Simulation statistique : les trois stratégies
     // ------------------------------------------------------------------
@@ -489,11 +543,28 @@ final class PresentationPrevisions {
                     .append(minutes(loi.getMaximum().toMinutes()));
         }
         sb.append('.');
+        if (s.tempsAnnexesMoyen() > 0) {
+            sb.append(" En plus du jeu, chaque match occupe sa table ").append(minutesDecimales(s.tempsAnnexesMoyen()))
+                    .append(" en moyenne : appel des joueurs, échauffement, pauses, temps morts et retour de "
+                            + "la feuille.");
+        }
         int bloques = stats.stream().mapToInt(StatistiquesSimulation::tiragesIncomplets).sum();
         if (bloques > 0) {
             sb.append(" ").append(bloques).append(" tirage(s) n'ont pas pu aller au bout.");
         }
         return sb.toString();
+    }
+
+    /** « 6 min 30 » pour 6,5 minutes. */
+    static String minutesDecimales(double minutes) {
+        long secondes = Math.round(minutes * 60);
+        long m = secondes / 60;
+        long s = Math.round((secondes % 60) / 10.0) * 10;
+        if (s == 60) {
+            m++;
+            s = 0;
+        }
+        return s == 0 ? minutes(m) : m + " min " + s;
     }
 
     static String pourcent(double p) {

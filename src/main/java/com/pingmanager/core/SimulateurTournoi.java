@@ -15,6 +15,7 @@ import com.pingmanager.model.Tour;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.CategorieDuree;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 import com.pingmanager.ordonnancement.MatchOrdonnancable;
 import com.pingmanager.ordonnancement.Ordonnanceur;
 import com.pingmanager.ordonnancement.PhaseMatch;
@@ -229,6 +230,8 @@ public final class SimulateurTournoi {
         /** Licence → nombre de tableaux simulés où le joueur est inscrit. */
         private final Map<String, Integer> tableauxParJoueur = new HashMap<>();
         private long attenteMax = -1;
+        private long secondesAnnexes;
+        private long matchsLances;
         private String joueurAttenteMax;
         private long sequence;
 
@@ -367,7 +370,14 @@ public final class SimulateurTournoi {
             // a plus de chances d'aller en cinq manches.
             double u = r.nextDouble();
             List<Manche> manches = tirerScore(m, r, u);
-            Duration duree = duree(mo, e, u);
+            // Durée totale d'occupation : le jeu, plus l'appel (et les rappels),
+            // l'échauffement (3.4.3.1), les pauses (3.4.4.1.1), les temps morts
+            // (3.4.4.2) et le retour de la feuille. Tirage séparé, propre au match.
+            TempsAnnexesMatch.Tirage annexes = scenario.getTempsAnnexes()
+                    .tirer(new Random(melanger(cleDe(mo).hashCode() * 31L + 7)), manches.size());
+            secondesAnnexes += annexes.total();
+            matchsLances++;
+            Duration duree = duree(mo, e, u).plusSeconds(annexes.total());
             LocalDateTime fin = maintenant.plus(duree);
             enCours.add(new EnCours(mo, fin, manches, sequence++));
             LocalDate jour = maintenant.toLocalDate();
@@ -505,7 +515,8 @@ public final class SimulateurTournoi {
             return new ResultatSimulation(strategie, scenario.getGraine(), scenario.getNombreDeTables(), debut, fin,
                     bilans, ignores, parties, moyenne(attentes), Math.max(0, attenteMax), joueurAttenteMax,
                     taux, complete, attentesUnTableau.isEmpty() ? -1 : moyenne(attentesUnTableau),
-                    attentesPlusieursTableaux.isEmpty() ? -1 : moyenne(attentesPlusieursTableaux));
+                    attentesPlusieursTableaux.isEmpty() ? -1 : moyenne(attentesPlusieursTableaux),
+                    matchsLances == 0 ? 0 : secondesAnnexes / 60.0 / matchsLances);
         }
 
         /**
