@@ -31,3 +31,5 @@ Branche `refactor/night-2026-11-13`, partie de `main` au commit `d54a72d`.
 
 | Commit | Quoi | Pourquoi | Lignes avant → après |
 |---|---|---|---|
+| `503bd20` | T1 : `RenduPdfFeuilles` réutilise `propre`, `imprimable`, `rgb` de `RenduPdfReglement` | copies identiques (23 lignes) | 66697 → 66662 |
+| `11380c3` | T3 : `core.TextesSuivi` (étape, tour, joueur, issue, score, podium), utilisé par `InstantaneSuivi`, `PresentationSuiviTournoi`, `PresentationPhaseFinale`, `GenerateurFeuilles` | mêmes textes recopiés dans le suivi sur téléphone et dans les écrans | 66662 → 66642 |
