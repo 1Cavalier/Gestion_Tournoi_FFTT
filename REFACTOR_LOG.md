@@ -33,3 +33,7 @@ Branche `refactor/night-2026-11-13`, partie de `main` au commit `d54a72d`.
 |---|---|---|---|
 | `503bd20` | T1 : `RenduPdfFeuilles` réutilise `propre`, `imprimable`, `rgb` de `RenduPdfReglement` | copies identiques (23 lignes) | 66697 → 66662 |
 | `11380c3` | T3 : `core.TextesSuivi` (étape, tour, joueur, issue, score, podium), utilisé par `InstantaneSuivi`, `PresentationSuiviTournoi`, `PresentationPhaseFinale`, `GenerateurFeuilles` | mêmes textes recopiés dans le suivi sur téléphone et dans les écrans | 66662 → 66642 |
+| `6c27192` | T6 : dix chaînes « if (x == ENUM) return constante » → tables `EnumMap` (`PresentationJourJ`, `DispositionArbre`, `PresentationPhaseFinale`, `StatutPastille`, `TextesSuivi`) | même résultat pour chaque valeur et pour null, en trois fois moins de lignes | 66642 → 66588 |
+| `1e48088` | T7 : `GenerateurFeuilles.Place` → record privé | classe interne qui ne portait que trois champs finals | 66588 → 66579 |
+| `65cfdb5` | T9 : 20 commentaires qui citaient `QUESTIONS.md`, `docs/…`, `CHARTE_GRAPHIQUE.md` mis à jour | ces documents ont été retirés du dépôt | 66579 → 66578 |
+| `bf7b814` | Finition : 4 avertissements `javac -Xlint:all` → 0 (`serialVersionUID`, usage voulu de `typeTournoi` annoté) | base saine pour un futur linter | 66578 → 66584 |
