@@ -462,7 +462,7 @@ public final class RenduPdfReglement {
     }
 
     /** Retire ce qu'une police ne sait pas poser (sauts de ligne, tabulations, espaces fines). */
-    static String propre(String s) {
+    public static String propre(String s) {
         return s == null ? "" : s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
                 .replace(' ', ' ').replace(' ', ' ');
     }
@@ -470,10 +470,9 @@ public final class RenduPdfReglement {
     /**
      * Texte nettoyé où chaque caractère que la police ne sait pas encoder (CJK, emoji…)
      * devient « ? » : un titre ou un nom exotique ne fait plus échouer tout le PDF.
-     * Même règle que {@code ui.infra.RenduPdfFeuilles.imprimable} (le cœur ne peut pas
-     * dépendre de {@code ui}). Sert à la mesure comme au dessin.
+     * Sert à la mesure comme au dessin ; partagé avec {@code ui.infra.RenduPdfFeuilles}.
      */
-    static String imprimable(String s, PDFont f) {
+    public static String imprimable(String s, PDFont f) {
         String t = propre(s);
         StringBuilder sb = null;
         for (int i = 0; i < t.length(); ) {
@@ -497,7 +496,8 @@ public final class RenduPdfReglement {
         return sb == null ? t : sb.toString();
     }
 
-    private static float[] rgb(int hex) {
+    /** Couleur {@code 0xRRVVBB} en composantes de 0 à 1. */
+    public static float[] rgb(int hex) {
         return new float[] {((hex >> 16) & 0xFF) / 255f, ((hex >> 8) & 0xFF) / 255f, (hex & 0xFF) / 255f};
     }
 }
