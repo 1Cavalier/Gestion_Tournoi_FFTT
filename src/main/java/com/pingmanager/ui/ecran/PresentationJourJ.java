@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -71,63 +72,42 @@ final class PresentationJourJ {
         return Etape.INSCRIPTION;
     }
 
+    private static final Map<Etape, String> LIBELLES_ETAPE = new EnumMap<>(Map.of(
+            Etape.POINTAGE_OUVERT, "Pointage ouvert",
+            Etape.POINTAGE_CLOTURE, "Prêt à lancer",
+            Etape.POULES, "Poules en cours",
+            Etape.POULES_TERMINEES, "Poules terminées",
+            Etape.PHASE_FINALE, "Phase finale"));
+
     static String libelle(Etape e) {
-        if (e == Etape.POINTAGE_OUVERT) {
-            return "Pointage ouvert";
-        }
-        if (e == Etape.POINTAGE_CLOTURE) {
-            return "Prêt à lancer";
-        }
-        if (e == Etape.POULES) {
-            return "Poules en cours";
-        }
-        if (e == Etape.POULES_TERMINEES) {
-            return "Poules terminées";
-        }
-        if (e == Etape.PHASE_FINALE) {
-            return "Phase finale";
-        }
-        return "Inscriptions";
+        return LIBELLES_ETAPE.getOrDefault(e, "Inscriptions");
     }
+
+    private static final Map<Etape, String> CLASSES_ETAPE = new EnumMap<>(Map.of(
+            Etape.POINTAGE_OUVERT, "etape-pointage",
+            Etape.POINTAGE_CLOTURE, "etape-pret",
+            Etape.POULES, "etape-poules",
+            Etape.POULES_TERMINEES, "etape-terminee",
+            Etape.PHASE_FINALE, "etape-terminee"));
 
     /** Classe de style de la pastille d'étape (définie dans theme.css). */
     static String classe(Etape e) {
-        if (e == Etape.POINTAGE_OUVERT) {
-            return "etape-pointage";
-        }
-        if (e == Etape.POINTAGE_CLOTURE) {
-            return "etape-pret";
-        }
-        if (e == Etape.POULES) {
-            return "etape-poules";
-        }
-        if (e == Etape.POULES_TERMINEES || e == Etape.PHASE_FINALE) {
-            return "etape-terminee";
-        }
-        return "etape-inscription";
+        return CLASSES_ETAPE.getOrDefault(e, "etape-inscription");
     }
+
+    private static final Map<Etape, String> ACTIONS_ETAPE = new EnumMap<>(Map.of(
+            Etape.INSCRIPTION, "Ouvrir le pointage",
+            Etape.POINTAGE_OUVERT, "Pointer",
+            Etape.POINTAGE_CLOTURE, "Lancer le tirage",
+            Etape.POULES_TERMINEES, "Construire le tableau final",
+            Etape.PHASE_FINALE, "Tableau final"));
 
     /**
      * Libellé du bouton principal d'un tableau sur la page Jour J : l'action
      * suivante du juge-arbitre.
      */
     static String libelleAction(Etape e) {
-        if (e == Etape.INSCRIPTION) {
-            return "Ouvrir le pointage";
-        }
-        if (e == Etape.POINTAGE_OUVERT) {
-            return "Pointer";
-        }
-        if (e == Etape.POINTAGE_CLOTURE) {
-            return "Lancer le tirage";
-        }
-        if (e == Etape.POULES_TERMINEES) {
-            return "Construire le tableau final";
-        }
-        if (e == Etape.PHASE_FINALE) {
-            return "Tableau final";
-        }
-        return "Poules";
+        return ACTIONS_ETAPE.getOrDefault(e, "Poules");
     }
 
     /** « Tableau de 16 · 7 / 16 matchs joués · petite finale », ou « Tableau final terminé ». */
@@ -474,20 +454,14 @@ final class PresentationJourJ {
     static final List<IssueMatch> ISSUES_NON_NORMALES = List.of(
             IssueMatch.FORFAIT, IssueMatch.ABANDON, IssueMatch.REFUS_DE_JOUER, IssueMatch.DISQUALIFICATION);
 
+    private static final Map<IssueMatch, String> LIBELLES_ISSUE = new EnumMap<>(Map.of(
+            IssueMatch.FORFAIT, "Forfait (absent à l'appel)",
+            IssueMatch.ABANDON, "Abandon",
+            IssueMatch.REFUS_DE_JOUER, "Refus de jouer",
+            IssueMatch.DISQUALIFICATION, "Disqualification"));
+
     static String libelleIssue(IssueMatch i) {
-        if (i == IssueMatch.FORFAIT) {
-            return "Forfait (absent à l'appel)";
-        }
-        if (i == IssueMatch.ABANDON) {
-            return "Abandon";
-        }
-        if (i == IssueMatch.REFUS_DE_JOUER) {
-            return "Refus de jouer";
-        }
-        if (i == IssueMatch.DISQUALIFICATION) {
-            return "Disqualification";
-        }
-        return "Match joué";
+        return LIBELLES_ISSUE.getOrDefault(i, "Match joué");
     }
 
     /**
@@ -511,18 +485,14 @@ final class PresentationJourJ {
         return manchesGagnees(m.getManches()) + " (" + String.join(", ", detail) + ")";
     }
 
+    private static final Map<SuiviPoule.Qualification, String> LIBELLES_QUALIFICATION = new EnumMap<>(Map.of(
+            SuiviPoule.Qualification.QUALIFIE, "Qualifié",
+            SuiviPoule.Qualification.PLACE_QUALIFICATIVE, "Place qualificative",
+            SuiviPoule.Qualification.NON_QUALIFIE, "Éliminé"));
+
     /** Pastille de situation dans le classement en direct. */
     static String libelleQualification(SuiviPoule.Qualification q) {
-        if (q == SuiviPoule.Qualification.QUALIFIE) {
-            return "Qualifié";
-        }
-        if (q == SuiviPoule.Qualification.PLACE_QUALIFICATIVE) {
-            return "Place qualificative";
-        }
-        if (q == SuiviPoule.Qualification.NON_QUALIFIE) {
-            return "Éliminé";
-        }
-        return "";
+        return LIBELLES_QUALIFICATION.getOrDefault(q, "");
     }
 
     /** « 1er », « 2e »… */

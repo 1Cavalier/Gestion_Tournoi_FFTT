@@ -12,6 +12,7 @@ import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -394,25 +395,16 @@ final class PresentationPhaseFinale {
     // État : pourquoi on ne peut pas (encore) construire
     // ------------------------------------------------------------------
 
+    private static final Map<DiagnosticPhaseFinale.Etat, String> TITRES_ETAT = new EnumMap<>(Map.of(
+            DiagnosticPhaseFinale.Etat.PRETE_A_CONSTRUIRE, "Poules terminées : le tableau final peut être tiré",
+            DiagnosticPhaseFinale.Etat.EN_COURS, "Tableau final en cours",
+            DiagnosticPhaseFinale.Etat.TERMINEE, "Tableau final terminé",
+            DiagnosticPhaseFinale.Etat.POULES_EN_COURS, "Poules en cours",
+            DiagnosticPhaseFinale.Etat.POULES_NON_LANCEES, "Poules pas encore tirées"));
+
     /** Titre court de l'état de la phase finale. */
     static String titreEtat(DiagnosticPhaseFinale d) {
-        DiagnosticPhaseFinale.Etat e = d.getEtat();
-        if (e == DiagnosticPhaseFinale.Etat.PRETE_A_CONSTRUIRE) {
-            return "Poules terminées : le tableau final peut être tiré";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.EN_COURS) {
-            return "Tableau final en cours";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.TERMINEE) {
-            return "Tableau final terminé";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.POULES_EN_COURS) {
-            return "Poules en cours";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.POULES_NON_LANCEES) {
-            return "Poules pas encore tirées";
-        }
-        return "Pas de tableau final";
+        return TITRES_ETAT.getOrDefault(d.getEtat(), "Pas de tableau final");
     }
 
     /** Explication de l'état : pourquoi la construction est (im)possible, et quoi faire. */

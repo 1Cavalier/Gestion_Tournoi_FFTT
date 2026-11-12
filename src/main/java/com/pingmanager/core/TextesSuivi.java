@@ -10,8 +10,10 @@ import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
@@ -158,18 +160,14 @@ public final class TextesSuivi {
                 + (n > 1 ? " matchs joués" : " match joué");
     }
 
+    private static final Map<SuiviPoule.Qualification, String> LIBELLES_QUALIFICATION = new EnumMap<>(Map.of(
+            SuiviPoule.Qualification.QUALIFIE, "Qualifié",
+            SuiviPoule.Qualification.PLACE_QUALIFICATIVE, "Place qualificative",
+            SuiviPoule.Qualification.NON_QUALIFIE, "Non qualifié"));
+
     /** Situation vis-à-vis de la qualification (pas de switch sur l'énumération). */
     public static String libelleQualification(SuiviPoule.Qualification q) {
-        if (q == SuiviPoule.Qualification.QUALIFIE) {
-            return "Qualifié";
-        }
-        if (q == SuiviPoule.Qualification.PLACE_QUALIFICATIVE) {
-            return "Place qualificative";
-        }
-        if (q == SuiviPoule.Qualification.NON_QUALIFIE) {
-            return "Non qualifié";
-        }
-        return "";
+        return LIBELLES_QUALIFICATION.getOrDefault(q, "");
     }
 
     // ------------------------------------------------------------------

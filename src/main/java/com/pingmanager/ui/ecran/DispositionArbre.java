@@ -8,7 +8,9 @@ import com.pingmanager.ui.ecran.PresentationPhaseFinale.Colonne;
 import com.pingmanager.ui.ecran.PresentationPhaseFinale.TypeCase;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -272,38 +274,26 @@ final class DispositionArbre {
         return PresentationPhaseFinale.estSaisissable(m) ? EtatCarte.A_JOUER : EtatCarte.EN_ATTENTE;
     }
 
+    private static final Map<EtatCarte, String> CLASSES_ETAT = new EnumMap<>(Map.of(
+            EtatCarte.A_JOUER, "arbre-a-jouer",
+            EtatCarte.EN_COURS, "arbre-en-cours",
+            EtatCarte.TERMINE, "arbre-termine",
+            EtatCarte.EXEMPT, "arbre-exempt"));
+
     /** Classe de style de la carte (définie dans theme.css, section « Jour J : phase finale »). */
     static String classeEtat(EtatCarte e) {
-        if (e == EtatCarte.A_JOUER) {
-            return "arbre-a-jouer";
-        }
-        if (e == EtatCarte.EN_COURS) {
-            return "arbre-en-cours";
-        }
-        if (e == EtatCarte.TERMINE) {
-            return "arbre-termine";
-        }
-        if (e == EtatCarte.EXEMPT) {
-            return "arbre-exempt";
-        }
-        return "arbre-attente";
+        return CLASSES_ETAT.getOrDefault(e, "arbre-attente");
     }
+
+    private static final Map<EtatCarte, String> LIBELLES_ETAT = new EnumMap<>(Map.of(
+            EtatCarte.A_JOUER, "À jouer",
+            EtatCarte.EN_COURS, "En cours",
+            EtatCarte.TERMINE, "Terminé",
+            EtatCarte.EXEMPT, PresentationPhaseFinale.LIBELLE_EXEMPT));
 
     /** Pastille courte affichée sur la carte : « À jouer », « En cours », « Exempt »… */
     static String libelleEtat(EtatCarte e) {
-        if (e == EtatCarte.A_JOUER) {
-            return "À jouer";
-        }
-        if (e == EtatCarte.EN_COURS) {
-            return "En cours";
-        }
-        if (e == EtatCarte.TERMINE) {
-            return "Terminé";
-        }
-        if (e == EtatCarte.EXEMPT) {
-            return PresentationPhaseFinale.LIBELLE_EXEMPT;
-        }
-        return "En attente";
+        return LIBELLES_ETAT.getOrDefault(e, "En attente");
     }
 
     /** « Table 5 » si le match est affecté à une table, sinon vide. */
