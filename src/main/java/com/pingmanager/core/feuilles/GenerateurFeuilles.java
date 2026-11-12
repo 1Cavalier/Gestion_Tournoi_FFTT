@@ -268,17 +268,8 @@ public final class GenerateurFeuilles {
     }
 
     /** Une place de l'arbre pendant la construction. */
-    private static final class Place {
+    private record Place(TypeCase type, Match match, Joueur joueur) {
         static final Place VIDE = new Place(TypeCase.VIDE, null, null);
-        final TypeCase type;
-        final Match match;
-        final Joueur joueur;
-
-        private Place(TypeCase type, Match match, Joueur joueur) {
-            this.type = type;
-            this.match = match;
-            this.joueur = joueur;
-        }
 
         static Place match(Match m) {
             return new Place(TypeCase.MATCH, m, null);
