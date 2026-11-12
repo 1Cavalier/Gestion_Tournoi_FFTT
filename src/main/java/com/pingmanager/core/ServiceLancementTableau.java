@@ -210,7 +210,7 @@ public final class ServiceLancementTableau {
                     "Le tableau n'a pas de format défini : impossible de construire la phase finale.");
         }
 
-        // Petite finale : option du tableau (clause d'organisateur, QUESTIONS.md du
+        // Petite finale : option du tableau (clause d'organisateur, décision du
         // 5 novembre 2026), le chapitre IX ne l'imposant pas.
         TableauElimination elimination = moteur.construireTableau(tableau.getPoules(), format, graine,
                 tableau.getConfiguration().avecPetiteFinale());

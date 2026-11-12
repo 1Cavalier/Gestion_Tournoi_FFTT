@@ -1,8 +1,8 @@
 package com.pingmanager.model;
 
 /**
- * Champs du dossier d'homologation (grille 🔴 de
- * {@code docs/passation/REGLES_CREATION_TOURNOI.md}) : ils figurent sur la
+ * Champs du dossier d'homologation (grille des champs obligatoires pour
+ * l'homologation) : ils figurent sur la
  * demande transmise à la FFTT et sont donc <b>verrouillés</b> dès la demande
  * d'homologation (voir {@link Tournoi#champsHomologationVerrouilles()}).
  *

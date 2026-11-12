@@ -14,8 +14,7 @@ import java.util.Objects;
  *   <li>« … - Tableau C, 8es de finale. » ; « … - Tableau C, match de classement (places 17 à 32). »</li>
  *   <li>« Hugo, vous arbitrez la partie table 4 : Léa DURAND contre Paul MARTIN - Tableau C, poule B. »</li>
  * </ul>
- * Message transactionnel : aucune publicité ni mention STOP (voir
- * {@code docs/RECHERCHE_SMS.md}, section 3). Si le texte est trop long, on
+ * Message transactionnel : aucune publicité ni mention STOP. Si le texte est trop long, on
  * retire d'abord le club, puis on abrège les prénoms et le nom du tableau.
  */
 public final class TexteConvocation {

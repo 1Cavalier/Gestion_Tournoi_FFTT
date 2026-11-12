@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 /**
  * Lit {@code clubs.csv}, une liste de clubs fournie par l'organisateur (B023).
- * <b>Format provisoire</b> : voir {@code docs/FORMAT_ECHANGES_FFTT.md}. Mêmes
+ * <b>Format provisoire</b> : voir le README, section 8. Mêmes
  * règles de lecture que {@link LecteurLicencesCsv}.
  *
  * <p>Colonnes : {@code N° club} (obligatoire, 8 chiffres ; 7 chiffres complétés

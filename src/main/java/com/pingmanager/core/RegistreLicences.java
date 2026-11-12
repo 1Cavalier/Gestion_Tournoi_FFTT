@@ -51,7 +51,7 @@ public interface RegistreLicences {
 
     /**
      * Liste les licenciés d'un club (correspond au service fédéral
-     * {@code xml_licence_b?club=}, voir {@code docs/RECHERCHE_FFTT.md} §4.1).
+     * {@code xml_licence_b?club=}, voir le README, section 8).
      *
      * @param numeroClub numéro du club
      * @return les fiches du club (vide par défaut si la source ne sait pas lister)

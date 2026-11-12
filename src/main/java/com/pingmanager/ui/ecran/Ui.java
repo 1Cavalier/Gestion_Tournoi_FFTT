@@ -43,7 +43,7 @@ import java.util.function.BooleanSupplier;
  */
 final class Ui {
 
-    // Classes d'état de complétude (cf. CHARTE_GRAPHIQUE.md §4).
+    // Classes d'état de complétude (cf. skill charte-graphique).
     static final String ETAT_OK = "etat-ok";
     static final String ETAT_ATTENTION = "etat-attention";
     static final String ETAT_RECOMMANDE = "etat-recommande";

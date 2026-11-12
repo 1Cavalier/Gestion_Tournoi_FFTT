@@ -17,7 +17,7 @@ import java.util.Objects;
  * Export des résultats en CSV <b>provisoire</b> (B023) : {@code parties.csv} et
  * {@code classements.csv}, en attendant le format fédéral « donné lors de
  * l'homologation » (IX.107). Format détaillé dans
- * {@code docs/FORMAT_ECHANGES_FFTT.md}.
+ * le README, section 8.
  *
  * <p>Point-virgule, UTF-8 avec BOM, CRLF ; dates jj/mm/aaaa, heures hh:mm ;
  * cellules échappées et formules neutralisées ({@link CsvFederal#cellule}).

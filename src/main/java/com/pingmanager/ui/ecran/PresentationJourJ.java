@@ -329,7 +329,7 @@ final class PresentationJourJ {
 
     /**
      * @return true si l'écran autorise le tirage : le cœur l'accepte et aucun repêché
-     *         ne reste à pointer (choix prudent, voir QUESTIONS.md).
+     *         ne reste à pointer (choix prudent, voir le README, section 6).
      */
     static boolean tiragePossible(ResultatVerificationLancement r) {
         return r.estPret() && r.getNonPointes().isEmpty();

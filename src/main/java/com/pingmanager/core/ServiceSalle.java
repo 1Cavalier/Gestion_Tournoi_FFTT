@@ -53,7 +53,7 @@ import java.util.Objects;
  * (3.3.1.2.2) et de « l'horaire des parties » (IX.109). Le choix lui revient
  * donc toujours : l'ordre de priorité et le bouton « Proposer » ne sont qu'une
  * aide, et une affectation se corrige ({@link #annulerAffectation}). Aucun temps
- * de repos entre deux parties n'est imposé par les textes (voir QUESTIONS.md).</p>
+ * de repos entre deux parties n'est imposé par les textes (voir le README, section 6).</p>
  */
 public final class ServiceSalle {
 
