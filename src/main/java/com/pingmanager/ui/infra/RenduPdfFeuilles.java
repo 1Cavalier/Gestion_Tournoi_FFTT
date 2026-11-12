@@ -1,9 +1,5 @@
 package com.pingmanager.ui.infra;
 
-import static com.pingmanager.core.reglement.RenduPdfReglement.imprimable;
-import static com.pingmanager.core.reglement.RenduPdfReglement.propre;
-import static com.pingmanager.core.reglement.RenduPdfReglement.rgb;
-
 import com.pingmanager.core.feuilles.ArbreImprimable;
 import com.pingmanager.core.feuilles.ArbreImprimable.CaseArbre;
 import com.pingmanager.core.feuilles.ArbreImprimable.ColonneArbre;
@@ -25,6 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
+
+import static com.pingmanager.core.reglement.RenduPdfReglement.imprimable;
+import static com.pingmanager.core.reglement.RenduPdfReglement.propre;
+import static com.pingmanager.core.reglement.RenduPdfReglement.rgb;
 
 /**
  * Rendu PDF (PDFBox, police Inter intégrée) des feuilles du jour J préparées

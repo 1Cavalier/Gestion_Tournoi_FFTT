@@ -2,6 +2,7 @@ package com.pingmanager.core.feuilles;
 
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.SuiviPoule;
+import com.pingmanager.core.TextesSuivi;
 import com.pingmanager.core.feuilles.ArbreImprimable.CaseArbre;
 import com.pingmanager.core.feuilles.ArbreImprimable.ColonneArbre;
 import com.pingmanager.core.feuilles.ArbreImprimable.TypeCase;
@@ -367,18 +368,6 @@ public final class GenerateurFeuilles {
     }
 
     static String libelleIssue(IssueMatch issue) {
-        if (issue == IssueMatch.FORFAIT) {
-            return "Forfait";
-        }
-        if (issue == IssueMatch.ABANDON) {
-            return "Abandon";
-        }
-        if (issue == IssueMatch.REFUS_DE_JOUER) {
-            return "Refus de jouer";
-        }
-        if (issue == IssueMatch.DISQUALIFICATION) {
-            return "Disqualification";
-        }
-        return "";
+        return TextesSuivi.libelleIssue(issue, "");
     }
 }
