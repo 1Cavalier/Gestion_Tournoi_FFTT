@@ -160,6 +160,9 @@ public final class Coquille {
         if (contexte.estOrganisateur()) {
             gestion.add(new Entree("gestion", "Gestion des tournois", Icones.GESTION,
                     () -> new PageGestionTournoi(contexte).build()));
+            // B041 : poste de pointage autonome (souvent un autre ordinateur que celui du JA).
+            gestion.add(new Entree("pointage", "Pointage", Icones.FICHE,
+                    () -> new EcranPostePointage(contexte).build()));
             gestion.add(new Entree("historique", "Historique", Icones.HISTORIQUE,
                     () -> PagePlaceholder.page("Historique",
                             "Les statistiques du club sur ses tournois passés (recettes, nombre "
