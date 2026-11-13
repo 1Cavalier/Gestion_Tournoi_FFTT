@@ -302,6 +302,7 @@ public final class DepotApplication implements RegistreClubs {
         }
         String texte;
         try {
+            com.pingmanager.persistence.json.FichierJson.verifierTaille(source);
             texte = Files.readString(source, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Échec du chargement applicatif depuis " + source, e);
