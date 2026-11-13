@@ -4191,3 +4191,13 @@
     -fx-font-size: 16px;
     -fx-min-width: 40px;
 }
+
+.buvette-resultat-positif {
+    -fx-font-weight: bold;
+    -fx-text-fill: -succes;
+}
+
+.buvette-resultat-negatif {
+    -fx-font-weight: bold;
+    -fx-text-fill: -erreur;
+}

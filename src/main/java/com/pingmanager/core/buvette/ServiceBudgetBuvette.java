@@ -91,6 +91,25 @@ public final class ServiceBudgetBuvette {
         return ok();
     }
 
+    /**
+     * Préremplit le budget avec les quantités vendues lors d'un ancien tournoi
+     * (« Reprendre les quantités d'un ancien tournoi ») : elles remplacent le calcul
+     * par personne, produit par produit, et suivent les scénarios bas et haut.
+     */
+    public ResultatBudgetBuvette reprendreQuantites(BuvetteTournoi cible, BilanBuvette ancien) {
+        Map<String, Long> q = new LinkedHashMap<>();
+        ancien.ventesParProduit().forEach((id, n) -> {
+            if (n > 0) {
+                q.put(id, n);
+            }
+        });
+        if (q.isEmpty()) {
+            return new ResultatBudgetBuvette(ResultatBudgetBuvette.Motif.RIEN_A_REPRENDRE);
+        }
+        cible.setBudget(cible.getBudget().avecQuantitesImposees(q, ancien.nomTournoi()));
+        return new ResultatBudgetBuvette(ResultatBudgetBuvette.Motif.QUANTITES_REPRISES);
+    }
+
     private static ResultatBudgetBuvette ok() {
         return new ResultatBudgetBuvette(ResultatBudgetBuvette.Motif.ENREGISTRE);
     }

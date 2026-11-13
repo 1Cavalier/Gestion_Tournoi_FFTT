@@ -3,7 +3,9 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.DroitRefuseException;
 import com.pingmanager.core.buvette.Centimes;
 import com.pingmanager.core.Horloge;
+import com.pingmanager.core.buvette.BilanBuvette;
 import com.pingmanager.core.buvette.BudgetCalcule;
+import com.pingmanager.core.buvette.CalculBilanBuvette;
 import com.pingmanager.core.buvette.CalculBudgetBuvette;
 import com.pingmanager.core.buvette.ResultatBudgetBuvette;
 import com.pingmanager.core.buvette.ResultatIngredientBuvette;
@@ -80,6 +82,9 @@ final class PageBuvette {
     private final ServiceStockBuvette serviceStock = new ServiceStockBuvette(Horloge.systeme());
     private final ServiceBudgetBuvette serviceBudget = new ServiceBudgetBuvette();
     private final ServiceVentesBuvette serviceVentes = new ServiceVentesBuvette(Horloge.systeme());
+    /** Saison filtrée et tournoi détaillé dans l'onglet Historique. */
+    private String saisonHistorique = PresentationHistoriqueBuvette.TOUTES;
+    private int bilanOuvert = -1;
     /** Scénario affiché dans l'onglet Budget. */
     private String scenarioCourant = "Moyen";
     /** Tournoi choisi pour les onglets Stock, Budget et Ventes ({@code null} : aucun). */
@@ -188,6 +193,9 @@ final class PageBuvette {
         }
         if (VENTES.equals(ongletCourant)) {
             return avecTournoi(this::ongletVentes);
+        }
+        if (HISTORIQUE.equals(ongletCourant)) {
+            return ongletHistorique();
         }
         return Ui.carteNue(Ui.etatVide("Cet onglet arrive bientôt.", null));
     }
@@ -1009,6 +1017,139 @@ final class PageBuvette {
         } else {
             enregistrerTournoi(b, texte, null);
         }
+    }
+
+    // ==================================================================
+    // Onglet Historique
+    // ==================================================================
+
+    private Node ongletHistorique() {
+        CatalogueBuvette cat = catalogue();
+        List<ContexteApplication.TournoiFichier> tournois = tournoisDuClub();
+        List<BilanBuvette> bilans = new ArrayList<>();
+        CalculBilanBuvette calcul = new CalculBilanBuvette();
+        for (ContexteApplication.TournoiFichier tf : tournois) {
+            BuvetteTournoi b;
+            try {
+                b = DepotBuvette.charger(tf.fichier());
+            } catch (RuntimeException illisible) {
+                b = new BuvetteTournoi();
+            }
+            bilans.add(calcul.bilan(tf.tournoi(), b, cat, suggestions.hypotheses(), ZoneId.systemDefault()));
+        }
+        PresentationHistoriqueBuvette p = new PresentationHistoriqueBuvette(bilans, saisonHistorique);
+        VBox v = new VBox(20);
+        ComboBox<String> saison = new ComboBox<>(FXCollections.observableArrayList(p.saisons()));
+        saison.getSelectionModel().select(saisonHistorique);
+        saison.valueProperty().addListener((o, a, n) -> {
+            if (n != null) {
+                saisonHistorique = n;
+                bilanOuvert = -1;
+                afficher();
+            }
+        });
+        Button csv = Ui.boutonSecondaire("Exporter le bilan en CSV…");
+        csv.setOnAction(e -> exporter(p.nomFichier(), "Fichier CSV", "*.csv",
+                () -> p.csv().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        v.getChildren().add(Ui.ligne(12, Ui.libelleChamp("Saison"), saison, Ui.espace(), csv));
+        v.getChildren().add(tuiles(p.tuiles().stream().map(t -> Ui.tuileChiffre(t.valeur(), t.libelle())).toList()));
+
+        VBox liste = new VBox(4);
+        boolean premiere = true;
+        for (PresentationHistoriqueBuvette.LigneTournoi l : p.lignes()) {
+            Label resultat = Ui.label(l.resultat(), l.positif() ? "buvette-resultat-positif" : "buvette-resultat-negatif");
+            Button voir = Ui.boutonLien(l.index() == bilanOuvert ? "Fermer" : "Voir le bilan");
+            voir.setOnAction(e -> {
+                bilanOuvert = l.index() == bilanOuvert ? -1 : l.index();
+                afficher();
+            });
+            HBox ligne = Ui.ligneElement(null, l.titre(), l.detail(), resultat, voir);
+            if (premiere) {
+                ligne.getStyleClass().add("ligne-element-premiere");
+                premiere = false;
+            }
+            liste.getChildren().add(ligne);
+        }
+        if (liste.getChildren().isEmpty()) {
+            liste.getChildren().add(Ui.etatVideCompact(p.messageVide()));
+        }
+        v.getChildren().add(Ui.carte("Tournois du club", liste));
+        if (bilanOuvert >= 0 && bilanOuvert < bilans.size()) {
+            v.getChildren().add(carteBilan(p, bilans.get(bilanOuvert), tournois.get(bilanOuvert), tournois));
+        }
+        return v;
+    }
+
+    private Node carteBilan(PresentationHistoriqueBuvette p, BilanBuvette b, ContexteApplication.TournoiFichier source,
+                            List<ContexteApplication.TournoiFichier> tournois) {
+        javafx.scene.layout.GridPane grille = new javafx.scene.layout.GridPane();
+        grille.setHgap(24);
+        grille.setVgap(6);
+        grille.add(Ui.enteteColonne(""), 0, 0);
+        grille.add(Ui.enteteColonne("Prévu"), 1, 0);
+        grille.add(Ui.enteteColonne("Réel"), 2, 0);
+        int r = 1;
+        for (PresentationHistoriqueBuvette.LigneComparaison l : p.comparaison(b)) {
+            grille.add(Ui.gras(l.libelle()), 0, r);
+            grille.add(Ui.texte(l.prevu()), 1, r);
+            grille.add(Ui.texte(l.reel()), 2, r);
+            r++;
+        }
+        // Reprendre les quantités vendues dans le budget d'un autre tournoi.
+        List<ContexteApplication.TournoiFichier> cibles = new ArrayList<>();
+        for (ContexteApplication.TournoiFichier tf : tournois) {
+            if (!tf.fichier().equals(source.fichier())) {
+                cibles.add(tf);
+            }
+        }
+        VBox reprise = new VBox(10);
+        if (!cibles.isEmpty() && !b.ventesParProduit().isEmpty()) {
+            ComboBox<ContexteApplication.TournoiFichier> cible = new ComboBox<>(FXCollections.observableArrayList(cibles));
+            cible.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(ContexteApplication.TournoiFichier tf) {
+                    return tf == null ? "" : tf.tournoi().getNom();
+                }
+
+                @Override
+                public ContexteApplication.TournoiFichier fromString(String s) {
+                    return null;
+                }
+            });
+            cible.setPromptText("Tournoi à préparer…");
+            Button reprendre = Ui.boutonSecondaire("Reprendre les quantités de ce tournoi…");
+            VBox confirmation = new VBox();
+            reprendre.setOnAction(e -> {
+                ContexteApplication.TournoiFichier tf = cible.getValue();
+                if (tf == null) {
+                    Ui.erreur(message, "Choisissez le tournoi dont le budget sera prérempli.");
+                    return;
+                }
+                Button oui = Ui.boutonPrimaire("Préremplir");
+                Button non = Ui.boutonSecondaire("Renoncer");
+                oui.setOnAction(x -> {
+                    BuvetteTournoi destination = DepotBuvette.charger(tf.fichier());
+                    ResultatBudgetBuvette res = serviceBudget.reprendreQuantites(destination, b);
+                    if (!res.accepte()) {
+                        Ui.erreur(message, res.explication());
+                        return;
+                    }
+                    Path courant = fichierTournoi;
+                    fichierTournoi = tf.fichier();
+                    enregistrerTournoi(destination, null, res.explication() + " (« " + tf.tournoi().getNom()
+                            + " », onglet Budget).");
+                    fichierTournoi = courant;
+                });
+                non.setOnAction(x -> confirmation.getChildren().clear());
+                confirmation.getChildren().setAll(Ui.encartConfirmation("Le budget de « " + tf.tournoi().getNom()
+                        + " » partira des quantités vendues à « " + b.nomTournoi() + " » (au lieu du calcul par "
+                        + "personne). Vous pourrez revenir au calcul depuis l'onglet Budget.", oui, non));
+            });
+            reprise.getChildren().addAll(Ui.ligne(10, cible, reprendre), confirmation);
+        }
+        return Ui.carte("Bilan : " + b.nomTournoi(), grille, Ui.texte(p.plusVendus(b)), Ui.texte(p.phraseResultat(b)),
+                Ui.aide("Prévu = scénario moyen du budget. Les finances du tournoi (inscriptions) ne sont pas "
+                        + "modifiées par la buvette."), reprise);
     }
 
     /** Contenu d'un fichier à exporter (peut échouer). */

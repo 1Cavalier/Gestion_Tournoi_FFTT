@@ -31,6 +31,37 @@ public final class ExportCsvBuvette {
         return sb.toString();
     }
 
+    /** Bilan de plusieurs tournois, prévu contre réel, avec une ligne de totaux. */
+    public static String bilan(String titre, List<BilanBuvette> bilans) {
+        StringBuilder sb = new StringBuilder(BOM);
+        ligne(sb, List.of("Bilan de la buvette", titre));
+        ligne(sb, List.of("Tournoi", "Date", "Saison", "Recette prévue (€)", "Recette réelle (€)",
+                "Achats prévus (€)", "Achats payés (€)", "Marge prévue (€)", "Résultat réel (€)", "Articles vendus",
+                "Pertes et dons (€)", "Stock restant (€)", "Produits les plus vendus"));
+        long rp = 0, rr = 0, ap = 0, ar = 0, art = 0, pe = 0, st = 0;
+        for (BilanBuvette b : bilans) {
+            StringBuilder top = new StringBuilder();
+            b.plusVendus().forEach(e -> top.append(top.length() == 0 ? "" : ", ").append(e.getKey()).append(" (")
+                    .append(e.getValue()).append(')'));
+            ligne(sb, List.of(b.nomTournoi(), b.date().toString(), b.saison(), Centimes.nombre(b.recettePrevue()),
+                    Centimes.nombre(b.recetteReelle()), Centimes.nombre(b.achatsPrevus()),
+                    Centimes.nombre(b.achatsReels()), Centimes.nombre(b.margePrevue()),
+                    Centimes.nombre(b.margeReelle()), String.valueOf(b.articles()),
+                    Centimes.nombre(b.pertesCentimes()), Centimes.nombre(b.stockRestantCentimes()), top.toString()));
+            rp += b.recettePrevue();
+            rr += b.recetteReelle();
+            ap += b.achatsPrevus();
+            ar += b.achatsReels();
+            art += b.articles();
+            pe += b.pertesCentimes();
+            st += b.stockRestantCentimes();
+        }
+        ligne(sb, List.of("Total", "", "", Centimes.nombre(rp), Centimes.nombre(rr), Centimes.nombre(ap),
+                Centimes.nombre(ar), Centimes.nombre(rp - ap), Centimes.nombre(rr - ar), String.valueOf(art),
+                Centimes.nombre(pe), Centimes.nombre(st), ""));
+        return sb.toString();
+    }
+
     /** Ajoute une ligne CSV (cellules protégées et échappées). */
     public static void ligne(StringBuilder sb, List<String> cellules) {
         for (int i = 0; i < cellules.size(); i++) {
