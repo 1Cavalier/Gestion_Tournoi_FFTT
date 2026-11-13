@@ -6,7 +6,7 @@ package com.pingmanager.core;
  * <p>Le cœur exprime le besoin d'envoyer un message court sans dépendre d'un
  * prestataire. Les implémentations vivent hors du {@code core} : simulation
  * affichée à l'écran aujourd'hui, prestataire réel plus tard (Brevo recommandé
- * par la veille B020, {@code docs/RECHERCHE_SMS.md} : une requête POST JSON
+ * par la veille B020, README section 4 : une requête POST JSON
  * {@code sender} / {@code recipient} / {@code content}, type transactionnel,
  * réponse avec un {@code messageId}).</p>
  */

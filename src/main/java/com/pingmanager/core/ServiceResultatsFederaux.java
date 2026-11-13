@@ -18,7 +18,7 @@ import java.util.Objects;
 
 /**
  * Service pur : prépare les résultats d'un tournoi pour un
- * {@link ExportResultatsFederaux} (B023, voir {@code docs/RECHERCHE_FFTT.md} §4.1).
+ * {@link ExportResultatsFederaux} (B023, voir le README, section 8).
  *
  * <p>IX.107 : les résultats d'un tournoi homologué sont transmis dans les huit
  * jours « sous un format informatique qui sera donné lors de l'homologation ».

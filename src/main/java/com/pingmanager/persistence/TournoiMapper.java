@@ -119,6 +119,7 @@ public final class TournoiMapper {
         return doc;
     }
 
+    @SuppressWarnings("deprecation") // typeTournoi reste écrit pour les versions qui le lisent encore
     private static Json ecrireTournoi(Tournoi t, ContexteSerialisation ctx) {
         Json o = Json.objet();
         o.set("nom", t.getNom());
@@ -561,6 +562,7 @@ public final class TournoiMapper {
         return null;
     }
 
+    @SuppressWarnings("deprecation") // typeTournoi reste relu pour les anciens fichiers
     private static Tournoi lireTournoi(Json o, ContexteSerialisation ctx) {
         List<LocalDate> jours = new ArrayList<>();
         for (Json j : o.get("jours").elements()) {

@@ -22,6 +22,10 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 
+import static com.pingmanager.core.reglement.RenduPdfReglement.imprimable;
+import static com.pingmanager.core.reglement.RenduPdfReglement.propre;
+import static com.pingmanager.core.reglement.RenduPdfReglement.rgb;
+
 /**
  * Rendu PDF (PDFBox, police Inter intégrée) des feuilles du jour J préparées
  * par le cœur ({@code core.feuilles.GenerateurFeuilles}) : feuilles de match
@@ -587,44 +591,5 @@ public final class RenduPdfFeuilles {
                 y -= taille + 4;
             }
         }
-    }
-
-    /** Retire ce que la police ne sait pas poser (sauts de ligne, tabulations, espaces fines). */
-    static String propre(String s) {
-        return s == null ? "" : s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-                .replace(' ', ' ').replace(' ', ' ');
-    }
-
-    /**
-     * {@link #propre} puis remplace par « ? » chaque caractère (code point, paires de
-     * substitution comprises) que la police ne sait pas encoder (CJK, emoji…). Utilisé
-     * à la fois pour la mesure et pour le dessin, pour qu'ils restent cohérents.
-     */
-    static String imprimable(String s, PDFont f) {
-        String t = propre(s);
-        StringBuilder sb = null;
-        for (int i = 0; i < t.length(); ) {
-            int cp = t.codePointAt(i);
-            int n = Character.charCount(cp);
-            boolean ok;
-            try {
-                f.encode(t.substring(i, i + n));
-                ok = true;
-            } catch (IllegalArgumentException | IOException e) {
-                ok = false;
-            }
-            if (!ok && sb == null) {
-                sb = new StringBuilder(t.length()).append(t, 0, i);
-            }
-            if (sb != null) {
-                sb.append(ok ? t.substring(i, i + n) : "?");
-            }
-            i += n;
-        }
-        return sb == null ? t : sb.toString();
-    }
-
-    private static float[] rgb(int hex) {
-        return new float[] {((hex >> 16) & 0xFF) / 255f, ((hex >> 8) & 0xFF) / 255f, (hex & 0xFF) / 255f};
     }
 }

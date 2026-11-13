@@ -139,6 +139,8 @@ public final class LecteurTableur {
 
     /** Fichier illisible : le message est destiné à l'utilisateur. */
     public static final class ImportException extends Exception {
+        private static final long serialVersionUID = 1L;
+
         public ImportException(String message) {
             super(message);
         }

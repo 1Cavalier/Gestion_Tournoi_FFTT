@@ -13,7 +13,7 @@ import java.util.List;
  * Implémentation <b>simulée</b> du port {@link EnvoiSms} (B019) : aucun SMS ne
  * part, le message est retenu (numéro masqué) pour être montré à l'écran.
  *
- * <p>Le vrai prestataire (Brevo recommandé, {@code docs/RECHERCHE_SMS.md})
+ * <p>Le vrai prestataire (Brevo recommandé, README section 4)
  * remplacera cette classe sans toucher au cœur.</p>
  */
 public final class EnvoiSmsSimule implements EnvoiSms {

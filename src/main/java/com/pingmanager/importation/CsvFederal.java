@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * Outils communs aux fichiers d'échange FFTT provisoires (B023, format
- * documenté dans {@code docs/FORMAT_ECHANGES_FFTT.md}).
+ * voir le README, section 8).
  *
  * <p><b>Entrée non fiable.</b> Taille de fichier plafonnée, cellules trop
  * longues signalées, BOM et espaces de bord retirés, colonnes lues par leur

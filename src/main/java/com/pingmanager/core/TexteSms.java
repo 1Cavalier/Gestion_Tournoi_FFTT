@@ -8,7 +8,7 @@ import java.text.Normalizer;
  * <p>Un SMS fait 160 caractères dans l'alphabet GSM 7 bits (GSM 03.38), ou 70
  * en Unicode (UCS-2) dès qu'un seul caractère sort de cet alphabet. Au-delà,
  * le message est découpé en segments de 153 (GSM) ou 67 (UCS-2) caractères,
- * chacun facturé comme un SMS (voir {@code docs/RECHERCHE_SMS.md}, section 3).
+ * chacun facturé comme un SMS.
  * Plusieurs lettres françaises (ê, â, î, ô, û, ë, ï, ç minuscule, œ) ne sont pas
  * dans l'alphabet GSM : {@link #versGsm7(String)} les remplace pour que les
  * convocations tiennent dans un seul SMS à 160 caractères.</p>

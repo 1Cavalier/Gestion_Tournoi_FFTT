@@ -3,18 +3,18 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.DiagnosticPhaseFinale;
 import com.pingmanager.core.PodiumPhaseFinale;
 import com.pingmanager.core.ServicePhaseFinale;
+import com.pingmanager.core.TextesSuivi;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
-import com.pingmanager.model.Manche;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -31,7 +31,7 @@ final class PresentationPhaseFinale {
     /** Explication d'un exempt, sous le nom du joueur. */
     static final String AIDE_EXEMPT = "Sans adversaire : qualifié d'office.";
     /** Libellé d'une place encore inconnue (vainqueur d'un match non joué). */
-    static final String A_DETERMINER = "À déterminer";
+    static final String A_DETERMINER = TextesSuivi.A_DETERMINER;
 
     private PresentationPhaseFinale() {
     }
@@ -46,19 +46,7 @@ final class PresentationPhaseFinale {
      * 4 = « 1/16 de finale », etc.
      */
     static String libelleTour(int rangDepuisFinale) {
-        if (rangDepuisFinale < 0) {
-            throw new IllegalArgumentException("Rang négatif : " + rangDepuisFinale);
-        }
-        if (rangDepuisFinale == 0) {
-            return "Finale";
-        }
-        if (rangDepuisFinale == 1) {
-            return "Demi-finales";
-        }
-        if (rangDepuisFinale == 2) {
-            return "Quarts de finale";
-        }
-        return "1/" + (1L << rangDepuisFinale) + " de finale";
+        return TextesSuivi.libelleTour(rangDepuisFinale);
     }
 
     /** Nature d'une case du tableau. */
@@ -227,27 +215,17 @@ final class PresentationPhaseFinale {
     // ------------------------------------------------------------------
 
     static boolean estConnu(Joueur j) {
-        return j != null && !j.estADeterminer();
+        return TextesSuivi.estConnu(j);
     }
 
     /** « Prénom NOM », ou « À déterminer ». */
     static String nomJoueur(Joueur j) {
-        if (!estConnu(j)) {
-            return A_DETERMINER;
-        }
-        String prenom = j.getPrenom() == null ? "" : j.getPrenom().trim();
-        String nom = j.getNom() == null ? "" : j.getNom().trim().toUpperCase(Locale.FRENCH);
-        return (prenom + " " + nom).trim();
+        return TextesSuivi.nomJoueur(j);
     }
 
     /** « Club · 1520 pts », ou chaîne vide pour une place à déterminer. */
     static String detailJoueur(Joueur j) {
-        if (!estConnu(j)) {
-            return "";
-        }
-        String club = j.getClub() == null ? "" : j.getClub().trim();
-        String pts = j.getPoints() + " pts";
-        return club.isEmpty() ? pts : club + " · " + pts;
+        return TextesSuivi.detailJoueur(j);
     }
 
     /** Le match peut-il être saisi (ou corrigé) ? Ses deux joueurs doivent être connus. */
@@ -298,20 +276,7 @@ final class PresentationPhaseFinale {
      * NOM » pour une issue non normale ; vide si non joué.
      */
     static String detailScore(Match m) {
-        if (m.getStatut() != StatutMatch.TERMINE) {
-            return "";
-        }
-        if (m.getIssue() != IssueMatch.NORMALE) {
-            return libelleIssue(m.getIssue()) + " de " + nomJoueur(m.getJoueurFautif());
-        }
-        StringBuilder sb = new StringBuilder();
-        for (Manche manche : m.getManches()) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append(manche.pointsJoueurA()).append('-').append(manche.pointsJoueurB());
-        }
-        return sb.toString();
+        return m.getStatut() != StatutMatch.TERMINE ? "" : TextesSuivi.detailScore(m);
     }
 
     /** @return true si ce joueur du match est le vainqueur (match terminé). */
@@ -337,19 +302,7 @@ final class PresentationPhaseFinale {
 
     /** Libellé d'une issue de match (pas de switch sur l'énumération). */
     static String libelleIssue(IssueMatch issue) {
-        if (issue == IssueMatch.FORFAIT) {
-            return "Forfait";
-        }
-        if (issue == IssueMatch.ABANDON) {
-            return "Abandon";
-        }
-        if (issue == IssueMatch.REFUS_DE_JOUER) {
-            return "Refus de jouer";
-        }
-        if (issue == IssueMatch.DISQUALIFICATION) {
-            return "Disqualification";
-        }
-        return "Score";
+        return TextesSuivi.libelleIssue(issue, "Score");
     }
 
     // ------------------------------------------------------------------
@@ -361,21 +314,7 @@ final class PresentationPhaseFinale {
     }
 
     static List<LignePodium> lignesPodium(PodiumPhaseFinale p) {
-        List<LignePodium> lignes = new ArrayList<>();
-        if (p.premier() != null) {
-            lignes.add(new LignePodium("1er", nomJoueur(p.premier()), detailJoueur(p.premier())));
-        }
-        if (p.deuxieme() != null) {
-            lignes.add(new LignePodium("2e", nomJoueur(p.deuxieme()), detailJoueur(p.deuxieme())));
-        }
-        String troisieme = p.troisiemesExAequo() ? "3e ex aequo" : "3e";
-        for (Joueur j : p.troisiemes()) {
-            lignes.add(new LignePodium(troisieme, nomJoueur(j), detailJoueur(j)));
-        }
-        if (p.quatrieme() != null) {
-            lignes.add(new LignePodium("4e", nomJoueur(p.quatrieme()), detailJoueur(p.quatrieme())));
-        }
-        return lignes;
+        return TextesSuivi.podium(p, (place, j) -> new LignePodium(place, nomJoueur(j), detailJoueur(j)));
     }
 
     /** Texte d'accompagnement du podium. */
@@ -456,25 +395,16 @@ final class PresentationPhaseFinale {
     // État : pourquoi on ne peut pas (encore) construire
     // ------------------------------------------------------------------
 
+    private static final Map<DiagnosticPhaseFinale.Etat, String> TITRES_ETAT = new EnumMap<>(Map.of(
+            DiagnosticPhaseFinale.Etat.PRETE_A_CONSTRUIRE, "Poules terminées : le tableau final peut être tiré",
+            DiagnosticPhaseFinale.Etat.EN_COURS, "Tableau final en cours",
+            DiagnosticPhaseFinale.Etat.TERMINEE, "Tableau final terminé",
+            DiagnosticPhaseFinale.Etat.POULES_EN_COURS, "Poules en cours",
+            DiagnosticPhaseFinale.Etat.POULES_NON_LANCEES, "Poules pas encore tirées"));
+
     /** Titre court de l'état de la phase finale. */
     static String titreEtat(DiagnosticPhaseFinale d) {
-        DiagnosticPhaseFinale.Etat e = d.getEtat();
-        if (e == DiagnosticPhaseFinale.Etat.PRETE_A_CONSTRUIRE) {
-            return "Poules terminées : le tableau final peut être tiré";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.EN_COURS) {
-            return "Tableau final en cours";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.TERMINEE) {
-            return "Tableau final terminé";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.POULES_EN_COURS) {
-            return "Poules en cours";
-        }
-        if (e == DiagnosticPhaseFinale.Etat.POULES_NON_LANCEES) {
-            return "Poules pas encore tirées";
-        }
-        return "Pas de tableau final";
+        return TITRES_ETAT.getOrDefault(d.getEtat(), "Pas de tableau final");
     }
 
     /** Explication de l'état : pourquoi la construction est (im)possible, et quoi faire. */

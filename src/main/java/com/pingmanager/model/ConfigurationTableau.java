@@ -36,7 +36,7 @@ public final class ConfigurationTableau {
 
     /**
      * Petite finale (match pour la 3e place entre les perdants des demi-finales),
-     * réglable par tableau (décision de Quentin du 5 novembre 2026, QUESTIONS.md).
+     * réglable par tableau (décision de Quentin du 5 novembre 2026).
      * Les règlements fédéraux ne l'imposent pas pour les tournois (chapitre IX) :
      * c'est une clause d'organisateur, écrite dans le règlement du tournoi. Sans
      * petite finale, les deux demi-finalistes battus sont 3es ex aequo.

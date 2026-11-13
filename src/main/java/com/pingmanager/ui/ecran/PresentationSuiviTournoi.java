@@ -1,9 +1,9 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.DiagnosticPhaseFinale;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.SuiviPoule;
 import com.pingmanager.core.SuiviTournoi;
+import com.pingmanager.core.TextesSuivi;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.LigneClassement;
 import com.pingmanager.model.Match;
@@ -100,22 +100,7 @@ final class PresentationSuiviTournoi {
      * « Terminé ».
      */
     static String etape(Tableau t) {
-        StatutTableau s = t.getStatut();
-        if (s == StatutTableau.PHASE_FINALE && t.aPhaseFinale()) {
-            Tour tour = SuiviTournoi.tourEnCours(t.getPhaseFinale());
-            return tour == null ? "Terminé" : "Tableau final : " + libelleTour(t.getPhaseFinale(), tour);
-        }
-        if (s == StatutTableau.LANCE) {
-            if (t.poulesTerminees()) {
-                return sansTableauFinal(t) ? "Terminé" : "Poules terminées : tirage du tableau final à venir";
-            }
-            return "Poules : " + SuiviTournoi.poulesTerminees(t) + " sur " + t.getPoules().size()
-                    + (SuiviTournoi.poulesTerminees(t) > 1 ? " jouées" : " jouée");
-        }
-        if (s == StatutTableau.POINTAGE) {
-            return "Pointage";
-        }
-        return "Inscriptions";
+        return TextesSuivi.etape(t);
     }
 
     /** Classe de style de la pastille d'étape (section « Suivi du tournoi » de theme.css). */
@@ -133,16 +118,9 @@ final class PresentationSuiviTournoi {
         return "suivi-etape-attente";
     }
 
-    private static boolean sansTableauFinal(Tableau t) {
-        return new ServicePhaseFinale().diagnostiquer(t).getEtat() == DiagnosticPhaseFinale.Etat.SANS_ELIMINATION;
-    }
-
     /** Texte affiché à la place des poules et de l'arbre quand le tableau n'a pas commencé. */
     static String texteNonCommence(Tableau t) {
-        if (t.getStatut() == StatutTableau.POINTAGE) {
-            return "Le pointage de ce tableau est en cours : les poules s'afficheront dès le tirage.";
-        }
-        return "Ce tableau n'a pas encore commencé : les poules s'afficheront dès le tirage.";
+        return TextesSuivi.texteNonCommence(t);
     }
 
     // ------------------------------------------------------------------
@@ -151,20 +129,12 @@ final class PresentationSuiviTournoi {
 
     /** Libellé d'un tour du tableau final : « Quarts de finale », « Finale », « Petite finale »… */
     static String libelleTour(TableauElimination elimination, Tour tour) {
-        if (ServicePhaseFinale.estPetiteFinale(tour)) {
-            return "Petite finale";
-        }
-        List<Tour> principaux = ServicePhaseFinale.toursPrincipaux(elimination);
-        int i = principaux.indexOf(tour);
-        return i < 0 ? tour.getNom() : PresentationPhaseFinale.libelleTour(principaux.size() - 1 - i);
+        return TextesSuivi.libelleTour(elimination, tour);
     }
 
     /** Où se situe une partie : « Poule B, tour 2 » ou « Quarts de finale ». */
     static String situation(SuiviTournoi.Partie p) {
-        if (p.estEnPoule()) {
-            return "Poule " + p.poule().getNom() + ", tour " + p.tourDePoule();
-        }
-        return libelleTour(p.tableau().getPhaseFinale(), p.tour());
+        return TextesSuivi.situation(p);
     }
 
     /** « Table 3 », ou vide si aucune table n'est attribuée. */
@@ -213,11 +183,7 @@ final class PresentationSuiviTournoi {
 
     /** « Poule B · 2 / 3 matchs joués », ou « Poule B · terminée ». */
     static String titrePoule(Poule p) {
-        if (p.estTerminee()) {
-            return "Poule " + p.getNom() + " · terminée";
-        }
-        return "Poule " + p.getNom() + " · " + SuiviPoule.matchsTermines(p) + " / " + p.getMatchs().size()
-                + (SuiviPoule.matchsTermines(p) > 1 ? " matchs joués" : " match joué");
+        return TextesSuivi.titrePoule(p);
     }
 
     /** Une ligne du classement en direct d'une poule. */
@@ -246,16 +212,7 @@ final class PresentationSuiviTournoi {
 
     /** Situation vis-à-vis de la qualification (pas de switch sur l'énumération). */
     static String libelleQualification(SuiviPoule.Qualification q) {
-        if (q == SuiviPoule.Qualification.QUALIFIE) {
-            return "Qualifié";
-        }
-        if (q == SuiviPoule.Qualification.PLACE_QUALIFICATIVE) {
-            return "Place qualificative";
-        }
-        if (q == SuiviPoule.Qualification.NON_QUALIFIE) {
-            return "Non qualifié";
-        }
-        return "";
+        return TextesSuivi.libelleQualification(q);
     }
 
     /** Matchs de la poule dans l'ordre officiel (I.301), avec leur tour. */
@@ -273,11 +230,7 @@ final class PresentationSuiviTournoi {
 
     /** Texte sous les poules quand le tableau final n'est pas (encore) tiré. */
     static String texteSansArbre(Tableau t) {
-        if (t.getStatut() == StatutTableau.LANCE && t.poulesTerminees()) {
-            return sansTableauFinal(t) ? "Ce tableau se termine à l'issue des poules : pas de tableau final."
-                    : "Poules terminées : le juge-arbitre va tirer le tableau final.";
-        }
-        return "Le tableau final sera tiré à la fin des poules.";
+        return TextesSuivi.texteSansArbre(t);
     }
 
     /** Le podium s'affiche-t-il ? Seulement quand le tableau final est entièrement joué. */

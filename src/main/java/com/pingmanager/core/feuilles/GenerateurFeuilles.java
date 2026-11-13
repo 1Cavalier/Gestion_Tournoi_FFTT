@@ -2,6 +2,7 @@ package com.pingmanager.core.feuilles;
 
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.SuiviPoule;
+import com.pingmanager.core.TextesSuivi;
 import com.pingmanager.core.feuilles.ArbreImprimable.CaseArbre;
 import com.pingmanager.core.feuilles.ArbreImprimable.ColonneArbre;
 import com.pingmanager.core.feuilles.ArbreImprimable.TypeCase;
@@ -267,17 +268,8 @@ public final class GenerateurFeuilles {
     }
 
     /** Une place de l'arbre pendant la construction. */
-    private static final class Place {
+    private record Place(TypeCase type, Match match, Joueur joueur) {
         static final Place VIDE = new Place(TypeCase.VIDE, null, null);
-        final TypeCase type;
-        final Match match;
-        final Joueur joueur;
-
-        private Place(TypeCase type, Match match, Joueur joueur) {
-            this.type = type;
-            this.match = match;
-            this.joueur = joueur;
-        }
 
         static Place match(Match m) {
             return new Place(TypeCase.MATCH, m, null);
@@ -367,18 +359,6 @@ public final class GenerateurFeuilles {
     }
 
     static String libelleIssue(IssueMatch issue) {
-        if (issue == IssueMatch.FORFAIT) {
-            return "Forfait";
-        }
-        if (issue == IssueMatch.ABANDON) {
-            return "Abandon";
-        }
-        if (issue == IssueMatch.REFUS_DE_JOUER) {
-            return "Refus de jouer";
-        }
-        if (issue == IssueMatch.DISQUALIFICATION) {
-            return "Disqualification";
-        }
-        return "";
+        return TextesSuivi.libelleIssue(issue, "");
     }
 }

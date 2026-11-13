@@ -140,7 +140,7 @@ final class EcranImportJoueurs {
 
     /**
      * B023 : import de la base des licenciés et des clubs fournie par le club
-     * (format provisoire, docs/FORMAT_ECHANGES_FFTT.md). Gardée le temps de la session.
+     * (format provisoire, README section 8). Gardée le temps de la session.
      */
     private Node baseFederale() {
         Label resultat = Ui.discret("");

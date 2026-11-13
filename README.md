@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 480 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 498 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -56,7 +56,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée (v18 actuellement) et la
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v19 actuellement) et la
   démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone
@@ -64,11 +64,30 @@ Le jour J, l'application peut ouvrir un petit serveur web en lecture seule
 (port **8080** par défaut) sur le Wi-Fi de la salle. Au premier lancement,
 le pare-feu Windows demandera d'autoriser Java.
 
+### Réglages et valeurs par défaut
+L'application n'a ni argument de ligne de commande ni fichier de configuration :
+tout se règle à l'écran et s'enregistre dans le fichier du tournoi.
+
+| Réglage | Valeur par défaut | Où |
+|---|---|---|
+| Dossier de données | `$XDG_DATA_HOME/pingmanager`, sinon `~/.pingmanager/pingmanager` | `ServiceFichierTournoi` |
+| Fichiers | `pingmanager-application.json`, un `.ptt.json` par tournoi, `.autosave.json` | `persistence` |
+| Sauvegarde automatique (pas encore branchée) | toutes les 15 min | `ServiceAutosave` |
+| Suivi sur téléphone | port 8080 (de 1024 à 65535) | `DiffusionSuivi` |
+| Tableau | poules de 4, 2 qualifiés, 3 manches gagnantes, liste d'attente de 4, toutes séries, gratuit, sans petite finale | `ConfigurationTableau` |
+| Horaires calculés | écarts de 1 h 30 puis 2 h, en alternance | `EcranTableaux`, `OrdonnancementTableaux` |
+| Codes de vérification | valables 30 min | `ServiceComptesOrganisateurs`, `ServiceLiaisonClub` |
+| Matchs proposés | orange après 10 min d'attente, rouge après 20 min | `ReglePrioriteSalle` |
+| Prévisions | 100 tirages, 16 tables, fin visée 20 h, partie de 20 min, environ 7 min autour du jeu | `ScenarioSimulation`, `TempsAnnexesMatch` |
+| Annonces vocales | 2 diffusions (3 au plus), débit de −10 à 10 | `ReglagesAnnoncesVocales` |
+| Import | 20 000 lignes, 200 colonnes ; fichiers d'échange : 10 Mo | `LecteurTableur`, `CsvFederal` |
+| Voix (Windows) | variables `PINGMANAGER_SSML`, `PINGMANAGER_VOIX`, `PINGMANAGER_DEBIT` passées à PowerShell | `SyntheseVocaleWindows` |
+
 ---
 
 ## 2. Organisation du code
 
-Environ 64 000 lignes de code (360 classes) et 200 classes de test.
+Environ 66 600 lignes (368 classes) et 217 classes de test.
 
 ```
 com.pingmanager

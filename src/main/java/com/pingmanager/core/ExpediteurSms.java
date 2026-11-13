@@ -4,7 +4,7 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * Nom d'expéditeur alphanumérique des SMS (B019, voir {@code docs/RECHERCHE_SMS.md}).
+ * Nom d'expéditeur alphanumérique des SMS (B019).
  *
  * <p>Charte AF2M (depuis le 10 mars 2025) : 11 caractères au plus, lettres et
  * chiffres, pas uniquement des chiffres. Le nom doit identifier clairement

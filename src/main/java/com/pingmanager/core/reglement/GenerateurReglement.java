@@ -488,7 +488,7 @@ public final class GenerateurReglement {
      * Troisième place des tableaux à élimination directe : petite finale (option
      * choisie tableau par tableau) ou deux 3es ex aequo. Les règlements fédéraux
      * n'imposent rien pour les tournois (chapitre IX) : clause d'organisateur,
-     * décision de Quentin du 5 novembre 2026 (QUESTIONS.md).
+     * décision de Quentin du 5 novembre 2026.
      *
      * @return la phrase, ou {@code null} si aucun tableau n'a de tableau final
      */

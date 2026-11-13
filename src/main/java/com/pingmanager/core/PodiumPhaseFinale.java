@@ -14,7 +14,7 @@ import java.util.List;
  * et son perdant 4e. Sans petite finale, les perdants des demi-finales sont
  * affichés <b>3es ex aequo</b> : les règlements fédéraux 2026-2027 ne disent
  * rien de ce cas pour les tournois (chapitre IX) ; décision de Quentin du
- * 5 novembre 2026 ({@code QUESTIONS.md}).</p>
+ * 5 novembre 2026.</p>
  *
  * @param premier          vainqueur de la finale
  * @param deuxieme         finaliste perdant

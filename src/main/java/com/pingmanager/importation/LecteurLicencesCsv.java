@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 /**
  * Lit {@code licencies.csv}, la liste des licenciés fournie par un club
  * (B023). <b>Format provisoire</b>, en attendant un accès fédéral (API ou
- * fichier SPID) : voir {@code docs/FORMAT_ECHANGES_FFTT.md}.
+ * fichier SPID) : voir le README, section 8.
  *
  * <p>CSV « ; » en UTF-8 (BOM accepté ; Windows-1252 en repli), ou .xlsx / .ods ;
  * une ligne d'en-têtes ; colonnes lues par leur nom (ordre libre, casse et

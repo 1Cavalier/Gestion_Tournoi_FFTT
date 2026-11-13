@@ -1,6 +1,5 @@
 package com.pingmanager.ui.diffusion;
 
-import com.pingmanager.core.DiagnosticPhaseFinale;
 import com.pingmanager.core.Horloge;
 import com.pingmanager.core.PodiumPhaseFinale;
 import com.pingmanager.core.ServicePhaseFinale;
@@ -8,14 +7,13 @@ import com.pingmanager.core.ServiceSalle;
 import com.pingmanager.core.SuiviPoule;
 import com.pingmanager.core.SuiviTournoi;
 import com.pingmanager.core.TableauDeBordSalle;
+import com.pingmanager.core.TextesSuivi;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.LigneClassement;
-import com.pingmanager.model.Manche;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.Poule;
 import com.pingmanager.model.StatutMatch;
-import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
@@ -33,6 +31,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
+import static com.pingmanager.core.TextesSuivi.detailJoueur;
+import static com.pingmanager.core.TextesSuivi.estConnu;
+import static com.pingmanager.core.TextesSuivi.etape;
+import static com.pingmanager.core.TextesSuivi.libelleIssue;
+import static com.pingmanager.core.TextesSuivi.libelleQualification;
+import static com.pingmanager.core.TextesSuivi.libelleTour;
+import static com.pingmanager.core.TextesSuivi.situation;
+import static com.pingmanager.core.TextesSuivi.texteNonCommence;
+import static com.pingmanager.core.TextesSuivi.texteSansArbre;
+import static com.pingmanager.core.TextesSuivi.titrePoule;
 
 /**
  * Photographie <b>immuable</b> du tournoi pour le suivi sur téléphone (B021).
@@ -191,10 +200,7 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
         List<LignePodium> podium = new ArrayList<>();
         String note = "";
         if (!SuiviTournoi.estCommence(t)) {
-            note = t.getStatut() == StatutTableau.POINTAGE
-                    ? "Le pointage de ce tableau est en cours : les poules s'afficheront dès le tirage."
-                    : "Ce tableau n'a pas encore commencé : les poules s'afficheront dès le tirage.";
-            return new TableauPublic(t.getNom(), etape(t), note, poules, tours, podium);
+            return new TableauPublic(t.getNom(), etape(t), texteNonCommence(t), poules, tours, podium);
         }
         int qualifies = t.getConfiguration().getQualifiesParPoule();
         SuiviPoule suivi = new SuiviPoule();
@@ -229,31 +235,14 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
             if (ServicePhaseFinale.estTerminee(e)) {
                 podium.addAll(podium(ServicePhaseFinale.podium(e)));
             }
-        } else if (t.getStatut() == StatutTableau.LANCE && t.poulesTerminees()) {
-            note = sansTableauFinal(t) ? "Ce tableau se termine à l'issue des poules : pas de tableau final."
-                    : "Poules terminées : le juge-arbitre va tirer le tableau final.";
         } else {
-            note = "Le tableau final sera tiré à la fin des poules.";
+            note = texteSansArbre(t);
         }
         return new TableauPublic(t.getNom(), etape(t), note, poules, tours, podium);
     }
 
     private static List<LignePodium> podium(PodiumPhaseFinale p) {
-        List<LignePodium> lignes = new ArrayList<>();
-        if (p.premier() != null) {
-            lignes.add(new LignePodium("1er", nomJoueur(p.premier()), detailJoueur(p.premier())));
-        }
-        if (p.deuxieme() != null) {
-            lignes.add(new LignePodium("2e", nomJoueur(p.deuxieme()), detailJoueur(p.deuxieme())));
-        }
-        String troisieme = p.troisiemesExAequo() ? "3e ex aequo" : "3e";
-        for (Joueur j : p.troisiemes()) {
-            lignes.add(new LignePodium(troisieme, nomJoueur(j), detailJoueur(j)));
-        }
-        if (p.quatrieme() != null) {
-            lignes.add(new LignePodium("4e", nomJoueur(p.quatrieme()), detailJoueur(p.quatrieme())));
-        }
-        return lignes;
+        return TextesSuivi.podium(p, (place, j) -> new LignePodium(place, nomJoueur(j), detailJoueur(j)));
     }
 
     /** Joueurs inscrits (hors liste d'attente), triés par nom, avec leur prochaine partie. */
@@ -316,82 +305,8 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
     }
 
     // ==================================================================
-    // Textes (repris de ui.ecran.PresentationSuiviTournoi / PresentationPhaseFinale)
+    // Textes (communs avec les écrans : core.TextesSuivi)
     // ==================================================================
-
-    static String etape(Tableau t) {
-        StatutTableau s = t.getStatut();
-        if (s == StatutTableau.PHASE_FINALE && t.aPhaseFinale()) {
-            Tour tour = SuiviTournoi.tourEnCours(t.getPhaseFinale());
-            return tour == null ? "Terminé" : "Tableau final : " + libelleTour(t.getPhaseFinale(), tour);
-        }
-        if (s == StatutTableau.LANCE) {
-            if (t.poulesTerminees()) {
-                return sansTableauFinal(t) ? "Terminé" : "Poules terminées : tirage du tableau final à venir";
-            }
-            int n = SuiviTournoi.poulesTerminees(t);
-            return "Poules : " + n + " sur " + t.getPoules().size() + (n > 1 ? " jouées" : " jouée");
-        }
-        if (s == StatutTableau.POINTAGE) {
-            return "Pointage";
-        }
-        return "Inscriptions";
-    }
-
-    private static boolean sansTableauFinal(Tableau t) {
-        return new ServicePhaseFinale().diagnostiquer(t).getEtat() == DiagnosticPhaseFinale.Etat.SANS_ELIMINATION;
-    }
-
-    static String libelleTour(TableauElimination elimination, Tour tour) {
-        if (ServicePhaseFinale.estPetiteFinale(tour)) {
-            return "Petite finale";
-        }
-        List<Tour> principaux = ServicePhaseFinale.toursPrincipaux(elimination);
-        int i = principaux.indexOf(tour);
-        if (i < 0) {
-            return tour.getNom();
-        }
-        int rang = principaux.size() - 1 - i;
-        if (rang == 0) {
-            return "Finale";
-        }
-        if (rang == 1) {
-            return "Demi-finales";
-        }
-        if (rang == 2) {
-            return "Quarts de finale";
-        }
-        return "1/" + (1L << rang) + " de finale";
-    }
-
-    private static String situation(SuiviTournoi.Partie p) {
-        if (p.estEnPoule()) {
-            return "Poule " + p.poule().getNom() + ", tour " + p.tourDePoule();
-        }
-        return libelleTour(p.tableau().getPhaseFinale(), p.tour());
-    }
-
-    private static String titrePoule(Poule p) {
-        if (p.estTerminee()) {
-            return "Poule " + p.getNom() + " · terminée";
-        }
-        int n = SuiviPoule.matchsTermines(p);
-        return "Poule " + p.getNom() + " · " + n + " / " + p.getMatchs().size()
-                + (n > 1 ? " matchs joués" : " match joué");
-    }
-
-    private static String libelleQualification(SuiviPoule.Qualification q) {
-        if (q == SuiviPoule.Qualification.QUALIFIE) {
-            return "Qualifié";
-        }
-        if (q == SuiviPoule.Qualification.PLACE_QUALIFICATIVE) {
-            return "Place qualificative";
-        }
-        if (q == SuiviPoule.Qualification.NON_QUALIFIE) {
-            return "Non qualifié";
-        }
-        return "";
-    }
 
     private static MatchPublic match(String tableau, String situation, Match m) {
         boolean enCours = m.getStatut() == StatutMatch.EN_COURS;
@@ -399,7 +314,7 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
         if (m.estBye()) {
             resultat = "Exempt";
         } else if (m.getStatut() == StatutMatch.TERMINE) {
-            resultat = m.getIssue() != IssueMatch.NORMALE ? libelleIssue(m.getIssue())
+            resultat = m.getIssue() != IssueMatch.NORMALE ? libelleIssue(m.getIssue(), "Score")
                     : m.manchesGagneesParA() + "-" + m.manchesGagneesParB();
         } else if (enCours) {
             resultat = "En cours";
@@ -420,20 +335,7 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
     }
 
     private static String detailScore(Match m) {
-        if (m.getStatut() != StatutMatch.TERMINE || m.estBye()) {
-            return "";
-        }
-        if (m.getIssue() != IssueMatch.NORMALE) {
-            return libelleIssue(m.getIssue()) + " de " + nomJoueur(m.getJoueurFautif());
-        }
-        StringBuilder sb = new StringBuilder();
-        for (Manche manche : m.getManches()) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append(manche.pointsJoueurA()).append('-').append(manche.pointsJoueurB());
-        }
-        return sb.toString();
+        return m.getStatut() != StatutMatch.TERMINE || m.estBye() ? "" : TextesSuivi.detailScore(m);
     }
 
     private static boolean estVainqueur(Match m, boolean joueurA) {
@@ -444,44 +346,9 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
         return v != null && v.equals(joueurA ? m.getJoueurA() : m.getJoueurB());
     }
 
-    private static String libelleIssue(IssueMatch issue) {
-        if (issue == IssueMatch.FORFAIT) {
-            return "Forfait";
-        }
-        if (issue == IssueMatch.ABANDON) {
-            return "Abandon";
-        }
-        if (issue == IssueMatch.REFUS_DE_JOUER) {
-            return "Refus de jouer";
-        }
-        if (issue == IssueMatch.DISQUALIFICATION) {
-            return "Disqualification";
-        }
-        return "Score";
-    }
-
-    private static boolean estConnu(Joueur j) {
-        return j != null && !j.estADeterminer();
-    }
-
     /** « Prénom NOM », ou « À déterminer ». Seuls le nom et le prénom sont repris. */
     static String nomJoueur(Joueur j) {
-        if (!estConnu(j)) {
-            return "À déterminer";
-        }
-        String prenom = j.getPrenom() == null ? "" : j.getPrenom().trim();
-        String nom = j.getNom() == null ? "" : j.getNom().trim().toUpperCase(Locale.FRENCH);
-        return (prenom + " " + nom).trim();
-    }
-
-    /** « Club · 1520 pts » : seuls le club et les points sont repris. */
-    static String detailJoueur(Joueur j) {
-        if (!estConnu(j)) {
-            return "";
-        }
-        String club = j.getClub() == null ? "" : j.getClub().trim();
-        String pts = j.getPoints() + " pts";
-        return club.isEmpty() ? pts : club + " · " + pts;
+        return TextesSuivi.nomJoueur(j);
     }
 
     /** Minuscules sans accents ni espaces multiples, pour la recherche. */

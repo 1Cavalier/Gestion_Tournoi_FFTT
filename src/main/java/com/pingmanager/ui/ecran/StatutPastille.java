@@ -1,6 +1,8 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.model.StatutTournoi;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Statut d'une pastille (charte v2) : chaque valeur porte sa classe de style,
@@ -43,20 +45,14 @@ enum StatutPastille {
         return NEUTRE;
     }
 
+    private static final Map<StatutTournoi, String> LIBELLES_TOURNOI = new EnumMap<>(Map.of(
+            StatutTournoi.PUBLIE, "Publié",
+            StatutTournoi.HOMOLOGUE, "Homologué",
+            StatutTournoi.DEMANDE_HOMOLOGATION, "Homologation demandée",
+            StatutTournoi.ANNULE, "Annulé"));
+
     /** Libellé court d'un statut de tournoi, pour une pastille. */
     static String libelleTournoi(StatutTournoi statut) {
-        if (statut == StatutTournoi.PUBLIE) {
-            return "Publié";
-        }
-        if (statut == StatutTournoi.HOMOLOGUE) {
-            return "Homologué";
-        }
-        if (statut == StatutTournoi.DEMANDE_HOMOLOGATION) {
-            return "Homologation demandée";
-        }
-        if (statut == StatutTournoi.ANNULE) {
-            return "Annulé";
-        }
-        return "Brouillon";
+        return LIBELLES_TOURNOI.getOrDefault(statut, "Brouillon");
     }
 }
