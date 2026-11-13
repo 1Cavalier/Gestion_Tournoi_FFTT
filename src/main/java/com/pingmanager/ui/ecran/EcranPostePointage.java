@@ -1,7 +1,9 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.Horloge;
+import com.pingmanager.core.JoursPointage;
 import com.pingmanager.core.ListePointage;
+import com.pingmanager.core.ListeRetraits;
 import com.pingmanager.core.ResultatActionPointage;
 import com.pingmanager.core.ServicePostePointage;
 import com.pingmanager.model.Joueur;
@@ -62,17 +64,40 @@ public final class EcranPostePointage {
     private final Label compte = Ui.discret("");
     private final Label message = Ui.message();
     private final Label sousTitre = Ui.discret("");
+    /** B043 : un onglet par jour du tournoi, la case « Tous les jours » et le total du tournoi. */
+    private final ToggleGroup groupeJour = new ToggleGroup();
+    private final HBox ongletsJours = new HBox();
+    private final CheckBox tousLesJours = new CheckBox(PresentationPostePointage.TOUS_LES_JOURS);
+    private final Label totalTournoi = Ui.discret("");
+    private LocalDate jourChoisi;
+
+    /** B043 : vue « Liste » ou « Retraits » (non pointés et désinscrits, séparés). */
+    private final ToggleGroup groupeVue = new ToggleGroup();
+    private final ToggleButton vueListe = new ToggleButton(PresentationRetraits.VUE_LISTE);
+    private final ToggleButton vueRetraits = new ToggleButton(PresentationRetraits.ongletRetraits(0));
+    private final VBox retraits = new VBox(16);
+    private final ScrollPane defilListe = new ScrollPane(liste);
+    private final ScrollPane defilRetraits = new ScrollPane(retraits);
 
     private Path fichier;
     private Tournoi tournoi;
+    /** B043 : tournoi imposé (groupe « Tournoi en cours »), ou {@code null} : choix parmi ceux du club. */
+    private final Path fichierImpose;
 
     public EcranPostePointage(ContexteApplication contexte) {
+        this(contexte, null);
+    }
+
+    /** B043 : poste ouvert directement sur le tournoi en cours choisi. */
+    public EcranPostePointage(ContexteApplication contexte, Path fichierImpose) {
         this.contexte = contexte;
         this.poste = PresentationPostePointage.identifiantPoste(System.getenv());
+        this.fichierImpose = fichierImpose;
     }
 
     public Parent build() {
-        List<ProjetTournoi> tournois = tournoisDuCompte();
+        List<ProjetTournoi> tournois = fichierImpose != null ? List.of(new ProjetTournoi(fichierImpose, "", java.time.LocalDateTime.now()))
+                : tournoisDuCompte();
         if (tournois.isEmpty()) {
             racine.setCenter(Ui.page(1040, Ui.titre(PresentationPostePointage.TITRE),
                     Ui.etatVide(PresentationPostePointage.AUCUN_TOURNOI, null)));
@@ -81,7 +106,10 @@ public final class EcranPostePointage {
         fichier = parDefaut(tournois);
         racine.getStyleClass().add("pointage-poste");
         racine.setTop(entete(tournois));
-        ScrollPane defil = new ScrollPane(liste);
+        retraits.getStyleClass().add("pointage-retraits");
+        defilRetraits.setFitToWidth(true);
+        defilRetraits.getStyleClass().add("pointage-defilement");
+        ScrollPane defil = defilListe;
         defil.setFitToWidth(true);
         defil.getStyleClass().add("pointage-defilement");
         liste.getStyleClass().add("pointage-liste");
@@ -106,6 +134,7 @@ public final class EcranPostePointage {
             choixTournoi.setOnAction(e -> {
                 fichier = choixTournoi.getValue().getFichier();
                 choixTableau.getItems().clear();
+                jourChoisi = null;
                 recharger(true);
             });
             haut = Ui.enteteAvecActions(titres, choixTournoi);
@@ -148,10 +177,31 @@ public final class EcranPostePointage {
             focaliserRecherche();
         });
 
-        HBox barre = Ui.ligne(12, recherche, choixTableau, filtres);
+        tousLesJours.getStyleClass().add("pointage-tous-les-jours");
+        tousLesJours.setOnAction(e -> {
+            afficherListe();
+            focaliserRecherche();
+        });
+        ongletsJours.getStyleClass().add("pointage-jours");
+        totalTournoi.getStyleClass().add("pointage-total-tournoi");
+
+        vueListe.setSelected(true);
+        vueListe.getStyleClass().add("pointage-vue");
+        vueRetraits.getStyleClass().addAll("pointage-vue", "pointage-vue-retraits");
+        HBox vues = Ui.segment(groupeVue, vueListe, vueRetraits);
+        groupeVue.selectedToggleProperty().addListener((o, a, n) -> {
+            if (n == null) {
+                a.setSelected(true);
+                return;
+            }
+            racine.setCenter(n == vueRetraits ? defilRetraits : defilListe);
+            afficherListe();
+        });
+
+        HBox barre = Ui.ligne(12, vues, recherche, choixTableau, filtres, tousLesJours);
         barre.getStyleClass().add("pointage-barre");
 
-        VBox v = new VBox(12, haut, tuiles, barre, Ui.aide(PresentationPostePointage.AIDE), Ui.ligne(12, compte),
+        VBox v = new VBox(12, haut, ongletsJours, tuiles, totalTournoi, barre, Ui.aide(PresentationPostePointage.AIDE), Ui.ligne(12, compte),
                 message);
         v.getStyleClass().add("pointage-entete");
         return v;
@@ -170,10 +220,16 @@ public final class EcranPostePointage {
             return;
         }
         sousTitre.setText(PresentationPostePointage.sousTitre(tournoi.getNom(), poste));
+        ListePointage lp = new ListePointage(tournoi);
+        List<LocalDate> jours = lp.jours();
+        if (jourChoisi == null || !jours.contains(jourChoisi)) {
+            jourChoisi = JoursPointage.jourParDefaut(tournoi, java.time.LocalDateTime.now());
+        }
+        afficherOngletsJours(lp, jours);
         String choix = choixTableau.getValue();
         List<String> noms = new ArrayList<>();
         noms.add(PresentationPostePointage.TOUS);
-        noms.addAll(new ListePointage(tournoi).nomsTableaux());
+        noms.addAll(lp.nomsTableaux(jourChoisi));
         if (!choixTableau.getItems().equals(noms)) {
             choixTableau.getItems().setAll(noms);
         }
@@ -185,14 +241,48 @@ public final class EcranPostePointage {
         }
     }
 
+    /** B043 : un onglet par jour (seulement si le tournoi en a plusieurs), avec ses non-pointés. */
+    private void afficherOngletsJours(ListePointage lp, List<LocalDate> jours) {
+        ongletsJours.getChildren().clear();
+        boolean plusieurs = jours.size() > 1;
+        ongletsJours.setVisible(plusieurs);
+        ongletsJours.setManaged(plusieurs);
+        tousLesJours.setVisible(plusieurs);
+        tousLesJours.setManaged(plusieurs);
+        if (!plusieurs) {
+            tousLesJours.setSelected(false);
+            return;
+        }
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (LocalDate j : jours) {
+            ToggleButton b = new ToggleButton(PresentationPostePointage.ongletJour(j, lp.nonPointes(j)));
+            b.setUserData(j);
+            b.getStyleClass().add("pointage-onglet-jour");
+            b.setSelected(j.equals(jourChoisi));
+            b.setOnAction(e -> {
+                if (!b.isSelected()) {
+                    b.setSelected(true); // toujours un jour choisi
+                    return;
+                }
+                jourChoisi = j;
+                choixTableau.setValue(PresentationPostePointage.TOUS);
+                recharger(true);
+            });
+            boutons.add(b);
+        }
+        ongletsJours.getChildren().add(Ui.segment(groupeJour, boutons.toArray(new ToggleButton[0])));
+    }
+
     private void afficherTuiles() {
         if (tournoi == null) {
             return;
         }
         ListePointage lp = new ListePointage(tournoi);
+        totalTournoi.setText(PresentationPostePointage.totalTournoi(lp.totalGeneral()));
         String nom = PresentationPostePointage.nomTableau(choixTableau.getValue());
-        ListePointage.Totaux t = nom == null ? lp.totalGeneral()
-                : lp.totaux().stream().filter(x -> x.tableau().equals(nom)).findFirst().orElse(lp.totalGeneral());
+        ListePointage.Totaux duJour = lp.totalJour(jourChoisi);
+        ListePointage.Totaux t = nom == null ? duJour
+                : lp.totaux().stream().filter(x -> x.tableau().equals(nom)).findFirst().orElse(duJour);
         tuiles.getChildren().setAll(
                 Ui.tuileChiffre(String.valueOf(t.inscrits()), "Inscrits"),
                 Ui.tuileChiffre(PresentationPostePointage.proportion(t.pointes(), t.inscrits()), "Pointés"),
@@ -207,8 +297,10 @@ public final class EcranPostePointage {
         }
         ListePointage.FiltreEtat etat = groupeEtat.getSelectedToggle() == null ? ListePointage.FiltreEtat.TOUS
                 : (ListePointage.FiltreEtat) groupeEtat.getSelectedToggle().getUserData();
+        // B043 : le jour choisi, ou tous les jours si la case est cochée (recherche étendue).
+        LocalDate jour = tousLesJours.isSelected() ? null : jourChoisi;
         List<ListePointage.Ligne> lignes = new ListePointage(tournoi).lignes(recherche.getText(),
-                PresentationPostePointage.nomTableau(choixTableau.getValue()), etat);
+                PresentationPostePointage.nomTableau(choixTableau.getValue()), etat, jour);
         int n = Math.min(lignes.size(), PresentationPostePointage.LIMITE_LIGNES);
         compte.setText(PresentationPostePointage.compte(n, lignes.size()));
         List<Node> noeuds = new ArrayList<>();
@@ -219,6 +311,107 @@ public final class EcranPostePointage {
             noeuds.add(Ui.etatVideCompact("Aucun joueur ne correspond à la recherche et aux filtres."));
         }
         liste.getChildren().setAll(noeuds);
+        afficherRetraits(jour);
+    }
+
+    // ------------------------------------------------------------------
+    // B043 : vue « Retraits » (non pointés et désinscrits, séparés)
+    // ------------------------------------------------------------------
+
+    private void afficherRetraits(LocalDate jour) {
+        ListeRetraits lr = new ListeRetraits(tournoi);
+        List<ListeRetraits.Retrait> nonPointes = filtrer(lr.nonPointes(jour));
+        List<ListeRetraits.Retrait> desinscrits = filtrer(lr.desinscrits(jour));
+        vueRetraits.setText(PresentationRetraits.ongletRetraits(nonPointes.size() + desinscrits.size()));
+        retraits.getChildren().setAll(
+                Ui.aide(PresentationRetraits.AIDE),
+                carteRetraits(PresentationRetraits.TITRE_DESINSCRITS, desinscrits, PresentationRetraits.AUCUN_DESINSCRIT),
+                carteRetraits(PresentationRetraits.TITRE_NON_POINTES, nonPointes, PresentationRetraits.AUCUN_NON_POINTE));
+    }
+
+    /** La recherche et le choix du tableau s'appliquent aussi aux retraits. */
+    private List<ListeRetraits.Retrait> filtrer(List<ListeRetraits.Retrait> tous) {
+        String nomTableau = PresentationPostePointage.nomTableau(choixTableau.getValue());
+        List<ListeRetraits.Retrait> res = new ArrayList<>();
+        for (ListeRetraits.Retrait r : tous) {
+            boolean texteOk = r.joueur() != null ? ListePointage.correspond(r.joueur(), recherche.getText())
+                    : recherche.getText().isBlank() || r.licence().contains(recherche.getText().trim());
+            if (texteOk && (nomTableau == null || nomTableau.equals(r.tableau()))) {
+                res.add(r);
+            }
+        }
+        return res;
+    }
+
+    private Node carteRetraits(String titre, List<ListeRetraits.Retrait> liste, String vide) {
+        VBox lignes = new VBox();
+        lignes.getStyleClass().add("retraits-liste");
+        if (liste.isEmpty()) {
+            lignes.getChildren().add(Ui.etatVideCompact(vide));
+        }
+        boolean premier = true;
+        for (ListeRetraits.Retrait r : liste) {
+            lignes.getChildren().add(ligneRetrait(r, premier));
+            premier = false;
+        }
+        return Ui.carte(titre + " · " + liste.size(), lignes);
+    }
+
+    private Node ligneRetrait(ListeRetraits.Retrait r, boolean premier) {
+        Label nom = Ui.label(PresentationRetraits.nom(r), "pointage-nom");
+        Label motif = Ui.label(PresentationRetraits.motif(r), "retrait-motif");
+        Label detail = Ui.label(PresentationRetraits.detail(r, java.time.ZoneId.systemDefault()), "pointage-detail");
+        VBox identite = new VBox(2, nom, motif, detail);
+        HBox.setHgrow(identite, Priority.ALWAYS);
+
+        FlowPane etiquettes = new FlowPane(6, 6);
+        etiquettes.getStyleClass().add("pointage-etiquettes");
+        StatutPastille couleur = r.nature() == ListeRetraits.Nature.NON_POINTE ? StatutPastille.NEUTRE
+                : StatutPastille.INFO;
+        etiquettes.getChildren().add(Ui.pastille(r.nature().getLibelle(), couleur));
+        if (r.avaitPaye()) {
+            etiquettes.getChildren().add(Ui.pastille(PresentationRetraits.A_REMBOURSER, StatutPastille.ATTENTION));
+        }
+
+        Button annuler = Ui.boutonSecondaire(PresentationRetraits.ANNULER);
+        annuler.getStyleClass().add("retrait-annuler");
+        annuler.setDisable(r.tableauLance());
+        annuler.setOnAction(x -> annulerRetrait(r));
+
+        HBox ligne = Ui.ligne(16, identite, etiquettes, annuler);
+        ligne.getStyleClass().add("retrait-ligne");
+        if (premier) {
+            ligne.getStyleClass().add("retrait-ligne-premiere");
+        }
+        return ligne;
+    }
+
+    private void annulerRetrait(ListeRetraits.Retrait retrait) {
+        Tournoi frais;
+        try {
+            frais = contexte.chargerTournoi(fichier);
+        } catch (RuntimeException e) {
+            Ui.erreur(message, "Lecture du tournoi impossible : " + e.getMessage());
+            return;
+        }
+        ResultatActionPointage r = new ServicePostePointage(frais, horloge, poste)
+                .annulerRetrait(retrait.tableau(), retrait.licence());
+        if (r.aModifie()) {
+            try {
+                contexte.enregistrerTournoi(frais, fichier);
+            } catch (RuntimeException e) {
+                Ui.erreur(message, "Enregistrement impossible : " + e.getMessage() + " Rien n'a été modifié.");
+                recharger(false);
+                return;
+            }
+        }
+        String texte = PresentationRetraits.messageAnnulation(r, PresentationRetraits.nom(retrait), retrait.tableau());
+        if (r.estAcceptee()) {
+            Ui.succes(message, texte);
+        } else {
+            Ui.erreur(message, texte);
+        }
+        recharger(false);
     }
 
     // ------------------------------------------------------------------
@@ -283,6 +476,15 @@ public final class EcranPostePointage {
         FlowPane etiquettes = new FlowPane(6, 6);
         etiquettes.getStyleClass().add("pointage-etiquettes");
         etiquettes.getChildren().add(Ui.pastille(PresentationPostePointage.libelleTableau(e.tableau()), StatutPastille.INFO));
+        if (tousLesJours.isVisible() && e.jour() != null) {
+            Label pJour = Ui.pastille(PresentationPostePointage.jour(e.jour()), StatutPastille.NEUTRE);
+            pJour.getStyleClass().add("pointage-pastille-jour");
+            etiquettes.getChildren().add(pJour);
+        }
+        if (e.jourNonDefini() && tousLesJours.isVisible()) {
+            etiquettes.getChildren().add(Ui.pastille(PresentationPostePointage.JOUR_NON_DEFINI,
+                    StatutPastille.ATTENTION));
+        }
         if (e.payeEnLigne()) {
             etiquettes.getChildren().add(Ui.pastille("Payé en ligne", StatutPastille.SUCCES));
         }
@@ -298,7 +500,9 @@ public final class EcranPostePointage {
         desinscrire.getStyleClass().add("pointage-desinscrire");
         desinscrire.setDisable(!e.desistementPossible());
         VBox conteneur = new VBox();
-        desinscrire.setOnAction(x -> confirmerDesistement(conteneur, j, e.tableau()));
+        // B043 : fenêtre des motifs (décision du joueur en premier), puis confirmation.
+        desinscrire.setOnAction(x -> FenetreDesinscription.demander(desinscrire, j, e.tableau())
+                .ifPresent(choix -> agir(j, e.tableau(), TypeOperationPointage.DESINSCRIRE, choix)));
 
         HBox ligne = Ui.ligne(16, cases, identite, etiquettes, mode, montant, desinscrire);
         ligne.getStyleClass().add("pointage-engagement");
@@ -307,33 +511,6 @@ public final class EcranPostePointage {
         }
         conteneur.getChildren().add(ligne);
         return conteneur;
-    }
-
-    private void confirmerDesistement(VBox conteneur, Joueur j, String tableau) {
-        if (conteneur.getChildren().size() > 1) {
-            return; // encart déjà ouvert
-        }
-        TextField motif = Ui.champ("Motif (obligatoire) : blessure, absent prévenu…");
-        motif.getStyleClass().add("pointage-motif");
-        Button confirmer = Ui.boutonPrimaire("Confirmer le désistement");
-        Button renoncer = Ui.boutonSecondaire("Renoncer");
-        VBox encart = Ui.encartConfirmation(PresentationPostePointage.confirmationDesistement(j, tableau),
-                confirmer, renoncer);
-        encart.getChildren().add(1, motif);
-        encart.getStyleClass().add("pointage-encart-desistement");
-        confirmer.disableProperty().bind(motif.textProperty().isEmpty());
-        confirmer.setOnAction(x -> agir(j, tableau, TypeOperationPointage.DESINSCRIRE, motif.getText()));
-        motif.setOnAction(x -> {
-            if (!motif.getText().isBlank()) {
-                agir(j, tableau, TypeOperationPointage.DESINSCRIRE, motif.getText());
-            }
-        });
-        renoncer.setOnAction(x -> {
-            conteneur.getChildren().remove(encart);
-            focaliserRecherche();
-        });
-        conteneur.getChildren().add(encart);
-        Platform.runLater(motif::requestFocus);
     }
 
     // ------------------------------------------------------------------
@@ -360,7 +537,8 @@ public final class EcranPostePointage {
         } else if (type == TypeOperationPointage.MARQUER_NON_PAYE) {
             r = service.marquerNonPaye(tableau, licence);
         } else {
-            r = service.desinscrire(tableau, licence, (String) valeur);
+            FenetreDesinscription.Choix choix = (FenetreDesinscription.Choix) valeur;
+            r = service.desinscrire(tableau, licence, choix.motif(), choix.precision());
         }
         if (r.aModifie()) {
             try {

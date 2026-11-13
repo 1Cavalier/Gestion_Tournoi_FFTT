@@ -10,6 +10,13 @@ public enum TypeOperationPointage {
     MARQUER_PAYE,
     /** Correction : le paiement est annulé. */
     MARQUER_NON_PAYE,
-    /** Désistement : le joueur quitte le tableau ; la valeur porte le motif. */
-    DESINSCRIRE
+    /**
+     * Désinscription : le joueur quitte le tableau ; la valeur porte la précision (ou
+     * le libellé du motif), le motif est un {@link MotifRetrait} (B043).
+     */
+    DESINSCRIRE,
+    /** B043 : non pointé à la clôture du pointage, place libérée (jamais un choix du joueur). */
+    NON_POINTE,
+    /** B043 : un retrait (désinscription ou non pointé) est annulé, le joueur est réinscrit. */
+    ANNULER_RETRAIT
 }

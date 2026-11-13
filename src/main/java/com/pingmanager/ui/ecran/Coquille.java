@@ -30,7 +30,9 @@ import java.util.function.Supplier;
  *
  * <p>Les entrées publiques (Accueil, Mon profil, Tournois, Stats) sont toujours
  * présentes. Dès que le compte administre au moins un club, un second groupe
- * « Gestion » apparaît (Gestion des tournois, Historique, Buvette). La
+ * « Gestion » apparaît (Gestion des tournois, Historique, Buvette). B043 : entre
+ * les deux, le groupe « Tournoi en cours » (Gestion, Tableau, Pointage) n'apparaît
+ * que si un tournoi du club se joue ({@link SelectionTournoiEnCours}). La
  * {@link com.pingmanager.ui.ecran.PageCompte} déclenche
  * {@link #rafraichirNavigation()} après une liaison ou une dissociation.</p>
  */
@@ -60,10 +62,13 @@ public final class Coquille {
     private final Label titrePage = new Label();
 
     private String cleCourante = "accueil";
+    /** B043 : tournoi(s) en cours, partagés par les pages du groupe « Tournoi en cours ». */
+    private final SelectionTournoiEnCours tournoiEnCours;
 
     public Coquille(ContexteApplication contexte, Runnable onDeconnexion) {
         this.contexte = contexte;
         this.onDeconnexion = onDeconnexion;
+        this.tournoiEnCours = new SelectionTournoiEnCours(contexte);
     }
 
     public Parent build() {
@@ -75,7 +80,10 @@ public final class Coquille {
         racine.setLeft(navBox);
 
         rafraichirNavigation();
-        afficher(cleCourante);
+        afficher(PageMemorisee.lire(contexte.compteConnecte().getEmail()).orElse(cleCourante));
+        if (racine.getCenter() == null) {
+            afficher("accueil"); // page mémorisée absente (plus de tournoi en cours…)
+        }
         // Pas de focus d'office sur un bouton de l'en-tête : Tab reste disponible.
         Platform.runLater(racine::requestFocus);
         return racine;
@@ -155,14 +163,25 @@ public final class Coquille {
                 () -> PagePlaceholder.page("Stats",
                         "Vos statistiques de joueur (résultats, progression) apparaîtront ici.")));
 
+        // B043 : « Tournoi en cours », seulement pour un organisateur dont un tournoi se joue.
+        List<Entree> enCours = new ArrayList<>();
+        if (contexte.estOrganisateur()) {
+            tournoiEnCours.rafraichir();
+            if (!tournoiEnCours.estVide()) {
+                PagesTournoiEnCours pages = new PagesTournoiEnCours(contexte, tournoiEnCours,
+                        () -> afficher(cleCourante));
+                enCours.add(new Entree("encours-gestion", "Gestion", Icones.GESTION, pages::gestion));
+                enCours.add(new Entree("encours-tableau", "Tableau", Icones.TOURNOIS, pages::tableaux));
+                // B041 : poste de pointage autonome (souvent un autre ordinateur que celui du JA).
+                enCours.add(new Entree("pointage", "Pointage", Icones.FICHE, pages::pointage));
+            }
+        }
+
         // Entrées de gestion, visibles seulement si rattaché à un club.
         List<Entree> gestion = new ArrayList<>();
         if (contexte.estOrganisateur()) {
             gestion.add(new Entree("gestion", "Gestion des tournois", Icones.GESTION,
                     () -> new PageGestionTournoi(contexte).build()));
-            // B041 : poste de pointage autonome (souvent un autre ordinateur que celui du JA).
-            gestion.add(new Entree("pointage", "Pointage", Icones.FICHE,
-                    () -> new EcranPostePointage(contexte).build()));
             gestion.add(new Entree("historique", "Historique", Icones.HISTORIQUE,
                     () -> PagePlaceholder.page("Historique",
                             "Les statistiques du club sur ses tournois passés (recettes, nombre "
@@ -184,6 +203,12 @@ public final class Coquille {
         boutonsNav.clear();
 
         ajouterGroupe("Général", general);
+        if (!enCours.isEmpty()) {
+            Separator sep = new Separator();
+            sep.getStyleClass().add("nav-separation");
+            navBox.getChildren().add(sep);
+            ajouterGroupe(PresentationTournoiEnCours.GROUPE, enCours);
+        }
         if (!gestion.isEmpty()) {
             Separator sep = new Separator();
             sep.getStyleClass().add("nav-separation");
@@ -237,6 +262,7 @@ public final class Coquille {
             return;
         }
         cleCourante = cle;
+        PageMemorisee.ecrire(contexte.compteConnecte().getEmail(), cle);
         Parent page = cible.page.get();
         racine.setCenter(page);
         titrePage.setText(cible.libelle);

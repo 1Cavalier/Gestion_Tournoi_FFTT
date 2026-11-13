@@ -46,6 +46,8 @@ public final class Tableau {
      * quitte alors les inscrits) : la trace doit survivre au retrait.
      */
     private final java.util.Set<Joueur> rembourses = new java.util.HashSet<>();
+    /** B043 : joueurs retirés de ce tableau, gardés pour pouvoir annuler le retrait. */
+    private final List<Joueur> retires = new ArrayList<>();
 
     /** Calendrier du tableau (pointage, début des matchs). */
     private HorairesTableau horaires = new HorairesTableau();
@@ -405,6 +407,40 @@ public final class Tableau {
         return etats.computeIfAbsent(joueur, j -> new EtatInscrit());
     }
 
+    // --- B043 : joueurs retirés (désinscrits ou non pointés) ---
+
+    /**
+     * Garde la fiche d'un joueur retiré de ce tableau (désinscription, non pointé à
+     * la clôture), pour pouvoir annuler le retrait plus tard. Sans effet sur les
+     * inscrits, la liste d'attente ni le pointage.
+     */
+    public void noterRetire(Joueur joueur) {
+        Objects.requireNonNull(joueur, "joueur");
+        if (!retires.contains(joueur)) {
+            retires.add(joueur);
+        }
+    }
+
+    /** @return les joueurs retirés de ce tableau (lecture seule). */
+    public List<Joueur> getRetires() {
+        return Collections.unmodifiableList(retires);
+    }
+
+    /** @return le joueur retiré de cette licence, ou {@code null}. */
+    public Joueur retrouverRetire(String licence) {
+        for (Joueur j : retires) {
+            if (j.getNumeroLicence().equals(licence)) {
+                return j;
+            }
+        }
+        return null;
+    }
+
+    /** Oublie un joueur retiré (son retrait a été annulé). */
+    public void oublierRetire(Joueur joueur) {
+        retires.remove(joueur);
+    }
+
     public void definirPoules(List<Poule> nouvellesPoules) {
         poules.clear();
         poules.addAll(Objects.requireNonNull(nouvellesPoules, "nouvellesPoules"));
@@ -482,6 +518,8 @@ public final class Tableau {
         }
         rembourses.clear();
         rembourses.addAll(e.rembourses);
+        retires.clear();
+        retires.addAll(e.retires);
         this.phaseFinale = e.phaseFinale;
         this.horaires = e.horaires != null ? e.horaires : new HorairesTableau();
         this.type = e.type;
@@ -503,6 +541,8 @@ public final class Tableau {
         public final List<Joueur> pointes = new ArrayList<>();
         public final List<Joueur> payes = new ArrayList<>();
         public final java.util.Set<Joueur> rembourses = new java.util.HashSet<>();
+        /** B043 : joueurs retirés (absent des anciens fichiers : liste vide). */
+        public final List<Joueur> retires = new ArrayList<>();
         /** B041 : mode de règlement des payés ; vide pour un ancien fichier. */
         public final Map<Joueur, ModeReglement> modesReglement = new HashMap<>();
         public TableauElimination phaseFinale;

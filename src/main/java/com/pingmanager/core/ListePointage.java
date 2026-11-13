@@ -7,6 +7,7 @@ import com.pingmanager.model.TarifInscription;
 import com.pingmanager.model.Tournoi;
 
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -72,7 +73,13 @@ public final class ListePointage {
      * @param desistementPossible faux après la clôture du pointage ou le lancement
      */
     public record Engagement(String tableau, boolean pointe, boolean paye, ModeReglement mode, double montant,
-                             boolean modifiable, boolean desistementPossible) {
+                             boolean modifiable, boolean desistementPossible, LocalDate jour, boolean jourNonDefini) {
+
+        /** Engagement sans jour connu (compatibilité B041). */
+        public Engagement(String tableau, boolean pointe, boolean paye, ModeReglement mode, double montant,
+                          boolean modifiable, boolean desistementPossible) {
+            this(tableau, pointe, paye, mode, montant, modifiable, desistementPossible, null, false);
+        }
 
         /** @return vrai si l'engagement a été réglé en ligne avant le jour J. */
         public boolean payeEnLigne() {
@@ -99,11 +106,21 @@ public final class ListePointage {
 
     /** @return les noms des tableaux, dans l'ordre du tournoi (pour le sélecteur). */
     public List<String> nomsTableaux() {
+        return nomsTableaux(null);
+    }
+
+    /** B043 : les noms des tableaux de ce jour ({@code null} = tous les jours). */
+    public List<String> nomsTableaux(LocalDate jour) {
         List<String> res = new ArrayList<>();
-        for (Tableau t : tournoi.getTableaux()) {
+        for (Tableau t : JoursPointage.tableauxDu(tournoi, jour)) {
             res.add(t.getNom());
         }
         return res;
+    }
+
+    /** B043 : les jours du pointage ({@link JoursPointage#jours}). */
+    public List<LocalDate> jours() {
+        return JoursPointage.jours(tournoi);
     }
 
     /**
@@ -114,9 +131,18 @@ public final class ListePointage {
      * @return les lignes triées par nom puis prénom
      */
     public List<Ligne> lignes(String recherche, String nomTableau, FiltreEtat etat) {
+        return lignes(recherche, nomTableau, etat, null);
+    }
+
+    /**
+     * B043 : mêmes lignes, limitées aux tableaux d'un jour. Un joueur inscrit aux
+     * deux jours n'y voit que les tableaux du jour choisi ; avec {@code jour}
+     * nul (« Tous les jours »), tous ses tableaux, chacun avec son jour.
+     */
+    public List<Ligne> lignes(String recherche, String nomTableau, FiltreEtat etat, LocalDate jour) {
         FiltreEtat filtre = etat == null ? FiltreEtat.TOUS : etat;
         Map<Joueur, List<Engagement>> parJoueur = new LinkedHashMap<>();
-        for (Tableau t : tournoi.getTableaux()) {
+        for (Tableau t : JoursPointage.tableauxDu(tournoi, jour)) {
             if (nomTableau != null && !t.getNom().equals(nomTableau)) {
                 continue;
             }
@@ -124,7 +150,7 @@ public final class ListePointage {
                 if (j.estADeterminer() || !correspond(j, recherche)) {
                     continue;
                 }
-                Engagement e = engagement(t, j);
+                Engagement e = engagement(tournoi, t, j);
                 if (filtre.garde(e)) {
                     parJoueur.computeIfAbsent(j, x -> new ArrayList<>()).add(e);
                 }
@@ -140,14 +166,19 @@ public final class ListePointage {
 
     /** @return les totaux de chaque tableau, dans l'ordre du tournoi. */
     public List<Totaux> totaux() {
+        return totaux(null);
+    }
+
+    /** B043 : les totaux des tableaux d'un jour ({@code null} = tous). */
+    public List<Totaux> totaux(LocalDate jour) {
         List<Totaux> res = new ArrayList<>();
-        for (Tableau t : tournoi.getTableaux()) {
+        for (Tableau t : JoursPointage.tableauxDu(tournoi, jour)) {
             int pointes = 0;
             int payes = 0;
             double encaisse = 0;
             double enAttente = 0;
             for (Joueur j : t.getInscrits()) {
-                Engagement e = engagement(t, j);
+                Engagement e = engagement(tournoi, t, j);
                 if (e.pointe()) {
                     pointes++;
                 }
@@ -165,12 +196,23 @@ public final class ListePointage {
 
     /** @return la somme des totaux de tous les tableaux (nom « Tous »). */
     public Totaux totalGeneral() {
+        return totalJour(null);
+    }
+
+    /** B043 : nombre d'engagements non pointés ce jour (pour l'onglet du jour). */
+    public int nonPointes(LocalDate jour) {
+        Totaux t = totalJour(jour);
+        return t.inscrits() - t.pointes();
+    }
+
+    /** B043 : la somme des totaux des tableaux d'un jour ({@code null} = tout le tournoi, nom « Tous »). */
+    public Totaux totalJour(LocalDate jour) {
         int inscrits = 0;
         int pointes = 0;
         int payes = 0;
         double encaisse = 0;
         double enAttente = 0;
-        for (Totaux t : totaux()) {
+        for (Totaux t : totaux(jour)) {
             inscrits += t.inscrits();
             pointes += t.pointes();
             payes += t.payes();
@@ -180,13 +222,14 @@ public final class ListePointage {
         return new Totaux("Tous", inscrits, pointes, payes, encaisse, enAttente);
     }
 
-    private static Engagement engagement(Tableau t, Joueur j) {
+    private static Engagement engagement(Tournoi tournoi, Tableau t, Joueur j) {
         boolean paye = t.aPaye(j);
         ModeReglement mode = t.modeReglement(j);
         boolean lance = ServicePostePointage.estLance(t);
         return new Engagement(t.getNom(), t.aPointe(j), paye, mode,
                 montant(t.getConfiguration().getTarif(), paye ? mode : null),
-                !lance, !lance && !t.pointageEstCloture());
+                !lance, !lance && !t.pointageEstCloture(),
+                JoursPointage.jourDe(tournoi, t), JoursPointage.jourNonDefini(t));
     }
 
     /**

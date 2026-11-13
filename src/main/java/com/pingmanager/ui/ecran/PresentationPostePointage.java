@@ -98,7 +98,8 @@ final class PresentationPostePointage {
 
     static String confirmationDesistement(Joueur j, String tableau) {
         return "Désinscrire " + nomAffiche(j) + " du tableau " + tableau + " ? Sa place est libérée et le premier "
-                + "de la liste d'attente est repêché. Ce désistement ne se défait pas depuis ce poste.";
+                + "de la liste d'attente est repêché. Le retrait pourra être annulé (vue « Retraits ») "
+                + "seulement s'il reste une place libre.";
     }
 
     /** Message après une action : le refus expliqué, ou ce qui a été enregistré. */
@@ -118,11 +119,48 @@ final class PresentationPostePointage {
         } else if (type == TypeOperationPointage.MARQUER_NON_PAYE) {
             texte = "Paiement annulé : " + qui + ".";
         } else {
-            texte = "Désinscrit : " + qui + ".";
+            com.pingmanager.model.MotifRetrait m = r.getOperation() == null ? null
+                    : r.getOperation().getMotifRetrait();
+            texte = "Désinscrit : " + qui + "." + (m == null ? "" : " Motif : "
+                    + m.getLibelle().toLowerCase(Locale.FRENCH) + ".");
+            if (r.getOperation() != null && r.getOperation().avaitPaye()) {
+                texte += " Il avait payé : à rembourser ou à reporter (voir « Retraits »).";
+            }
         }
         if (r.getRepeche() != null) {
             texte += " " + nomAffiche(r.getRepeche()) + " est repêché de la liste d'attente : à pointer et à faire payer.";
         }
         return texte;
+    }
+    // ------------------------------------------------------------------
+    // B043 : pointage sur plusieurs jours
+    // ------------------------------------------------------------------
+
+    static final String TOUS_LES_JOURS = "Tous les jours";
+    static final String JOUR_NON_DEFINI = "Jour non défini";
+
+    private static final java.time.format.DateTimeFormatter JOUR_ONGLET =
+            java.time.format.DateTimeFormatter.ofPattern("EEEE d", Locale.FRENCH);
+
+    /** « Samedi 14 ». */
+    static String jour(java.time.LocalDate d) {
+        return d == null ? "" : com.pingmanager.core.reglement.Formats.capitale(d.format(JOUR_ONGLET));
+    }
+
+    /** Onglet du jour : « Samedi 14 · 3 non pointés », ou « Samedi 14 · tout pointé ». */
+    static String ongletJour(java.time.LocalDate d, int nonPointes) {
+        if (nonPointes <= 0) {
+            return jour(d) + " · tout pointé";
+        }
+        return jour(d) + " · " + nonPointes + (nonPointes > 1 ? " non pointés" : " non pointé");
+    }
+
+    /** Ligne « Total du tournoi », toujours visible sous les tuiles du jour. */
+    static String totalTournoi(ListePointage.Totaux t) {
+        return "Total du tournoi : " + t.inscrits() + (t.inscrits() > 1 ? " inscriptions" : " inscription")
+                + " · " + proportion(t.pointes(), t.inscrits()) + " pointées · "
+                + proportion(t.payes(), t.inscrits()) + " payées · "
+                + com.pingmanager.core.reglement.Formats.montant(t.encaisse()) + " encaissés · "
+                + com.pingmanager.core.reglement.Formats.montant(t.enAttente()) + " en attente";
     }
 }
