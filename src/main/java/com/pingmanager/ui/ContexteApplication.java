@@ -868,7 +868,8 @@ public final class ContexteApplication {
         boolean imageMigree = documents.migrerImage(doc.getTournoi()); // reliquat du point 18
         if (reglementMigre || imageMigree) {
             try {
-                DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier);
+                com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                        () -> DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier));
             } catch (RuntimeException e) {
                 // Fichier en lecture seule : la migration sera retentée à la prochaine lecture.
             }
@@ -903,8 +904,40 @@ public final class ContexteApplication {
      * @throws com.pingmanager.core.DroitRefuseException si le droit manque (rien n'est écrit)
      */
     public void enregistrerTournoi(Tournoi tournoi, Path fichier) {
-        controlerEcriture(tournoi, fichier);
-        ecrireTournoi(tournoi, fichier);
+        // Point 21 : verrou court par fichier (deux postes sur un dossier partagé).
+        com.pingmanager.persistence.VerrouFichier.executer(fichier, () -> {
+            controlerEcriture(tournoi, fichier);
+            ecrireTournoi(tournoi, fichier);
+        });
+    }
+
+    /**
+     * Point 21 : exécute une relecture-modification-écriture sous le verrou du fichier,
+     * pour qu'un autre poste ou une autre fenêtre n'écrase pas la modification. La
+     * lecture seule n'est jamais bloquée.
+     *
+     * @throws com.pingmanager.persistence.FichierOccupeException si le fichier reste
+     *         verrouillé après quelques essais (l'action n'est pas lancée)
+     */
+    public <T> T sousVerrou(Path fichier, java.util.function.Supplier<T> action) {
+        return com.pingmanager.persistence.VerrouFichier.executer(fichier, action);
+    }
+
+    /**
+     * Relit le tournoi, applique la modification et l'enregistre si elle a changé quelque
+     * chose, le tout sous le verrou du fichier (point 21).
+     *
+     * @param modification renvoie vrai si le tournoi a changé
+     * @return le tournoi relu (modifié ou non)
+     */
+    public Tournoi modifierTournoi(Path fichier, java.util.function.Predicate<Tournoi> modification) {
+        return sousVerrou(fichier, () -> {
+            Tournoi t = chargerTournoi(fichier);
+            if (modification.test(t)) {
+                enregistrerTournoi(t, fichier);
+            }
+            return t;
+        });
     }
 
     private void controlerEcriture(Tournoi tournoi, Path fichier) {
@@ -928,8 +961,10 @@ public final class ContexteApplication {
 
     /** Écriture sans contrôle de droit : réservée aux opérations internes (effacement RGPD). */
     private void ecrireTournoi(Tournoi tournoi, Path fichier) {
-        service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
-        cacheLectures.remove(fichier);
+        com.pingmanager.persistence.VerrouFichier.executer(fichier, () -> {
+            service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
+            cacheLectures.remove(fichier);
+        });
     }
 
     /**
@@ -1081,7 +1116,8 @@ public final class ContexteApplication {
         ServiceInscriptionEnLigne.Bilan b = inscriptionEnLigne.inscrire(t, ficheLicenceLiee().orElse(null), selection,
                 java.time.LocalDateTime.now(), agenda);
         if (b.estValide()) {
-            DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                    () -> DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier));
             cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder(); // tournoi ajouté automatiquement à l'agenda (B032)
@@ -1101,7 +1137,8 @@ public final class ContexteApplication {
         ServiceInscriptionEnLigne.BilanDesinscription b = inscriptionEnLigne.desinscrire(t,
                 ficheLicenceLiee().orElse(null), tableaux, agenda);
         if (b.estValide()) {
-            DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                    () -> DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier));
             cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder();

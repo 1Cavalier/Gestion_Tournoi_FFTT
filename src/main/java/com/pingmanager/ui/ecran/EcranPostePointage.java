@@ -387,6 +387,18 @@ public final class EcranPostePointage {
     }
 
     private void annulerRetrait(ListeRetraits.Retrait retrait) {
+        // Point 21 : relecture, action et écriture sous le verrou du fichier (autre poste).
+        try {
+            contexte.sousVerrou(fichier, () -> {
+                annulerRetraitSousVerrou(retrait);
+                return null;
+            });
+        } catch (com.pingmanager.persistence.FichierOccupeException occupe) {
+            Ui.erreur(message, occupe.getMessage());
+        }
+    }
+
+    private void annulerRetraitSousVerrou(ListeRetraits.Retrait retrait) {
         Tournoi frais;
         try {
             frais = contexte.chargerTournoi(fichier);
@@ -518,6 +530,18 @@ public final class EcranPostePointage {
     // ------------------------------------------------------------------
 
     private void agir(Joueur j, String tableau, TypeOperationPointage type, Object valeur) {
+        // Point 21 : relecture, action et écriture sous le verrou du fichier (autre poste).
+        try {
+            contexte.sousVerrou(fichier, () -> {
+                agirSousVerrou(j, tableau, type, valeur);
+                return null;
+            });
+        } catch (com.pingmanager.persistence.FichierOccupeException occupe) {
+            Ui.erreur(message, occupe.getMessage());
+        }
+    }
+
+    private void agirSousVerrou(Joueur j, String tableau, TypeOperationPointage type, Object valeur) {
         Tournoi frais;
         try {
             frais = contexte.chargerTournoi(fichier); // une autre fenêtre a pu changer le tournoi

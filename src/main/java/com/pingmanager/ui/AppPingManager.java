@@ -45,7 +45,8 @@ public final class AppPingManager extends Application {
     }
 
     /**
-     * Point 16 : un droit refusé par le contexte pendant une action (bouton, menu)
+     * Point 16 : un droit refusé par le contexte (ou, point 21, un tournoi verrouillé par
+     * un autre poste) pendant une action (bouton, menu)
      * s'affiche dans une fenêtre claire au lieu d'une trace dans la console.
      */
     private static void installerAffichageDesRefus() {
@@ -53,13 +54,15 @@ public final class AppPingManager extends Application {
         Thread.UncaughtExceptionHandler precedent = fx.getUncaughtExceptionHandler();
         fx.setUncaughtExceptionHandler((t, e) -> {
             Throwable c = e;
-            while (c != null && !(c instanceof com.pingmanager.core.DroitRefuseException)) {
+            while (c != null && !(c instanceof com.pingmanager.core.DroitRefuseException)
+                    && !(c instanceof com.pingmanager.persistence.FichierOccupeException)) {
                 c = c.getCause();
             }
             if (c != null) {
                 javafx.scene.control.Alert a = new javafx.scene.control.Alert(
                         javafx.scene.control.Alert.AlertType.WARNING, c.getMessage());
-                a.setHeaderText("Droit insuffisant");
+                a.setHeaderText(c instanceof com.pingmanager.core.DroitRefuseException
+                        ? "Droit insuffisant" : "Tournoi occupé");
                 a.show();
             } else if (precedent != null) {
                 precedent.uncaughtException(t, e);
