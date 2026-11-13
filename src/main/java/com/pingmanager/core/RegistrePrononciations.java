@@ -72,6 +72,11 @@ public final class RegistrePrononciations {
         return r;
     }
 
+    /** Point 21 (RGPD) : retire la prononciation d'un licencié. @return vrai si elle existait */
+    public synchronized boolean retirerJoueur(String licence) {
+        return licence != null && joueurs.remove(licence.trim()) != null;
+    }
+
     public synchronized Optional<PrononciationJoueur> joueur(String licence) {
         return licence == null ? Optional.empty() : Optional.ofNullable(joueurs.get(licence.trim()));
     }

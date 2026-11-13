@@ -21,8 +21,9 @@ class LectureSeuleTournoiTest {
 
     @Test
     void fichier_inchange_meme_lecture_puis_relu_apres_enregistrement_par_l_application() {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        Path f = ctx.creerBrouillon(new Tournoi("Open lu", "Brunoy", LocalDate.of(2027, 6, 5))).toAbsolutePath();
+        ContexteApplication ctx = TournoisDeTest.connecteBrunoy(
+                new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences()));
+        Path f = ctx.creerBrouillon(TournoisDeTest.deBrunoy(new Tournoi("Open lu", "Brunoy", LocalDate.of(2027, 6, 5)))).toAbsolutePath();
 
         Tournoi premier = ctx.lireTournoi(f);
         assertSame(premier, ctx.lireTournoi(f), "fichier inchangé : même lecture");
@@ -37,8 +38,9 @@ class LectureSeuleTournoiTest {
 
     @Test
     void fichier_absent_leve_la_meme_erreur_qu_une_lecture_directe() throws Exception {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        Path f = ctx.creerBrouillon(new Tournoi("Open supprimé", "Brunoy", LocalDate.of(2027, 6, 5))).toAbsolutePath();
+        ContexteApplication ctx = TournoisDeTest.connecteBrunoy(
+                new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences()));
+        Path f = ctx.creerBrouillon(TournoisDeTest.deBrunoy(new Tournoi("Open supprimé", "Brunoy", LocalDate.of(2027, 6, 5)))).toAbsolutePath();
         ctx.lireTournoi(f);
         Files.delete(f);
 

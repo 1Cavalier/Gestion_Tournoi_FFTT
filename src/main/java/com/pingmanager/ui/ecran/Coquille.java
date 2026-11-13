@@ -263,11 +263,34 @@ public final class Coquille {
         }
         cleCourante = cle;
         PageMemorisee.ecrire(contexte.compteConnecte().getEmail(), cle);
-        Parent page = cible.page.get();
+        Parent page;
+        try {
+            page = cible.page.get();
+        } catch (com.pingmanager.core.DroitRefuseException refus) {
+            page = pageDroitRefuse(refus); // point 16 : droit vérifié par le contexte
+        }
         racine.setCenter(page);
+        signalerCopiesDeSecours();
         titrePage.setText(cible.libelle);
         Ui.apparition(page);
         souligneCourant();
+    }
+
+    /** Point 21 : un fichier relu depuis sa copie « .bak » est signalé, sans bloquer. */
+    private void signalerCopiesDeSecours() {
+        for (String message : contexte.nouveauxAvertissementsLecture()) {
+            javafx.scene.control.Alert a = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.WARNING, message);
+            a.setHeaderText("Copie de secours utilisée");
+            a.show();
+        }
+    }
+
+    /** Page affichée quand le contexte refuse l'accès (point 16). */
+    static Parent pageDroitRefuse(com.pingmanager.core.DroitRefuseException refus) {
+        javafx.scene.control.Label l = Ui.message();
+        Ui.erreur(l, refus.getMessage());
+        return Ui.page(720, l);
     }
 
     /** Marque l'entrée active (classe nav-item-actif) pour repérer où l'on se trouve. */

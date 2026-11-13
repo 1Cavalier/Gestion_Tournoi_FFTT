@@ -101,6 +101,10 @@ public final class ContexteApplication {
     private final ServiceAuthentification authentification;
     private final ServiceLiaisonLicence liaisonLicence;
     private final ServiceLiaisonClub liaisonClub;
+    /** Point 13 : vérification de l'email à la création du compte. */
+    private final com.pingmanager.core.ServiceVerificationEmail verificationEmail;
+    /** Demande de vérification d'email en cours (code envoyé), en mémoire seulement. */
+    private DemandeVerification demandeEmail;
 
     // Onglet Tournois : accès IX.102 et inscription en ligne.
     private final EligibiliteTournoi eligibilite;
@@ -155,8 +159,9 @@ public final class ContexteApplication {
         Horloge horloge = Horloge.systeme();
 
         this.authentification = new ServiceAuthentification(hachage, horloge);
-        this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
+        this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT, this.clubsFFTT, code, email, hachage, horloge);
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
+        this.verificationEmail = new com.pingmanager.core.ServiceVerificationEmail(code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
 
@@ -194,7 +199,9 @@ public final class ContexteApplication {
                     depot.emailUtilisateurDejaUtilise());
             if (compte.isPresent()) {
                 profilDemo = compte.get();
-                liaisonLicence.lier(profilDemo, DonneesDemo.LICENCE_PROFIL_DEMO);
+                profilDemo.marquerEmailVerifie(); // compte fictif de démonstration
+                // Licence fictive liée d'office (données de démonstration, sans preuve).
+                profilDemo.lierLicence(DonneesDemo.LICENCE_PROFIL_DEMO);
                 depot.enregistrerCompteUtilisateur(profilDemo);
                 // Le profil de démo est administrateur (niveau 1) de Brunoy, sous le référent.
                 depot.enregistrerAcces(new AccesClub(
@@ -230,6 +237,7 @@ public final class ContexteApplication {
                 admin.setEmpreinteMotDePasse(hachage.hacher(motDePasseSupervisionDemo));
             }
             if (admin != null) {
+                admin.marquerEmailVerifie(); // compte fictif, mode démo seulement
                 admin.setRole(RoleCompte.SUPERVISION);
                 depot.enregistrerCompteUtilisateur(admin);
                 modifie = true;
@@ -392,27 +400,49 @@ public final class ContexteApplication {
 
     /** @return vrai si le compte connecté est un compte « ultra admin » (supervision). */
     public boolean estUltraAdmin() {
-        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo.
-        return modeDemo && compteConnecte != null && compteConnecte.estSupervision();
+        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo,
+        // pour un email vérifié (point 13).
+        return modeDemo && compteConnecte != null && compteConnecte.isEmailVerifie()
+                && compteConnecte.estSupervision();
     }
 
     /**
-     * Le tournoi appartient-il à l'un des clubs du compte connecté ? (par n°
-     * d'affiliation, ou par nom de club pour les anciens fichiers sans numéro).
+     * Le tournoi appartient-il à l'un des clubs du compte connecté ? Par n° d'affiliation
+     * seulement (point 16) : un club se désigne par son numéro, jamais par son nom (un
+     * ancien fichier sans numéro n'appartient à aucun club).
      */
     public boolean estTournoiDuCompte(Tournoi t) {
+        String numero = t == null ? null : t.getNumeroAffiliationClub();
+        if (numero == null || numero.isBlank()) {
+            return false;
+        }
         for (AccesClub a : accesCourants()) {
-            if (a.getNumeroClub().equals(t.getNumeroAffiliationClub())) {
+            if (a.getNumeroClub().trim().equals(numero.trim())) {
                 return true;
-            }
-            if (t.getNumeroAffiliationClub() == null) {
-                String nom = clubParNumero(a.getNumeroClub()).map(Club::getNom).orElse(null);
-                if (nom != null && nom.equalsIgnoreCase(String.valueOf(t.getClubOrganisateur()))) {
-                    return true;
-                }
             }
         }
         return false;
+    }
+
+    // ==================================================================
+    // Droits (point 16)
+    // ==================================================================
+
+    /**
+     * Vérifie que le compte connecté peut effectuer l'opération sur ce club
+     * ({@link com.pingmanager.core.ControleDroits}).
+     *
+     * @param numeroClub numéro FFTT du club visé ({@code null} pour la supervision)
+     * @throws com.pingmanager.core.DroitRefuseException si le droit manque (message prêt à afficher)
+     */
+    public void exigerDroit(com.pingmanager.core.OperationProtegee operation, String numeroClub) {
+        com.pingmanager.core.ControleDroits.exiger(compteConnecte, accesCourants(), modeDemo, operation, numeroClub);
+    }
+
+    /** @return vrai si le compte connecté peut effectuer l'opération (sans lever d'exception). */
+    public boolean aLeDroit(com.pingmanager.core.OperationProtegee operation, String numeroClub) {
+        return com.pingmanager.core.ControleDroits.refus(compteConnecte, accesCourants(), modeDemo, operation,
+                numeroClub).isEmpty();
     }
 
     /** Fichier du brouillon de démo « Tournoi National B de Brunoy 2027 ». */
@@ -489,6 +519,8 @@ public final class ContexteApplication {
 
     /**
      * Crée un compte (mot de passe de 10 caractères au moins) puis connecte la personne.
+     * Point 13 : le compte est créé <b>non vérifié</b> et un code est envoyé à son email ;
+     * il n'a aucun droit (club, organisateur, supervision) avant {@link #confirmerEmail}.
      *
      * @return le résultat détaillé, avec un message clair en cas de refus
      */
@@ -500,8 +532,55 @@ public final class ContexteApplication {
             depot.enregistrerCompteUtilisateur(c);
             sauvegarder();
             this.compteConnecte = c;
+            this.demandeEmail = verificationEmail.envoyerCode(c);
         }
         return resultat;
+    }
+
+    /**
+     * Mode démo seulement : le dernier email « envoyé » (les emails ne partent pas encore
+     * vraiment, README section 4), pour lire le code sans console. Vide hors mode démo.
+     */
+    public Optional<String> apercuEmailDemo() {
+        if (!modeDemo) {
+            return Optional.empty();
+        }
+        return email.dernierMessage().map(m -> "À : " + m.getDestinataire() + "\n" + m.getCorps());
+    }
+
+    /** @return vrai si le compte connecté a confirmé son email (point 13). */
+    public boolean emailVerifie() {
+        return compteConnecte != null && compteConnecte.isEmailVerifie();
+    }
+
+    /**
+     * Envoie (à nouveau) un code de vérification à l'email du compte connecté.
+     *
+     * @return {@code false} si l'email est déjà vérifié (rien n'est envoyé)
+     */
+    public boolean envoyerCodeEmail() {
+        exigerConnecte();
+        if (compteConnecte.isEmailVerifie()) {
+            return false;
+        }
+        demandeEmail = verificationEmail.envoyerCode(compteConnecte);
+        return true;
+    }
+
+    /**
+     * Confirme l'email du compte connecté avec le code reçu ; en cas de succès, le
+     * compte est enregistré vérifié et ses droits s'activent.
+     */
+    public com.pingmanager.core.ResultatVerificationEmail confirmerEmail(String code) {
+        exigerConnecte();
+        com.pingmanager.core.ResultatVerificationEmail r =
+                verificationEmail.confirmer(compteConnecte, demandeEmail, code);
+        if (r.getStatut() == com.pingmanager.core.ResultatVerificationEmail.Statut.VERIFIE) {
+            demandeEmail = null;
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return r;
     }
 
     /**
@@ -522,6 +601,9 @@ public final class ContexteApplication {
     public ResultatConnexion connexion(String email, String motDePasse) {
         ResultatConnexion resultat = authentification.connexion(email, motDePasse, depot::trouverCompteUtilisateur);
         if (resultat.estConnecte()) {
+            if (compteConnecte == null || !compteConnecte.equals(resultat.getCompte())) {
+                this.demandeEmail = null;
+            }
             this.compteConnecte = resultat.getCompte();
         }
         return resultat;
@@ -543,6 +625,7 @@ public final class ContexteApplication {
 
     public void deconnecter() {
         this.compteConnecte = null;
+        this.demandeEmail = null;
     }
 
     public CompteUtilisateur compteConnecte() {
@@ -553,19 +636,74 @@ public final class ContexteApplication {
     // Démarche 1 — liaison licence
     // ==================================================================
 
+    /** Demande de liaison de licence en cours (code envoyé au référent), en mémoire seulement. */
+    private DemandeVerification demandeLicence;
+    private String licenceDemandee;
+
     /**
-     * Recherche la licence et, si elle existe, la lie au compte connecté.
-     *
-     * @return la fiche de licence si trouvée, sinon {@link Optional#empty()}
+     * Point 14, première étape : numéro et date de naissance du licencié ; si la licence
+     * est libre et la date juste, un code part au référent du club de la licence.
      */
-    public Optional<FicheLicence> lierLicence(String numeroLicence) {
+    public com.pingmanager.core.ResultatLiaisonLicence demanderLiaisonLicence(String numeroLicence,
+                                                                             java.time.LocalDate dateNaissance) {
         exigerConnecte();
-        Optional<FicheLicence> fiche = liaisonLicence.lier(compteConnecte, numeroLicence);
-        if (fiche.isPresent()) {
+        com.pingmanager.core.ResultatLiaisonLicence r = liaisonLicence.demander(compteConnecte, numeroLicence,
+                dateNaissance, depot::compteDeLaLicence);
+        if (r.getDemande() != null) {
+            demandeLicence = r.getDemande();
+            licenceDemandee = r.getFiche().getNumeroLicence();
+        }
+        return r;
+    }
+
+    /** @return le numéro de la licence dont la liaison attend son code, s'il y en a une. */
+    public Optional<String> licenceEnAttenteDeCode() {
+        return Optional.ofNullable(licenceDemandee);
+    }
+
+    /** Point 14, seconde étape : le code transmis par le référent lie la licence. */
+    public com.pingmanager.core.ResultatLiaisonLicence confirmerLiaisonLicence(String code) {
+        exigerConnecte();
+        com.pingmanager.core.ResultatLiaisonLicence r = liaisonLicence.confirmer(compteConnecte, licenceDemandee,
+                demandeLicence, code, depot::compteDeLaLicence);
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.LIEE) {
+            demandeLicence = null;
+            licenceDemandee = null;
             depot.enregistrerCompteUtilisateur(compteConnecte);
             sauvegarder();
         }
-        return fiche;
+        return r;
+    }
+
+    /** Point 14 : le titulaire délie sa licence. */
+    public com.pingmanager.core.ResultatLiaisonLicence delierLicence() {
+        exigerConnecte();
+        com.pingmanager.core.ResultatLiaisonLicence r =
+                liaisonLicence.delier(compteConnecte, compteConnecte, accesCourants());
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.DELIEE) {
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return r;
+    }
+
+    /**
+     * Point 14 : un administrateur du club de la licence la délie du compte qui la porte
+     * (licence réclamée par erreur ou usurpée).
+     */
+    public com.pingmanager.core.ResultatLiaisonLicence delierLicenceParAdministrateur(String numeroLicence) {
+        exigerConnecte();
+        CompteUtilisateur titulaire = depot.compteDeLaLicence(numeroLicence).orElse(null);
+        if (titulaire == null) {
+            return com.pingmanager.core.ResultatLiaisonLicence.aucuneLicenceLiee();
+        }
+        com.pingmanager.core.ResultatLiaisonLicence r =
+                liaisonLicence.delier(titulaire, compteConnecte, accesCourants());
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.DELIEE) {
+            depot.enregistrerCompteUtilisateur(titulaire);
+            sauvegarder();
+        }
+        return r;
     }
 
     /** @return la fiche de la licence liée au compte (pour l'affichage), si connue. */
@@ -629,9 +767,13 @@ public final class ContexteApplication {
         return true;
     }
 
-    /** @return les habilitations (accès club) du compte connecté. */
+    /**
+     * @return les habilitations (accès club) du compte connecté ; aucune tant que son
+     *         email n'est pas vérifié (point 13 : un accès pré-enregistré pour l'adresse
+     *         d'un référent ne s'active qu'une fois cette adresse prouvée)
+     */
     public List<AccesClub> accesCourants() {
-        if (compteConnecte == null) {
+        if (compteConnecte == null || !compteConnecte.isEmailVerifie()) {
             return List.of();
         }
         return depot.accesDe(compteConnecte.getEmail());
@@ -643,6 +785,7 @@ public final class ContexteApplication {
         if (numeroClub == null) {
             return res;
         }
+        exigerDroit(com.pingmanager.core.OperationProtegee.DONNEES_CLUB, numeroClub);
         for (AccesClub a : depot.tousLesAcces()) {
             if (numeroClub.equals(a.getNumeroClub())) {
                 res.add(a);
@@ -687,6 +830,7 @@ public final class ContexteApplication {
      * @return {nom, prénom, email} — jamais {@code null}, éléments éventuellement vides
      */
     public String[] correspondantParDefaut(String numeroClub) {
+        exigerDroit(com.pingmanager.core.OperationProtegee.DONNEES_CLUB, numeroClub);
         for (AccesClub a : membresDuClub(numeroClub)) {
             if (a.estPrincipal()) {
                 return new String[] {a.getNom(), a.getPrenom(), a.getEmail()};
@@ -713,15 +857,19 @@ public final class ContexteApplication {
 
     /**
      * Charge le tournoi d'un fichier (pour lire son statut et ses détails). Un
-     * ancien fichier dont le règlement déposé est un chemin absolu est migré :
+     * ancien fichier dont le règlement déposé ou l'image promotionnelle est un chemin
+     * absolu est migré :
      * PDF copié dans le dossier de données et fichier réenregistré (sinon,
      * « fichier introuvable » à l'affichage, sans erreur).
      */
     public Tournoi chargerTournoi(Path fichier) {
         com.pingmanager.persistence.TournoiMapper.DocumentCharge doc = DepotTournoi.charger(fichier);
-        if (documents.migrerReglement(doc.getTournoi())) {
+        boolean reglementMigre = documents.migrerReglement(doc.getTournoi());
+        boolean imageMigree = documents.migrerImage(doc.getTournoi()); // reliquat du point 18
+        if (reglementMigre || imageMigree) {
             try {
-                DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier);
+                com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                        () -> DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier));
             } catch (RuntimeException e) {
                 // Fichier en lecture seule : la migration sera retentée à la prochaine lecture.
             }
@@ -741,16 +889,82 @@ public final class ContexteApplication {
      * @return le chemin du brouillon créé
      */
     public Path creerBrouillon(Tournoi tournoi) {
+        exigerDroit(com.pingmanager.core.OperationProtegee.CREER_TOURNOI, tournoi.getNumeroAffiliationClub());
         service.nouveau(tournoi, new RegistreDisciplinaire());
         Path cible = cibleBrouillon(tournoi);
         service.enregistrerSous(tournoi, new RegistreDisciplinaire(), cible);
         return cible;
     }
 
-    /** Enregistre les modifications d'un tournoi déjà sur disque. */
+    /**
+     * Enregistre les modifications d'un tournoi déjà sur disque. Point 16 : le compte doit
+     * avoir le droit de modifier le tournoi (club du fichier sur disque <b>et</b> club du
+     * tournoi enregistré), et de l'homologuer si son étape change.
+     *
+     * @throws com.pingmanager.core.DroitRefuseException si le droit manque (rien n'est écrit)
+     */
     public void enregistrerTournoi(Tournoi tournoi, Path fichier) {
-        service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
-        cacheLectures.remove(fichier);
+        // Point 21 : verrou court par fichier (deux postes sur un dossier partagé).
+        com.pingmanager.persistence.VerrouFichier.executer(fichier, () -> {
+            controlerEcriture(tournoi, fichier);
+            ecrireTournoi(tournoi, fichier);
+        });
+    }
+
+    /**
+     * Point 21 : exécute une relecture-modification-écriture sous le verrou du fichier,
+     * pour qu'un autre poste ou une autre fenêtre n'écrase pas la modification. La
+     * lecture seule n'est jamais bloquée.
+     *
+     * @throws com.pingmanager.persistence.FichierOccupeException si le fichier reste
+     *         verrouillé après quelques essais (l'action n'est pas lancée)
+     */
+    public <T> T sousVerrou(Path fichier, java.util.function.Supplier<T> action) {
+        return com.pingmanager.persistence.VerrouFichier.executer(fichier, action);
+    }
+
+    /**
+     * Relit le tournoi, applique la modification et l'enregistre si elle a changé quelque
+     * chose, le tout sous le verrou du fichier (point 21).
+     *
+     * @param modification renvoie vrai si le tournoi a changé
+     * @return le tournoi relu (modifié ou non)
+     */
+    public Tournoi modifierTournoi(Path fichier, java.util.function.Predicate<Tournoi> modification) {
+        return sousVerrou(fichier, () -> {
+            Tournoi t = chargerTournoi(fichier);
+            if (modification.test(t)) {
+                enregistrerTournoi(t, fichier);
+            }
+            return t;
+        });
+    }
+
+    private void controlerEcriture(Tournoi tournoi, Path fichier) {
+        Tournoi surDisque = null;
+        if (fichier != null && Files.isRegularFile(fichier)) {
+            try {
+                surDisque = DepotTournoi.charger(fichier).getTournoi();
+            } catch (RuntimeException illisible) {
+                surDisque = null; // fichier abîmé : seul le club du tournoi écrit est contrôlé
+            }
+        }
+        com.pingmanager.core.OperationProtegee operation = surDisque != null
+                && surDisque.getStatut() != tournoi.getStatut()
+                ? com.pingmanager.core.OperationProtegee.HOMOLOGUER_TOURNOI
+                : com.pingmanager.core.OperationProtegee.MODIFIER_TOURNOI;
+        if (surDisque != null) {
+            exigerDroit(operation, surDisque.getNumeroAffiliationClub());
+        }
+        exigerDroit(operation, tournoi.getNumeroAffiliationClub());
+    }
+
+    /** Écriture sans contrôle de droit : réservée aux opérations internes (effacement RGPD). */
+    private void ecrireTournoi(Tournoi tournoi, Path fichier) {
+        com.pingmanager.persistence.VerrouFichier.executer(fichier, () -> {
+            service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
+            cacheLectures.remove(fichier);
+        });
     }
 
     /**
@@ -766,7 +980,7 @@ public final class ContexteApplication {
         Tournoi tournoi = chargerTournoi(fichier);
         int effaces = convocationsSms.effacerSiTermine(tournoi, maintenant);
         if (effaces > 0) {
-            enregistrerTournoi(tournoi, fichier);
+            ecrireTournoi(tournoi, fichier); // effacement de données personnelles : jamais bloqué
         }
         return effaces;
     }
@@ -902,7 +1116,8 @@ public final class ContexteApplication {
         ServiceInscriptionEnLigne.Bilan b = inscriptionEnLigne.inscrire(t, ficheLicenceLiee().orElse(null), selection,
                 java.time.LocalDateTime.now(), agenda);
         if (b.estValide()) {
-            DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                    () -> DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier));
             cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder(); // tournoi ajouté automatiquement à l'agenda (B032)
@@ -922,7 +1137,8 @@ public final class ContexteApplication {
         ServiceInscriptionEnLigne.BilanDesinscription b = inscriptionEnLigne.desinscrire(t,
                 ficheLicenceLiee().orElse(null), tableaux, agenda);
         if (b.estValide()) {
-            DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier);
+            com.pingmanager.persistence.VerrouFichier.executer(fichier,
+                    () -> DepotTournoi.sauvegarder(t, new RegistreDisciplinaire(), fichier));
             cacheLectures.remove(fichier);
             if (agenda != null) {
                 sauvegarder();
@@ -976,6 +1192,126 @@ public final class ContexteApplication {
             }
         }
         return res;
+    }
+
+    // ==================================================================
+    // RGPD (point 21) : purge des tournois anciens, effacement d'un joueur
+    // ==================================================================
+
+    private final com.pingmanager.core.ServiceDonneesPersonnelles donneesPersonnelles =
+            new com.pingmanager.core.ServiceDonneesPersonnelles(Horloge.systeme(), java.time.ZoneId.systemDefault());
+
+    /** Journal (sans donnée personnelle) des purges et effacements. */
+    public com.pingmanager.persistence.JournalDonneesPersonnelles journalRgpd() {
+        return new com.pingmanager.persistence.JournalDonneesPersonnelles(dossierDonnees);
+    }
+
+    /**
+     * Aperçu de la purge : tournois des clubs du compte terminés depuis plus de
+     * {@code annees} ans, que le compte a le droit de supprimer. <b>Ne supprime rien.</b>
+     */
+    public List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path>> apercuPurge(int annees) {
+        List<TournoiFichier> miens = new ArrayList<>();
+        for (TournoiFichier tf : mesTournoisClub(tousLesTournois())) {
+            if (aLeDroit(com.pingmanager.core.OperationProtegee.SUPPRIMER_TOURNOI,
+                    tf.tournoi().getNumeroAffiliationClub())) {
+                miens.add(tf);
+            }
+        }
+        return donneesPersonnelles.apercuPurge(com.pingmanager.core.ServiceDonneesPersonnelles.parCle(
+                miens, TournoiFichier::fichier, TournoiFichier::tournoi), annees);
+    }
+
+    /** Bilan d'une purge : confirmée ou non, tournois supprimés et refusés (avec motif). */
+    public record BilanPurge(boolean confirmee, List<String> supprimes, List<String> refuses) {
+    }
+
+    /**
+     * Supprime les tournois de l'aperçu, <b>seulement</b> sur confirmation explicite.
+     * Chaque tournoi est recontrôlé (droit de suppression, toujours à purger) juste avant ;
+     * son fichier, sa copie de secours et son entrée dans les récents disparaissent. Le
+     * journal garde le nom du tournoi et sa date, sans donnée personnelle.
+     */
+    public BilanPurge purgerTournois(List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path>> apercu,
+                                     int annees, boolean confirmationExplicite) {
+        if (!confirmationExplicite) {
+            return new BilanPurge(false, List.of(), List.of("Confirmation explicite requise : rien n'a été supprimé."));
+        }
+        List<String> supprimes = new ArrayList<>();
+        List<String> refuses = new ArrayList<>();
+        for (com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path> a : apercu) {
+            Path f = a.cle();
+            try {
+                sousVerrou(f, () -> {
+                    Tournoi t = DepotTournoi.charger(f).getTournoi();
+                    exigerDroit(com.pingmanager.core.OperationProtegee.SUPPRIMER_TOURNOI, t.getNumeroAffiliationClub());
+                    if (!donneesPersonnelles.estAPurger(t, annees)) {
+                        throw new IllegalStateException("n'est plus à purger");
+                    }
+                    try {
+                        Files.deleteIfExists(f);
+                        Files.deleteIfExists(com.pingmanager.persistence.EcritureSure.secours(f));
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return null;
+                });
+                depot.oublierRecent(f);
+                cacheLectures.remove(f);
+                supprimes.add(a.nom());
+                journalRgpd().ajouter(Horloge.systeme().maintenant(), "PURGE",
+                        "Tournoi supprimé : " + a.nom() + " (dernier jour " + a.dernierJour() + ", conservation "
+                                + annees + " ans)");
+            } catch (RuntimeException e) {
+                refuses.add(a.nom() + " : " + e.getMessage());
+            }
+        }
+        if (!supprimes.isEmpty()) {
+            sauvegarder();
+        }
+        return new BilanPurge(true, supprimes, refuses);
+    }
+
+    /** Bilan de l'effacement d'un joueur : tournois modifiés, prononciation retirée. */
+    public record BilanEffacement(int tournoisModifies, boolean prononciationRetiree, List<String> refuses) {
+    }
+
+    /**
+     * Efface un joueur à sa demande dans les tournois des clubs du compte (terminés ou
+     * non) : nom, prénom, numéro de portable et SMS ; la licence et les résultats restent.
+     * Sa prononciation enregistrée est retirée. Journal sans donnée personnelle.
+     */
+    public BilanEffacement effacerJoueur(String numeroLicence, boolean confirmationExplicite) {
+        exigerConnecte();
+        if (!confirmationExplicite || numeroLicence == null || numeroLicence.isBlank()) {
+            return new BilanEffacement(0, false, List.of("Confirmation explicite et numéro de licence requis."));
+        }
+        String licence = numeroLicence.trim();
+        int modifies = 0;
+        List<String> refuses = new ArrayList<>();
+        for (TournoiFichier tf : mesTournoisClub(tousLesTournois())) {
+            try {
+                boolean[] change = {false};
+                modifierTournoi(tf.fichier(), t -> {
+                    change[0] = donneesPersonnelles.anonymiser(t, licence).aModifie();
+                    return change[0];
+                });
+                if (change[0]) {
+                    modifies++;
+                }
+            } catch (RuntimeException e) {
+                refuses.add(tf.tournoi().getNom() + " : " + e.getMessage());
+            }
+        }
+        boolean prononciation = depot.prononciations().retirerJoueur(licence);
+        if (prononciation) {
+            sauvegarder();
+        }
+        journalRgpd().ajouter(Horloge.systeme().maintenant(), "EFFACEMENT_JOUEUR",
+                "Joueur effacé à sa demande : " + modifies + " tournoi(s) modifié(s)"
+                        + (prononciation ? ", prononciation retirée" : "") + (refuses.isEmpty() ? "" : ", "
+                        + refuses.size() + " refus"));
+        return new BilanEffacement(modifies, prononciation, refuses);
     }
 
     // ==================================================================
@@ -1048,6 +1384,20 @@ public final class ContexteApplication {
     // ==================================================================
     // Interne
     // ==================================================================
+
+    /** Nombre d'avertissements de relecture déjà rendus par {@link #nouveauxAvertissementsLecture()}. */
+    private int avertissementsRendus;
+
+    /**
+     * Point 21 : fichiers relus depuis leur copie de secours « .bak » (fichier principal
+     * illisible ou tronqué) depuis le dernier appel, pour les signaler à l'écran.
+     */
+    public List<String> nouveauxAvertissementsLecture() {
+        List<String> tous = com.pingmanager.persistence.EcritureSure.avertissements();
+        List<String> nouveaux = new ArrayList<>(tous.subList(Math.min(avertissementsRendus, tous.size()), tous.size()));
+        avertissementsRendus = tous.size();
+        return nouveaux;
+    }
 
     /** Persiste le dépôt applicatif (écriture atomique). */
     public void sauvegarder() {

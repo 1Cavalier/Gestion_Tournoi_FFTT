@@ -82,7 +82,9 @@ final class EcranInscriptionSurPlace {
         Ui.cacher(message);
 
         VBox page = Ui.page(1080, retour, Ui.titre(PresentationInscriptionSurPlace.TITRE),
-                Ui.aide(PresentationInscriptionSurPlace.regle(tournoi)), corps);
+                Ui.aide(PresentationInscriptionSurPlace.regle(tournoi)), corps,
+                // Point 21 (RGPD) : à lire ou remettre au joueur inscrit sur place.
+                Ui.aide(com.pingmanager.core.MentionInformation.INSCRIPTION));
         return Ui.defilant(page);
     }
 

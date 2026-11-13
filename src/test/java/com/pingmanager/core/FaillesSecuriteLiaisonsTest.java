@@ -76,26 +76,35 @@ class FaillesSecuriteLiaisonsTest {
         Instant t0 = Instant.parse("2026-11-05T10:00:00Z");
         service = new ServiceLiaisonClub(clubs, new CodesSequentiels(), boite, new HachageFactice(), () -> t0);
         attaquant = new CompteUtilisateur("president@club-attaquant.fr", "PIRATE", "Paul", "h:x");
+        attaquant.marquerEmailVerifie(); // l'attaquant a prouvé SON adresse (point 13)
     }
 
     /**
-     * Faille S-04 : la {@link DemandeVerification} ne mémorise pas le club visé.
-     * L'attaquant demande un code pour SON club (le code arrive dans SA boîte), puis
-     * confirme ce code en indiquant le numéro d'un AUTRE club : l'accès est accordé
-     * sur le club victime, dont le référent n'a jamais été sollicité.
-     * Correctif : lier le numéro de club à la demande et refuser toute divergence.
+     * Ex-faille S-04, corrigée (B044) : la {@link DemandeVerification} mémorise le club
+     * visé. Le code reçu pour SON club (dans SA boîte) ne peut plus être confirmé en
+     * indiquant le numéro d'un AUTRE club.
      */
     @Test
-    void code_recu_pour_son_club_ouvre_l_acces_a_un_autre_club_faille_S04() {
+    void code_recu_pour_son_club_n_ouvre_pas_l_acces_a_un_autre_club() {
         DemandeVerification demande = service.demander(attaquant, CLUB_ATTAQUANT).orElseThrow();
         assertEquals(EMAIL_CLUB_ATTAQUANT, boite.envoyes.get(0)[0], "le code part chez l'attaquant");
 
         ResultatLiaisonClub r = service.confirmer(attaquant, CLUB_VICTIME, demande, "000001");
 
-        assertTrue(r.estReussi(), "comportement vulnérable : le code d'un club ouvre un autre club");
-        assertEquals(CLUB_VICTIME, r.getAcces().getNumeroClub());
-        assertTrue(boite.envoyes.stream().noneMatch(m -> m[0].equals(EMAIL_CLUB_VICTIME)),
-                "le référent du club victime n'a reçu aucun message");
+        assertEquals(ResultatLiaisonClub.Statut.DEMANDE_D_UN_AUTRE_CLUB, r.getStatut());
+        assertTrue(!r.estReussi() && r.getAcces() == null);
+        // Le même code reste valable pour le club demandé.
+        assertTrue(service.confirmer(attaquant, CLUB_ATTAQUANT, demande, "000001").estReussi());
+    }
+
+    /** Point 13 : un compte dont l'email n'est pas vérifié ne peut même pas demander un club. */
+    @Test
+    void compte_non_verifie_ne_demande_pas_de_rattachement() {
+        CompteUtilisateur nonVerifie = new CompteUtilisateur("nv@exemple.fr", "NV", "Nv", "h:x");
+        DroitRefuseException e = org.junit.jupiter.api.Assertions.assertThrows(DroitRefuseException.class,
+                () -> service.demander(nonVerifie, CLUB_VICTIME));
+        assertEquals(DroitRefuseException.Motif.EMAIL_NON_VERIFIE, e.getMotif());
+        assertTrue(boite.envoyes.isEmpty());
     }
 
     /**
@@ -121,25 +130,45 @@ class FaillesSecuriteLiaisonsTest {
     }
 
     /**
-     * Faille S-05 : lier une licence ne demande aucune preuve. N'importe quel compte
-     * peut se lier à la licence d'un tiers (et plusieurs comptes à la même), puis
-     * l'inscrire à des tournois en son nom et lire sa fiche (date de naissance…).
-     * Correctif : unicité licence ↔ compte et preuve de possession (code envoyé à
-     * l'email connu de la FFTT, ou validation par le club).
+     * Ex-faille S-05, corrigée (README section 5, point 14) : lier une licence exige une
+     * preuve (date de naissance et code transmis par le référent du club de la licence),
+     * et une licence n'est liée qu'à un seul compte.
      */
     @Test
-    void n_importe_quel_compte_se_lie_a_la_licence_d_un_tiers_faille_S05() {
-        FicheLicence victime = new FicheLicence("9999001", "VICTIME", "Vic", Sexe.HOMME, CLUB_VICTIME, "Club victime", 1500);
+    void deux_comptes_ne_se_lient_pas_a_la_meme_licence_et_une_preuve_est_exigee() {
+        FicheLicence victime = new FicheLicence.Builder("9999001", "VICTIME", "Vic")
+                .sexe(Sexe.HOMME).club(CLUB_VICTIME, "Club victime").points(1500)
+                .dateNaissance(java.time.LocalDate.of(2000, 1, 2)).build();
         RegistreLicences registre = numero -> victime.getNumeroLicence().equals(numero)
                 ? Optional.of(victime) : Optional.empty();
-        ServiceLiaisonLicence liaison = new ServiceLiaisonLicence(registre);
+        RegistreClubsMemoire clubs = new RegistreClubsMemoire()
+                .ajouter(new Club(CLUB_VICTIME, "Club victime", "91", "Evry", EMAIL_CLUB_VICTIME));
+        ServiceLiaisonLicence liaison = new ServiceLiaisonLicence(registre, clubs, new CodesSequentiels(), boite,
+                new HachageFactice(), () -> Instant.parse("2026-11-05T10:00:00Z"));
         CompteUtilisateur intrus1 = new CompteUtilisateur("intrus1@exemple.fr", "INTRUS", "Un", "h:x");
         CompteUtilisateur intrus2 = new CompteUtilisateur("intrus2@exemple.fr", "INTRUS", "Deux", "h:x");
+        intrus1.marquerEmailVerifie();
+        intrus2.marquerEmailVerifie();
+        java.util.function.Function<String, Optional<CompteUtilisateur>> porteur =
+                n -> java.util.stream.Stream.of(intrus1, intrus2).filter(c -> n.equals(c.getLicenceLiee())).findFirst();
 
-        assertTrue(liaison.lier(intrus1, "9999001").isPresent());
-        assertTrue(liaison.lier(intrus2, "9999001").isPresent());
+        // Sans la bonne date de naissance : refus, aucun code envoyé.
+        assertEquals(ResultatLiaisonLicence.Statut.DATE_DE_NAISSANCE_INCORRECTE,
+                liaison.demander(intrus1, "9999001", java.time.LocalDate.of(1999, 1, 1), porteur).getStatut());
+        assertTrue(boite.envoyes.isEmpty());
+        // Avec la date, le code part au référent du club de la licence, pas à l'intrus.
+        ResultatLiaisonLicence demande = liaison.demander(intrus1, "9999001", java.time.LocalDate.of(2000, 1, 2), porteur);
+        assertEquals(ResultatLiaisonLicence.Statut.CODE_ENVOYE, demande.getStatut());
+        assertEquals(EMAIL_CLUB_VICTIME, boite.envoyes.get(0)[0]);
+        assertEquals(ResultatLiaisonLicence.Statut.CODE_INCORRECT,
+                liaison.confirmer(intrus1, "9999001", demande.getDemande(), "999999", porteur).getStatut());
+        assertEquals(null, intrus1.getLicenceLiee());
 
-        assertEquals("9999001", intrus1.getLicenceLiee());
-        assertEquals("9999001", intrus2.getLicenceLiee(), "deux comptes étrangers portent la même licence");
+        // Le référent valide : liée. Un second compte est alors refusé, motif précis.
+        assertEquals(ResultatLiaisonLicence.Statut.LIEE,
+                liaison.confirmer(intrus1, "9999001", demande.getDemande(), "000001", porteur).getStatut());
+        assertEquals(ResultatLiaisonLicence.Statut.DEJA_LIEE_A_UN_AUTRE_COMPTE,
+                liaison.demander(intrus2, "9999001", java.time.LocalDate.of(2000, 1, 2), porteur).getStatut());
+        assertEquals(null, intrus2.getLicenceLiee());
     }
 }

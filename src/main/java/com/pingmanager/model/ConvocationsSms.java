@@ -109,6 +109,29 @@ public final class ConvocationsSms {
         journal.add(Objects.requireNonNull(message, "message"));
     }
 
+    /**
+     * Point 21 (RGPD) : efface le numéro du licencié et, dans le journal, le numéro et le
+     * texte de ses messages (le statut et l'heure restent, pour la limite d'envois).
+     *
+     * @return le nombre d'éléments effacés (numéro et messages)
+     */
+    public int anonymiser(String numeroLicence) {
+        int n = contacts.remove(numeroLicence) != null ? 1 : 0;
+        for (int i = 0; i < journal.size(); i++) {
+            MessageSms m = journal.get(i);
+            if (m.numeroLicence().equals(numeroLicence)
+                    && !(m.destinataire().isEmpty() && TEXTE_EFFACE.equals(m.texte()))) {
+                journal.set(i, new MessageSms(m.instant(), m.type(), m.numeroLicence(), "", TEXTE_EFFACE,
+                        m.statut(), m.detail()));
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Texte d'un message effacé à la demande du joueur. */
+    public static final String TEXTE_EFFACE = "[effacé à la demande du joueur]";
+
     /** Nombre de SMS réellement envoyés (ceux qui comptent dans la limite). */
     public int nombreEnvoyes() {
         int n = 0;

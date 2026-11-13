@@ -1,13 +1,8 @@
 package com.pingmanager.persistence;
 
 import com.pingmanager.persistence.json.Json;
-import com.pingmanager.persistence.json.JsonParser;
 import com.pingmanager.persistence.json.JsonWriter;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -31,14 +26,7 @@ public final class DepotSession {
     }
 
     public static SessionSalle charger(Path source) {
-        String texte;
-        try {
-            com.pingmanager.persistence.json.FichierJson.verifierTaille(source);
-            texte = Files.readString(source, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Échec du chargement de session depuis " + source, e);
-        }
-        Json doc = JsonParser.analyser(texte);
-        return SessionMapperComplet.lire(doc);
+        // Point 21 : fichier illisible ou tronqué → copie de secours « .bak », signalée.
+        return SessionMapperComplet.lire(EcritureSure.lireJson(source).document());
     }
 }

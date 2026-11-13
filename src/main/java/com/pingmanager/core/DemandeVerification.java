@@ -23,6 +23,12 @@ public final class DemandeVerification {
     private final String email;
     private final String empreinteCode;
     private final Instant expiration;
+    /**
+     * Objet de la demande (par exemple « club:08910002 » ou « licence:9999001 »), ou
+     * {@code null} pour une demande sans objet précis. Le code confirmé doit viser le
+     * même objet que la demande : un code reçu pour un club n'ouvre pas un autre club.
+     */
+    private final String objet;
 
     /**
      * @param email         email du compte concerné (non vide)
@@ -31,9 +37,27 @@ public final class DemandeVerification {
      * @param expiration    instant au-delà duquel le code n'est plus valable (non nul)
      */
     public DemandeVerification(String email, String empreinteCode, Instant expiration) {
+        this(email, empreinteCode, expiration, null);
+    }
+
+    /**
+     * @param objet objet de la demande (club, licence, email…), ou {@code null}
+     */
+    public DemandeVerification(String email, String empreinteCode, Instant expiration, String objet) {
         this.email = exigerNonVide(email, "email").toLowerCase();
         this.empreinteCode = exigerNonVide(empreinteCode, "empreinteCode");
         this.expiration = Objects.requireNonNull(expiration, "expiration");
+        this.objet = objet == null || objet.isBlank() ? null : objet.trim();
+    }
+
+    /** @return l'objet de la demande, ou {@code null}. */
+    public String getObjet() {
+        return objet;
+    }
+
+    /** @return {@code true} si la demande vise exactement cet objet. */
+    public boolean viseObjet(String attendu) {
+        return objet != null && attendu != null && objet.equals(attendu.trim());
     }
 
     public String getEmail() {

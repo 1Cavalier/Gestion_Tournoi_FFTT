@@ -11,12 +11,8 @@ import com.pingmanager.model.PrononciationClub;
 import com.pingmanager.model.PrononciationJoueur;
 import com.pingmanager.persistence.json.Json;
 import com.pingmanager.persistence.json.JsonException;
-import com.pingmanager.persistence.json.JsonParser;
 import com.pingmanager.persistence.json.JsonWriter;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -159,6 +155,23 @@ public final class DepotApplication implements RegistreClubs {
      * @return un prédicat « cet email est déjà pris par un compte utilisateur »,
      *         à passer à {@code ServiceAuthentification.creerCompte(...)}.
      */
+    /**
+     * Point 14 : le compte qui porte cette licence (une licence pour un seul compte).
+     * Un ancien fichier où deux comptes la portent renvoie le premier enregistré.
+     */
+    public Optional<CompteUtilisateur> compteDeLaLicence(String numeroLicence) {
+        if (numeroLicence == null || numeroLicence.isBlank()) {
+            return Optional.empty();
+        }
+        String n = numeroLicence.trim();
+        for (CompteUtilisateur c : comptesUtilisateursParEmail.values()) {
+            if (n.equals(c.getLicenceLiee())) {
+                return Optional.of(c);
+            }
+        }
+        return Optional.empty();
+    }
+
     public Predicate<String> emailUtilisateurDejaUtilise() {
         return email -> email != null && comptesUtilisateursParEmail.containsKey(cleEmail(email));
     }
@@ -297,17 +310,11 @@ public final class DepotApplication implements RegistreClubs {
      * renvoie un dépôt vide (premier démarrage) plutôt qu'une erreur.
      */
     public static DepotApplication charger(Path source) {
-        if (!Files.exists(source)) {
+        if (!Files.exists(source) && !Files.exists(EcritureSure.secours(source))) {
             return new DepotApplication();
         }
-        String texte;
-        try {
-            com.pingmanager.persistence.json.FichierJson.verifierTaille(source);
-            texte = Files.readString(source, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Échec du chargement applicatif depuis " + source, e);
-        }
-        return lire(JsonParser.analyser(texte));
+        // Point 21 : fichier illisible ou tronqué → copie de secours « .bak », signalée.
+        return lire(EcritureSure.lireJson(source).document());
     }
 
     Json ecrire() {

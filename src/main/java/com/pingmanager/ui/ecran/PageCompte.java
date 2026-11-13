@@ -86,9 +86,15 @@ public final class PageCompte {
         remplirLicence();
         VBox carteLicence = Ui.carte(PresentationProfil.TITRE_LICENCE, boiteLicence);
 
+        VBox colonneDroite = new VBox(20);
+        if (!contexte.emailVerifie()) {
+            colonneDroite.getChildren().add(construireCarteVerificationEmail());
+        }
+        colonneDroite.getChildren().add(carteLicence);
         VBox blocPersonnel = new VBox(deuxColonnes(
-                new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel()),
-                new VBox(20, carteLicence)));
+                new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel(),
+                        construireCarteDonneesPersonnelles()),
+                colonneDroite));
         blocPersonnel.getStyleClass().add("profil-bloc-personnel");
 
         VBox contenu = Ui.page(1080, titre(PresentationProfil.TITRE), blocPersonnel, construireBlocClub());
@@ -124,37 +130,118 @@ public final class PageCompte {
         return g;
     }
 
+    // Données personnelles (point 21, RGPD) --------------------------------
+
+    private VBox construireCarteDonneesPersonnelles() {
+        Label texte = new Label(com.pingmanager.core.MentionInformation.complete(
+                com.pingmanager.core.ServiceDonneesPersonnelles.ANNEES_CONSERVATION_PAR_DEFAUT));
+        texte.setWrapText(true);
+        return Ui.carte(com.pingmanager.core.MentionInformation.TITRE, texte);
+    }
+
+    // Vérification de l'email (point 13) -----------------------------------
+
+    private VBox construireCarteVerificationEmail() {
+        TextField champCode = champ("code reçu", 160);
+        Label msg = message();
+        Label apercu = new Label();
+        apercu.setWrapText(true);
+        apercu.getStyleClass().add("discret");
+        cacher(apercu);
+        Button envoyer = Ui.boutonSecondaire("Recevoir un code");
+        envoyer.setOnAction(e -> {
+            contexte.envoyerCodeEmail();
+            info(msg, "Un code a été envoyé à " + contexte.compteConnecte().getEmail() + ".");
+            contexte.apercuEmailDemo().ifPresent(a -> {
+                apercu.setText("Mode démo — email envoyé :\n" + a);
+                montrer(apercu);
+            });
+        });
+        Button valider = Ui.boutonPrimaire("Valider");
+        valider.setOnAction(e -> {
+            com.pingmanager.core.ResultatVerificationEmail r = contexte.confirmerEmail(valeur(champCode));
+            if (r.estVerifie()) {
+                info(msg, r.getMessage());
+                if (onHabilitationsChangees != null) {
+                    onHabilitationsChangees.run();
+                }
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        return Ui.carte("Vérifier mon email",
+                aide("Votre email n'est pas encore vérifié : votre compte n'a aucun droit "
+                        + "d'organisateur ni de club, et ne peut pas lier de licence."),
+                ligne(champCode, valider, envoyer), msg, apercu);
+    }
+
     // Licence ---------------------------------------------------------------
 
     private void remplirLicence() {
         boiteLicence.getChildren().clear();
         CompteUtilisateur compte = contexte.compteConnecte();
+        Label msg = message();
 
         if (compte.aLicenceLiee()) {
-            boiteLicence.getChildren().add(grilleChamps(
-                    PresentationProfil.licence(compte.getLicenceLiee(), contexte.ficheLicenceLiee())));
+            Button delier = Ui.boutonSecondaire("Délier ma licence");
+            delier.setOnAction(e -> {
+                com.pingmanager.core.ResultatLiaisonLicence r = contexte.delierLicence();
+                if (r.estReussi()) {
+                    remplirLicence();
+                } else {
+                    erreur(msg, r.getMessage());
+                }
+            });
+            boiteLicence.getChildren().addAll(grilleChamps(
+                    PresentationProfil.licence(compte.getLicenceLiee(), contexte.ficheLicenceLiee())),
+                    Ui.actions(delier), msg);
             return;
         }
 
+        // Point 14 : numéro + date de naissance, puis code transmis par le référent du club.
         TextField champLicence = champ("numéro de licence", 200);
-        Label msg = message();
-        Button lier = Ui.boutonPrimaire("Vérifier et lier");
-        lier.setOnAction(e -> {
+        javafx.scene.control.DatePicker champNaissance = new javafx.scene.control.DatePicker();
+        champNaissance.setPromptText("date de naissance");
+        Button demander = Ui.boutonPrimaire("Demander la liaison");
+        TextField champCodeLicence = champ("code du référent", 160);
+        Button valider = Ui.boutonPrimaire("Valider le code");
+        VBox zoneCodeLicence = new VBox(8,
+                aide("Le référent de votre club a reçu un code : demandez-le-lui et saisissez-le ici."),
+                ligne(champCodeLicence, valider));
+        if (contexte.licenceEnAttenteDeCode().isEmpty()) {
+            cacher(zoneCodeLicence);
+        }
+        demander.setOnAction(e -> {
             String numero = valeur(champLicence);
-            if (numero.isBlank()) {
-                erreur(msg, "Saisissez un numéro de licence.");
+            if (numero.isBlank() || champNaissance.getValue() == null) {
+                erreur(msg, "Saisissez le numéro de licence et la date de naissance.");
                 return;
             }
-            if (contexte.lierLicence(numero).isPresent()) {
-                remplirLicence();
+            com.pingmanager.core.ResultatLiaisonLicence r =
+                    contexte.demanderLiaisonLicence(numero, champNaissance.getValue());
+            if (r.estReussi()) {
+                info(msg, r.getMessage());
+                montrer(zoneCodeLicence);
             } else {
-                erreur(msg, "Aucune licence ne correspond à ce numéro.");
+                erreur(msg, r.getMessage());
             }
         });
-
+        valider.setOnAction(e -> {
+            com.pingmanager.core.ResultatLiaisonLicence r = contexte.confirmerLiaisonLicence(valeur(champCodeLicence));
+            if (r.estReussi()) {
+                remplirLicence();
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        if (!contexte.emailVerifie()) {
+            demander.setDisable(true);
+        }
         boiteLicence.getChildren().addAll(
-                aide("Saisissez votre numéro de licence pour le rattacher à votre compte."),
-                ligne(champLicence, lier),
+                aide("Saisissez votre numéro de licence et votre date de naissance. Pour prouver qu'il "
+                        + "s'agit bien de vous, un code est envoyé au référent de votre club."),
+                ligne(champLicence, champNaissance, demander),
+                zoneCodeLicence,
                 msg);
     }
 
@@ -246,13 +333,120 @@ public final class PageCompte {
         intro.setWrapText(true);
 
         VBox bloc = new VBox(16, Ui.ligne(12, tuile, titreClub), intro, boiteAcces, carteLiaison);
+        if (contexte.estOrganisateur()) {
+            bloc.getChildren().add(construireCarteRgpdClub());
+        }
         bloc.getStyleClass().add("profil-bloc-club");
         return bloc;
     }
 
+    /**
+     * Point 21 (RGPD) : purge des tournois terminés (aperçu, puis confirmation explicite)
+     * et effacement d'un joueur à sa demande, pour les tournois des clubs du compte.
+     */
+    private VBox construireCarteRgpdClub() {
+        javafx.scene.control.Spinner<Integer> annees = new javafx.scene.control.Spinner<>(1, 20,
+                com.pingmanager.core.ServiceDonneesPersonnelles.ANNEES_CONSERVATION_PAR_DEFAUT);
+        annees.setPrefWidth(90);
+        VBox listeApercu = new VBox(4);
+        Label msgPurge = message();
+        CheckBox confirmerPurge = new CheckBox("Je confirme la suppression définitive de ces tournois");
+        Button supprimer = Ui.boutonSecondaire("Supprimer ces tournois");
+        supprimer.getStyleClass().add("lien-danger");
+        cacher(confirmerPurge);
+        cacher(supprimer);
+        @SuppressWarnings("unchecked")
+        List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<java.nio.file.Path>>[] apercu =
+                new List[] {List.of()};
+        Button voir = Ui.boutonSecondaire("Aperçu (rien n'est supprimé)");
+        voir.setOnAction(e -> {
+            apercu[0] = contexte.apercuPurge(annees.getValue());
+            listeApercu.getChildren().clear();
+            cacherMessage(msgPurge);
+            confirmerPurge.setSelected(false);
+            if (apercu[0].isEmpty()) {
+                info(msgPurge, "Aucun tournoi terminé depuis plus de " + annees.getValue() + " ans.");
+                cacher(confirmerPurge);
+                cacher(supprimer);
+                return;
+            }
+            for (com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<java.nio.file.Path> a : apercu[0]) {
+                listeApercu.getChildren().add(Ui.texte("•  " + a.nom() + " — dernier jour " + a.dernierJour()));
+            }
+            montrer(confirmerPurge);
+            montrer(supprimer);
+        });
+        supprimer.disableProperty().bind(confirmerPurge.selectedProperty().not());
+        supprimer.setOnAction(e -> {
+            ContexteApplication.BilanPurge b = contexte.purgerTournois(apercu[0], annees.getValue(),
+                    confirmerPurge.isSelected());
+            listeApercu.getChildren().clear();
+            cacher(confirmerPurge);
+            cacher(supprimer);
+            String texte = b.supprimes().size() + " tournoi(s) supprimé(s)."
+                    + (b.refuses().isEmpty() ? "" : " Non supprimés : " + String.join(" ; ", b.refuses()));
+            if (b.refuses().isEmpty()) {
+                info(msgPurge, texte);
+            } else {
+                erreur(msgPurge, texte);
+            }
+        });
+
+        TextField licence = champ("numéro de licence", 200);
+        CheckBox demande = new CheckBox("Le joueur a demandé l'effacement de ses données");
+        Label msgEffacement = message();
+        Button effacer = Ui.boutonSecondaire("Effacer le joueur");
+        effacer.disableProperty().bind(demande.selectedProperty().not());
+        effacer.setOnAction(e -> {
+            ContexteApplication.BilanEffacement b = contexte.effacerJoueur(valeur(licence), demande.isSelected());
+            String texte = "Joueur effacé dans " + b.tournoisModifies() + " tournoi(s)"
+                    + (b.prononciationRetiree() ? ", prononciation retirée" : "") + "."
+                    + (b.refuses().isEmpty() ? "" : " Refus : " + String.join(" ; ", b.refuses()));
+            if (b.refuses().isEmpty()) {
+                info(msgEffacement, texte);
+                licence.clear();
+                demande.setSelected(false);
+            } else {
+                erreur(msgEffacement, texte);
+            }
+        });
+
+        return Ui.carte("Données personnelles des joueurs",
+                Ui.sousTitre("Tournois terminés"),
+                aide("Supprime les tournois de vos clubs terminés depuis plus du nombre d'années choisi. "
+                        + "Regardez d'abord l'aperçu ; la suppression demande une confirmation."),
+                ligne(new Label("Conserver"), annees, new Label("ans"), voir),
+                listeApercu, confirmerPurge, ligne(supprimer), msgPurge,
+                new Separator(),
+                Ui.sousTitre("Effacer un joueur à sa demande"),
+                aide("Remplace son nom et son prénom par « ANONYME Joueur » et efface son numéro de portable dans "
+                        + "les tournois de vos clubs, terminés ou non. Son numéro de licence et ses résultats "
+                        + "sportifs restent."),
+                ligne(licence, effacer), demande, msgEffacement);
+    }
+
+    /** Point 14 : un administrateur délie une licence de son club du compte qui la porte. */
+    private Node formulaireDeliaisonLicence() {
+        TextField champ = champ("numéro de licence", 200);
+        Label msg = message();
+        Button delier = Ui.boutonSecondaire("Délier");
+        delier.setOnAction(e -> {
+            com.pingmanager.core.ResultatLiaisonLicence r = contexte.delierLicenceParAdministrateur(valeur(champ));
+            if (r.estReussi()) {
+                info(msg, r.getMessage());
+                champ.clear();
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        return new VBox(8, aide("Si un compte s'est lié à la licence d'un de vos licenciés, "
+                + "vous pouvez la délier : le licencié pourra alors la lier à son propre compte."),
+                ligne(champ, delier), msg);
+    }
+
     /** Le bouton d'envoi ne s'active qu'après confirmation explicite de l'avertissement. */
     private void majEnvoiPossible() {
-        boutonEnvoyer.setDisable(!caseConfirmation.isSelected());
+        boutonEnvoyer.setDisable(!caseConfirmation.isSelected() || !contexte.emailVerifie());
     }
 
     /** Clubs reliés : pour chacun, niveau, tableau des droits, équipe et dissociation. */
@@ -273,7 +467,10 @@ public final class PageCompte {
                     tableauDroits(c.droits()),
                     new Separator(),
                     Ui.sousTitre("Équipe de gestion"),
-                    tableauMembres(contexte.membresDuClub(c.numero()))));
+                    tableauMembres(contexte.membresDuClub(c.numero())),
+                    new Separator(),
+                    Ui.sousTitre("Licence liée à un compte par erreur"),
+                    formulaireDeliaisonLicence()));
         }
     }
 
@@ -365,6 +562,7 @@ public final class PageCompte {
             case "CODE_INCORRECT" -> erreur(messageClub, "Code incorrect.");
             case "CLUB_INTROUVABLE" -> erreur(messageClub, "Club introuvable.");
             case "TROP_D_ESSAIS" -> erreur(messageClub, resultat.messageBlocage());
+            case "DEMANDE_D_UN_AUTRE_CLUB" -> erreur(messageClub, "Ce code a été demandé pour un autre club.");
             default -> erreur(messageClub, "Rattachement impossible.");
         }
     }
