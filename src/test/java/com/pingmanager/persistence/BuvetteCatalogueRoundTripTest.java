@@ -130,4 +130,15 @@ class BuvetteCatalogueRoundTripTest {
             assertTrue(s.hypotheses().consommation(p.getId()) > 0, p.getNom());
         }
     }
+
+    @Test
+    void aucun_produit_suggere_n_est_vendu_a_perte() {
+        SuggestionsBuvette s = SuggestionsBuvetteJson.charger();
+        CatalogueBuvette c = new CatalogueBuvette("1");
+        s.ingredients().forEach(c::enregistrerIngredient);
+        for (Produit p : s.produits()) {
+            com.pingmanager.core.buvette.CoutProduit cout = new com.pingmanager.core.buvette.CalculCoutBuvette().cout(p, c);
+            assertTrue(cout.connu() && cout.margeCentimes() > 0, p.getNom() + " : " + cout.margeCentimes());
+        }
+    }
 }

@@ -960,14 +960,18 @@ final class PageBuvette {
         VBox caisse = new VBox(12);
         for (PresentationVentesBuvette.Groupe g : p.groupes()) {
             FlowPane boutons = new FlowPane(12, 12);
+            boutons.setRowValignment(javafx.geometry.VPos.TOP);
             for (PresentationVentesBuvette.BoutonProduit bp : g.boutons()) {
                 Button vendre = new Button();
                 Label nom = Ui.label(bp.nom(), "buvette-caisse-nom");
                 nom.setWrapText(true);
+                nom.setMaxWidth(140);
                 VBox contenuBouton = new VBox(4, nom, Ui.label(bp.prix(), "buvette-caisse-prix"),
                         Ui.label(bp.compteur(), "buvette-caisse-compteur"));
                 vendre.setGraphic(contenuBouton);
                 vendre.getStyleClass().add("buvette-caisse-bouton");
+                vendre.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+                vendre.setMaxHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
                 vendre.setOnAction(e -> encaisser(b, p, serviceVentes.vendre(b, cat, bp.id(), auteur(),
                         ServiceVentesBuvette.POSTE_PAR_DEFAUT)));
                 Button moins = Ui.boutonLien("−");
@@ -975,7 +979,7 @@ final class PageBuvette {
                 moins.setOnAction(e -> encaisser(b, p, serviceVentes.annulerDerniere(b, cat, bp.id(), auteur(),
                         ServiceVentesBuvette.POSTE_PAR_DEFAUT)));
                 VBox tuile = new VBox(4, vendre, moins);
-                tuile.setAlignment(Pos.CENTER);
+                tuile.setAlignment(Pos.TOP_CENTER);
                 boutons.getChildren().add(tuile);
             }
             caisse.getChildren().addAll(Ui.label(g.titre(), "buvette-categorie"), boutons);

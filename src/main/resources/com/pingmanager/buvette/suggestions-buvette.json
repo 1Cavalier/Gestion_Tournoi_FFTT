@@ -328,7 +328,7 @@
       "nom": "Fruit (pomme, banane)",
       "categorie": "SNACKS",
       "unite": "PIECE",
-      "prix": 50,
+      "prix": 80,
       "recette": [
         {
           "ingredient": "fruits",
