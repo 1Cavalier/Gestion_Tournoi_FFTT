@@ -38,3 +38,12 @@ Branche `refactor/night-2026-11-13`, partie de `main` au commit `d54a72d`.
 | `65cfdb5` | T9 : 20 commentaires qui citaient `QUESTIONS.md`, `docs/…`, `CHARTE_GRAPHIQUE.md` mis à jour | ces documents ont été retirés du dépôt | 66579 → 66578 |
 | `bf7b814` | Finition : 4 avertissements `javac -Xlint:all` → 0 (`serialVersionUID`, usage voulu de `typeTournoi` annoté) | base saine pour un futur linter | 66578 → 66584 |
 | `e748a23` | T8 : retrait de `BlocSaisieSms.vider`, `PresentationRemplissageFinances.tonaliteSoldePrevisionnel`, `LoiDureeMatch.getMoyenneMinutes` (non publiques, jamais appelées). `cocher` et `ouvrirFicheParNom` sont gardées : elles servent au harnais de captures, hors dépôt | code mort | 66584 → 66571 |
+
+## Tentées ou examinées, puis abandonnées
+
+| N° | Quoi | Pourquoi abandonné |
+|---|---|---|
+| T2 | Partie commune de `ServiceComptesOrganisateurs` et `ServiceLiaisonClub` (code de vérification) | Le code est déjà produit par le port `GenerateurCode`. Ce qui reste en double : trois lignes (code, empreinte, expiration) et les affectations des constructeurs. Les partager demanderait une classe de plus dans un code de sécurité, pour un gain nul en lignes. |
+| T4 | Boucle commune à `Html.echapper` et `GenerateurSsml.echapperXml` | Les deux diffèrent sur l'apostrophe (`&#39;` / `&apos;`), sur les caractères de contrôle et sur les paires de substitution. Une boucle paramétrée serait plus longue et moins lisible que les deux boucles ; et le cœur ne doit pas dépendre de `ui`. |
+| T5 | Doublons de 6 à 9 lignes (16 blocs, 109 lignes) | Ce sont des constructeurs (`Objects.requireNonNull` en série), des `equals`/`hashCode` et des en-têtes d'écran. Aucune extraction n'est à la fois plus courte et plus claire. |
+| T8 (partie) | Retrait de `AssistantInscription.cocher` et `PageTournois.ouvrirFicheParNom` | Jamais appelées dans le dépôt, mais documentées « pour le harnais de captures » (outil du designer, hors dépôt) : gardées. |
