@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 634 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 698 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -133,6 +133,25 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 **Comptes et club**
 - Connexion, création de compte, licence liée, rattachement à un club avec
   niveaux d'accès, page « Mon profil », accueil en cartes, supervision.
+- **Sécurité des comptes (B044)** : un compte créé reçoit un code à son email
+  et n'a **aucun droit** (club, organisateur, supervision) avant de l'avoir
+  saisi (étape après la création, ou carte « Vérifier mon email » dans Mon
+  profil) ; anciens comptes considérés vérifiés. Licence : numéro + date de
+  naissance, puis code envoyé au référent du club de la licence ; une licence
+  pour un seul compte ; « Délier » par le titulaire ou par un administrateur
+  du club. Droits contrôlés à chaque opération (`exigerDroit`, message
+  « Action refusée… ») ; un club se désigne par son numéro seulement ; le code
+  de rattachement ne vaut que pour le club demandé.
+- **Données et RGPD (B044)** : mention d'information à la création de compte,
+  à l'inscription (en ligne et sur place) et dans Mon profil ; pour un
+  organisateur, Mon profil → « Données personnelles des joueurs » : aperçu
+  puis suppression confirmée des tournois terminés depuis N ans (3 par
+  défaut), effacement d'un joueur à sa demande (nom, prénom, portable ; licence
+  et résultats gardés), journal sans donnée personnelle
+  (`pingmanager-journal-rgpd.json`). Écriture sûre de tous les fichiers
+  (fsync, copie `.bak` relue si le fichier est abîmé) et verrou court par
+  tournoi entre deux postes (`.verrou`, message clair si occupé). Image
+  promotionnelle copiée dans `documents/` comme le règlement.
 
 **Préparation du tournoi**
 - Nouveau tournoi avec calendrier, puis choix imposé : tout préparer dans
@@ -337,22 +356,18 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 10. Paiement HelloAsso.
 
 ### Sécurité, indispensable avant la vente (B004 et suite)
-- **B044 — Sécurité, suite de B004a/B004b** (en cours, branche
-  `tache/B044-securite-suite`) : points 13, 14, 16, reliquat du 18 et 21.
-13. Vérifier l'email à la création de compte : sinon, qui crée un compte avec
-    l'email d'un référent devient administrateur du club.
-14. Liaison de licence : une licence pour un seul compte, et une preuve
-    de possession.
-16. Contrôle des droits dans le contexte (`exigerDroit`) et pas seulement par
-    la navigation ; suppression du repli par nom de club.
+13. ~~Email vérifié à la création de compte~~ — **fait** (B044).
+14. ~~Liaison de licence : un compte, une preuve~~ — **fait** (B044).
+16. ~~Droits contrôlés dans le contexte, plus de repli par nom~~ — **fait** (B044).
 17. ~~Fichiers piégés (JSON, import)~~ — **fait** (B004b).
-18. ~~Règlement déposé copié dans le dossier de données~~ — **fait** (B004b).
-    Reste : l'**image promotionnelle** garde un chemin absolu libre, même
-    correction à faire (`DocumentsDeposes`).
+18. ~~Règlement et image promotionnelle copiés dans le dossier de données~~ —
+    **fait** (B004b, B044).
 19. ~~Carte : pont Java et navigation de la WebView~~ — **fait** (B004b).
 20. Mettre à jour JavaFX (dernière 21.0.x) et PDFBox.
-21. RGPD : mention d'information, purge des tournois anciens, effacement d'un
-    joueur ; écriture sûre (`fsync`, copie `.bak`, verrou entre deux instances).
+21. ~~RGPD et écriture sûre~~ — **fait** (B044). Reste : l'**envoi réel des
+    emails** (point 9) est indispensable avant la vente : sans lui, les codes
+    (email, club, licence) ne partent qu'à la console. Suite possible :
+    proposer la purge au démarrage, effacement des comptes utilisateurs.
 
 ### Technique
 22. **B002** — Toute lecture de la date ou de l'heure du cœur passe par le port
@@ -478,6 +493,31 @@ parenthèses.
   **Textes FFTT 2026-2027 à fournir** (désistement, forfait, non-présentation
   au pointage, remboursement des engagements) : aucun article n'est cité,
   rien n'a été deviné ; aucun remboursement automatique, le club décide.
+- **Sécurité et RGPD (B044)** — choix provisoires, réversibles :
+  (1) anciens comptes (fichier sans le champ `emailVerifie`) considérés
+  vérifiés ; tant que les emails ne partent pas vraiment, le code n'est lu
+  qu'à la console, ou affiché à l'écran en mode démo seulement ;
+  (2) **preuve de licence** : la fiche fédérale ne porte pas d'email, donc
+  date de naissance + code envoyé au référent du club de la licence (valable
+  7 jours) ; alternatives : code à l'email du licencié quand la source FFTT
+  le fournira, ou validation directe dans l'écran du référent ; une fiche
+  sans date de naissance n'exige que le code du référent ; deux comptes qui
+  portaient déjà la même licence dans un ancien fichier restent tels quels ;
+  (3) **supervision** (mode démo) : peut modifier, homologuer et consulter
+  tous les tournois, mais ni créer, ni supprimer, ni gérer les comptes d'un
+  club ; (4) un **ancien tournoi sans numéro de club** n'appartient plus à
+  aucun club (plus de repli par nom) : il faudra le rattacher à la main ;
+  (5) effacer les numéros de portable d'un tournoi terminé n'exige aucun
+  droit (c'est une suppression de données) ; (6) **purge** : seulement les
+  tournois des clubs du compte, sur confirmation ; **effacement d'un joueur** :
+  seulement dans les tournois des clubs du compte (le joueur s'adresse à
+  chaque club) ; le compte utilisateur du joueur n'est pas supprimé ;
+  (7) **durée légale de conservation** des résultats et du numéro de licence
+  (obligation fédérale) : non devinée, à confirmer ; durée de purge par
+  défaut 3 ans ; (8) **texte de la mention RGPD** (`MentionInformation`) à
+  faire valider par Quentin ou un juriste, et le contact « administrateur de
+  PingManager sur cet ordinateur » à préciser ; (9) verrou : expiré après
+  30 s, 3 s d'essais avant le message « tournoi occupé ».
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
