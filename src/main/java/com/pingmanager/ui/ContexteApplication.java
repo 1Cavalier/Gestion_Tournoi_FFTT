@@ -101,6 +101,10 @@ public final class ContexteApplication {
     private final ServiceAuthentification authentification;
     private final ServiceLiaisonLicence liaisonLicence;
     private final ServiceLiaisonClub liaisonClub;
+    /** Point 13 : vérification de l'email à la création du compte. */
+    private final com.pingmanager.core.ServiceVerificationEmail verificationEmail;
+    /** Demande de vérification d'email en cours (code envoyé), en mémoire seulement. */
+    private DemandeVerification demandeEmail;
 
     // Onglet Tournois : accès IX.102 et inscription en ligne.
     private final EligibiliteTournoi eligibilite;
@@ -157,6 +161,7 @@ public final class ContexteApplication {
         this.authentification = new ServiceAuthentification(hachage, horloge);
         this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
+        this.verificationEmail = new com.pingmanager.core.ServiceVerificationEmail(code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
         this.inscriptionEnLigne = new ServiceInscriptionEnLigne(ServiceInscription.sansContrainteSuccession(), eligibilite);
 
@@ -194,6 +199,7 @@ public final class ContexteApplication {
                     depot.emailUtilisateurDejaUtilise());
             if (compte.isPresent()) {
                 profilDemo = compte.get();
+                profilDemo.marquerEmailVerifie(); // compte fictif de démonstration
                 liaisonLicence.lier(profilDemo, DonneesDemo.LICENCE_PROFIL_DEMO);
                 depot.enregistrerCompteUtilisateur(profilDemo);
                 // Le profil de démo est administrateur (niveau 1) de Brunoy, sous le référent.
@@ -230,6 +236,7 @@ public final class ContexteApplication {
                 admin.setEmpreinteMotDePasse(hachage.hacher(motDePasseSupervisionDemo));
             }
             if (admin != null) {
+                admin.marquerEmailVerifie(); // compte fictif, mode démo seulement
                 admin.setRole(RoleCompte.SUPERVISION);
                 depot.enregistrerCompteUtilisateur(admin);
                 modifie = true;
@@ -392,8 +399,10 @@ public final class ContexteApplication {
 
     /** @return vrai si le compte connecté est un compte « ultra admin » (supervision). */
     public boolean estUltraAdmin() {
-        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo.
-        return modeDemo && compteConnecte != null && compteConnecte.estSupervision();
+        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo,
+        // pour un email vérifié (point 13).
+        return modeDemo && compteConnecte != null && compteConnecte.isEmailVerifie()
+                && compteConnecte.estSupervision();
     }
 
     /**
@@ -489,6 +498,8 @@ public final class ContexteApplication {
 
     /**
      * Crée un compte (mot de passe de 10 caractères au moins) puis connecte la personne.
+     * Point 13 : le compte est créé <b>non vérifié</b> et un code est envoyé à son email ;
+     * il n'a aucun droit (club, organisateur, supervision) avant {@link #confirmerEmail}.
      *
      * @return le résultat détaillé, avec un message clair en cas de refus
      */
@@ -500,8 +511,55 @@ public final class ContexteApplication {
             depot.enregistrerCompteUtilisateur(c);
             sauvegarder();
             this.compteConnecte = c;
+            this.demandeEmail = verificationEmail.envoyerCode(c);
         }
         return resultat;
+    }
+
+    /**
+     * Mode démo seulement : le dernier email « envoyé » (les emails ne partent pas encore
+     * vraiment, README section 4), pour lire le code sans console. Vide hors mode démo.
+     */
+    public Optional<String> apercuEmailDemo() {
+        if (!modeDemo) {
+            return Optional.empty();
+        }
+        return email.dernierMessage().map(m -> "À : " + m.getDestinataire() + "\n" + m.getCorps());
+    }
+
+    /** @return vrai si le compte connecté a confirmé son email (point 13). */
+    public boolean emailVerifie() {
+        return compteConnecte != null && compteConnecte.isEmailVerifie();
+    }
+
+    /**
+     * Envoie (à nouveau) un code de vérification à l'email du compte connecté.
+     *
+     * @return {@code false} si l'email est déjà vérifié (rien n'est envoyé)
+     */
+    public boolean envoyerCodeEmail() {
+        exigerConnecte();
+        if (compteConnecte.isEmailVerifie()) {
+            return false;
+        }
+        demandeEmail = verificationEmail.envoyerCode(compteConnecte);
+        return true;
+    }
+
+    /**
+     * Confirme l'email du compte connecté avec le code reçu ; en cas de succès, le
+     * compte est enregistré vérifié et ses droits s'activent.
+     */
+    public com.pingmanager.core.ResultatVerificationEmail confirmerEmail(String code) {
+        exigerConnecte();
+        com.pingmanager.core.ResultatVerificationEmail r =
+                verificationEmail.confirmer(compteConnecte, demandeEmail, code);
+        if (r.getStatut() == com.pingmanager.core.ResultatVerificationEmail.Statut.VERIFIE) {
+            demandeEmail = null;
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return r;
     }
 
     /**
@@ -522,6 +580,9 @@ public final class ContexteApplication {
     public ResultatConnexion connexion(String email, String motDePasse) {
         ResultatConnexion resultat = authentification.connexion(email, motDePasse, depot::trouverCompteUtilisateur);
         if (resultat.estConnecte()) {
+            if (compteConnecte == null || !compteConnecte.equals(resultat.getCompte())) {
+                this.demandeEmail = null;
+            }
             this.compteConnecte = resultat.getCompte();
         }
         return resultat;
@@ -543,6 +604,7 @@ public final class ContexteApplication {
 
     public void deconnecter() {
         this.compteConnecte = null;
+        this.demandeEmail = null;
     }
 
     public CompteUtilisateur compteConnecte() {
@@ -629,9 +691,13 @@ public final class ContexteApplication {
         return true;
     }
 
-    /** @return les habilitations (accès club) du compte connecté. */
+    /**
+     * @return les habilitations (accès club) du compte connecté ; aucune tant que son
+     *         email n'est pas vérifié (point 13 : un accès pré-enregistré pour l'adresse
+     *         d'un référent ne s'active qu'une fois cette adresse prouvée)
+     */
     public List<AccesClub> accesCourants() {
-        if (compteConnecte == null) {
+        if (compteConnecte == null || !compteConnecte.isEmailVerifie()) {
             return List.of();
         }
         return depot.accesDe(compteConnecte.getEmail());

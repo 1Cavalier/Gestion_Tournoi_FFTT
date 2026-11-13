@@ -86,9 +86,14 @@ public final class PageCompte {
         remplirLicence();
         VBox carteLicence = Ui.carte(PresentationProfil.TITRE_LICENCE, boiteLicence);
 
+        VBox colonneDroite = new VBox(20);
+        if (!contexte.emailVerifie()) {
+            colonneDroite.getChildren().add(construireCarteVerificationEmail());
+        }
+        colonneDroite.getChildren().add(carteLicence);
         VBox blocPersonnel = new VBox(deuxColonnes(
                 new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel()),
-                new VBox(20, carteLicence)));
+                colonneDroite));
         blocPersonnel.getStyleClass().add("profil-bloc-personnel");
 
         VBox contenu = Ui.page(1080, titre(PresentationProfil.TITRE), blocPersonnel, construireBlocClub());
@@ -122,6 +127,42 @@ public final class PageCompte {
             g.add(v, 1, i);
         }
         return g;
+    }
+
+    // Vérification de l'email (point 13) -----------------------------------
+
+    private VBox construireCarteVerificationEmail() {
+        TextField champCode = champ("code reçu", 160);
+        Label msg = message();
+        Label apercu = new Label();
+        apercu.setWrapText(true);
+        apercu.getStyleClass().add("discret");
+        cacher(apercu);
+        Button envoyer = Ui.boutonSecondaire("Recevoir un code");
+        envoyer.setOnAction(e -> {
+            contexte.envoyerCodeEmail();
+            info(msg, "Un code a été envoyé à " + contexte.compteConnecte().getEmail() + ".");
+            contexte.apercuEmailDemo().ifPresent(a -> {
+                apercu.setText("Mode démo — email envoyé :\n" + a);
+                montrer(apercu);
+            });
+        });
+        Button valider = Ui.boutonPrimaire("Valider");
+        valider.setOnAction(e -> {
+            com.pingmanager.core.ResultatVerificationEmail r = contexte.confirmerEmail(valeur(champCode));
+            if (r.estVerifie()) {
+                info(msg, r.getMessage());
+                if (onHabilitationsChangees != null) {
+                    onHabilitationsChangees.run();
+                }
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        return Ui.carte("Vérifier mon email",
+                aide("Votre email n'est pas encore vérifié : votre compte n'a aucun droit "
+                        + "d'organisateur ni de club, et ne peut pas lier de licence."),
+                ligne(champCode, valider, envoyer), msg, apercu);
     }
 
     // Licence ---------------------------------------------------------------

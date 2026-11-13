@@ -52,6 +52,13 @@ public final class EcranConnexion {
     private final Button bouton = Ui.boutonPrimaire("Se connecter");
     private final Hyperlink bascule = new Hyperlink("Pas encore de compte ? Créer un compte");
 
+    // Point 13 : étape « code reçu par email », montrée après la création du compte.
+    private final TextField champCode = Ui.champ("code reçu");
+    private final Label messageCode = Ui.message();
+    private final Label apercuDemo = new Label();
+    private Node formulaireSaisie;
+    private Node etapeCode;
+
     public EcranConnexion(ContexteApplication contexte, Runnable onConnexionReussie) {
         this.contexte = contexte;
         this.onConnexionReussie = onConnexionReussie;
@@ -83,8 +90,12 @@ public final class EcranConnexion {
                 bouton);
         formulaire.setFillWidth(true);
 
+        formulaireSaisie = new VBox(22, formulaire, bascule);
+        etapeCode = construireEtapeCode();
+        Ui.cacher(etapeCode);
+
         VBox enteteCarte = new VBox(6, titre, chapeau);
-        VBox carte = new VBox(22, enteteCarte, formulaire, bascule);
+        VBox carte = new VBox(22, enteteCarte, formulaireSaisie, etapeCode);
         carte.getStyleClass().addAll("carte", "connexion-carte");
         carte.setMaxWidth(420);
         carte.setMaxHeight(Region.USE_PREF_SIZE);
@@ -234,9 +245,60 @@ public final class EcranConnexion {
         }
         ResultatCreationCompte resultat = contexte.creerCompte(email, nom, prenom, motDePasse);
         if (resultat.estCree()) {
-            onConnexionReussie.run();
+            montrerEtapeCode(email);
         } else {
             afficherErreur(resultat.getMessage());
+        }
+    }
+
+    /** Étape de vérification de l'email (point 13) : saisie du code, renvoi, « plus tard ». */
+    private Node construireEtapeCode() {
+        Label explication = Ui.texte("Sans cette vérification, votre compte n'a aucun droit "
+                + "d'organisateur ni de club. Vous pourrez aussi la faire plus tard depuis « Mon profil ».");
+        explication.setWrapText(true);
+        apercuDemo.setWrapText(true);
+        apercuDemo.getStyleClass().add("discret");
+        Button valider = Ui.boutonPrimaire("Valider le code");
+        valider.setOnAction(e -> validerCode());
+        Button renvoyer = Ui.boutonSecondaire("Renvoyer un code");
+        renvoyer.setOnAction(e -> {
+            contexte.envoyerCodeEmail();
+            majApercuDemo();
+            Ui.succes(messageCode, "Un nouveau code a été envoyé.");
+        });
+        Hyperlink plusTard = new Hyperlink("Plus tard");
+        plusTard.setOnAction(e -> onConnexionReussie.run());
+        return new VBox(14, explication, Ui.champEtiquete("Code de vérification", champCode),
+                messageCode, Ui.actions(valider, renvoyer), apercuDemo, plusTard);
+    }
+
+    private void montrerEtapeCode(String email) {
+        titre.setText("Vérifiez votre email");
+        chapeau.setText("Un code vient d'être envoyé à " + email + ".");
+        Ui.cacher(formulaireSaisie);
+        Ui.montrer(etapeCode);
+        champCode.clear();
+        Ui.cacher(messageCode);
+        majApercuDemo();
+    }
+
+    private void majApercuDemo() {
+        java.util.Optional<String> apercu = contexte.apercuEmailDemo();
+        apercuDemo.setText(apercu.map(a -> "Mode démo — email envoyé :\n" + a).orElse(""));
+        if (apercu.isPresent()) {
+            Ui.montrer(apercuDemo);
+        } else {
+            Ui.cacher(apercuDemo);
+        }
+    }
+
+    private void validerCode() {
+        com.pingmanager.core.ResultatVerificationEmail r = contexte.confirmerEmail(
+                champCode.getText() == null ? "" : champCode.getText());
+        if (r.estVerifie()) {
+            onConnexionReussie.run();
+        } else {
+            Ui.erreur(messageCode, r.getMessage());
         }
     }
 

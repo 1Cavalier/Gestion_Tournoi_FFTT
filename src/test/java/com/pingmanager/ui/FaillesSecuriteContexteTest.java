@@ -106,26 +106,61 @@ class FaillesSecuriteContexteTest {
     }
 
     /**
-     * Faille S-03 : l'accès « administrateur principal » du référent de Brunoy est
-     * pré-enregistré par email, sans compte. La création de compte ne vérifiant pas
-     * l'email, quiconque crée un compte avec cette adresse (mot de passe d'un seul
-     * caractère accepté) hérite immédiatement de l'accès principal au club.
-     * Correctif : vérifier l'email à la création (code envoyé à l'adresse) avant
-     * d'activer les accès pré-enregistrés ; politique de mot de passe minimale.
+     * Ex-faille S-03, corrigée (README section 5, point 13) : le référent de Brunoy a un
+     * accès principal pré-enregistré par email, sans compte. Créer un compte avec cette
+     * adresse ne donne plus aucun droit tant que l'email n'est pas confirmé par le code
+     * envoyé à cette adresse (que seul le vrai référent reçoit).
      */
     @Test
-    void compte_cree_avec_l_email_du_referent_herite_de_l_acces_principal_faille_S03() {
+    void compte_cree_avec_l_email_du_referent_sans_aucun_droit_avant_verification() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
 
-        // Le mot de passe d'un caractère est désormais refusé (point 15, test dédié
-        // ci-dessous) ; la faille de l'email non vérifié reste (point 13).
         assertTrue(ctx.creerCompteEtConnecter(DonneesDemo.EMAIL_REFERENT_BRUNOY, "USURPATEUR", "Ivan", "x1234567890")
-                .isPresent(), "aucune vérification d'email");
+                .isPresent());
+        assertFalse(ctx.emailVerifie());
+        assertTrue(ctx.accesCourants().isEmpty(), "aucun accès avant la vérification de l'email");
+        assertFalse(ctx.estOrganisateur());
+        assertTrue(ctx.mesTournoisClub(ctx.tousLesTournois()).isEmpty());
+        assertEquals(DonneesDemo.EMAIL_REFERENT_BRUNOY, ctx.email().dernierMessage().orElseThrow().getDestinataire(),
+                "le code part à l'adresse du compte, donc chez le vrai référent");
 
+        // Un code inventé ne suffit pas ; le code reçu à l'adresse active l'accès.
+        assertFalse(ctx.confirmerEmail("000000").estVerifie());
+        assertTrue(ctx.accesCourants().isEmpty());
+        assertTrue(ctx.confirmerEmail(codeRecu(ctx)).estVerifie());
         List<AccesClub> acces = ctx.accesCourants();
         assertEquals(1, acces.size());
-        assertEquals(DonneesDemo.CLUB_BRUNOY, acces.get(0).getNumeroClub());
-        assertEquals(NiveauAcces.ADMIN_PRINCIPAL, acces.get(0).getNiveau(), "accès principal obtenu sans aucune preuve");
+        assertEquals(NiveauAcces.ADMIN_PRINCIPAL, acces.get(0).getNiveau());
+
+        // L'état vérifié est enregistré : il survit à un redémarrage.
+        ContexteApplication relu = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+        relu.connexion(DonneesDemo.EMAIL_REFERENT_BRUNOY, "x1234567890");
+        assertTrue(relu.emailVerifie());
+    }
+
+    /** Point 13 : un compte non vérifié le reste après un redémarrage, et peut redemander un code. */
+    @Test
+    void compte_non_verifie_reste_sans_droits_apres_redemarrage_et_redemande_un_code() {
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+        ctx.creerCompte(DonneesDemo.EMAIL_REFERENT_BRUNOY, "USURPATEUR", "Ivan", "x1234567890");
+
+        ContexteApplication relu = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+        relu.connexion(DonneesDemo.EMAIL_REFERENT_BRUNOY, "x1234567890");
+        assertFalse(relu.emailVerifie());
+        assertTrue(relu.accesCourants().isEmpty());
+        assertEquals(com.pingmanager.core.ResultatVerificationEmail.Statut.AUCUNE_DEMANDE,
+                relu.confirmerEmail("123456").getStatut(), "la demande d'avant le redémarrage n'existe plus");
+        assertTrue(relu.envoyerCodeEmail());
+        assertTrue(relu.confirmerEmail(codeRecu(relu)).estVerifie());
+        assertFalse(relu.accesCourants().isEmpty());
+    }
+
+    /** Code à 6 chiffres du dernier email « envoyé » (emails à la console). */
+    static String codeRecu(ContexteApplication ctx) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{6})")
+                .matcher(ctx.email().dernierMessage().orElseThrow().getCorps());
+        assertTrue(m.find());
+        return m.group(1);
     }
 
     /** Point 15 : la politique de mot de passe s'applique à la création, avec un message clair. */

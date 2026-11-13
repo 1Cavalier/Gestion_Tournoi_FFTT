@@ -41,6 +41,13 @@ public final class CompteUtilisateur {
     private RoleCompte role = RoleCompte.MEMBRE;
 
     /**
+     * Point 13 : vrai une fois l'email confirmé par le code à usage unique envoyé à
+     * cette adresse. Tant qu'il est faux, le compte n'a aucun droit d'organisateur,
+     * de club ni de supervision (contrôlé par le contexte de l'application).
+     */
+    private boolean emailVerifie;
+
+    /**
      * @param email               email de connexion (identité du compte, non vide)
      * @param nom                 nom de la personne (non vide)
      * @param prenom              prénom de la personne (non vide)
@@ -112,6 +119,28 @@ public final class CompteUtilisateur {
      */
     public void lierLicence(String numeroLicence) {
         this.licenceLiee = Textes.obligatoire(numeroLicence, "numeroLicence");
+    }
+
+    /**
+     * Retire la licence liée (point 14 : par le titulaire ou par un administrateur
+     * du club de la licence ; le contrôle du droit relève du {@code core}).
+     */
+    public void delierLicence() {
+        this.licenceLiee = null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Vérification de l'email (point 13)
+    // -------------------------------------------------------------------------
+
+    /** @return {@code true} si l'email a été confirmé par le code reçu à cette adresse. */
+    public boolean isEmailVerifie() {
+        return emailVerifie;
+    }
+
+    /** Marque l'email comme vérifié (idempotent). */
+    public void marquerEmailVerifie() {
+        this.emailVerifie = true;
     }
 
     // -------------------------------------------------------------------------

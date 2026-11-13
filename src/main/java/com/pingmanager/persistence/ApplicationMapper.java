@@ -153,6 +153,7 @@ final class ApplicationMapper {
             o.set("licenceLiee", c.getLicenceLiee());
         }
         o.set("role", c.getRole().name());
+        o.set("emailVerifie", c.isEmailVerifie());
         return o;
     }
 
@@ -182,6 +183,15 @@ final class ApplicationMapper {
         return RoleCompte.MEMBRE;
     }
 
+    /** Absent : vrai (ancien compte actif) ; valeur d'un autre type : faux (le moins de droits). */
+    static boolean lireEmailVerifie(Json o) {
+        try {
+            return o.getBoolean("emailVerifie", true);
+        } catch (com.pingmanager.persistence.json.JsonException typeInattendu) {
+            return false;
+        }
+    }
+
     static CompteUtilisateur lireCompteUtilisateur(Json o) {
         CompteUtilisateur c = new CompteUtilisateur(
                 o.get("email").asString(),
@@ -193,6 +203,11 @@ final class ApplicationMapper {
             c.lierLicence(licence);
         }
         c.setRole(lireRole(o, c.getEmail()));
+        // Point 13 : un compte d'un fichier antérieur (sans le champ) était déjà actif ;
+        // il reste actif, considéré vérifié. Un compte jamais confirmé porte « false ».
+        if (lireEmailVerifie(o)) {
+            c.marquerEmailVerifie();
+        }
         return c;
     }
 
