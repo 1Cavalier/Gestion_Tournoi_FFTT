@@ -270,8 +270,10 @@ public final class ContexteApplication {
      * garde un faux numéro et des personnes fictives.
      * v18 (11/11/2026) : National B mis à jour (règlement du 10 novembre, plafonds « NC à xx99 »,
      * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
+     * v20 (13/11/2026) : identités fictives (profil de démo, référent de Brunoy) à la place
+     * des données personnelles réelles.
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v19";
+    private static final String VERSION_DEMO = ".demo-brunoy-v20";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",

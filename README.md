@@ -62,7 +62,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée (v19 actuellement) et la
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v20 actuellement) et la
   démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone
