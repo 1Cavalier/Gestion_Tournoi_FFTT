@@ -277,6 +277,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
    (poules, arbre) et **Salle**. Retirer les croix « payé » au tirage : être
    dans la liste veut dire avoir payé, le paiement se règle au pointage.
    Supprimer le bouton « Phase finale (provisoire) ».
+   *Navigation remplacée par B043* (groupe « Tournoi en cours ») : reste de
+   B039 les croix « payé » au tirage et le bouton « Phase finale (provisoire) ».
+2 bis. **B043 (P1) — Tournoi en cours** (en cours) : groupe de navigation
+   « Tournoi en cours » (Gestion, Tableau, Pointage) visible quand un tournoi
+   du club se joue ; pointage séparé par jour sur un tournoi de deux jours ;
+   non pointés, désinscriptions (décision du joueur) et autres motifs séparés,
+   vue « Retraits » avec annulation.
 3. **B005 — Jour J au style v2** (après B039) : pointage, tirage, poules,
    arbre, salle avec les tuiles, pastilles et cartes de la charte. Ne pas
    bouleverser les poules et les arbres, jugés très bons.
