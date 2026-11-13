@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 594 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 634 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -179,7 +179,30 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   tournoi ou un licencié, à un tableau qui n'a pas commencé et qui a une place
   libre ; pointé et payé à la table. Clause du club (Règles d'inscription) :
   un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
-- **Poste de pointage** (B041, menu Gestion → **Pointage**) : écran autonome
+- **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
+  « Gestion », visible seulement pour un organisateur dont un tournoi se joue
+  (homologué ou publié et c'est un de ses jours, ou un tableau commencé et pas
+  terminé, jusqu'au lendemain du dernier jour ; en mode démo, la copie « jour J »
+  de Brunoy). **Gestion** ouvre directement le jour J du tournoi (et sa fiche,
+  avec tous ses onglets), **Tableau** liste les tableaux par jour avec leur
+  statut et ouvre pointage et tirage, poules ou arbre, **Pointage** ouvre le
+  poste de pointage. Sélecteur en haut des pages s'il y a plusieurs tournois en
+  cours. La dernière page ouverte est rouverte à la connexion suivante.
+- **Pointage sur deux jours** (B043) : onglets des jours (avec les non-pointés),
+  ouverts sur aujourd'hui (la veille pendant la nuit si elle n'est pas finie) ;
+  tableaux, filtres et tuiles du jour, ligne « Total du tournoi », case « Tous
+  les jours » et pastille du jour ; tableau sans horaire rattaché au premier jour
+  (« jour non défini »). Pointage, paiement et clôture restent par tableau ; le
+  jour est noté au journal.
+- **Retraits** (B043) : « Désinscrire… » ouvre une fenêtre de motifs (décision
+  du joueur d'abord, blessure ou maladie, empêchement prévenu, erreur ou
+  doublon, retiré par le JA ou l'organisateur, transfert, autre avec précision).
+  Vue **Retraits** : non pointés (libérés à la clôture) et désinscrits séparés,
+  avec motif, tableau, jour, heure, poste, « avait payé : à rembourser ou à
+  reporter ? » et **Annuler le retrait** (seulement s'il reste une place).
+  Les retraits faits par le juge-arbitre (clôture, désistement, cas
+  particulier) y figurent aussi.
+- **Poste de pointage** (B041, menu Tournoi en cours → **Pointage**) : écran autonome
   pour un ordinateur d'accueil, sans score ni accès au reste du tournoi.
   Recherche toujours active (nom, prénom ou licence, sans tenir compte des
   accents), sélecteur de tableau, filtres (non pointés, pointés, non payés,
@@ -279,11 +302,9 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
    Supprimer le bouton « Phase finale (provisoire) ».
    *Navigation remplacée par B043* (groupe « Tournoi en cours ») : reste de
    B039 les croix « payé » au tirage et le bouton « Phase finale (provisoire) ».
-2 bis. **B043 (P1) — Tournoi en cours** (en cours) : groupe de navigation
-   « Tournoi en cours » (Gestion, Tableau, Pointage) visible quand un tournoi
-   du club se joue ; pointage séparé par jour sur un tournoi de deux jours ;
-   non pointés, désinscriptions (décision du joueur) et autres motifs séparés,
-   vue « Retraits » avec annulation.
+2 bis. ~~B043 — Tournoi en cours~~ — **fait** (section 3) ; à vérifier à
+   l'écran. Reste : les pages « Gestion » et « Tableau » ouvrent les écrans
+   existants, à refaire (tâche suivante).
 3. **B005 — Jour J au style v2** (après B039) : pointage, tirage, poules,
    arbre, salle avec les tuiles, pastilles et cartes de la charte. Ne pas
    bouleverser les poules et les arbres, jugés très bons.
@@ -436,6 +457,25 @@ parenthèses.
   « non noté ») ; (5) les joueurs en liste d'attente n'apparaissent pas au
   poste tant qu'ils ne sont pas repêchés ; (6) nom du poste = nom de
   l'ordinateur. Articles à citer : à fournir.
+- **Tournoi en cours (B043)** — choix provisoires, réversibles :
+  (1) « en cours » : homologué ou publié et c'est l'un de ses jours, ou un
+  tableau commencé et pas terminé, mais seulement jusqu'au lendemain du
+  dernier jour (un tableau oublié « commencé » ne fait plus apparaître le
+  groupe ; le tournoi reste dans « Gestion des tournois ») ; un brouillon
+  importé dont un tableau a commencé compte aussi ; (2) tableau « terminé » :
+  phase finale jouée, ou poules terminées pour un tableau sans phase finale ;
+  (3) jour du pointage pendant la nuit : avant 6 h, la veille si elle n'est pas
+  terminée ; (4) la dernière page ouverte est mémorisée par compte dans les
+  préférences du système (elle ne l'était pas avant B043, contrairement à ce
+  qu'indiquait la consigne) ; (5) annuler un retrait : seulement sur un
+  tableau non lancé et s'il reste une place, y compris après la clôture (le
+  joueur devra pointer) ; son paiement n'est pas rétabli d'office ; (6) un
+  retrait antérieur à B043 ne garde pas la fiche du joueur : son annulation
+  est refusée (« Inscrire sur place » à la place) ; (7) le « cas particulier »
+  du juge-arbitre est noté « retiré par le juge-arbitre ou l'organisateur ».
+  **Textes FFTT 2026-2027 à fournir** (désistement, forfait, non-présentation
+  au pointage, remboursement des engagements) : aucun article n'est cité,
+  rien n'a été deviné ; aucun remboursement automatique, le club décide.
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
@@ -459,8 +499,8 @@ cité dans le code et les tests.
 | IX.104, IX.111 | Inscription, classement, capacité, tarifs, récompenses | ✅ |
 | 3.5.2 | Cartons, points de pénalité, exclusion après 2 disqualifications | ✅ |
 
-Réserves : désistement et clôture du pointage (poste de pointage B041)
-appliqués sans article cité, faute de texte fourni (voir section 6) ;
+Réserves : désistement, motifs de retrait, non-présentation au pointage et
+remboursement (B041, B043) appliqués sans article cité, faute de texte fourni (voir section 6) ;
 égalité vraiment persistante (I.303.e) laissée à l'organisateur ;
 séparation des clubs non contrainte au-delà du 2e tour ; **aucune validation
 par un juge-arbitre sur un vrai tournoi** pour l'instant.
