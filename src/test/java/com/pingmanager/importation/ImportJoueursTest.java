@@ -170,14 +170,14 @@ class ImportJoueursTest {
                 + "<row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\" t=\"s\"><v>1</v></c><c r=\"C1\" t=\"s\"><v>2</v></c>"
                 + "<c r=\"D1\" t=\"s\"><v>3</v></c><c r=\"E1\" t=\"s\"><v>4</v></c></row>"
                 + "<row r=\"3\"><c r=\"A3\" t=\"s\"><v>5</v></c><c r=\"B3\" t=\"s\"><v>6</v></c><c r=\"C3\"><v>1450.0</v></c>"
-                + "<c r=\"D3\" t=\"s\"><v>7</v></c><c r=\"E3\"><v>37641</v></c></row></sheetData></worksheet>";
+                + "<c r=\"D3\" t=\"s\"><v>7</v></c><c r=\"E3\"><v>37330</v></c></row></sheetData></worksheet>";
         byte[] z = zip(Map.of("xl/workbook.xml", "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheets/></workbook>",
                 "xl/sharedStrings.xml", ss, "xl/worksheets/sheet1.xml", sheet));
         ImportJoueurs.Analyse a = ImportJoueurs.analyser(LecteurTableur.lire("j.xlsx", z).lignes());
         assertEquals(1, a.lignes().size());
         assertEquals("LEGALL", a.lignes().get(0).nom());
         assertEquals(1450, a.lignes().get(0).points());
-        assertEquals(LocalDate.of(2003, 1, 20), a.lignes().get(0).naissance());
+        assertEquals(LocalDate.of(2002, 3, 15), a.lignes().get(0).naissance());
         assertEquals(3, a.lignes().get(0).ligne());
     }
 

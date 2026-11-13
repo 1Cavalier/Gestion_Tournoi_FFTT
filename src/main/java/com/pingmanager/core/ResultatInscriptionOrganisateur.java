@@ -21,18 +21,36 @@ public final class ResultatInscriptionOrganisateur {
         /** Refus : aucun club ne correspond au numéro fourni. */
         CLUB_INTROUVABLE,
         /** Refus : un compte existe déjà avec cet email. */
-        EMAIL_DEJA_UTILISE
+        EMAIL_DEJA_UTILISE,
+        /** Refus : mot de passe trop court (point 15, {@link PolitiqueMotDePasse}). */
+        MOT_DE_PASSE_TROP_COURT
     }
 
     private final Motif motif;
     private final CompteOrganisateur compte;
     private final DemandeVerification demande;
+    private final String message;
 
     private ResultatInscriptionOrganisateur(Motif motif, CompteOrganisateur compte,
                                             DemandeVerification demande) {
+        this(motif, compte, demande, null);
+    }
+
+    private ResultatInscriptionOrganisateur(Motif motif, CompteOrganisateur compte,
+                                            DemandeVerification demande, String message) {
         this.motif = motif;
         this.compte = compte;
         this.demande = demande;
+        this.message = message;
+    }
+
+    public static ResultatInscriptionOrganisateur motDePasseTropCourt(String message) {
+        return new ResultatInscriptionOrganisateur(Motif.MOT_DE_PASSE_TROP_COURT, null, null, message);
+    }
+
+    /** @return le motif du refus en clair (mot de passe trop court), sinon {@code null}. */
+    public String getMessage() {
+        return message;
     }
 
     public static ResultatInscriptionOrganisateur codeEnvoye(CompteOrganisateur compte,

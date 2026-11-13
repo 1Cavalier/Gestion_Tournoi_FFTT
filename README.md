@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 535 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 526 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -35,7 +35,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux), le vrai
     tournoi du club, à son état réel : **brouillon**, sans numéro
     d'homologation ni inscrit, avec les vraies personnes (juges-arbitres
-    Samuel LOOBUYCK et William PRIOU, contact Serge BOULIER). Son règlement
+    Samuel LOOBUYCK et William PRIOU ; contact du club remplacé par un référent fictif). Son règlement
     généré reprend les 21 articles du règlement du club (version du
     10 novembre 2026) ;
   - sa **copie au jour J** (« … – jour J (copie de démo) »), publiée avec un
@@ -50,13 +50,19 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
 - Quand la version de la démo change, les autres fichiers de tournoi du dossier
   sont **archivés** dans `tournois/archives` (jamais supprimés), et les deux
   tournois de démo sont recréés.
-- Les **comptes de démo** (club de Brunoy, joueur licencié, supervision) sont
-  affichés dans la **console** au démarrage.
+- Les **comptes de démo** (club de Brunoy, joueur licencié, identités
+  fictives en `example.org`) sont affichés dans la **console** au démarrage.
+  Le compte de **supervision** n'existe qu'en mode démo explicite
+  (`mvn javafx:run -Dpingmanager.demo=true`) : son mot de passe est tiré au
+  hasard à chaque démarrage et affiché dans la console de ce démarrage.
+- Mots de passe : 10 caractères au moins à la création ; après 5 essais
+  faux (connexion ou code à 6 chiffres), attente de 1 min, puis 2, 4… jusqu'à
+  1 h.
 - Les données sont rangées dans `~/.pingmanager/pingmanager/` (ou
   `$XDG_DATA_HOME/pingmanager/`) : un fichier applicatif (comptes, clubs,
   accès) et un fichier `.ptt.json` par tournoi.
 - Si les données de démo changent dans le code, la constante
-  `ContexteApplication.VERSION_DEMO` est incrémentée (v19 actuellement) et la
+  `ContexteApplication.VERSION_DEMO` est incrémentée (v20 actuellement) et la
   démo est recréée au lancement suivant.
 
 ### Suivi sur téléphone
@@ -234,6 +240,7 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 | Paiement en ligne | lien HelloAsso saisi par le club | paiement par tableau et retour qui marque l'inscrit « payé » |
 | Phase finale | accès par un bouton « Phase finale (provisoire) » | l'intégrer à la page du jour J (tâche B039) |
 | Pointage et lancement | `ServicePointage`, `ServiceLancementTableau` complets | écrans de la veille (B006, B007, B008) |
+| Changement de mot de passe | `ServiceAuthentification.changerMotDePasse`, `ContexteApplication.changerMotDePasse` (ancien exigé, 10 caractères, limite d'essais) | un formulaire dans « Mon compte » |
 
 À valider chez l'utilisateur, jamais vu en session cloud : tuiles IGN et
 géocodage sur le vrai réseau, rendu Windows avec mise à l'échelle, voix,
@@ -285,22 +292,10 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 10. Paiement HelloAsso.
 
 ### Sécurité, indispensable avant la vente (B004 et suite)
-11. **Données personnelles réelles dans le code** (`ui.infra.DonneesDemo`) :
-    l'email de Quentin et celui d'un autre licencié, la licence et la date de
-    naissance de Quentin, et des mots de passe de démo écrits en clair.
-    **Le dépôt GitHub est public** : remplacer par des identités fictives,
-    changer le mot de passe s'il sert ailleurs, et décider s'il faut réécrire
-    l'historique git.
-12. **Compte de supervision** créé à chaque démarrage, avec un mot de passe
-    écrit dans le code : le réserver à un mode démo explicite
-    (`-Dpingmanager.demo=true`) et stocker le rôle au lieu de le déduire de
-    l'email.
 13. Vérifier l'email à la création de compte : sinon, qui crée un compte avec
     l'email d'un référent devient administrateur du club.
 14. Liaison de licence : une licence pour un seul compte, et une preuve
     de possession.
-15. Politique de mot de passe (10 caractères minimum) et limite d'essais
-    (connexion et code à 6 chiffres).
 16. Contrôle des droits dans le contexte (`exigerDroit`) et pas seulement par
     la navigation ; suppression du repli par nom de club.
 17. ~~Fichiers piégés (JSON, import)~~ — **fait** (B004b).
@@ -349,6 +344,30 @@ parenthèses.
   forfait dans les statistiques (comptées et signalées à part).
 - Lancer un tableau avec des repêchés qui n'ont pas pointé ; inscriptions sur
   un tableau déjà en pointage.
+
+**Sécurité des comptes (B004a, points 11, 12, 15)**
+- **Réécrire l'historique du dépôt public ?** Les anciens commits contiennent
+  toujours l'email, la licence et la date de naissance de Quentin, l'email du
+  référent de Brunoy et les mots de passe de démo (`Soumet123/`,
+  `PingAdmin123/`). Options : (a) réécrire l'historique (`git filter-repo`,
+  poussée forcée sur `main`, branches `tache/*` et Pull Requests à refaire,
+  clones et copies déjà faits non couverts) ; (b) considérer ces données comme
+  publiques et changer les mots de passe concernés partout où ils servent.
+  (Rien de réécrit : les données sont seulement retirées du code actuel.)
+- Le profil de démo fictif (`organisateur.demo@example.org`, mot de passe
+  fictif écrit dans le code) reste créé sur chaque poste, administrateur du
+  club de Brunoy : le réserver lui aussi au mode démo ? (non pour l'instant :
+  la démo et les tests s'en servent).
+- Un ancien compte de supervision garde son rôle à la relecture, mais son
+  privilège n'est honoré qu'en mode démo, et son mot de passe y est retiré au
+  hasard. (oui)
+- Postes déjà installés : l'ancien compte réel et l'accès de l'ancien
+  référent restent dans le fichier applicatif local. Les purger au démarrage ?
+  (non : aucun effacement automatique de compte).
+- Limite d'essais en mémoire : un redémarrage la remet à zéro. La persister ?
+  (non : application de bureau, l'attaque en ligne suppose déjà l'accès au poste).
+- Noms des juges-arbitres réels du National B (règlement public du club) dans
+  le code et le README : les garder ? (oui).
 
 **Produit**
 - SMS : compte du club ou de PingManager ? Lire une colonne « portable » à

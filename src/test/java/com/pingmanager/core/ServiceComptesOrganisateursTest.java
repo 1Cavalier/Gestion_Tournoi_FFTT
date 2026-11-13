@@ -84,14 +84,14 @@ class ServiceComptesOrganisateursTest {
     @Test
     void inscription_reussie_envoie_le_code_a_l_email_officiel_du_club() {
         ResultatInscriptionOrganisateur res = service.inscrire(
-                "Serge.Boulier@Gmail.com", "Boulier", "Serge", "MotDePasse1!", NUM_CLUB, e -> false);
+                "Referent.Demo@Example.org", "Leroy", "Bernard", "MotDePasse1!", NUM_CLUB, e -> false);
 
         assertTrue(res.estSucces());
         assertEquals(ResultatInscriptionOrganisateur.Motif.CODE_ENVOYE, res.getMotif());
 
         CompteOrganisateur compte = res.getCompte();
         assertNotNull(compte);
-        assertEquals("serge.boulier@gmail.com", compte.getEmail());
+        assertEquals("referent.demo@example.org", compte.getEmail());
         assertFalse(compte.isEmailVerifie(), "le compte n'est pas encore vérifié");
         assertEquals("h:MotDePasse1!", compte.getEmpreinteMotDePasse(), "mot de passe haché via le port");
 
@@ -104,13 +104,13 @@ class ServiceComptesOrganisateursTest {
         DemandeVerification demande = res.getDemande();
         assertNotNull(demande);
         assertEquals("h:000001", demande.getEmpreinteCode());
-        assertEquals("serge.boulier@gmail.com", demande.getEmail());
+        assertEquals("referent.demo@example.org", demande.getEmail());
     }
 
     @Test
     void inscription_refusee_si_club_introuvable() {
         ResultatInscriptionOrganisateur res = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", "00000000", e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", "00000000", e -> false);
         assertEquals(ResultatInscriptionOrganisateur.Motif.CLUB_INTROUVABLE, res.getMotif());
         assertNull(res.getCompte());
         assertTrue(email.envoyes.isEmpty(), "aucun email si le club n'existe pas");
@@ -119,7 +119,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void inscription_refusee_si_email_deja_utilise() {
         ResultatInscriptionOrganisateur res = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> true);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> true);
         assertEquals(ResultatInscriptionOrganisateur.Motif.EMAIL_DEJA_UTILISE, res.getMotif());
         assertNull(res.getCompte());
         assertTrue(email.envoyes.isEmpty());
@@ -128,7 +128,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void inscription_sans_controle_unicite_est_toleree() {
         ResultatInscriptionOrganisateur res = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, null);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, null);
         assertTrue(res.estSucces());
     }
 
@@ -137,7 +137,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void confirmation_reussie_verifie_le_compte_et_cree_l_acces() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Boulier", "Serge", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Leroy", "Bernard", "MotDePasse1!", NUM_CLUB, e -> false);
         CompteOrganisateur compte = ins.getCompte();
 
         ResultatConfirmation conf = service.confirmer(compte, ins.getDemande(), "000001");
@@ -150,14 +150,14 @@ class ServiceComptesOrganisateursTest {
         assertNotNull(acces);
         assertEquals(NUM_CLUB, acces.getNumeroClub());
         assertEquals("s@x.fr", acces.getEmail());
-        assertEquals("Boulier", acces.getNom());
-        assertEquals("Serge", acces.getPrenom());
+        assertEquals("Leroy", acces.getNom());
+        assertEquals("Bernard", acces.getPrenom());
     }
 
     @Test
     void confirmation_refusee_si_code_incorrect() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
 
         ResultatConfirmation conf = service.confirmer(ins.getCompte(), ins.getDemande(), "999999");
         assertEquals(ResultatConfirmation.Motif.CODE_INCORRECT, conf.getMotif());
@@ -168,7 +168,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void confirmation_refusee_si_code_vide() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
         ResultatConfirmation conf = service.confirmer(ins.getCompte(), ins.getDemande(), "   ");
         assertEquals(ResultatConfirmation.Motif.CODE_INCORRECT, conf.getMotif());
     }
@@ -176,7 +176,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void confirmation_refusee_si_code_expire() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
 
         // Au-delà de la validité par défaut (30 min).
         horloge.avancer(Duration.ofMinutes(31));
@@ -190,7 +190,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void confirmation_juste_avant_expiration_reussit() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
         horloge.avancer(Duration.ofMinutes(29));
         ResultatConfirmation conf = service.confirmer(ins.getCompte(), ins.getDemande(), "000001");
         assertTrue(conf.estVerifie());
@@ -199,7 +199,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void confirmation_refuse_une_demande_d_un_autre_compte() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
         CompteOrganisateur autre = new CompteOrganisateur(
                 "autre@x.fr", "A", "B", "h:pwd", NUM_CLUB);
         assertThrows(IllegalArgumentException.class,
@@ -211,7 +211,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void renvoyer_code_produit_une_nouvelle_demande_valide() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
         // Premier code = 000001. Le renvoi génère 000002.
         DemandeVerification demande2 = service.renvoyerCode(ins.getCompte());
 
@@ -226,7 +226,7 @@ class ServiceComptesOrganisateursTest {
     @Test
     void renvoyer_code_refuse_si_deja_verifie() {
         ResultatInscriptionOrganisateur ins = service.inscrire(
-                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
         service.confirmer(ins.getCompte(), ins.getDemande(), "000001");
         assertThrows(IllegalStateException.class,
                 () -> service.renvoyerCode(ins.getCompte()));
@@ -251,5 +251,32 @@ class ServiceComptesOrganisateursTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new ServiceComptesOrganisateurs(
                         registre, generateur, email, hachage, horloge, Duration.ZERO));
+    }
+
+    // --- Point 15 : politique de mot de passe et limite d'essais ---------------
+
+    @Test
+    void inscription_refusee_avec_un_mot_de_passe_de_moins_de_10_caracteres() {
+        ResultatInscriptionOrganisateur res = service.inscrire(
+                "s@x.fr", "Nom", "Prenom", "pwd", NUM_CLUB, e -> false);
+        assertEquals(ResultatInscriptionOrganisateur.Motif.MOT_DE_PASSE_TROP_COURT, res.getMotif());
+        assertEquals("Le mot de passe doit contenir au moins 10 caractères (3 saisis).", res.getMessage());
+        assertTrue(email.envoyes.isEmpty(), "aucun code envoyé");
+    }
+
+    @Test
+    void confirmation_bloquee_apres_cinq_codes_faux_puis_rouverte() {
+        ResultatInscriptionOrganisateur ins = service.inscrire(
+                "s@x.fr", "Nom", "Prenom", "MotDePasse1!", NUM_CLUB, e -> false);
+        for (int i = 0; i < 5; i++) {
+            assertEquals(ResultatConfirmation.Motif.CODE_INCORRECT,
+                    service.confirmer(ins.getCompte(), ins.getDemande(), "99999" + i).getMotif());
+        }
+        ResultatConfirmation bloque = service.confirmer(ins.getCompte(), ins.getDemande(), "000001");
+        assertEquals(ResultatConfirmation.Motif.TROP_D_ESSAIS, bloque.getMotif());
+        assertEquals(Duration.ofMinutes(1), bloque.getAttente());
+
+        horloge.avancer(Duration.ofMinutes(1));
+        assertTrue(service.confirmer(ins.getCompte(), ins.getDemande(), "000001").estVerifie());
     }
 }

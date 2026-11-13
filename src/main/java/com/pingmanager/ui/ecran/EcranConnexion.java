@@ -1,5 +1,8 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.PolitiqueMotDePasse;
+import com.pingmanager.core.ResultatConnexion;
+import com.pingmanager.core.ResultatCreationCompte;
 import com.pingmanager.ui.ContexteApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -185,6 +188,8 @@ public final class EcranConnexion {
                 ? "Quelques informations pour commencer. Vous lierez votre licence ensuite."
                 : "Accédez à vos tournois et à ceux de votre club.");
         bouton.setText(creation ? "Créer mon compte" : "Se connecter");
+        champMotDePasse.setPromptText(creation
+                ? PolitiqueMotDePasse.LONGUEUR_MINIMALE + " caractères minimum" : "");
         bascule.setText(creation
                 ? "Déjà un compte ? Se connecter"
                 : "Pas encore de compte ? Créer un compte");
@@ -212,10 +217,11 @@ public final class EcranConnexion {
     }
 
     private void connecter(String email, String motDePasse) {
-        if (contexte.connecter(email, motDePasse).isPresent()) {
+        ResultatConnexion resultat = contexte.connexion(email, motDePasse);
+        if (resultat.estConnecte()) {
             onConnexionReussie.run();
         } else {
-            afficherErreur("Email ou mot de passe incorrect.");
+            afficherErreur(resultat.getMessage());
         }
     }
 
@@ -226,10 +232,11 @@ public final class EcranConnexion {
             afficherErreur("Merci de renseigner votre nom et votre prénom.");
             return;
         }
-        if (contexte.creerCompteEtConnecter(email, nom, prenom, motDePasse).isPresent()) {
+        ResultatCreationCompte resultat = contexte.creerCompte(email, nom, prenom, motDePasse);
+        if (resultat.estCree()) {
             onConnexionReussie.run();
         } else {
-            afficherErreur("Un compte existe déjà avec cet email.");
+            afficherErreur(resultat.getMessage());
         }
     }
 

@@ -52,7 +52,7 @@ class GenerateurReglementTest {
         t.setNiveau(NiveauTournoi.NATIONAL_B);
         t.setPeriode(sam, dim);
         t.setAdresse(AdresseTournoi.de("1 rue du Gymnase", "91800", "Brunoy"));
-        t.setCorrespondant("SOUMET", "Quentin", "soumet.quentin@gmail.com", null, null);
+        t.setCorrespondant("DUPONT", "Alexis", "organisateur.demo@example.org", null, null);
         t.setNumeroHomologation("2027-N-042");
         t.setSiteWeb("https://exemple.fr/inscription");
         t.ajouterJugeArbitre(new AffectationJugeArbitre("LEMOINE", "Hélène", null, "9411021",

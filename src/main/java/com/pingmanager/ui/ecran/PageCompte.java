@@ -364,6 +364,7 @@ public final class PageCompte {
             case "CODE_EXPIRE" -> erreur(messageClub, "Le code a expiré. Renvoyez-en un nouveau.");
             case "CODE_INCORRECT" -> erreur(messageClub, "Code incorrect.");
             case "CLUB_INTROUVABLE" -> erreur(messageClub, "Club introuvable.");
+            case "TROP_D_ESSAIS" -> erreur(messageClub, resultat.messageBlocage());
             default -> erreur(messageClub, "Rattachement impossible.");
         }
     }

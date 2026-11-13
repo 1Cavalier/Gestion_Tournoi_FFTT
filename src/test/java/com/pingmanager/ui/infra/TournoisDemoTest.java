@@ -45,7 +45,7 @@ class TournoisDemoTest {
         assertEquals(3390, t.getDotationGlobale(), 0.001);
         assertEquals("LOOBUYCK", t.getJugeArbitrePrincipal().orElseThrow().getNom());
         assertTrue(t.getJugesArbitres().stream().anyMatch(ja -> ja.getNom().equals("PRIOU")));
-        assertEquals("BOULIER", t.getCorrespondantNom());
+        assertEquals("LEROY", t.getCorrespondantNom());
         assertEquals("https://www.helloasso.com/associations/cttb-brunoy/evenements/tournoi-national-b-2027",
                 t.getPaiement().getLien());
     }
@@ -69,7 +69,7 @@ class TournoisDemoTest {
         assertTrue(article(d, 11).contains("William PRIOU (JA2)"), article(d, 11));
         assertTrue(article(d, 12).contains("20 tables"), article(d, 12));
         assertTrue(article(d, 19).contains("dès 7h"), article(d, 19));
-        assertTrue(article(d, 21).contains("Serge BOULIER, sboulier@gmail.com"), article(d, 21));
+        assertTrue(article(d, 21).contains("Bernard LEROY, referent.brunoy@example.org"), article(d, 21));
     }
 
     @Test

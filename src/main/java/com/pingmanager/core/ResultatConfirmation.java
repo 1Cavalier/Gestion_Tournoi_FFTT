@@ -21,15 +21,32 @@ public final class ResultatConfirmation {
         /** Refus : le code saisi ne correspond pas. */
         CODE_INCORRECT,
         /** Refus : le délai de validité du code est dépassé. */
-        CODE_EXPIRE
+        CODE_EXPIRE,
+        /** Refus : trop de codes faux récents, essai refusé sans vérification (point 15). */
+        TROP_D_ESSAIS
     }
 
     private final Motif motif;
     private final AccesClub acces;
+    private final java.time.Duration attente;
 
     private ResultatConfirmation(Motif motif, AccesClub acces) {
+        this(motif, acces, java.time.Duration.ZERO);
+    }
+
+    private ResultatConfirmation(Motif motif, AccesClub acces, java.time.Duration attente) {
         this.motif = motif;
         this.acces = acces;
+        this.attente = attente;
+    }
+
+    public static ResultatConfirmation tropDEssais(java.time.Duration attente) {
+        return new ResultatConfirmation(Motif.TROP_D_ESSAIS, null, attente);
+    }
+
+    /** @return l'attente avant un nouvel essai (motif {@link Motif#TROP_D_ESSAIS}), sinon zéro. */
+    public java.time.Duration getAttente() {
+        return attente;
     }
 
     public static ResultatConfirmation verifie(AccesClub acces) {

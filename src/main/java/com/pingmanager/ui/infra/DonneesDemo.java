@@ -26,20 +26,39 @@ public final class DonneesDemo {
     public static final String CLUB_BRUNOY = "08911132";
     public static final String CLUB_PARIS_15 = "07500123";
 
-    // Profil personnel pré-chargé.
-    public static final String EMAIL_QUENTIN = "soumet.quentin@gmail.com";
-    public static final String LICENCE_QUENTIN = "9141442";
+    // Profil de démonstration pré-chargé : identité FICTIVE (le dépôt est public, aucune
+    // donnée personnelle réelle ici : email en example.org, licence et naissance inventées).
+    public static final String EMAIL_PROFIL_DEMO = "organisateur.demo@example.org";
+    public static final String LICENCE_PROFIL_DEMO = "9900000";
+    public static final String PROFIL_DEMO_NOM = "DUPONT";
+    public static final String PROFIL_DEMO_PRENOM = "Alexis";
+    /** Mot de passe clairement fictif du profil de démo (aucun usage ailleurs). */
+    public static final String MDP_PROFIL_DEMO = "Demo-Brunoy-2027";
 
     // Compte « ultra admin » (supervision PingManager) : accès à tous les tournois de tous
     // les clubs, pour vérifier et aider en direct. Ce compte n'est rattaché à aucun club.
+    // Créé seulement en mode démo (-Dpingmanager.demo=true) ; son rôle est enregistré dans
+    // le compte et son mot de passe tiré au hasard à chaque démarrage (genererMotDePasse).
     public static final String EMAIL_ULTRA_ADMIN = "admin@pingmanager.fr";
-    public static final String MDP_ULTRA_ADMIN = "PingAdmin123/";
-    public static final java.util.Set<String> ULTRA_ADMINS = java.util.Set.of(EMAIL_ULTRA_ADMIN);
+
+    private static final String ALPHABET_MOT_DE_PASSE =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+    /** @return un mot de passe de démo aléatoire de 16 caractères (sans caractère ambigu). */
+    public static String genererMotDePasse() {
+        java.security.SecureRandom alea = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+            sb.append(ALPHABET_MOT_DE_PASSE.charAt(alea.nextInt(ALPHABET_MOT_DE_PASSE.length())));
+        }
+        return sb.toString();
+    }
 
     // Administrateur par défaut (référent) de Brunoy, défini par la base.
-    public static final String EMAIL_REFERENT_BRUNOY = "sboulier@gmail.com";
-    public static final String REFERENT_BRUNOY_NOM = "BOULIER";
-    public static final String REFERENT_BRUNOY_PRENOM = "Serge";
+    // Identité fictive (le référent réel du club n'apparaît pas dans le code).
+    public static final String EMAIL_REFERENT_BRUNOY = "referent.brunoy@example.org";
+    public static final String REFERENT_BRUNOY_NOM = "LEROY";
+    public static final String REFERENT_BRUNOY_PRENOM = "Bernard";
 
     /** @return une fausse base clubs FFTT amorcée. */
     public static RegistreClubsMemoire clubs() {
@@ -90,9 +109,9 @@ public final class DonneesDemo {
     public static RegistreLicencesFFTT licences() {
         RegistreLicencesFFTT licences = new RegistreLicencesFFTT();
 
-        licences.ajouter(new FicheLicence.Builder(LICENCE_QUENTIN, "SOUMET", "Quentin")
+        licences.ajouter(new FicheLicence.Builder(LICENCE_PROFIL_DEMO, PROFIL_DEMO_NOM, PROFIL_DEMO_PRENOM)
                 .sexe(Sexe.HOMME)
-                .dateNaissance(LocalDate.of(2003, 1, 20))
+                .dateNaissance(LocalDate.of(2002, 3, 15))
                 .nationalite("Française")
                 .club(CLUB_BRUNOY, "Brunoy")
                 .saison("2026-2027")
@@ -125,26 +144,37 @@ public final class DonneesDemo {
         return licences;
     }
 
-    /** @return un mémo lisible des données de démo. */
+    /** @return un mémo lisible des données de démo, sans compte de supervision. */
     public static String memo() {
+        return memo(null);
+    }
+
+    /**
+     * @param motDePasseSupervision mot de passe tiré à ce démarrage (mode démo), ou
+     *                              {@code null} hors mode démo : le compte n'existe pas
+     * @return un mémo lisible des données de démo
+     */
+    public static String memo(String motDePasseSupervision) {
+        String supervision = motDePasseSupervision == null
+                ? "Compte de supervision : non créé (lancer avec -Dpingmanager.demo=true).\n"
+                : "Compte ultra admin (supervision de tous les tournois, mode démo) :\n"
+                + "  email       : " + EMAIL_ULTRA_ADMIN + "\n"
+                + "  mot de passe: " + motDePasseSupervision + " (tiré à ce démarrage)\n";
         return """
                 PingManager — données de démo
 
-                Profil pré-chargé (connexion directe) :
-                  email       : soumet.quentin@gmail.com
-                  mot de passe: Soumet123/
-                  licence 9141442 ; administrateur (niveau 1) du club Brunoy (08911132).
-                  Référent / administrateur par défaut de Brunoy : Serge BOULIER <sboulier@gmail.com>.
+                Profil pré-chargé (connexion directe, identité fictive) :
+                  email       : organisateur.demo@example.org
+                  mot de passe: Demo-Brunoy-2027
+                  licence 9900000 (Alexis DUPONT) ; administrateur (niveau 1) du club Brunoy (08911132).
+                  Référent / administrateur par défaut de Brunoy (fictif) : Bernard LEROY <referent.brunoy@example.org>.
 
-                Compte ultra admin (supervision de tous les tournois) :
-                  email       : admin@pingmanager.fr
-                  mot de passe: PingAdmin123/
-
+                %s
                 Autres licences de test : 9411003 (Paul Durand, Brunoy), 7511002 (Claire Martin, Paris 15).
                 Joueurs fictifs : licences 9900001 et suivantes (inscrits aux tournois de démo).
                 Tournois de démo : National B de Brunoy (publié, n° d'homologation fictif) et sa
                 copie au jour J, presque pleine, samedi en cours (Gestion des tournois → Suivre).
                 Autre club de test      : 07500123 (TT Paris 15).
-                """;
+                """.formatted(supervision);
     }
 }

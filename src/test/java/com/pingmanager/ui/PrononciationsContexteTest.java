@@ -19,13 +19,13 @@ class PrononciationsContexteTest {
     @Test
     void prononciations_gardees_d_un_demarrage_a_l_autre() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertTrue(ctx.prononciations().definirJoueur(DonneesDemo.LICENCE_QUENTIN, "kɑ̃.tɛ̃", "su.mɛ").valide());
+        assertTrue(ctx.prononciations().definirJoueur(DonneesDemo.LICENCE_PROFIL_DEMO, "kɑ̃.tɛ̃", "su.mɛ").valide());
         assertTrue(ctx.prononciations().definirClub(DonneesDemo.CLUB_BRUNOY, "TT Brunoy", "bʁy.nwa").valide());
         ctx.sauvegarder();
         ctx.fermer();
 
         ContexteApplication relu = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertEquals("su.mɛ", relu.prononciations().joueur(DonneesDemo.LICENCE_QUENTIN).orElseThrow().nom());
+        assertEquals("su.mɛ", relu.prononciations().joueur(DonneesDemo.LICENCE_PROFIL_DEMO).orElseThrow().nom());
         assertEquals("bʁy.nwa", relu.prononciations().club(DonneesDemo.CLUB_BRUNOY).orElseThrow().ipa());
         relu.fermer();
     }
@@ -33,7 +33,7 @@ class PrononciationsContexteTest {
     @Test
     void numero_du_club_retrouve_par_la_licence() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertEquals(Optional.of(DonneesDemo.CLUB_BRUNOY), ctx.numeroClubDuJoueur(DonneesDemo.LICENCE_QUENTIN));
+        assertEquals(Optional.of(DonneesDemo.CLUB_BRUNOY), ctx.numeroClubDuJoueur(DonneesDemo.LICENCE_PROFIL_DEMO));
         assertEquals(Optional.empty(), ctx.numeroClubDuJoueur("0000000"));
         assertEquals(Optional.empty(), ctx.numeroClubDuJoueur(" "));
         ctx.fermer();

@@ -60,8 +60,8 @@ class PresentationCarteTournoisTest {
                 AUJ.plusDays(9), 1000));
         m.put("niveau", tournoi("Niveau", "08911132", NiveauTournoi.REGIONAL, "91800", AUJ.plusDays(1),
                 AUJ.plusDays(1), 500));
-        FicheLicence f = new FicheLicence.Builder("1", "SOUMET", "Quentin").sexe(Sexe.HOMME).club("08911132", "Brunoy")
-                .points(800).typeLicence("Compétition").dateNaissance(LocalDate.of(2003, 1, 20)).build();
+        FicheLicence f = new FicheLicence.Builder("1", "DUPONT", "Alexis").sexe(Sexe.HOMME).club("08911132", "Brunoy")
+                .points(800).typeLicence("Compétition").dateNaissance(LocalDate.of(2002, 3, 15)).build();
         return CatalogueTournois.construire(m, f, null, eligibilite, Geocodeur.centroideDuDepartement(), AUJ);
     }
 

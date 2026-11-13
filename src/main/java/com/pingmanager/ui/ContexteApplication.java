@@ -14,6 +14,9 @@ import com.pingmanager.core.RegistrePrononciations;
 import com.pingmanager.core.ResolveurPrononciationRegistre;
 import com.pingmanager.core.RegistreLicences;
 import com.pingmanager.core.ResultatLiaisonClub;
+import com.pingmanager.core.ResultatChangementMotDePasse;
+import com.pingmanager.core.ResultatConnexion;
+import com.pingmanager.core.ResultatCreationCompte;
 import com.pingmanager.core.ServiceAuthentification;
 import com.pingmanager.core.ServiceLiaisonClub;
 import com.pingmanager.core.ServiceLiaisonLicence;
@@ -24,6 +27,7 @@ import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteUtilisateur;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.NiveauAcces;
+import com.pingmanager.model.RoleCompte;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.persistence.DepotApplication;
 import com.pingmanager.persistence.DepotTournoi;
@@ -105,12 +109,34 @@ public final class ContexteApplication {
     // Session.
     private CompteUtilisateur compteConnecte;
 
+    /** Propriété système du mode démo explicite : {@code -Dpingmanager.demo=true}. */
+    public static final String PROPRIETE_MODE_DEMO = "pingmanager.demo";
+
+    /**
+     * Mode démo explicite : seul ce mode crée le compte de supervision et honore son
+     * privilège (README section 5, point 12).
+     */
+    private final boolean modeDemo;
+    /** Mot de passe de supervision généré à ce démarrage (mode démo), sinon {@code null}. */
+    private String motDePasseSupervisionDemo;
+    private final HachageMotDePassePBKDF2 hachage = new HachageMotDePassePBKDF2();
+
     public ContexteApplication() {
         this(ServiceFichierTournoi.dossierDonneesParDefaut(), DonneesDemo.clubs(), DonneesDemo.licences());
     }
 
-    /** Constructeur ouvert (tests, données personnalisées). Prend le dossier de données. */
+    /**
+     * Constructeur ouvert (tests, données personnalisées). Prend le dossier de données ;
+     * le mode démo suit la propriété système {@value #PROPRIETE_MODE_DEMO}.
+     */
     public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT) {
+        this(dossierDonnees, clubsFFTT, licencesFFTT, Boolean.getBoolean(PROPRIETE_MODE_DEMO));
+    }
+
+    /** Constructeur ouvert avec le mode démo explicite (tests). */
+    public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT,
+                               boolean modeDemo) {
+        this.modeDemo = modeDemo;
         this.dossierDonnees = dossierDonnees;
         this.fichierDepot = dossierDonnees.resolve(DepotApplication.NOM_FICHIER);
         this.documents = new com.pingmanager.persistence.DocumentsDeposes(dossierDonnees);
@@ -126,10 +152,9 @@ public final class ContexteApplication {
 
         this.email = new EmailConsole();
         GenerateurCodeAleatoire code = new GenerateurCodeAleatoire();
-        HachageMotDePassePBKDF2 hachage = new HachageMotDePassePBKDF2();
         Horloge horloge = Horloge.systeme();
 
-        this.authentification = new ServiceAuthentification(hachage);
+        this.authentification = new ServiceAuthentification(hachage, horloge);
         this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
@@ -151,7 +176,7 @@ public final class ContexteApplication {
     private void amorcerProfilDemo() {
         boolean modifie = false;
 
-        // 1) Administrateur par défaut (référent) du club de Brunoy, défini par la base : Serge BOULIER.
+        // 1) Administrateur par défaut (référent, fictif) du club de Brunoy, défini par la base.
         if (!depot.aAcces(DonneesDemo.CLUB_BRUNOY, DonneesDemo.EMAIL_REFERENT_BRUNOY)) {
             depot.enregistrerAcces(new AccesClub(
                     DonneesDemo.CLUB_BRUNOY, DonneesDemo.EMAIL_REFERENT_BRUNOY,
@@ -160,43 +185,53 @@ public final class ContexteApplication {
             modifie = true;
         }
 
-        // 2) Profil personnel, créé une seule fois (mot de passe haché à la création).
-        CompteUtilisateur quentin = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_QUENTIN).orElse(null);
-        if (quentin == null) {
+        // 2) Profil de démo (identité fictive), créé une seule fois (mot de passe haché à la création).
+        CompteUtilisateur profilDemo = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_PROFIL_DEMO).orElse(null);
+        if (profilDemo == null) {
             Optional<CompteUtilisateur> compte = authentification.creerCompte(
-                    DonneesDemo.EMAIL_QUENTIN, "SOUMET", "Quentin", "Soumet123/",
+                    DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
+                    DonneesDemo.MDP_PROFIL_DEMO,
                     depot.emailUtilisateurDejaUtilise());
             if (compte.isPresent()) {
-                quentin = compte.get();
-                liaisonLicence.lier(quentin, DonneesDemo.LICENCE_QUENTIN);
-                depot.enregistrerCompteUtilisateur(quentin);
-                // Quentin est administrateur (niveau 1) de Brunoy — le référent est Serge.
+                profilDemo = compte.get();
+                liaisonLicence.lier(profilDemo, DonneesDemo.LICENCE_PROFIL_DEMO);
+                depot.enregistrerCompteUtilisateur(profilDemo);
+                // Le profil de démo est administrateur (niveau 1) de Brunoy, sous le référent.
                 depot.enregistrerAcces(new AccesClub(
-                        DonneesDemo.CLUB_BRUNOY, quentin.getEmail(), "SOUMET", "Quentin",
+                        DonneesDemo.CLUB_BRUNOY, profilDemo.getEmail(), DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
                         NiveauAcces.ADMIN_NIVEAU_1));
                 modifie = true;
             }
         } else {
-            // Correction d'anciennes données : si Quentin était principal de Brunoy,
-            // le ramener à niveau 1 (le référent est désormais Serge).
-            AccesClub a = depot.accesDe(quentin.getEmail()).stream()
+            // Correction d'anciennes données : si le profil de démo était principal de Brunoy,
+            // le ramener à niveau 1 (le référent est le principal).
+            AccesClub a = depot.accesDe(profilDemo.getEmail()).stream()
                     .filter(x -> x.getNumeroClub().equals(DonneesDemo.CLUB_BRUNOY))
                     .findFirst().orElse(null);
             if (a != null && a.estPrincipal()) {
                 depot.enregistrerAcces(new AccesClub(
-                        DonneesDemo.CLUB_BRUNOY, quentin.getEmail(), "SOUMET", "Quentin",
+                        DonneesDemo.CLUB_BRUNOY, profilDemo.getEmail(), DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
                         NiveauAcces.ADMIN_NIVEAU_1));
                 modifie = true;
             }
         }
 
-        // 3) Compte « ultra admin » (supervision), créé une seule fois, sans club.
-        if (depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_ULTRA_ADMIN).isEmpty()) {
-            Optional<CompteUtilisateur> admin = authentification.creerCompte(
-                    DonneesDemo.EMAIL_ULTRA_ADMIN, "SUPERVISION", "PingManager", DonneesDemo.MDP_ULTRA_ADMIN,
-                    depot.emailUtilisateurDejaUtilise());
-            if (admin.isPresent()) {
-                depot.enregistrerCompteUtilisateur(admin.get());
+        // 3) Compte « ultra admin » (supervision), sans club : UNIQUEMENT en mode démo
+        //    explicite. Son mot de passe est tiré au hasard à chaque démarrage (jamais écrit
+        //    dans le code) et affiché dans la console de ce démarrage seulement.
+        if (modeDemo) {
+            motDePasseSupervisionDemo = DonneesDemo.genererMotDePasse();
+            CompteUtilisateur admin = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_ULTRA_ADMIN).orElse(null);
+            if (admin == null) {
+                admin = authentification.creerCompte(
+                        DonneesDemo.EMAIL_ULTRA_ADMIN, "SUPERVISION", "PingManager", motDePasseSupervisionDemo,
+                        depot.emailUtilisateurDejaUtilise()).orElse(null);
+            } else {
+                admin.setEmpreinteMotDePasse(hachage.hacher(motDePasseSupervisionDemo));
+            }
+            if (admin != null) {
+                admin.setRole(RoleCompte.SUPERVISION);
+                depot.enregistrerCompteUtilisateur(admin);
                 modifie = true;
             }
         }
@@ -238,8 +273,10 @@ public final class ContexteApplication {
      * garde un faux numéro et des personnes fictives.
      * v18 (11/11/2026) : National B mis à jour (règlement du 10 novembre, plafonds « NC à xx99 »,
      * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
+     * v20 (13/11/2026) : identités fictives (profil de démo, référent de Brunoy) à la place
+     * des données personnelles réelles.
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v19";
+    private static final String VERSION_DEMO = ".demo-brunoy-v20";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
@@ -355,7 +392,8 @@ public final class ContexteApplication {
 
     /** @return vrai si le compte connecté est un compte « ultra admin » (supervision). */
     public boolean estUltraAdmin() {
-        return compteConnecte != null && DonneesDemo.ULTRA_ADMINS.contains(compteConnecte.getEmail());
+        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo.
+        return modeDemo && compteConnecte != null && compteConnecte.estSupervision();
     }
 
     /**
@@ -427,7 +465,7 @@ public final class ContexteApplication {
             Files.createDirectories(cible.getParent());
             Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
                     : TournoiDemoBrunoyJourJ.construire(DonneesDemo.JOUEURS_FICTIFS,
-                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElse(null));
+                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElse(null));
             service.nouveau(t, new RegistreDisciplinaire());
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (IOException | RuntimeException e) {
@@ -446,14 +484,24 @@ public final class ContexteApplication {
      */
     public Optional<CompteUtilisateur> creerCompteEtConnecter(String email, String nom,
                                                               String prenom, String motDePasse) {
-        Optional<CompteUtilisateur> compte = authentification.creerCompte(
+        return Optional.ofNullable(creerCompte(email, nom, prenom, motDePasse).getCompte());
+    }
+
+    /**
+     * Crée un compte (mot de passe de 10 caractères au moins) puis connecte la personne.
+     *
+     * @return le résultat détaillé, avec un message clair en cas de refus
+     */
+    public ResultatCreationCompte creerCompte(String email, String nom, String prenom, String motDePasse) {
+        ResultatCreationCompte resultat = authentification.creer(
                 email, nom, prenom, motDePasse, depot.emailUtilisateurDejaUtilise());
-        compte.ifPresent(c -> {
+        if (resultat.estCree()) {
+            CompteUtilisateur c = resultat.getCompte();
             depot.enregistrerCompteUtilisateur(c);
             sauvegarder();
             this.compteConnecte = c;
-        });
-        return compte;
+        }
+        return resultat;
     }
 
     /**
@@ -462,10 +510,35 @@ public final class ContexteApplication {
      * @return le compte si identifiants valides, sinon {@link Optional#empty()}
      */
     public Optional<CompteUtilisateur> connecter(String email, String motDePasse) {
-        Optional<CompteUtilisateur> compte = authentification.connecter(
-                email, motDePasse, depot::trouverCompteUtilisateur);
-        compte.ifPresent(c -> this.compteConnecte = c);
-        return compte;
+        return Optional.ofNullable(connexion(email, motDePasse).getCompte());
+    }
+
+    /**
+     * Connecte une personne existante, avec la limite d'essais (5 échecs puis blocage
+     * temporaire croissant).
+     *
+     * @return le résultat détaillé, avec un message clair en cas de refus
+     */
+    public ResultatConnexion connexion(String email, String motDePasse) {
+        ResultatConnexion resultat = authentification.connexion(email, motDePasse, depot::trouverCompteUtilisateur);
+        if (resultat.estConnecte()) {
+            this.compteConnecte = resultat.getCompte();
+        }
+        return resultat;
+    }
+
+    /**
+     * Change le mot de passe du compte connecté (ancien exigé, nouveau de 10 caractères
+     * au moins) et l'enregistre.
+     */
+    public ResultatChangementMotDePasse changerMotDePasse(String ancien, String nouveau) {
+        exigerConnecte();
+        ResultatChangementMotDePasse resultat = authentification.changerMotDePasse(compteConnecte, ancien, nouveau);
+        if (resultat.estChange()) {
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return resultat;
     }
 
     public void deconnecter() {
@@ -932,7 +1005,17 @@ public final class ContexteApplication {
     }
 
     public String memoDemo() {
-        return DonneesDemo.memo();
+        return DonneesDemo.memo(motDePasseSupervisionDemo);
+    }
+
+    /** @return vrai si l'application tourne en mode démo explicite ({@value #PROPRIETE_MODE_DEMO}). */
+    public boolean estModeDemo() {
+        return modeDemo;
+    }
+
+    /** @return le mot de passe de supervision tiré à ce démarrage (mode démo seulement). */
+    public Optional<String> motDePasseSupervisionDemo() {
+        return Optional.ofNullable(motDePasseSupervisionDemo);
     }
 
     /** @return le suivi sur téléphone (B021), démarré depuis le jour J. */

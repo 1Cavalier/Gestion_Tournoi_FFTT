@@ -34,8 +34,8 @@ class EligibiliteEtCatalogueTest {
     }
 
     private static FicheLicence licencie(String club, String type) {
-        return new FicheLicence.Builder("1", "SOUMET", "Quentin").sexe(Sexe.HOMME).club(club, "x")
-                .points(923).typeLicence(type).dateNaissance(LocalDate.of(2003, 1, 20)).build();
+        return new FicheLicence.Builder("1", "DUPONT", "Alexis").sexe(Sexe.HOMME).club(club, "x")
+                .points(923).typeLicence(type).dateNaissance(LocalDate.of(2002, 3, 15)).build();
     }
 
     private static Tournoi tournoi(String club, NiveauTournoi niveau, String cp, LocalDate jour) {

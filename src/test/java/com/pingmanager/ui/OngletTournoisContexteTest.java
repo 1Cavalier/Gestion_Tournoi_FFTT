@@ -21,7 +21,7 @@ class OngletTournoisContexteTest {
     @Test
     void demos_publiees_et_mes_tournois() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO).isPresent());
         List<ContexteApplication.TournoiFichier> tous = ctx.tousLesTournois();
         assertEquals(2, tous.size(), "le National B de Brunoy et sa copie au jour J");
         // Le vrai National B en brouillon, sa copie de démo publiée.
@@ -41,7 +41,7 @@ class OngletTournoisContexteTest {
         assertNotNull(copie.getAdresse().getCoordonnees());
         // Le vrai National B : aucun inscrit.
         assertEquals(0, RemplissageTableaux.nombreDeParticipants(ctx.chargerTournoi(ctx.fichierTournoiDemo())));
-        assertEquals(DonneesDemo.LICENCE_QUENTIN, ctx.ficheLicenceLiee().orElseThrow().getNumeroLicence());
+        assertEquals(DonneesDemo.LICENCE_PROFIL_DEMO, ctx.ficheLicenceLiee().orElseThrow().getNumeroLicence());
         assertNotNull(ctx.positionDuJoueur());
     }
 }

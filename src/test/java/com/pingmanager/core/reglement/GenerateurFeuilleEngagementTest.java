@@ -54,7 +54,7 @@ class GenerateurFeuilleEngagementTest {
             assertTrue(texte.contains("1. Le tournoi"), texte);
             assertTrue(texte.contains("6. Rappels et engagement"), texte);
             assertFalse(texte.contains("Article 1"), texte);
-            assertTrue(texte.contains("Serge BOULIER"), texte);
+            assertTrue(texte.contains("Bernard LEROY"), texte);
             assertTrue(texte.replace("\n", " ").contains("Samuel LOOBUYCK, JA3 ; adjoint : William PRIOU, JA2"), texte);
             assertTrue(texte.contains("157 Route de Brie, 91800 Brunoy"), texte);
             assertTrue(texte.contains("helloasso.com"), texte);

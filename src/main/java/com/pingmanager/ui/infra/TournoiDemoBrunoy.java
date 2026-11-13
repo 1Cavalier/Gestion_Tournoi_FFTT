@@ -47,7 +47,7 @@ import java.util.Map;
  * séries dames en dernier, 6 le dimanche avec le Non numérotés), dotation de 3 390 €,
  * aucun remboursement, 20 tables + salle d'échauffement de 8, balles fournies par le
  * club, juge-arbitre Samuel LOOBUYCK (JA3) assisté de William PRIOU (JA2), contact
- * Serge BOULIER, inscriptions sur HelloAsso du 17 janvier 2027 à 10 h au 9 avril 2027 à 19 h,
+ * le référent du club (identité fictive), inscriptions sur HelloAsso du 17 janvier 2027 à 10 h au 9 avril 2027 à 19 h,
  * salle ouverte dès 7 h.
  *
  * <p>Reste à compléter : le numéro d'homologation (délivré par la FFTT) et les numéros

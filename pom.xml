@@ -20,6 +20,8 @@
         <!-- Classe de lancement de l'interface (ne depend pas de JavaFX pour rester
              demarrable via `java -jar`). -->
         <app.mainClass>com.pingmanager.ui.Lanceur</app.mainClass>
+        <!-- Mode démo explicite (compte de supervision) : mvn javafx:run -Dpingmanager.demo=true -->
+        <pingmanager.demo>false</pingmanager.demo>
     </properties>
 
     <dependencies>
@@ -67,6 +69,9 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>${app.mainClass}</mainClass>
+                    <options>
+                        <option>-Dpingmanager.demo=${pingmanager.demo}</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>
