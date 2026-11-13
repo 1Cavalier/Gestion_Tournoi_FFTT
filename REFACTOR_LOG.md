@@ -37,3 +37,4 @@ Branche `refactor/night-2026-11-13`, partie de `main` au commit `d54a72d`.
 | `1e48088` | T7 : `GenerateurFeuilles.Place` → record privé | classe interne qui ne portait que trois champs finals | 66588 → 66579 |
 | `65cfdb5` | T9 : 20 commentaires qui citaient `QUESTIONS.md`, `docs/…`, `CHARTE_GRAPHIQUE.md` mis à jour | ces documents ont été retirés du dépôt | 66579 → 66578 |
 | `bf7b814` | Finition : 4 avertissements `javac -Xlint:all` → 0 (`serialVersionUID`, usage voulu de `typeTournoi` annoté) | base saine pour un futur linter | 66578 → 66584 |
+| `e748a23` | T8 : retrait de `BlocSaisieSms.vider`, `PresentationRemplissageFinances.tonaliteSoldePrevisionnel`, `LoiDureeMatch.getMoyenneMinutes` (non publiques, jamais appelées). `cocher` et `ouvrirFicheParNom` sont gardées : elles servent au harnais de captures, hors dépôt | code mort | 66584 → 66571 |
