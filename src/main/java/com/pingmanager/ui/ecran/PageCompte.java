@@ -92,7 +92,8 @@ public final class PageCompte {
         }
         colonneDroite.getChildren().add(carteLicence);
         VBox blocPersonnel = new VBox(deuxColonnes(
-                new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel()),
+                new VBox(20, carteIdentite, construireCarteTournoi(), construireCarteAppel(),
+                        construireCarteDonneesPersonnelles()),
                 colonneDroite));
         blocPersonnel.getStyleClass().add("profil-bloc-personnel");
 
@@ -127,6 +128,15 @@ public final class PageCompte {
             g.add(v, 1, i);
         }
         return g;
+    }
+
+    // Données personnelles (point 21, RGPD) --------------------------------
+
+    private VBox construireCarteDonneesPersonnelles() {
+        Label texte = new Label(com.pingmanager.core.MentionInformation.complete(
+                com.pingmanager.core.ServiceDonneesPersonnelles.ANNEES_CONSERVATION_PAR_DEFAUT));
+        texte.setWrapText(true);
+        return Ui.carte(com.pingmanager.core.MentionInformation.TITRE, texte);
     }
 
     // Vérification de l'email (point 13) -----------------------------------

@@ -282,6 +282,8 @@ final class AssistantInscription {
                 montant(b.montantInscrit()));
         totalLigne.getStyleClass().add("ligne-total");
         VBox recap = Ui.carte("Récapitulatif", lignes, totalLigne);
+        // Point 21 (RGPD) : mention d'information à l'inscription.
+        recap.getChildren().add(Ui.aide(com.pingmanager.core.MentionInformation.INSCRIPTION));
         if (b.montantSiRepeche() > 0) {
             recap.getChildren().add(Ui.aide("Les tableaux en liste d'attente (montant entre parenthèses) ne sont dus "
                     + "que si vous êtes repêché ; vous les réglerez alors au pointage."));

@@ -57,6 +57,8 @@ public final class EcranConnexion {
     private final Label messageCode = Ui.message();
     private final Label apercuDemo = new Label();
     private Node formulaireSaisie;
+    /** Point 21 (RGPD) : mention d'information, en création de compte seulement. */
+    private final Label mentionRgpd = new Label(com.pingmanager.core.MentionInformation.CREATION_COMPTE);
     private Node etapeCode;
 
     public EcranConnexion(ContexteApplication contexte, Runnable onConnexionReussie) {
@@ -86,8 +88,11 @@ public final class EcranConnexion {
                 identite,
                 Ui.champEtiquete("Adresse email", champEmail),
                 Ui.champEtiquete("Mot de passe", champMotDePasse),
+                mentionRgpd,
                 erreur,
                 bouton);
+        mentionRgpd.setWrapText(true);
+        mentionRgpd.getStyleClass().add("discret");
         formulaire.setFillWidth(true);
 
         formulaireSaisie = new VBox(22, formulaire, bascule);
@@ -190,8 +195,10 @@ public final class EcranConnexion {
 
         if (creation) {
             Ui.montrer(blocIdentite);
+            Ui.montrer(mentionRgpd);
         } else {
             Ui.cacher(blocIdentite);
+            Ui.cacher(mentionRgpd);
         }
 
         titre.setText(creation ? "Créer un compte" : "Connexion");
