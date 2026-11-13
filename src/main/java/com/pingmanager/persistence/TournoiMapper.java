@@ -215,6 +215,8 @@ public final class TournoiMapper {
         PlanSalleMapper.ecrire(t, o);
         // B019 : convocations par SMS, écrites seulement si le club s'en sert.
         ConvocationsSmsMapper.ecrire(t, o);
+        // B041 : journal des postes de pointage, écrit seulement s'il n'est pas vide.
+        JournalPointageMapper.ecrire(t, o);
         // B017 : annonces vocales, écrites seulement si le club a touché aux réglages.
         AnnoncesVocalesMapper.ecrire(t, o);
 
@@ -442,6 +444,19 @@ public final class TournoiMapper {
         }
         o.set("pointes", pointes);
         o.set("payes", payes);
+        // B041 : mode de règlement des payés, écrit seulement s'il y en a un.
+        Json modes = Json.tableau();
+        for (Joueur j : tab.getInscrits()) {
+            if (tab.modeReglement(j) != null) {
+                Json m = Json.objet();
+                m.set("joueur", ctx.refJoueur(j));
+                m.set("mode", tab.modeReglement(j).name());
+                modes.add(m);
+            }
+        }
+        if (modes.taille() > 0) {
+            o.set("modesReglement", modes);
+        }
 
         // Les remboursés peuvent ne plus être inscrits : on les repère via l'annuaire
         // en balayant inscrits + file ; pour les autres (désistés), la trace est déjà
@@ -636,6 +651,7 @@ public final class TournoiMapper {
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
         PlanSalleMapper.lire(o, t);
         ConvocationsSmsMapper.lire(o, t);
+        JournalPointageMapper.lire(o, t);
         AnnoncesVocalesMapper.lire(o, t);
         if (o.has("lotsTables")) {
             java.util.List<com.pingmanager.model.LotTables> lots = new java.util.ArrayList<>();
@@ -787,6 +803,16 @@ public final class TournoiMapper {
         if (o.has("payes")) {
             for (Json ref : o.get("payes").elements()) {
                 e.payes.add(ctx.joueur(ref));
+            }
+        }
+        if (o.has("modesReglement")) {
+            for (Json m : o.get("modesReglement").elements()) {
+                try {
+                    e.modesReglement.put(ctx.joueur(m.get("joueur")),
+                            com.pingmanager.model.ModeReglement.valueOf(m.getString("mode", "")));
+                } catch (RuntimeException modeIllisible) {
+                    // Mode inconnu (fichier plus récent) : paiement gardé, mode inconnu.
+                }
             }
         }
         if (o.has("rembourses")) {

@@ -3899,3 +3899,130 @@
     -fx-background-radius: 10;
     -fx-padding: 10 12 10 12;
 }
+
+/* === B041 : poste de pointage autonome (EcranPostePointage) === */
+.pointage-poste {
+    -fx-background-color: -fond-app;
+}
+
+.pointage-entete {
+    -fx-padding: 24 24 12 24;
+}
+
+.pointage-recherche {
+    -fx-font-size: 18px;
+    -fx-pref-height: 44px;
+    -fx-background-radius: 8;
+}
+
+.pointage-choix-tableau {
+    -fx-pref-height: 44px;
+    -fx-min-width: 180px;
+}
+
+.pointage-defilement,
+.pointage-defilement > .viewport {
+    -fx-background-color: -fond-app;
+}
+
+.pointage-liste {
+    -fx-padding: 0 24 24 24;
+}
+
+.pointage-joueur {
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure;
+    -fx-border-width: 1 1 0 1;
+    -fx-padding: 4 16 4 16;
+}
+
+.pointage-joueur-premier {
+    -fx-background-radius: 12 12 0 0;
+    -fx-border-radius: 12 12 0 0;
+}
+
+.pointage-liste > .pointage-joueur:hover {
+    -fx-background-color: -surface-2;
+}
+
+.pointage-engagement {
+    -fx-padding: 10 0 10 0;
+    -fx-min-height: 56px;
+}
+
+.pointage-engagement-suite {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-border-style: dashed;
+}
+
+.pointage-cases {
+    -fx-min-width: 190px;
+}
+
+.pointage-case {
+    -fx-font-size: 16px;
+    -fx-text-fill: -texte;
+    -fx-cursor: hand;
+}
+
+.pointage-case > .box {
+    -fx-padding: 6;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: -bordure-forte;
+    -fx-background-color: -surface;
+}
+
+.pointage-case:selected > .box {
+    -fx-background-color: -primaire;
+    -fx-border-color: -primaire;
+}
+
+.pointage-case:selected > .box > .mark {
+    -fx-background-color: -sur-primaire;
+}
+
+.pointage-case-paye:selected > .box {
+    -fx-background-color: -succes;
+    -fx-border-color: -succes;
+}
+
+.pointage-identite {
+    -fx-min-width: 300px;
+}
+
+.pointage-nom {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.pointage-detail {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.pointage-etiquettes {
+    -fx-pref-wrap-length: 200;
+    -fx-min-width: 120px;
+}
+
+.pointage-mode {
+    -fx-min-width: 200px;
+    -fx-pref-width: 200px;
+}
+
+.pointage-montant {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte;
+    -fx-min-width: 110px;
+}
+
+.pointage-encart-desistement {
+    -fx-padding: 12 0 12 0;
+}
+
+.pointage-motif {
+    -fx-font-size: 14px;
+}

@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 526 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 594 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -179,6 +179,17 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   tournoi ou un licencié, à un tableau qui n'a pas commencé et qui a une place
   libre ; pointé et payé à la table. Clause du club (Règles d'inscription) :
   un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
+- **Poste de pointage** (B041, menu Gestion → **Pointage**) : écran autonome
+  pour un ordinateur d'accueil, sans score ni accès au reste du tournoi.
+  Recherche toujours active (nom, prénom ou licence, sans tenir compte des
+  accents), sélecteur de tableau, filtres (non pointés, pointés, non payés,
+  payés), tuiles inscrits / pointés / payés / encaissé / en attente ; une
+  ligne par tableau avec les cases **Pointé** et **Payé**, le **mode de
+  règlement** (en ligne, espèces, chèque, autre ; pastille « Payé en ligne »)
+  et **Désinscrire…** avec motif (place libérée, liste d'attente repêchée).
+  Le fichier est relu avant chaque action et enregistré juste après ; chaque
+  action entre au **journal du pointage** avec l'heure et le nom de
+  l'ordinateur, pour préparer la synchronisation entre postes.
 - Pointage et repêchage de la liste d'attente, tirage reproductible des
   poules et du tableau final (conforme I.302 à I.305). Tableau incomplet :
   un seul tour d'exempts, le 2e tour est toujours complet, les exempts vont
@@ -274,6 +285,12 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
    les feuilles et le suivi sur téléphone ; persistée (anciens fichiers :
    couleur attribuée à la lecture).
 
+- **B041 suite — Synchroniser le poste de pointage** avec l'ordinateur du
+  juge-arbitre (aujourd'hui, les deux écrans travaillent sur le même
+  fichier : même ordinateur ou dossier partagé). Le journal horodaté
+  `journalPointage` (licence, tableau, type, valeur, heure, poste) est prêt
+  à être échangé et rejoué.
+
 ### Veille du tournoi (J-1)
 5. **B006 — Tableau de bord de la veille** : par tableau, inscrits, attente,
    payés, horaires et pointage, et des alertes (tableau sans horaire, sous le
@@ -316,7 +333,8 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 ### Plus tard
 25. **B014** — Finitions graphiques et cohérence de tous les écrans (en dernier).
-26. **B041** — Statistiques du joueur (rencontres, victoires, adversaires, par
+26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
+    Statistiques du joueur (rencontres, victoires, adversaires, par
     saison).
 27. **B026** — Buvette (cahier des charges à écrire : qui vend, sur quel
     poste, carte ou non, stock).
@@ -400,6 +418,17 @@ parenthèses.
   (non pour l'instant)
 - Carte : un lien externe (attributions IGN, OSM, Leaflet) s'ouvre dans le
   navigateur du système ; toute autre navigation est bloquée. (oui)
+- **Poste de pointage (B041)** — textes FFTT 2026-2027 sur le désistement et
+  la clôture du pointage non fournis dans la session, rien n'a été deviné :
+  (1) désistement après la clôture du pointage ou sur un tableau lancé :
+  refusé au poste, « voir le juge-arbitre » (qui garde le désistement pour
+  cas particulier) ; (2) un joueur qui avait payé puis se désiste n'est pas
+  marqué remboursé (le club décide) ; (3) paiement modifiable même après le
+  lancement (c'est de la caisse) ; (4) montant : tarif en ligne pour « en
+  ligne », tarif sur place sinon, et pour un paiement noté avant B041 (mode
+  « non noté ») ; (5) les joueurs en liste d'attente n'apparaissent pas au
+  poste tant qu'ils ne sont pas repêchés ; (6) nom du poste = nom de
+  l'ordinateur. Articles à citer : à fournir.
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
@@ -423,7 +452,9 @@ cité dans le code et les tests.
 | IX.104, IX.111 | Inscription, classement, capacité, tarifs, récompenses | ✅ |
 | 3.5.2 | Cartons, points de pénalité, exclusion après 2 disqualifications | ✅ |
 
-Réserves : égalité vraiment persistante (I.303.e) laissée à l'organisateur ;
+Réserves : désistement et clôture du pointage (poste de pointage B041)
+appliqués sans article cité, faute de texte fourni (voir section 6) ;
+égalité vraiment persistante (I.303.e) laissée à l'organisateur ;
 séparation des clubs non contrainte au-delà du 2e tour ; **aucune validation
 par un juge-arbitre sur un vrai tournoi** pour l'instant.
 
