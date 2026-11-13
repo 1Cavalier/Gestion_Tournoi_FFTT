@@ -389,7 +389,7 @@ final class FicheTournoi {
             Path cible = f.toPath();
             // Tournoi publié : versions figées à la publication (VueReglementFige).
             if (reglement) {
-                VueReglementFige.ecrireReglement(tournoi, cible);
+                VueReglementFige.ecrireReglement(tournoi, contexte.documents(), cible);
             } else {
                 VueReglementFige.ecrireFeuille(tournoi, cible);
             }

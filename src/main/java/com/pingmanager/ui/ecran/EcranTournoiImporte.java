@@ -2,10 +2,11 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.RemplissageTableaux;
 import com.pingmanager.core.reglement.ServiceReglementTournoi;
-import com.pingmanager.model.DocumentReference;
 import com.pingmanager.model.ModePreparation;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
+import com.pingmanager.persistence.DocumentsDeposes;
+import com.pingmanager.persistence.ResultatDepotDocument;
 import com.pingmanager.ui.ContexteApplication;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -38,6 +39,8 @@ final class EcranTournoiImporte {
     private final Runnable onChangementMode;
     private final BorderPane racine = new BorderPane();
     private final ServiceReglementTournoi reglements = new ServiceReglementTournoi();
+    /** Refus du dernier dépôt de PDF (pas un PDF, trop gros…), affiché sous l'étape 1. */
+    private String erreurReglement;
     private Tournoi tournoi;
     private PresentationTournoiImporte presentation;
 
@@ -107,9 +110,11 @@ final class EcranTournoiImporte {
         choisir.setOnAction(e -> choisirReglement());
         Node contenu;
         if (fait) {
-            String emplacement = tournoi.getReglementDocument().getEmplacement();
-            Label nom = Ui.gras(Path.of(emplacement).getFileName().toString());
-            nom.setTooltip(new javafx.scene.control.Tooltip(emplacement));
+            String nomFichier = DocumentsDeposes.nomAffiche(tournoi.getReglementDocument());
+            boolean introuvable = contexte.documents().fichier(tournoi.getReglementDocument()).isEmpty();
+            Label nom = Ui.gras(introuvable ? nomFichier + " (fichier introuvable)" : nomFichier);
+            nom.setTooltip(new javafx.scene.control.Tooltip(introuvable
+                    ? "Fichier introuvable : choisissez de nouveau le PDF." : nomFichier));
             HBox.setHgrow(nom, Priority.ALWAYS);
             nom.setMaxWidth(Double.MAX_VALUE);
             HBox depose = Ui.ligne(10, Ui.iconeCadree(Icones.DOCUMENT, "icone"), nom, choisir);
@@ -118,6 +123,11 @@ final class EcranTournoiImporte {
         } else {
             choisir.setMaxWidth(Double.MAX_VALUE);
             contenu = choisir;
+        }
+        if (erreurReglement != null) {
+            Label erreur = Ui.message();
+            Ui.erreur(erreur, erreurReglement);
+            contenu = new VBox(8, contenu, erreur);
         }
         return carteEtape(1, fait, false, "Règlement du tournoi",
                 "Le PDF du règlement que vous avez rédigé. Il accompagne le tournoi et reste consultable.",
@@ -136,7 +146,14 @@ final class EcranTournoiImporte {
         if (f == null) {
             return;
         }
-        reglements.deposer(tournoi, new DocumentReference("Règlement", f.getAbsolutePath()));
+        // Copie dans le dossier de données : aucun chemin absolu n'est conservé.
+        ResultatDepotDocument r = contexte.documents().deposer(f.toPath(), "Règlement");
+        erreurReglement = r.estDepose() ? null : r.getMessage();
+        if (!r.estDepose()) {
+            afficher();
+            return;
+        }
+        reglements.deposer(tournoi, r.getReference());
         contexte.enregistrerTournoi(tournoi, fichier);
         afficher();
     }

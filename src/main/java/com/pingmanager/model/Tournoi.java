@@ -766,6 +766,20 @@ public final class Tournoi {
         this.reglementDocument = reglementDocument;
     }
 
+    /**
+     * Remplace l'<b>emplacement</b> du règlement déposé par une copie du même
+     * fichier (migration d'un ancien chemin absolu vers le dossier de données).
+     * Permis même si le tournoi est publié : le document ne change pas.
+     *
+     * @throws IllegalStateException s'il n'y a pas de règlement déposé
+     */
+    public void relocaliserReglementDocument(DocumentReference copie) {
+        if (reglementDocument == null) {
+            throw new IllegalStateException("Aucun règlement déposé à relocaliser.");
+        }
+        this.reglementDocument = java.util.Objects.requireNonNull(copie, "copie");
+    }
+
     /** Message du refus de toute modification du règlement d'un tournoi publié. */
     public static final String MOTIF_REGLEMENT_FIGE =
             "Le tournoi est publié : son règlement et sa feuille d'engagement sont figés "

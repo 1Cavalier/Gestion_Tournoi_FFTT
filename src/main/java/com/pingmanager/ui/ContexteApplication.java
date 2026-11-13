@@ -67,6 +67,8 @@ public final class ContexteApplication {
 
     private final Path dossierDonnees;
     private final Path fichierDepot;
+    /** PDF déposés (règlement), copiés dans le dossier de données (point 18). */
+    private final com.pingmanager.persistence.DocumentsDeposes documents;
     private final ServiceFichierTournoi service;
     private final DepotApplication depot;
 
@@ -111,6 +113,7 @@ public final class ContexteApplication {
     public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT) {
         this.dossierDonnees = dossierDonnees;
         this.fichierDepot = dossierDonnees.resolve(DepotApplication.NOM_FICHIER);
+        this.documents = new com.pingmanager.persistence.DocumentsDeposes(dossierDonnees);
         this.clubsFFTT = registresImportes.clubs(clubsFFTT);
         this.licencesFFTT = registresImportes.licences(licencesFFTT);
 
@@ -635,9 +638,27 @@ public final class ContexteApplication {
         return service.recents();
     }
 
-    /** Charge le tournoi d'un fichier (pour lire son statut et ses détails). */
+    /**
+     * Charge le tournoi d'un fichier (pour lire son statut et ses détails). Un
+     * ancien fichier dont le règlement déposé est un chemin absolu est migré :
+     * PDF copié dans le dossier de données et fichier réenregistré (sinon,
+     * « fichier introuvable » à l'affichage, sans erreur).
+     */
     public Tournoi chargerTournoi(Path fichier) {
-        return DepotTournoi.charger(fichier).getTournoi();
+        com.pingmanager.persistence.TournoiMapper.DocumentCharge doc = DepotTournoi.charger(fichier);
+        if (documents.migrerReglement(doc.getTournoi())) {
+            try {
+                DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier);
+            } catch (RuntimeException e) {
+                // Fichier en lecture seule : la migration sera retentée à la prochaine lecture.
+            }
+        }
+        return doc.getTournoi();
+    }
+
+    /** PDF déposés (règlement) du dossier de données. */
+    public com.pingmanager.persistence.DocumentsDeposes documents() {
+        return documents;
     }
 
     /**
