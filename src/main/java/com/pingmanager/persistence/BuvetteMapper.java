@@ -1,19 +1,25 @@
 package com.pingmanager.persistence;
 
+import com.pingmanager.model.buvette.BuvetteTournoi;
 import com.pingmanager.model.buvette.CatalogueBuvette;
 import com.pingmanager.model.buvette.CategorieProduit;
 import com.pingmanager.model.buvette.Ingredient;
 import com.pingmanager.model.buvette.LigneRecette;
+import com.pingmanager.model.buvette.MouvementStock;
+import com.pingmanager.model.buvette.TypeMouvementStock;
 import com.pingmanager.model.buvette.Produit;
 import com.pingmanager.model.buvette.UniteVente;
 import com.pingmanager.persistence.json.Json;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Buvette (B046) en JSON : catalogue du club (dans le fichier d'application,
- * section facultative {@code buvettes}).
+ * section facultative {@code buvettes}) et buvette d'un tournoi (fichier voisin
+ * du tournoi, voir {@link DepotBuvette}).
  *
  * <pre>
  * "buvettes": [ {"club": "08910012", "alcoolActive": false, "vendus": ["cafe"],
@@ -167,6 +173,83 @@ final class BuvetteMapper {
             }
         }
         return res;
+    }
+
+    // ------------------------------------------------------------------
+    // Buvette d'un tournoi (fichier voisin)
+    // ------------------------------------------------------------------
+
+    /**
+     * <pre>
+     * {"version": 1, "kind": "buvette", "seuils": {"baguette": 10},
+     *  "mouvements": [ {"numero": 1, "type": "ACHAT", "ingredient": "baguette", "quantite": 30,
+     *                   "prix": 1100, "date": "2026-11-14", "horodatage": "2026-11-14T08:00:00Z",
+     *                   "auteur": "Q. S.", "commentaire": "10 × baguette"} ]}
+     * </pre>
+     */
+    static Json ecrireBuvetteTournoi(BuvetteTournoi b) {
+        Json o = Json.objet();
+        Json seuils = Json.objet();
+        b.getSeuils().forEach((id, v) -> seuils.set(id, v.longValue()));
+        o.set("seuils", seuils);
+        Json mouvements = Json.tableau();
+        for (MouvementStock m : b.getMouvements()) {
+            Json j = Json.objet();
+            j.set("numero", m.numero());
+            j.set("type", m.type().name());
+            j.set("ingredient", m.idIngredient());
+            j.set("quantite", m.quantite());
+            if (m.prixPayeCentimes() != 0) {
+                j.set("prix", m.prixPayeCentimes());
+            }
+            if (m.dateAchat() != null) {
+                j.set("date", m.dateAchat().toString());
+            }
+            j.set("horodatage", m.horodatage().toString());
+            j.set("auteur", m.auteur());
+            if (!m.commentaire().isEmpty()) {
+                j.set("commentaire", m.commentaire());
+            }
+            if (m.numeroLie() != 0) {
+                j.set("lie", m.numeroLie());
+            }
+            if (m.compte() >= 0) {
+                j.set("compte", m.compte());
+            }
+            mouvements.add(j);
+        }
+        o.set("mouvements", mouvements);
+        return o;
+    }
+
+    static BuvetteTournoi lireBuvetteTournoi(Json o) {
+        BuvetteTournoi b = new BuvetteTournoi();
+        if (o.has("seuils") && o.get("seuils").estObjet()) {
+            o.get("seuils").entrees().forEach((id, v) -> {
+                try {
+                    b.definirSeuil(id, v.asLong());
+                } catch (RuntimeException illisible) {
+                    // seuil d'un autre type : ignoré
+                }
+            });
+        }
+        for (Json j : objetsOuValeurs(o, "mouvements")) {
+            try {
+                TypeMouvementStock type = TypeMouvementStock.lire(j.getString("type", null));
+                if (type == null) {
+                    continue; // type d'une version plus récente : écarté
+                }
+                b.ajouterMouvement(new MouvementStock(j.getInt("numero", 0), type, j.getString("ingredient", null),
+                        j.get("quantite").asLong(), j.has("prix") ? j.get("prix").asLong() : 0,
+                        j.has("date") ? LocalDate.parse(j.getString("date", "")) : null,
+                        Instant.parse(j.getString("horodatage", "")), j.getString("auteur", null),
+                        j.getString("commentaire", ""), j.getInt("lie", 0),
+                        j.has("compte") ? j.get("compte").asLong() : -1));
+            } catch (RuntimeException illisible) {
+                // ligne abîmée ou numéro en double : écartée, le reste du journal est relu
+            }
+        }
+        return b;
     }
 
     /** Éléments d'un tableau facultatif (vide si absent ou d'un autre type). */
