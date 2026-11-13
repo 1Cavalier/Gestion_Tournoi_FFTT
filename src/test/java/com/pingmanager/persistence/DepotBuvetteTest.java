@@ -118,4 +118,22 @@ class DepotBuvetteTest {
         org.junit.jupiter.api.Assertions.assertThrows(com.pingmanager.persistence.json.JsonException.class,
                 () -> DepotBuvette.lire(JsonParser.analyser("{\"version\":99}")));
     }
+
+    @Test
+    void aller_retour_des_ventes_et_annulations() {
+        CatalogueBuvette c = catalogue();
+        c.enregistrerProduit(com.pingmanager.model.buvette.Produit.builder().id("soda").nom("Soda")
+                .prixVenteCentimes(150).recette(List.of(new com.pingmanager.model.buvette.LigneRecette("soda", 1)))
+                .build());
+        com.pingmanager.core.buvette.ServiceVentesBuvette caisse = new com.pingmanager.core.buvette.ServiceVentesBuvette(
+                () -> Instant.parse("2027-01-09T09:00:00Z"));
+        BuvetteTournoi b = new BuvetteTournoi();
+        caisse.vendre(b, c, "soda", "Léa", "Caisse 1");
+        caisse.vendre(b, c, "soda", "Léa", "Caisse 1");
+        caisse.annulerDerniere(b, c, null, "Léa", "Caisse 1");
+        BuvetteTournoi relue = DepotBuvette.lire(DepotBuvette.ecrire(b));
+        assertEquals(b.getVentes(), relue.getVentes());
+        assertEquals(b.getMouvements(), relue.getMouvements());
+        assertTrue(relue.getVentes().get(2).estAnnulation());
+    }
 }

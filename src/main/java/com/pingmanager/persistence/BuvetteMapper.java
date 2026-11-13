@@ -9,6 +9,7 @@ import com.pingmanager.model.buvette.Ingredient;
 import com.pingmanager.model.buvette.LigneRecette;
 import com.pingmanager.model.buvette.MouvementStock;
 import com.pingmanager.model.buvette.TypeMouvementStock;
+import com.pingmanager.model.buvette.VenteBuvette;
 import com.pingmanager.model.buvette.Produit;
 import com.pingmanager.model.buvette.UniteVente;
 import com.pingmanager.persistence.json.Json;
@@ -224,6 +225,26 @@ final class BuvetteMapper {
         if (!b.getBudget().estVide()) {
             o.set("budget", ecrireBudget(b.getBudget()));
         }
+        // Ventes de la caisse (partie 5) : écrites seulement s'il y en a.
+        if (!b.getVentes().isEmpty()) {
+            Json ventes = Json.tableau();
+            for (VenteBuvette v : b.getVentes()) {
+                Json j = Json.objet();
+                j.set("numero", v.numero());
+                j.set("horodatage", v.horodatage().toString());
+                j.set("auteur", v.auteur());
+                j.set("poste", v.poste());
+                j.set("produit", v.idProduit());
+                j.set("nom", v.nomProduit());
+                j.set("prix", v.prixCentimes());
+                j.set("cout", v.coutCentimes());
+                if (v.estAnnulation()) {
+                    j.set("annule", v.numeroAnnule());
+                }
+                ventes.add(j);
+            }
+            o.set("ventes", ventes);
+        }
         return o;
     }
 
@@ -338,6 +359,16 @@ final class BuvetteMapper {
                 b.setBudget(lireBudget(o.get("budget")));
             } catch (RuntimeException illisible) {
                 // budget abîmé : tout redevient estimé
+            }
+        }
+        for (Json j : objetsOuValeurs(o, "ventes")) {
+            try {
+                b.ajouterVente(new VenteBuvette(j.getInt("numero", 0), Instant.parse(j.getString("horodatage", "")),
+                        j.getString("auteur", null), j.getString("poste", null), j.getString("produit", null),
+                        j.getString("nom", null), j.get("prix").asLong(),
+                        j.has("cout") ? j.get("cout").asLong() : -1, j.getInt("annule", 0)));
+            } catch (RuntimeException illisible) {
+                // vente abîmée ou numéro en double : écartée
             }
         }
         for (Json j : objetsOuValeurs(o, "mouvements")) {

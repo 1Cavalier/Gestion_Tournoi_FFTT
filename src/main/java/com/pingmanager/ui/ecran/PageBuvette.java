@@ -12,6 +12,8 @@ import com.pingmanager.core.buvette.ResultatProduitBuvette;
 import com.pingmanager.core.buvette.ServiceBudgetBuvette;
 import com.pingmanager.core.buvette.ServiceIngredientsBuvette;
 import com.pingmanager.core.buvette.ServiceStockBuvette;
+import com.pingmanager.core.buvette.ServiceVentesBuvette;
+import com.pingmanager.core.buvette.ResultatVenteBuvette;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.model.buvette.BuvetteTournoi;
 import com.pingmanager.model.buvette.TypeMouvementStock;
@@ -77,6 +79,7 @@ final class PageBuvette {
     private final ServiceIngredientsBuvette serviceIngredients = new ServiceIngredientsBuvette();
     private final ServiceStockBuvette serviceStock = new ServiceStockBuvette(Horloge.systeme());
     private final ServiceBudgetBuvette serviceBudget = new ServiceBudgetBuvette();
+    private final ServiceVentesBuvette serviceVentes = new ServiceVentesBuvette(Horloge.systeme());
     /** Scénario affiché dans l'onglet Budget. */
     private String scenarioCourant = "Moyen";
     /** Tournoi choisi pour les onglets Stock, Budget et Ventes ({@code null} : aucun). */
@@ -182,6 +185,9 @@ final class PageBuvette {
         }
         if (BUDGET.equals(ongletCourant)) {
             return avecTournoi(this::ongletBudget);
+        }
+        if (VENTES.equals(ongletCourant)) {
+            return avecTournoi(this::ongletVentes);
         }
         return Ui.carteNue(Ui.etatVide("Cet onglet arrive bientôt.", null));
     }
@@ -927,6 +933,82 @@ final class PageBuvette {
         v.getChildren().add(Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Liste de courses · scénario "
                 + scenarioCourant.toLowerCase()), csv, pdf), courses));
         return v;
+    }
+
+    // ==================================================================
+    // Onglet Ventes : la caisse
+    // ==================================================================
+
+    private Node ongletVentes(Tournoi tournoi) {
+        CatalogueBuvette cat = catalogue();
+        BuvetteTournoi b = buvette();
+        PresentationVentesBuvette p = new PresentationVentesBuvette(b, cat, LocalDate.now(), ZoneId.systemDefault());
+        VBox v = new VBox(20);
+        v.getChildren().add(tuiles(p.tuiles().stream().map(t -> Ui.tuileChiffre(t.valeur(), t.libelle())).toList()));
+        if (p.sansProduit()) {
+            v.getChildren().add(Ui.carteNue(Ui.etatVide(p.messageSansProduit(), null)));
+            return v;
+        }
+        VBox caisse = new VBox(12);
+        for (PresentationVentesBuvette.Groupe g : p.groupes()) {
+            FlowPane boutons = new FlowPane(12, 12);
+            for (PresentationVentesBuvette.BoutonProduit bp : g.boutons()) {
+                Button vendre = new Button();
+                Label nom = Ui.label(bp.nom(), "buvette-caisse-nom");
+                nom.setWrapText(true);
+                VBox contenuBouton = new VBox(4, nom, Ui.label(bp.prix(), "buvette-caisse-prix"),
+                        Ui.label(bp.compteur(), "buvette-caisse-compteur"));
+                vendre.setGraphic(contenuBouton);
+                vendre.getStyleClass().add("buvette-caisse-bouton");
+                vendre.setOnAction(e -> encaisser(b, p, serviceVentes.vendre(b, cat, bp.id(), auteur(),
+                        ServiceVentesBuvette.POSTE_PAR_DEFAUT)));
+                Button moins = Ui.boutonLien("−");
+                moins.getStyleClass().add("buvette-caisse-moins");
+                moins.setOnAction(e -> encaisser(b, p, serviceVentes.annulerDerniere(b, cat, bp.id(), auteur(),
+                        ServiceVentesBuvette.POSTE_PAR_DEFAUT)));
+                VBox tuile = new VBox(4, vendre, moins);
+                tuile.setAlignment(Pos.CENTER);
+                boutons.getChildren().add(tuile);
+            }
+            caisse.getChildren().addAll(Ui.label(g.titre(), "buvette-categorie"), boutons);
+        }
+        Button annuler = Ui.boutonSecondaire("Annuler la dernière vente");
+        annuler.setOnAction(e -> encaisser(b, p, serviceVentes.annulerDerniere(b, cat, null, auteur(),
+                ServiceVentesBuvette.POSTE_PAR_DEFAUT)));
+        v.getChildren().add(Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Caisse"), annuler),
+                Ui.aide("Un clic = une vente ; « − » annule la dernière vente de ce produit. Chaque vente déduit "
+                        + "le stock selon la recette. Une seule caisse : « " + ServiceVentesBuvette.POSTE_PAR_DEFAUT
+                        + " »."), caisse));
+        VBox liste = new VBox(4);
+        boolean premiere = true;
+        for (PresentationVentesBuvette.LigneVente l : p.dernieres()) {
+            HBox ligne = l.annulee() ? Ui.ligneElement(null, l.titre(), l.detail(),
+                    Ui.pastille("Annulée", StatutPastille.NEUTRE)) : Ui.ligneElement(null, l.titre(), l.detail());
+            if (premiere) {
+                ligne.getStyleClass().add("ligne-element-premiere");
+                premiere = false;
+            }
+            liste.getChildren().add(ligne);
+        }
+        if (liste.getChildren().isEmpty()) {
+            liste.getChildren().add(Ui.etatVideCompact("Aucune vente pour l'instant."));
+        }
+        v.getChildren().add(Ui.carte("Dernières ventes", liste));
+        return v;
+    }
+
+    /** Enregistre aussitôt la vente (ou l'annulation) et affiche le total du jour. */
+    private void encaisser(BuvetteTournoi b, PresentationVentesBuvette p, ResultatVenteBuvette r) {
+        if (!r.accepte()) {
+            Ui.erreur(message, p.message(r));
+            return;
+        }
+        String texte = p.message(r);
+        if (r.stockEpuise().isEmpty()) {
+            enregistrerTournoi(b, null, texte);
+        } else {
+            enregistrerTournoi(b, texte, null);
+        }
     }
 
     /** Contenu d'un fichier à exporter (peut échouer). */

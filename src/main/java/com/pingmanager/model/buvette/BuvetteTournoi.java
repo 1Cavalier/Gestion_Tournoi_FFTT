@@ -10,7 +10,7 @@ import java.util.OptionalLong;
 
 /**
  * Buvette d'un tournoi (B046) : stock des ingrédients (journal de mouvements,
- * seuils d'alerte), budget prévisionnel et ventes. Enregistrée à côté du fichier
+ * seuils d'alerte), budget prévisionnel et ventes de la caisse. Enregistrée à côté du fichier
  * du tournoi, jamais dans le catalogue du club.
  *
  * <p>Le journal est en ajout seul : aucun mouvement ne se supprime (traçabilité).</p>
@@ -20,6 +20,7 @@ public final class BuvetteTournoi {
     private final List<MouvementStock> mouvements = new ArrayList<>();
     private final Map<String, Long> seuils = new LinkedHashMap<>();
     private BudgetBuvette budget = BudgetBuvette.VIDE;
+    private final List<VenteBuvette> ventes = new ArrayList<>();
 
     /** @return les mouvements, dans l'ordre de saisie (lecture seule). */
     public List<MouvementStock> getMouvements() {
@@ -68,8 +69,27 @@ public final class BuvetteTournoi {
         this.budget = budget == null ? BudgetBuvette.VIDE : budget;
     }
 
+    /** @return les ventes et annulations, dans l'ordre (lecture seule). */
+    public List<VenteBuvette> getVentes() {
+        return Collections.unmodifiableList(ventes);
+    }
+
+    /** Numéro de la prochaine vente. */
+    public int prochainNumeroVente() {
+        return ventes.isEmpty() ? 1 : ventes.get(ventes.size() - 1).numero() + 1;
+    }
+
+    /** Ajoute une vente (ou annulation) en fin de liste (numéro strictement croissant). */
+    public void ajouterVente(VenteBuvette v) {
+        Objects.requireNonNull(v, "vente");
+        if (v.numero() < prochainNumeroVente()) {
+            throw new IllegalArgumentException("numéro de vente déjà utilisé : " + v.numero());
+        }
+        ventes.add(v);
+    }
+
     /** @return vrai si rien n'a été saisi pour ce tournoi. */
     public boolean estVide() {
-        return mouvements.isEmpty() && seuils.isEmpty() && budget.estVide();
+        return mouvements.isEmpty() && seuils.isEmpty() && budget.estVide() && ventes.isEmpty();
     }
 }

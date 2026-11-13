@@ -4146,3 +4146,48 @@
     -fx-wrap-text: true;
     -fx-padding: 8 0 0 0;
 }
+
+.buvette-caisse-bouton {
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-min-width: 168px;
+    -fx-pref-width: 168px;
+    -fx-min-height: 96px;
+    -fx-padding: 12 14 12 14;
+    -fx-alignment: top-left;
+    -fx-cursor: hand;
+}
+
+.buvette-caisse-bouton:hover {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}
+
+.buvette-caisse-bouton:pressed {
+    -fx-background-color: -surface-2;
+}
+
+.buvette-caisse-nom {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.buvette-caisse-prix {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.buvette-caisse-compteur {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.buvette-caisse-moins {
+    -fx-font-size: 16px;
+    -fx-min-width: 40px;
+}
