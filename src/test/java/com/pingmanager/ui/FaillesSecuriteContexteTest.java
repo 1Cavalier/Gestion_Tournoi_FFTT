@@ -117,13 +117,41 @@ class FaillesSecuriteContexteTest {
     void compte_cree_avec_l_email_du_referent_herite_de_l_acces_principal_faille_S03() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
 
-        assertTrue(ctx.creerCompteEtConnecter(DonneesDemo.EMAIL_REFERENT_BRUNOY, "USURPATEUR", "Ivan", "x")
-                .isPresent(), "aucune vérification d'email, mot de passe d'un caractère accepté");
+        // Le mot de passe d'un caractère est désormais refusé (point 15, test dédié
+        // ci-dessous) ; la faille de l'email non vérifié reste (point 13).
+        assertTrue(ctx.creerCompteEtConnecter(DonneesDemo.EMAIL_REFERENT_BRUNOY, "USURPATEUR", "Ivan", "x1234567890")
+                .isPresent(), "aucune vérification d'email");
 
         List<AccesClub> acces = ctx.accesCourants();
         assertEquals(1, acces.size());
         assertEquals(DonneesDemo.CLUB_BRUNOY, acces.get(0).getNumeroClub());
         assertEquals(NiveauAcces.ADMIN_PRINCIPAL, acces.get(0).getNiveau(), "accès principal obtenu sans aucune preuve");
+    }
+
+    /** Point 15 : la politique de mot de passe s'applique à la création, avec un message clair. */
+    @Test
+    void creation_de_compte_refusee_avec_un_mot_de_passe_de_moins_de_10_caracteres() {
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+
+        com.pingmanager.core.ResultatCreationCompte r = ctx.creerCompte("nouveau@example.org", "NOUVEAU", "Nina", "x");
+        assertEquals(com.pingmanager.core.ResultatCreationCompte.Motif.MOT_DE_PASSE_TROP_COURT, r.getMotif());
+        assertEquals("Le mot de passe doit contenir au moins 10 caractères (1 saisi).", r.getMessage());
+        assertTrue(ctx.compteConnecte() == null, "personne n'est connecté");
+        assertTrue(ctx.creerCompte("nouveau@example.org", "NOUVEAU", "Nina", "0123456789").estCree());
+    }
+
+    /** Point 15 : le profil de démo existant reste utilisable, et la connexion est limitée. */
+    @Test
+    void connexion_bloquee_apres_cinq_echecs_meme_avec_le_bon_mot_de_passe() {
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+        for (int i = 0; i < 5; i++) {
+            assertEquals(com.pingmanager.core.ResultatConnexion.Motif.IDENTIFIANTS_INCORRECTS,
+                    ctx.connexion(DonneesDemo.EMAIL_PROFIL_DEMO, "faux-" + i).getMotif());
+        }
+        com.pingmanager.core.ResultatConnexion r = ctx.connexion(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO);
+        assertEquals(com.pingmanager.core.ResultatConnexion.Motif.TROP_D_ESSAIS, r.getMotif());
+        assertEquals("Trop d'essais infructueux : réessayez dans 1 min.", r.getMessage());
+        assertTrue(ctx.compteConnecte() == null);
     }
 
     /**

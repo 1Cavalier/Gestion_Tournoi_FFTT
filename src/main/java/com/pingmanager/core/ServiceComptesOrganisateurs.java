@@ -47,6 +47,8 @@ public final class ServiceComptesOrganisateurs {
     private final HachageMotDePasse hachage;
     private final Horloge horloge;
     private final Duration validiteCode;
+    /** Point 15 : 5 codes faux pour un compte, puis blocage temporaire croissant. */
+    private final LimiteurEssais limiteCodes;
 
     public ServiceComptesOrganisateurs(RegistreClubs registreClubs,
                                        GenerateurCode generateurCode,
@@ -67,6 +69,7 @@ public final class ServiceComptesOrganisateurs {
         this.envoiEmail = Objects.requireNonNull(envoiEmail, "envoiEmail");
         this.hachage = Objects.requireNonNull(hachage, "hachage");
         this.horloge = Objects.requireNonNull(horloge, "horloge");
+        this.limiteCodes = new LimiteurEssais(this.horloge);
         this.validiteCode = Objects.requireNonNull(validiteCode, "validiteCode");
         if (validiteCode.isZero() || validiteCode.isNegative()) {
             throw new IllegalArgumentException("La validité du code doit être strictement positive.");
@@ -105,6 +108,12 @@ public final class ServiceComptesOrganisateurs {
         // 2) L'email ne doit pas déjà être pris (si un contrôle est fourni).
         if (emailDejaUtilise != null && emailDejaUtilise.test(emailNormalise)) {
             return ResultatInscriptionOrganisateur.emailDejaUtilise();
+        }
+
+        // 2 bis) Politique de mot de passe (point 15 : 10 caractères au moins).
+        java.util.Optional<String> refus = PolitiqueMotDePasse.motifRefus(motDePasseEnClair);
+        if (refus.isPresent()) {
+            return ResultatInscriptionOrganisateur.motDePasseTropCourt(refus.get());
         }
 
         // 3) Création du compte (non vérifié), mot de passe haché via le port.
@@ -183,14 +192,23 @@ public final class ServiceComptesOrganisateurs {
             return ResultatConfirmation.codeIncorrect();
         }
 
+        // Limite d'essais (point 15), indépendante de la demande (un code renvoyé ne
+        // remet pas le compteur à zéro).
+        Duration attente = limiteCodes.attenteRestante(compte.getEmail());
+        if (!attente.isZero()) {
+            return ResultatConfirmation.tropDEssais(attente);
+        }
+
         // Expiration d'abord : un code juste mais périmé est refusé.
         if (demande.estExpiree(horloge.maintenant())) {
             return ResultatConfirmation.codeExpire();
         }
 
         if (!hachage.verifier(codeSaisi.trim(), demande.getEmpreinteCode())) {
+            limiteCodes.enregistrerEchec(compte.getEmail());
             return ResultatConfirmation.codeIncorrect();
         }
+        limiteCodes.enregistrerReussite(compte.getEmail());
 
         compte.marquerEmailVerifie();
         AccesClub acces = new AccesClub(

@@ -20,15 +20,37 @@ public final class ResultatLiaisonClub {
         /** Le code a expiré. */
         CODE_EXPIRE,
         /** Le code saisi est incorrect. */
-        CODE_INCORRECT
+        CODE_INCORRECT,
+        /** Trop de codes faux récents : essai refusé sans vérification (point 15). */
+        TROP_D_ESSAIS
     }
 
     private final Statut statut;
     private final AccesClub acces;
+    private final java.time.Duration attente;
 
     private ResultatLiaisonClub(Statut statut, AccesClub acces) {
+        this(statut, acces, java.time.Duration.ZERO);
+    }
+
+    private ResultatLiaisonClub(Statut statut, AccesClub acces, java.time.Duration attente) {
         this.statut = statut;
         this.acces = acces;
+        this.attente = attente;
+    }
+
+    public static ResultatLiaisonClub tropDEssais(java.time.Duration attente) {
+        return new ResultatLiaisonClub(Statut.TROP_D_ESSAIS, null, attente);
+    }
+
+    /** @return l'attente avant un nouvel essai (statut {@link Statut#TROP_D_ESSAIS}), sinon zéro. */
+    public java.time.Duration getAttente() {
+        return attente;
+    }
+
+    /** @return le message de refus pour trop d'essais, en clair. */
+    public String messageBlocage() {
+        return LimiteurEssais.messageBlocage(attente);
     }
 
     public static ResultatLiaisonClub verifie(AccesClub acces) {

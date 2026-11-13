@@ -47,6 +47,8 @@ public final class ServiceLiaisonClub {
     private final HachageMotDePasse hachage;
     private final Horloge horloge;
     private final Duration validiteCode;
+    /** Point 15 : 5 codes faux pour un compte et un club, puis blocage temporaire croissant. */
+    private final LimiteurEssais limiteCodes;
 
     public ServiceLiaisonClub(RegistreClubs registreClubs, GenerateurCode generateurCode,
                               EnvoiEmail envoiEmail, HachageMotDePasse hachage, Horloge horloge) {
@@ -61,6 +63,7 @@ public final class ServiceLiaisonClub {
         this.envoiEmail = Objects.requireNonNull(envoiEmail, "envoiEmail");
         this.hachage = Objects.requireNonNull(hachage, "hachage");
         this.horloge = Objects.requireNonNull(horloge, "horloge");
+        this.limiteCodes = new LimiteurEssais(this.horloge);
         this.validiteCode = Objects.requireNonNull(validiteCode, "validiteCode");
         if (validiteCode.isZero() || validiteCode.isNegative()) {
             throw new IllegalArgumentException("La validité du code doit être strictement positive.");
@@ -122,13 +125,22 @@ public final class ServiceLiaisonClub {
         if (codeSaisi == null || codeSaisi.isBlank()) {
             return ResultatLiaisonClub.codeIncorrect();
         }
+        // Limite d'essais (point 15) : la clé ne dépend pas de la demande, redemander un
+        // code ne remet donc pas le compteur à zéro.
+        String cle = compte.getEmail() + "|" + club.getNumero();
+        Duration attente = limiteCodes.attenteRestante(cle);
+        if (!attente.isZero()) {
+            return ResultatLiaisonClub.tropDEssais(attente);
+        }
         // Expiration d'abord : un code juste mais périmé est refusé.
         if (demande.estExpiree(horloge.maintenant())) {
             return ResultatLiaisonClub.codeExpire();
         }
         if (!hachage.verifier(codeSaisi.trim(), demande.getEmpreinteCode())) {
+            limiteCodes.enregistrerEchec(cle);
             return ResultatLiaisonClub.codeIncorrect();
         }
+        limiteCodes.enregistrerReussite(cle);
 
         NiveauAcces niveau = estReferent(compte, club)
                 ? NiveauAcces.ADMIN_PRINCIPAL

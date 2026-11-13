@@ -14,6 +14,9 @@ import com.pingmanager.core.RegistrePrononciations;
 import com.pingmanager.core.ResolveurPrononciationRegistre;
 import com.pingmanager.core.RegistreLicences;
 import com.pingmanager.core.ResultatLiaisonClub;
+import com.pingmanager.core.ResultatChangementMotDePasse;
+import com.pingmanager.core.ResultatConnexion;
+import com.pingmanager.core.ResultatCreationCompte;
 import com.pingmanager.core.ServiceAuthentification;
 import com.pingmanager.core.ServiceLiaisonClub;
 import com.pingmanager.core.ServiceLiaisonLicence;
@@ -148,7 +151,7 @@ public final class ContexteApplication {
         GenerateurCodeAleatoire code = new GenerateurCodeAleatoire();
         Horloge horloge = Horloge.systeme();
 
-        this.authentification = new ServiceAuthentification(hachage);
+        this.authentification = new ServiceAuthentification(hachage, horloge);
         this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
@@ -476,14 +479,24 @@ public final class ContexteApplication {
      */
     public Optional<CompteUtilisateur> creerCompteEtConnecter(String email, String nom,
                                                               String prenom, String motDePasse) {
-        Optional<CompteUtilisateur> compte = authentification.creerCompte(
+        return Optional.ofNullable(creerCompte(email, nom, prenom, motDePasse).getCompte());
+    }
+
+    /**
+     * Crée un compte (mot de passe de 10 caractères au moins) puis connecte la personne.
+     *
+     * @return le résultat détaillé, avec un message clair en cas de refus
+     */
+    public ResultatCreationCompte creerCompte(String email, String nom, String prenom, String motDePasse) {
+        ResultatCreationCompte resultat = authentification.creer(
                 email, nom, prenom, motDePasse, depot.emailUtilisateurDejaUtilise());
-        compte.ifPresent(c -> {
+        if (resultat.estCree()) {
+            CompteUtilisateur c = resultat.getCompte();
             depot.enregistrerCompteUtilisateur(c);
             sauvegarder();
             this.compteConnecte = c;
-        });
-        return compte;
+        }
+        return resultat;
     }
 
     /**
@@ -492,10 +505,35 @@ public final class ContexteApplication {
      * @return le compte si identifiants valides, sinon {@link Optional#empty()}
      */
     public Optional<CompteUtilisateur> connecter(String email, String motDePasse) {
-        Optional<CompteUtilisateur> compte = authentification.connecter(
-                email, motDePasse, depot::trouverCompteUtilisateur);
-        compte.ifPresent(c -> this.compteConnecte = c);
-        return compte;
+        return Optional.ofNullable(connexion(email, motDePasse).getCompte());
+    }
+
+    /**
+     * Connecte une personne existante, avec la limite d'essais (5 échecs puis blocage
+     * temporaire croissant).
+     *
+     * @return le résultat détaillé, avec un message clair en cas de refus
+     */
+    public ResultatConnexion connexion(String email, String motDePasse) {
+        ResultatConnexion resultat = authentification.connexion(email, motDePasse, depot::trouverCompteUtilisateur);
+        if (resultat.estConnecte()) {
+            this.compteConnecte = resultat.getCompte();
+        }
+        return resultat;
+    }
+
+    /**
+     * Change le mot de passe du compte connecté (ancien exigé, nouveau de 10 caractères
+     * au moins) et l'enregistre.
+     */
+    public ResultatChangementMotDePasse changerMotDePasse(String ancien, String nouveau) {
+        exigerConnecte();
+        ResultatChangementMotDePasse resultat = authentification.changerMotDePasse(compteConnecte, ancien, nouveau);
+        if (resultat.estChange()) {
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return resultat;
     }
 
     public void deconnecter() {

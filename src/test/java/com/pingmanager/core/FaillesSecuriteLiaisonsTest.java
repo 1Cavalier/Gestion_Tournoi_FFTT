@@ -99,19 +99,25 @@ class FaillesSecuriteLiaisonsTest {
     }
 
     /**
-     * Faille S-08 : aucun plafond de tentatives sur le code à 6 chiffres. Après
-     * 200 essais faux, le bon code est toujours accepté : rien n'invalide la demande.
-     * Correctif : compteur d'essais dans la demande (5 au plus), puis invalidation.
+     * Ex-faille S-08, corrigée (README section 5, point 15) : après 5 codes faux, la
+     * demande est bloquée (1 min, puis 2, 4… jusqu'à 1 h) ; pendant le blocage, même le
+     * bon code est refusé sans être vérifié, et redemander un code n'y change rien.
      */
     @Test
-    void code_de_rattachement_sans_limite_d_essais_faille_S08() {
+    void code_de_rattachement_bloque_apres_cinq_essais_faux() {
         DemandeVerification demande = service.demander(attaquant, CLUB_VICTIME).orElseThrow();
-        for (int essai = 100; essai < 300; essai++) {
+        for (int essai = 100; essai < 105; essai++) {
             ResultatLiaisonClub r = service.confirmer(attaquant, CLUB_VICTIME, demande, String.format("%06d", essai));
             assertEquals(ResultatLiaisonClub.Statut.CODE_INCORRECT, r.getStatut());
         }
-        assertTrue(service.confirmer(attaquant, CLUB_VICTIME, demande, "000001").estReussi(),
-                "comportement vulnérable : la demande reste valable après 200 essais faux");
+        ResultatLiaisonClub bloque = service.confirmer(attaquant, CLUB_VICTIME, demande, "000001");
+        assertEquals(ResultatLiaisonClub.Statut.TROP_D_ESSAIS, bloque.getStatut(), "le bon code est refusé pendant le blocage");
+        assertEquals("Trop d'essais infructueux : réessayez dans 1 min.", bloque.messageBlocage());
+
+        DemandeVerification nouvelle = service.demander(attaquant, CLUB_VICTIME).orElseThrow();
+        assertEquals(ResultatLiaisonClub.Statut.TROP_D_ESSAIS,
+                service.confirmer(attaquant, CLUB_VICTIME, nouvelle, "000002").getStatut(),
+                "une nouvelle demande ne remet pas le compteur à zéro");
     }
 
     /**
