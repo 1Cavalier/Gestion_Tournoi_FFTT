@@ -28,6 +28,11 @@ import java.util.function.Consumer;
  * et {@code initialiser} ; la page appelle {@link Pont#ouvrir(String)} au clic sur un
  * marqueur et {@link Pont#survol(String)} au survol.</p>
  *
+ * <p>Sécurité ({@link PolitiqueNavigationCarte}) : le pont n'est posé que sur la page
+ * locale ; toute navigation vers une autre adresse est annulée (fenêtres surgissantes
+ * comprises). Un lien web cliqué (attributions des fonds de carte) est intercepté par la
+ * page et ouvert dans le navigateur du système via {@link Pont#lien(String)}.</p>
+ *
  * <p>Légèreté : une seule carte pour toute l'application ({@link #partagee}). Une
  * WebView coûte cher (moteur WebKit natif, Leaflet à analyser, tuiles à recharger) et
  * n'était jamais libérée quand on revenait sur l'onglet ; la carte partagée garde son
@@ -47,6 +52,8 @@ final class CarteTournois {
     private String selectionEnAttente;
     /** Derniers marqueurs envoyés à la page : on ne redessine pas une carte identique. */
     private String derniersMarqueurs;
+    /** Dernières entrées affichées : renvoyées si la page doit être rechargée. */
+    private List<CatalogueTournois.Entree> dernieresEntrees;
 
     /** Carte unique de l'application (créée au premier affichage, sur le fil JavaFX). */
     private static CarteTournois partagee;
@@ -70,6 +77,29 @@ final class CarteTournois {
         public void survol(String id) {
             Platform.runLater(() -> onSurvol.accept(id));
         }
+
+        /** Lien cliqué dans la page : ouvert dans le navigateur du système s'il est web. */
+        public void lien(String adresse) {
+            if (PolitiqueNavigationCarte.decider(adresse) == PolitiqueNavigationCarte.Decision.NAVIGATEUR_SYSTEME) {
+                ouvrirDansNavigateur(adresse);
+            }
+        }
+    }
+
+    /** Navigateur du système, hors du fil JavaFX (AWT) ; rien si le bureau ne le permet pas. */
+    private static void ouvrirDansNavigateur(String adresse) {
+        Thread t = new Thread(() -> {
+            try {
+                if (!java.awt.GraphicsEnvironment.isHeadless() && java.awt.Desktop.isDesktopSupported()
+                        && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                    java.awt.Desktop.getDesktop().browse(new java.net.URI(adresse));
+                }
+            } catch (Exception e) {
+                System.err.println("Carte : ouverture du lien impossible : " + e.getMessage());
+            }
+        }, "carte-lien");
+        t.setDaemon(true);
+        t.start();
     }
 
     /**
@@ -97,7 +127,20 @@ final class CarteTournois {
         vue.setContextMenuEnabled(false);
         // Identification de l'application auprès des serveurs de tuiles (politique d'usage OSM).
         moteur.setUserAgent(moteur.getUserAgent() + " PingManager/0.1 (gestion de tournois FFTT)");
+        // Aucune fenêtre surgissante (window.open, target=_blank).
+        moteur.setCreatePopupHandler(f -> null);
         moteur.getLoadWorker().stateProperty().addListener((o, a, etat) -> {
+            boolean locale = PolitiqueNavigationCarte.estPageLocale(moteur.getLocation());
+            if ((etat == Worker.State.SCHEDULED || etat == Worker.State.RUNNING) && !locale) {
+                // Navigation hors de la page locale : annulée, la page de la carte reste affichée.
+                Platform.runLater(() -> moteur.getLoadWorker().cancel());
+                return;
+            }
+            if (etat == Worker.State.SUCCEEDED && !PolitiqueNavigationCarte.pontAutorise(moteur.getLocation())) {
+                // Une page étrangère a tout de même été chargée : pas de pont, retour à la carte.
+                recharger();
+                return;
+            }
             if (etat == Worker.State.SUCCEEDED) {
                 JSObject fenetre = (JSObject) moteur.executeScript("window");
                 fenetre.setMember("java", pont);
@@ -132,6 +175,16 @@ final class CarteTournois {
         racine.heightProperty().addListener((o, a, b) -> redimensionner());
     }
 
+    /** Recharge la page locale ; les derniers marqueurs seront renvoyés une fois prête. */
+    private void recharger() {
+        prete = false;
+        if (enAttente == null) {
+            enAttente = dernieresEntrees;
+        }
+        derniersMarqueurs = null;
+        moteur.loadContent(page(), "text/html");
+    }
+
     StackPane noeud() {
         return racine;
     }
@@ -151,6 +204,7 @@ final class CarteTournois {
 
     /** Remplace les marqueurs par ceux des entrées (résultat filtré). */
     void afficher(List<CatalogueTournois.Entree> entrees, boolean ajuster) {
+        dernieresEntrees = entrees;
         if (!prete) {
             enAttente = entrees;
             return;

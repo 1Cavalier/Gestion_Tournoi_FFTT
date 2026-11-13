@@ -10,6 +10,8 @@ import com.pingmanager.model.ArticleOptionnel;
 import com.pingmanager.model.CategorieAge;
 import com.pingmanager.model.Paiement;
 import com.pingmanager.model.DocumentReference;
+import com.pingmanager.persistence.DocumentsDeposes;
+import com.pingmanager.persistence.ResultatDepotDocument;
 import com.pingmanager.model.NiveauTournoi;
 import com.pingmanager.model.OptionsReglement;
 import com.pingmanager.model.Tournoi;
@@ -67,12 +69,14 @@ final class EcranComplementaire {
     private final BorderPane racine = new BorderPane();
     private final GenerateurReglement generateur = new GenerateurReglement();
     private final ServiceReglementTournoi reglements = new ServiceReglementTournoi();
+    private final DocumentsDeposes documents;
 
     // Règlement
     private final ToggleGroup mode = new ToggleGroup();
     private final RadioButton modeGenere = new RadioButton("Générer le règlement à partir des informations saisies");
     private final RadioButton modeDepose = new RadioButton("Déposer mon propre règlement (fichier PDF)");
-    private String cheminReglement;
+    /** Règlement déposé choisi (copie dans le dossier de données), ou {@code null}. */
+    private DocumentReference reglementChoisi;
     private final Label libelleReglement = new Label();
     private final List<EditeurArticle> articles = new ArrayList<>();
     private final VBox listeArticles = new VBox(10);
@@ -98,8 +102,10 @@ final class EcranComplementaire {
     /**
      * @param dossier dossier du fichier tournoi (point de départ des sélecteurs de fichiers)
      */
-    EcranComplementaire(Tournoi tournoi, Path dossier, Runnable enregistrer, Runnable retour) {
+    EcranComplementaire(Tournoi tournoi, DocumentsDeposes documents, Path dossier, Runnable enregistrer,
+                        Runnable retour) {
         this.tournoi = tournoi;
+        this.documents = documents;
         this.dossier = dossier;
         this.enregistrer = enregistrer;
         this.retour = retour;
@@ -149,8 +155,8 @@ final class EcranComplementaire {
         if (tournoi.reglementModifiable()) {
             return carteReglement(message);
         }
-        return VueReglementFige.lien(tournoi, dossier, enregistrer, () -> racine.setCenter(
-                VueReglementFige.page(tournoi, dossier, enregistrer, this::afficher, "← Complémentaire")));
+        return VueReglementFige.lien(tournoi, documents, dossier, enregistrer, () -> racine.setCenter(
+                VueReglementFige.page(tournoi, documents, dossier, enregistrer, this::afficher, "← Complémentaire")));
     }
 
     private Node carteReglement(Label message) {
@@ -164,19 +170,26 @@ final class EcranComplementaire {
         } else {
             modeDepose.setSelected(true);
         }
-        cheminReglement = tournoi.getReglementDocument() == null ? null : tournoi.getReglementDocument().getEmplacement();
+        reglementChoisi = tournoi.getReglementDocument();
 
         // --- Déposé ---
         Button choisir = Ui.boutonSecondaire("Choisir un fichier PDF…");
         choisir.setOnAction(e -> choisirFichier("Règlement du tournoi", "*.pdf")
                 .ifPresent(f -> {
-                    cheminReglement = f.getAbsolutePath();
+                    // Copie immédiate dans le dossier de données : aucun chemin absolu n'est conservé.
+                    ResultatDepotDocument r = documents.deposer(f.toPath(), "Règlement");
+                    if (r.estDepose()) {
+                        Ui.cacher(message);
+                        reglementChoisi = r.getReference();
+                    } else {
+                        Ui.erreur(message, r.getMessage());
+                    }
                     majLibelleReglement();
                 }));
         Button retirer = Ui.boutonLien("Retirer");
         retirer.getStyleClass().add("lien-danger");
         retirer.setOnAction(e -> {
-            cheminReglement = null;
+            reglementChoisi = null;
             majLibelleReglement();
         });
         libelleReglement.setWrapText(true);
@@ -410,8 +423,14 @@ final class EcranComplementaire {
     }
 
     private void majLibelleReglement() {
-        libelleReglement.setText(cheminReglement == null ? "Aucun fichier choisi."
-                : "Fichier : " + cheminReglement);
+        if (reglementChoisi == null) {
+            libelleReglement.setText("Aucun fichier choisi.");
+        } else if (documents.fichier(reglementChoisi).isEmpty()) {
+            libelleReglement.setText("Fichier introuvable : " + DocumentsDeposes.nomAffiche(reglementChoisi)
+                    + " — choisissez de nouveau le PDF.");
+        } else {
+            libelleReglement.setText("Fichier : " + DocumentsDeposes.nomAffiche(reglementChoisi));
+        }
     }
 
     /** « Prêt » ou « N éléments à compléter », calculé avec les options en cours de saisie. */
@@ -669,12 +688,11 @@ final class EcranComplementaire {
         // Tournoi publié : règlement figé, le formulaire du règlement n'est pas affiché.
         if (tournoi.reglementModifiable()) {
             OptionsReglement o = lireOptions();
-            if (modeDepose.isSelected() && cheminReglement == null) {
+            if (modeDepose.isSelected() && reglementChoisi == null) {
                 throw new IllegalArgumentException("Règlement déposé : choisissez le fichier PDF du règlement.");
             }
             reglements.modifierOptions(tournoi, o);
-            reglements.deposer(tournoi, cheminReglement == null ? null
-                    : new DocumentReference("Règlement", cheminReglement));
+            reglements.deposer(tournoi, reglementChoisi);
         }
         tournoi.setPaiement(paiement);
         tournoi.setImagePromotionnelle(cheminImage == null ? null

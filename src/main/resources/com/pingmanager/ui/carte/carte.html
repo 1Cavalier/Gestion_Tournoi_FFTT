@@ -34,6 +34,17 @@
 </script>
 <script>/*LEAFLET_JS*/</script>
 <script>
+  // Liens (attributions Leaflet, IGN, OSM) : jamais suivis dans la carte. Un lien web est
+  // confié à Java, qui l'ouvre dans le navigateur du système (PolitiqueNavigationCarte).
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) { return; }
+    var href = a.getAttribute('href') || '';
+    if (href === '' || href.charAt(0) === '#') { return; }  // boutons de Leaflet (zoom…)
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.java && window.java.lien) { window.java.lien(a.href); }
+  }, true);
   // Pont Java : window.java.ouvrir(id) (posé par CarteTournois une fois la page chargée).
   // Rendu canvas : un seul élément dessiné pour tous les marqueurs (le rendu SVG crée un
   // nœud par marqueur et ralentit nettement la WebView dès quelques dizaines de tournois).

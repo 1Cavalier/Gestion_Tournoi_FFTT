@@ -5,6 +5,7 @@ import com.pingmanager.core.reglement.RenduPdfReglement;
 import com.pingmanager.core.reglement.ServiceReglementTournoi;
 import com.pingmanager.model.OptionsReglement;
 import com.pingmanager.model.Tournoi;
+import com.pingmanager.persistence.DocumentsDeposes;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -37,12 +38,13 @@ final class VueReglementFige {
      * Ligne compacte : lien « Règlement » (ouvre la page de lecture), lien de
      * téléchargement de la feuille d'engagement, mention « figés ».
      */
-    static Node lien(Tournoi tournoi, Path dossier, Runnable enregistrer, Runnable ouvrir) {
+    static Node lien(Tournoi tournoi, DocumentsDeposes documents, Path dossier, Runnable enregistrer,
+                     Runnable ouvrir) {
         Button reglement = Ui.boutonLien("Règlement");
         reglement.setOnAction(e -> ouvrir.run());
         Button feuille = Ui.boutonLien("Feuille d'engagement (PDF)…");
         Label message = Ui.message();
-        feuille.setOnAction(e -> telechargerFeuille(tournoi, dossier, enregistrer, message, feuille));
+        feuille.setOnAction(e -> telechargerFeuille(tournoi, documents, dossier, enregistrer, message, feuille));
         Label mention = Ui.discret("figés depuis la publication");
         VBox v = new VBox(4, Ui.ligne(12, reglement, feuille, mention), message);
         v.getStyleClass().add("reglement-fige");
@@ -50,8 +52,9 @@ final class VueReglementFige {
     }
 
     /** Page de lecture du règlement figé, avec téléchargements. */
-    static Node page(Tournoi tournoi, Path dossier, Runnable enregistrer, Runnable retour, String libelleRetour) {
-        garantirCopies(tournoi, enregistrer);
+    static Node page(Tournoi tournoi, DocumentsDeposes documents, Path dossier, Runnable enregistrer,
+                     Runnable retour, String libelleRetour) {
+        garantirCopies(tournoi, documents, enregistrer);
         Button btnRetour = Ui.boutonLien(libelleRetour);
         btnRetour.setOnAction(e -> retour.run());
         Label message = Ui.message();
@@ -59,22 +62,27 @@ final class VueReglementFige {
         pdf.setOnAction(e -> {
             try {
                 telecharger(pdf, dossier, "Télécharger le règlement", "Reglement - ", tournoi,
-                        cible -> ecrireReglement(tournoi, cible))
+                        cible -> ecrireReglement(tournoi, documents, cible))
                         .ifPresent(f -> Ui.succes(message, "Règlement enregistré : " + f + "."));
             } catch (IOException ex) {
                 Ui.erreur(message, ex.getMessage());
             }
         });
         Button feuille = Ui.boutonSecondaire("Feuille d'engagement (PDF)…");
-        feuille.setOnAction(e -> telechargerFeuille(tournoi, dossier, enregistrer, message, feuille));
+        feuille.setOnAction(e -> telechargerFeuille(tournoi, documents, dossier, enregistrer, message, feuille));
 
         Label etat = Ui.note("Le tournoi est publié : le règlement et la feuille d'engagement sont figés "
                 + "tels qu'à la publication et ne peuvent plus être modifiés.");
         Node contenu;
-        if (estDepose(tournoi)) {
+        if (estDepose(tournoi, documents)) {
             contenu = Ui.carte("Règlement déposé par le club",
-                    Ui.note("Fichier : " + tournoi.getReglementDocument().getEmplacement()));
+                    Ui.note("Fichier : " + DocumentsDeposes.nomAffiche(tournoi.getReglementDocument())));
         } else {
+            if (deposeIntrouvable(tournoi, documents)) {
+                Ui.erreur(message, "Règlement déposé : fichier introuvable ("
+                        + DocumentsDeposes.nomAffiche(tournoi.getReglementDocument())
+                        + "). La version générée est affichée.");
+            }
             contenu = Ui.carteNue(ApercuReglement.rendre(REGLEMENTS.reglement(tournoi)));
         }
         VBox page = Ui.page(860, Ui.enteteAvecActions(btnRetour, pdf, feuille), etat, message, contenu);
@@ -83,10 +91,11 @@ final class VueReglementFige {
     }
 
     /** Écrit le règlement publié : copie du PDF déposé, ou PDF de la version figée. */
-    static void ecrireReglement(Tournoi tournoi, Path cible) throws IOException {
-        if (estDepose(tournoi)) {
-            Files.copy(Path.of(tournoi.getReglementDocument().getEmplacement()), cible,
-                    StandardCopyOption.REPLACE_EXISTING);
+    static void ecrireReglement(Tournoi tournoi, DocumentsDeposes documents, Path cible) throws IOException {
+        Optional<Path> depose = estDepose(tournoi, documents)
+                ? documents.fichier(tournoi.getReglementDocument()) : Optional.empty();
+        if (depose.isPresent()) {
+            Files.copy(depose.get(), cible, StandardCopyOption.REPLACE_EXISTING);
         } else {
             RenduPdfReglement.ecrire(REGLEMENTS.reglement(tournoi), cible);
         }
@@ -98,21 +107,32 @@ final class VueReglementFige {
                 GenerateurFeuilleEngagement.FORMAT_TITRE);
     }
 
-    /** Règlement déposé dont le fichier existe encore (sinon, la version générée sert). */
-    static boolean estDepose(Tournoi tournoi) {
+    /**
+     * Règlement déposé dont la copie existe dans le dossier de données (sinon, la
+     * version générée sert). Un ancien chemin absolu n'est jamais ouvert.
+     */
+    static boolean estDepose(Tournoi tournoi, DocumentsDeposes documents) {
+        return modeDepose(tournoi) && documents.fichier(tournoi.getReglementDocument()).isPresent();
+    }
+
+    /** Mode « déposé » avec une référence dont le fichier est introuvable. */
+    static boolean deposeIntrouvable(Tournoi tournoi, DocumentsDeposes documents) {
+        return modeDepose(tournoi) && tournoi.getReglementDocument() != null
+                && documents.fichier(tournoi.getReglementDocument()).isEmpty();
+    }
+
+    private static boolean modeDepose(Tournoi tournoi) {
         OptionsReglement o = tournoi.getOptionsReglement();
-        return o != null && o.getMode() == OptionsReglement.Mode.DEPOSE
-                && tournoi.getReglementDocument() != null
-                && Files.isRegularFile(Path.of(tournoi.getReglementDocument().getEmplacement()));
+        return o != null && o.getMode() == OptionsReglement.Mode.DEPOSE && tournoi.getReglementDocument() != null;
     }
 
     /** Tournoi publié par une ancienne version : crée les copies manquantes et les enregistre. */
-    private static void garantirCopies(Tournoi tournoi, Runnable enregistrer) {
+    private static void garantirCopies(Tournoi tournoi, DocumentsDeposes documents, Runnable enregistrer) {
         if (!ServiceReglementTournoi.estFige(tournoi)) {
             return;
         }
         boolean manque = tournoi.getFeuilleEngagementFigee() == null
-                || (tournoi.getReglementFige() == null && !estDepose(tournoi));
+                || (tournoi.getReglementFige() == null && !estDepose(tournoi, documents));
         if (manque) {
             REGLEMENTS.reglement(tournoi);
             REGLEMENTS.feuilleEngagement(tournoi);
@@ -120,11 +140,11 @@ final class VueReglementFige {
         }
     }
 
-    private static void telechargerFeuille(Tournoi tournoi, Path dossier, Runnable enregistrer, Label message,
-                                           Node source) {
+    private static void telechargerFeuille(Tournoi tournoi, DocumentsDeposes documents, Path dossier,
+                                           Runnable enregistrer, Label message, Node source) {
         Ui.cacher(message);
         try {
-            garantirCopies(tournoi, enregistrer);
+            garantirCopies(tournoi, documents, enregistrer);
             telecharger(source, dossier, "Télécharger la feuille d'engagement", "Feuille d'engagement - ",
                     tournoi, cible -> ecrireFeuille(tournoi, cible))
                     .ifPresent(f -> Ui.succes(message, "Feuille d'engagement enregistrée : " + f + "."));

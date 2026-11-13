@@ -88,11 +88,7 @@ public final class LecteurTableur {
     }
 
     public static Classeur lireClasseur(Path fichier) throws ImportException {
-        try {
-            return lireClasseur(fichier.getFileName().toString(), Files.readAllBytes(fichier));
-        } catch (IOException e) {
-            throw new ImportException("Lecture impossible : " + e.getMessage());
-        }
+        return lireClasseur(fichier.getFileName().toString(), octets(fichier));
     }
 
     /**
@@ -100,6 +96,7 @@ public final class LecteurTableur {
      * donne deux feuilles « Tableaux » et « Joueurs ».
      */
     public static Classeur lireClasseur(String nom, byte[] octets) throws ImportException {
+        verifierTaille(octets);
         String n = nom.toLowerCase(Locale.ROOT);
         if (n.endsWith(".xlsx") || n.endsWith(".xlsm")) {
             return new Classeur(Format.XLSX, xlsxClasseur(octets));
@@ -147,24 +144,74 @@ public final class LecteurTableur {
     }
 
     static final int MAX_LIGNES = 20_000;
-    private static final int MAX_COLONNES = 200;
+    static final int MAX_COLONNES = 200;
+
+    // Bornes contre les fichiers piégés (README section 5, point 17).
+    /** Taille maximale du fichier lu, en octets (50 Mo). */
+    static final long TAILLE_MAX_FICHIER = 50L * 1024 * 1024;
+    /** Total décompressé maximal des parties XML conservées d'une archive (50 Mo). */
+    static final long MAX_DECOMPRESSE_CONSERVE = 50L * 1024 * 1024;
+    /** Total décompressé maximal parcouru dans une archive, toutes entrées comprises (300 Mo). */
+    static final long MAX_DECOMPRESSE_TOTAL = 300L * 1024 * 1024;
+    /** Taux de décompression maximal (décompressé / taille du fichier), au-delà de 1 Mo décompressé. */
+    static final int TAUX_DECOMPRESSION_MAX = 100;
+    /** Nombre maximal d'entrées d'une archive. */
+    static final int MAX_ENTREES_ZIP = 10_000;
 
     private LecteurTableur() {
     }
 
     public static Contenu lire(Path fichier) throws ImportException {
-        String nom = fichier.getFileName().toString().toLowerCase(Locale.ROOT);
-        byte[] octets;
+        return lire(fichier.getFileName().toString().toLowerCase(Locale.ROOT), octets(fichier));
+    }
+
+    /** Lit le fichier après avoir vérifié sa taille (rien n'est chargé au-delà de la borne). */
+    private static byte[] octets(Path fichier) throws ImportException {
         try {
-            octets = Files.readAllBytes(fichier);
+            if (Files.size(fichier) > TAILLE_MAX_FICHIER) {
+                throw tropGros();
+            }
+            return Files.readAllBytes(fichier);
         } catch (IOException e) {
             throw new ImportException("Lecture impossible : " + e.getMessage());
         }
-        return lire(nom, octets);
+    }
+
+    private static void verifierTaille(byte[] octets) throws ImportException {
+        if (octets != null && octets.length > TAILLE_MAX_FICHIER) {
+            throw tropGros();
+        }
+    }
+
+    private static ImportException tropGros() {
+        return new ImportException("Fichier trop volumineux (plus de "
+                + TAILLE_MAX_FICHIER / (1024 * 1024) + " Mo).");
+    }
+
+    /**
+     * Entier d'un attribut (numéro de ligne, répétition…) ; absent, invalide ou
+     * négatif → {@code defaut} ; borné à {@code max} (numéros géants d'un
+     * fichier piégé).
+     */
+    static int entierBorne(String brut, int defaut, int max) {
+        if (brut == null || brut.isBlank()) {
+            return defaut;
+        }
+        try {
+            long v = Long.parseLong(brut.trim());
+            if (v < 1) {
+                return defaut;
+            }
+            return (int) Math.min(v, max);
+        } catch (NumberFormatException e) {
+            // Trop long pour un long : forcément au-delà de la borne s'il n'y a que des chiffres.
+            return brut.trim().chars().allMatch(Character::isDigit) ? max : defaut;
+        }
     }
 
     /** @param nom nom du fichier (l'extension choisit le format) */
     public static Contenu lire(String nom, byte[] octets) throws ImportException {
+        verifierTaille(octets);
         String n = nom.toLowerCase(Locale.ROOT);
         if (n.endsWith(".xls")) {
             throw new ImportException("Le format Excel 97-2003 (.xls) n'est pas pris en charge : "
@@ -232,25 +279,32 @@ public final class LecteurTableur {
             } else if (c == '"' && cell.length() == 0) {
                 guillemets = true;
             } else if (c == sep) {
-                ligne.add(cell.toString());
+                if (ligne.size() < MAX_COLONNES) {
+                    ligne.add(cell.toString());
+                }
                 cell.setLength(0);
             } else if (c == '\n' || c == '\r') {
                 if (c == '\r' && i + 1 < texte.length() && texte.charAt(i + 1) == '\n') {
                     i++;
                 }
-                ligne.add(cell.toString());
+                if (ligne.size() < MAX_COLONNES) {
+                    ligne.add(cell.toString());
+                }
                 cell.setLength(0);
                 res.add(ligne);
                 ligne = new ArrayList<>();
                 if (res.size() > MAX_LIGNES) {
-                    break;
+                    // En-tête + MAX_LIGNES lignes : la suite n'est pas lue (dépassement signalé par CsvFederal).
+                    return res;
                 }
             } else {
                 cell.append(c);
             }
         }
         if (cell.length() > 0 || !ligne.isEmpty()) {
-            ligne.add(cell.toString());
+            if (ligne.size() < MAX_COLONNES) {
+                ligne.add(cell.toString());
+            }
             res.add(ligne);
         }
         return res;
@@ -299,10 +353,15 @@ public final class LecteurTableur {
     /** Liste d'objets JSON → lignes (en-tête = union des clés). */
     private static List<List<String>> objets(Json liste) {
         List<String> entetes = new ArrayList<>();
+        java.util.Set<String> vues = new java.util.HashSet<>();
+        int lus = 0;
         for (Json o : liste.elements()) {
+            if (lus++ >= MAX_LIGNES) {
+                break;
+            }
             if (o.estObjet()) {
                 for (String k : o.entrees().keySet()) {
-                    if (!entetes.contains(k)) {
+                    if (entetes.size() < MAX_COLONNES && vues.add(k)) {
                         entetes.add(k);
                     }
                 }
@@ -311,6 +370,9 @@ public final class LecteurTableur {
         List<List<String>> res = new ArrayList<>();
         res.add(entetes);
         for (Json o : liste.elements()) {
+            if (res.size() >= MAX_LIGNES) {
+                break;
+            }
             if (!o.estObjet()) {
                 continue;
             }
@@ -405,7 +467,11 @@ public final class LecteurTableur {
         NodeList lignes = feuille.getElementsByTagNameNS("*", "row");
         for (int i = 0; i < lignes.getLength() && i < MAX_LIGNES; i++) {
             Element row = (Element) lignes.item(i);
-            int numero = row.hasAttribute("r") ? Integer.parseInt(row.getAttribute("r")) : res.size() + 1;
+            // Numéro de ligne lu tel quel : « r="2000000000" » ne doit pas créer deux milliards de lignes.
+            int numero = entierBorne(row.getAttribute("r"), res.size() + 1, MAX_LIGNES + 1);
+            if (numero > MAX_LIGNES) {
+                break;
+            }
             while (res.size() < numero - 1) {
                 res.add(new ArrayList<>());
             }
@@ -414,7 +480,7 @@ public final class LecteurTableur {
             for (int k = 0; k < cells.getLength(); k++) {
                 Element c = (Element) cells.item(k);
                 int col = c.hasAttribute("r") ? colonne(c.getAttribute("r")) : l.size();
-                if (col >= MAX_COLONNES) {
+                if (col < 0 || col >= MAX_COLONNES) {
                     continue;
                 }
                 while (l.size() < col) {
@@ -456,14 +522,21 @@ public final class LecteurTableur {
         return brut;
     }
 
-    /** « AB12 » → 27 (colonnes numérotées à partir de 0). */
+    /**
+     * « AB12 » → 27 (colonnes numérotées à partir de 0). Une référence géante
+     * (« ZZZZZZZZZZ1 ») est bornée à {@link #MAX_COLONNES} au lieu de déborder ;
+     * un caractère hors A-Z arrête la lecture.
+     */
     static int colonne(String ref) {
         int n = 0;
         for (char ch : ref.toCharArray()) {
-            if (Character.isLetter(ch)) {
-                n = n * 26 + (Character.toUpperCase(ch) - 'A' + 1);
-            } else {
+            char u = Character.toUpperCase(ch);
+            if (u < 'A' || u > 'Z') {
                 break;
+            }
+            n = n * 26 + (u - 'A' + 1);
+            if (n > MAX_COLONNES) {
+                return MAX_COLONNES;
             }
         }
         return n - 1;
@@ -523,8 +596,7 @@ public final class LecteurTableur {
                         || !(c.getLocalName().equals("table-cell") || c.getLocalName().equals("covered-table-cell"))) {
                     continue;
                 }
-                int rep = c.hasAttributeNS(NS_TABLE, "number-columns-repeated")
-                        ? Integer.parseInt(c.getAttributeNS(NS_TABLE, "number-columns-repeated")) : 1;
+                int rep = entierBorne(c.getAttributeNS(NS_TABLE, "number-columns-repeated"), 1, MAX_COLONNES);
                 String v = valeurOds(c);
                 for (int k = 0; k < rep && l.size() < MAX_COLONNES; k++) {
                     l.add(v);
@@ -533,13 +605,12 @@ public final class LecteurTableur {
             while (!l.isEmpty() && l.get(l.size() - 1).isEmpty()) {
                 l.remove(l.size() - 1);
             }
-            int repLignes = row.hasAttributeNS(NS_TABLE, "number-rows-repeated")
-                    ? Integer.parseInt(row.getAttributeNS(NS_TABLE, "number-rows-repeated")) : 1;
+            int repLignes = entierBorne(row.getAttributeNS(NS_TABLE, "number-rows-repeated"), 1, MAX_LIGNES);
             if (l.isEmpty()) {
                 // Lignes vides répétées (souvent ~1 million en fin de feuille) : une seule suffit.
                 res.add(l);
             } else {
-                for (int k = 0; k < Math.min(repLignes, MAX_LIGNES); k++) {
+                for (int k = 0; k < repLignes && res.size() < MAX_LIGNES; k++) {
                     res.add(new ArrayList<>(l));
                 }
             }
@@ -579,22 +650,42 @@ public final class LecteurTableur {
     // Outils zip / XML
     // ------------------------------------------------------------------
 
-    private static Map<String, byte[]> dezipper(byte[] octets, String prefixe) throws ImportException {
+    /**
+     * Décompresse les entrées XML utiles de l'archive. Protection contre les
+     * bombes zip : chaque entrée est lue par blocs et comptée <b>pendant</b> la
+     * décompression (y compris les entrées ignorées, que le flux zip décompresse
+     * pour les sauter) ; arrêt dès que le total conservé, le total parcouru, le
+     * taux de décompression ou le nombre d'entrées dépasse sa borne.
+     */
+    static Map<String, byte[]> dezipper(byte[] octets, String prefixe) throws ImportException {
         Map<String, byte[]> res = new LinkedHashMap<>();
         try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(octets))) {
             ZipEntry e;
-            long total = 0;
+            long[] compteurs = new long[2]; // [0] total parcouru, [1] total conservé
+            int entrees = 0;
+            byte[] tampon = new byte[64 * 1024];
             while ((e = z.getNextEntry()) != null) {
-                if (e.getName().startsWith(prefixe) && !e.isDirectory()) {
-                    byte[] b = z.readAllBytes();
-                    total += b.length;
-                    if (total > 200L * 1024 * 1024) {
-                        throw new ImportException("Fichier trop volumineux.");
+                if (++entrees > MAX_ENTREES_ZIP) {
+                    throw new ImportException("Archive suspecte : plus de " + MAX_ENTREES_ZIP + " fichiers.");
+                }
+                String nomEntree = e.getName();
+                boolean conserver = nomEntree.startsWith(prefixe) && !e.isDirectory()
+                        && (nomEntree.endsWith(".xml") || nomEntree.endsWith(".rels"));
+                java.io.ByteArrayOutputStream sortie = conserver ? new java.io.ByteArrayOutputStream() : null;
+                int lu;
+                while ((lu = z.read(tampon)) > 0) {
+                    compteurs[0] += lu;
+                    if (conserver) {
+                        compteurs[1] += lu;
+                        sortie.write(tampon, 0, lu);
                     }
-                    res.put(e.getName(), b);
+                    verifierDecompression(compteurs, octets.length);
+                }
+                if (conserver) {
+                    res.put(nomEntree, sortie.toByteArray());
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             throw new ImportException("Archive illisible : le fichier est peut-être endommagé ou n'est pas un tableur.");
         }
         if (res.isEmpty()) {
@@ -603,10 +694,23 @@ public final class LecteurTableur {
         return res;
     }
 
+    private static void verifierDecompression(long[] compteurs, long tailleArchive) throws ImportException {
+        long total = compteurs[0];
+        if (compteurs[1] > MAX_DECOMPRESSE_CONSERVE || total > MAX_DECOMPRESSE_TOTAL) {
+            throw new ImportException("Fichier trop volumineux une fois décompressé : "
+                    + "archive suspecte (bombe zip) ou tableur démesuré.");
+        }
+        if (total > 1024 * 1024 && total > TAUX_DECOMPRESSION_MAX * Math.max(1, tailleArchive)) {
+            throw new ImportException("Archive suspecte : taux de décompression anormal (plus de "
+                    + TAUX_DECOMPRESSION_MAX + " fois la taille du fichier, bombe zip probable).");
+        }
+    }
+
     private static Document xml(byte[] octets) throws ImportException {
         try {
             DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
             f.setNamespaceAware(true);
+            f.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
             // Sécurité : aucune entité externe ni DTD (fichiers venant de l'extérieur).
             f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             f.setFeature("http://xml.org/sax/features/external-general-entities", false);

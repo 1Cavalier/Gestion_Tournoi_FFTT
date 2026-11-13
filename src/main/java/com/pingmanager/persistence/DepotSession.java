@@ -33,6 +33,7 @@ public final class DepotSession {
     public static SessionSalle charger(Path source) {
         String texte;
         try {
+            com.pingmanager.persistence.json.FichierJson.verifierTaille(source);
             texte = Files.readString(source, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Échec du chargement de session depuis " + source, e);
