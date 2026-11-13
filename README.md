@@ -376,6 +376,12 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     tournoi ouvert (plus rapide, refonte plus large).
 24. Géocodage en arrière-plan (il fige l'écran jusqu'à 5 s sans réseau).
 
+### Joueur
+- **B045 — Agenda** (en cours) : page « Agenda » de la navigation (vue Liste
+  et vue Mois, dates personnelles, dates de tournoi automatiques, export .ics)
+  et calendrier fédéral de la saison en suggestions (fichier de ressource
+  sourcé, statut « confirmée » ou « à vérifier »).
+
 ### Plus tard
 25. **B014** — Finitions graphiques et cohérence de tous les écrans (en dernier).
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
