@@ -381,8 +381,17 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
     Statistiques du joueur (rencontres, victoires, adversaires, par
     saison).
-27. **B026** — Buvette (cahier des charges à écrire : qui vend, sur quel
-    poste, carte ou non, stock).
+27. ~~B026 — Buvette (cahier des charges à écrire)~~ — remplacée par **B046**.
+27 bis. **B046 — Buvette** (cahier des charges proposé par la tâche elle-même) :
+    page Buvette (groupe Gestion) en onglets Catalogue | Stock | Budget |
+    Ventes | Historique. Catalogue de produits du club (catégories, prix en
+    centimes, désactivation sans suppression), ingrédients et recettes avec
+    coût de revient et marge, stock par tournoi tracé par mouvements (achats,
+    ventes, pertes, inventaire, report), budget prévisionnel (hypothèses de
+    consommation, scénarios bas / moyen / haut, liste de courses CSV et PDF),
+    caisse rapide du jour (une seule caisse), bilan prévu contre réel par
+    tournoi et par saison (CSV). Produits, prix et ratios proposés =
+    **suggestions** à valider par le club.
 28. Tableaux réservés aux licences loisir (IX.101), inscription d'un licencié
     par son club, export de la liste des inscrits (attention à l'injection de
     formules dans les cellules).
