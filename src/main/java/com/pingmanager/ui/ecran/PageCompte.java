@@ -170,32 +170,68 @@ public final class PageCompte {
     private void remplirLicence() {
         boiteLicence.getChildren().clear();
         CompteUtilisateur compte = contexte.compteConnecte();
+        Label msg = message();
 
         if (compte.aLicenceLiee()) {
-            boiteLicence.getChildren().add(grilleChamps(
-                    PresentationProfil.licence(compte.getLicenceLiee(), contexte.ficheLicenceLiee())));
+            Button delier = Ui.boutonSecondaire("Délier ma licence");
+            delier.setOnAction(e -> {
+                com.pingmanager.core.ResultatLiaisonLicence r = contexte.delierLicence();
+                if (r.estReussi()) {
+                    remplirLicence();
+                } else {
+                    erreur(msg, r.getMessage());
+                }
+            });
+            boiteLicence.getChildren().addAll(grilleChamps(
+                    PresentationProfil.licence(compte.getLicenceLiee(), contexte.ficheLicenceLiee())),
+                    Ui.actions(delier), msg);
             return;
         }
 
+        // Point 14 : numéro + date de naissance, puis code transmis par le référent du club.
         TextField champLicence = champ("numéro de licence", 200);
-        Label msg = message();
-        Button lier = Ui.boutonPrimaire("Vérifier et lier");
-        lier.setOnAction(e -> {
+        javafx.scene.control.DatePicker champNaissance = new javafx.scene.control.DatePicker();
+        champNaissance.setPromptText("date de naissance");
+        Button demander = Ui.boutonPrimaire("Demander la liaison");
+        TextField champCodeLicence = champ("code du référent", 160);
+        Button valider = Ui.boutonPrimaire("Valider le code");
+        VBox zoneCodeLicence = new VBox(8,
+                aide("Le référent de votre club a reçu un code : demandez-le-lui et saisissez-le ici."),
+                ligne(champCodeLicence, valider));
+        if (contexte.licenceEnAttenteDeCode().isEmpty()) {
+            cacher(zoneCodeLicence);
+        }
+        demander.setOnAction(e -> {
             String numero = valeur(champLicence);
-            if (numero.isBlank()) {
-                erreur(msg, "Saisissez un numéro de licence.");
+            if (numero.isBlank() || champNaissance.getValue() == null) {
+                erreur(msg, "Saisissez le numéro de licence et la date de naissance.");
                 return;
             }
-            if (contexte.lierLicence(numero).isPresent()) {
-                remplirLicence();
+            com.pingmanager.core.ResultatLiaisonLicence r =
+                    contexte.demanderLiaisonLicence(numero, champNaissance.getValue());
+            if (r.estReussi()) {
+                info(msg, r.getMessage());
+                montrer(zoneCodeLicence);
             } else {
-                erreur(msg, "Aucune licence ne correspond à ce numéro.");
+                erreur(msg, r.getMessage());
             }
         });
-
+        valider.setOnAction(e -> {
+            com.pingmanager.core.ResultatLiaisonLicence r = contexte.confirmerLiaisonLicence(valeur(champCodeLicence));
+            if (r.estReussi()) {
+                remplirLicence();
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        if (!contexte.emailVerifie()) {
+            demander.setDisable(true);
+        }
         boiteLicence.getChildren().addAll(
-                aide("Saisissez votre numéro de licence pour le rattacher à votre compte."),
-                ligne(champLicence, lier),
+                aide("Saisissez votre numéro de licence et votre date de naissance. Pour prouver qu'il "
+                        + "s'agit bien de vous, un code est envoyé au référent de votre club."),
+                ligne(champLicence, champNaissance, demander),
+                zoneCodeLicence,
                 msg);
     }
 
@@ -291,6 +327,25 @@ public final class PageCompte {
         return bloc;
     }
 
+    /** Point 14 : un administrateur délie une licence de son club du compte qui la porte. */
+    private Node formulaireDeliaisonLicence() {
+        TextField champ = champ("numéro de licence", 200);
+        Label msg = message();
+        Button delier = Ui.boutonSecondaire("Délier");
+        delier.setOnAction(e -> {
+            com.pingmanager.core.ResultatLiaisonLicence r = contexte.delierLicenceParAdministrateur(valeur(champ));
+            if (r.estReussi()) {
+                info(msg, r.getMessage());
+                champ.clear();
+            } else {
+                erreur(msg, r.getMessage());
+            }
+        });
+        return new VBox(8, aide("Si un compte s'est lié à la licence d'un de vos licenciés, "
+                + "vous pouvez la délier : le licencié pourra alors la lier à son propre compte."),
+                ligne(champ, delier), msg);
+    }
+
     /** Le bouton d'envoi ne s'active qu'après confirmation explicite de l'avertissement. */
     private void majEnvoiPossible() {
         boutonEnvoyer.setDisable(!caseConfirmation.isSelected());
@@ -314,7 +369,10 @@ public final class PageCompte {
                     tableauDroits(c.droits()),
                     new Separator(),
                     Ui.sousTitre("Équipe de gestion"),
-                    tableauMembres(contexte.membresDuClub(c.numero()))));
+                    tableauMembres(contexte.membresDuClub(c.numero())),
+                    new Separator(),
+                    Ui.sousTitre("Licence liée à un compte par erreur"),
+                    formulaireDeliaisonLicence()));
         }
     }
 

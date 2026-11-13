@@ -159,6 +159,23 @@ public final class DepotApplication implements RegistreClubs {
      * @return un prédicat « cet email est déjà pris par un compte utilisateur »,
      *         à passer à {@code ServiceAuthentification.creerCompte(...)}.
      */
+    /**
+     * Point 14 : le compte qui porte cette licence (une licence pour un seul compte).
+     * Un ancien fichier où deux comptes la portent renvoie le premier enregistré.
+     */
+    public Optional<CompteUtilisateur> compteDeLaLicence(String numeroLicence) {
+        if (numeroLicence == null || numeroLicence.isBlank()) {
+            return Optional.empty();
+        }
+        String n = numeroLicence.trim();
+        for (CompteUtilisateur c : comptesUtilisateursParEmail.values()) {
+            if (n.equals(c.getLicenceLiee())) {
+                return Optional.of(c);
+            }
+        }
+        return Optional.empty();
+    }
+
     public Predicate<String> emailUtilisateurDejaUtilise() {
         return email -> email != null && comptesUtilisateursParEmail.containsKey(cleEmail(email));
     }

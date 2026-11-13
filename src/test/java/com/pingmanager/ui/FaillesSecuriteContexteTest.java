@@ -157,7 +157,7 @@ class FaillesSecuriteContexteTest {
 
     /** Code à 6 chiffres du dernier email « envoyé » (emails à la console). */
     static String codeRecu(ContexteApplication ctx) {
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{6})")
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\b(\\d{6})\\b")
                 .matcher(ctx.email().dernierMessage().orElseThrow().getCorps());
         assertTrue(m.find());
         return m.group(1);

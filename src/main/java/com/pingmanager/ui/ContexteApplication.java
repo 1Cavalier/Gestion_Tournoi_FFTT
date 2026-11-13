@@ -159,7 +159,7 @@ public final class ContexteApplication {
         Horloge horloge = Horloge.systeme();
 
         this.authentification = new ServiceAuthentification(hachage, horloge);
-        this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT);
+        this.liaisonLicence = new ServiceLiaisonLicence(this.licencesFFTT, this.clubsFFTT, code, email, hachage, horloge);
         this.liaisonClub = new ServiceLiaisonClub(this.clubsFFTT, code, email, hachage, horloge);
         this.verificationEmail = new com.pingmanager.core.ServiceVerificationEmail(code, email, hachage, horloge);
         this.eligibilite = new EligibiliteTournoi(this.clubsFFTT);
@@ -200,7 +200,8 @@ public final class ContexteApplication {
             if (compte.isPresent()) {
                 profilDemo = compte.get();
                 profilDemo.marquerEmailVerifie(); // compte fictif de démonstration
-                liaisonLicence.lier(profilDemo, DonneesDemo.LICENCE_PROFIL_DEMO);
+                // Licence fictive liée d'office (données de démonstration, sans preuve).
+                profilDemo.lierLicence(DonneesDemo.LICENCE_PROFIL_DEMO);
                 depot.enregistrerCompteUtilisateur(profilDemo);
                 // Le profil de démo est administrateur (niveau 1) de Brunoy, sous le référent.
                 depot.enregistrerAcces(new AccesClub(
@@ -615,19 +616,74 @@ public final class ContexteApplication {
     // Démarche 1 — liaison licence
     // ==================================================================
 
+    /** Demande de liaison de licence en cours (code envoyé au référent), en mémoire seulement. */
+    private DemandeVerification demandeLicence;
+    private String licenceDemandee;
+
     /**
-     * Recherche la licence et, si elle existe, la lie au compte connecté.
-     *
-     * @return la fiche de licence si trouvée, sinon {@link Optional#empty()}
+     * Point 14, première étape : numéro et date de naissance du licencié ; si la licence
+     * est libre et la date juste, un code part au référent du club de la licence.
      */
-    public Optional<FicheLicence> lierLicence(String numeroLicence) {
+    public com.pingmanager.core.ResultatLiaisonLicence demanderLiaisonLicence(String numeroLicence,
+                                                                             java.time.LocalDate dateNaissance) {
         exigerConnecte();
-        Optional<FicheLicence> fiche = liaisonLicence.lier(compteConnecte, numeroLicence);
-        if (fiche.isPresent()) {
+        com.pingmanager.core.ResultatLiaisonLicence r = liaisonLicence.demander(compteConnecte, numeroLicence,
+                dateNaissance, depot::compteDeLaLicence);
+        if (r.getDemande() != null) {
+            demandeLicence = r.getDemande();
+            licenceDemandee = r.getFiche().getNumeroLicence();
+        }
+        return r;
+    }
+
+    /** @return le numéro de la licence dont la liaison attend son code, s'il y en a une. */
+    public Optional<String> licenceEnAttenteDeCode() {
+        return Optional.ofNullable(licenceDemandee);
+    }
+
+    /** Point 14, seconde étape : le code transmis par le référent lie la licence. */
+    public com.pingmanager.core.ResultatLiaisonLicence confirmerLiaisonLicence(String code) {
+        exigerConnecte();
+        com.pingmanager.core.ResultatLiaisonLicence r = liaisonLicence.confirmer(compteConnecte, licenceDemandee,
+                demandeLicence, code, depot::compteDeLaLicence);
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.LIEE) {
+            demandeLicence = null;
+            licenceDemandee = null;
             depot.enregistrerCompteUtilisateur(compteConnecte);
             sauvegarder();
         }
-        return fiche;
+        return r;
+    }
+
+    /** Point 14 : le titulaire délie sa licence. */
+    public com.pingmanager.core.ResultatLiaisonLicence delierLicence() {
+        exigerConnecte();
+        com.pingmanager.core.ResultatLiaisonLicence r =
+                liaisonLicence.delier(compteConnecte, compteConnecte, accesCourants());
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.DELIEE) {
+            depot.enregistrerCompteUtilisateur(compteConnecte);
+            sauvegarder();
+        }
+        return r;
+    }
+
+    /**
+     * Point 14 : un administrateur du club de la licence la délie du compte qui la porte
+     * (licence réclamée par erreur ou usurpée).
+     */
+    public com.pingmanager.core.ResultatLiaisonLicence delierLicenceParAdministrateur(String numeroLicence) {
+        exigerConnecte();
+        CompteUtilisateur titulaire = depot.compteDeLaLicence(numeroLicence).orElse(null);
+        if (titulaire == null) {
+            return com.pingmanager.core.ResultatLiaisonLicence.aucuneLicenceLiee();
+        }
+        com.pingmanager.core.ResultatLiaisonLicence r =
+                liaisonLicence.delier(titulaire, compteConnecte, accesCourants());
+        if (r.getStatut() == com.pingmanager.core.ResultatLiaisonLicence.Statut.DELIEE) {
+            depot.enregistrerCompteUtilisateur(titulaire);
+            sauvegarder();
+        }
+        return r;
     }
 
     /** @return la fiche de la licence liée au compte (pour l'affichage), si connue. */
