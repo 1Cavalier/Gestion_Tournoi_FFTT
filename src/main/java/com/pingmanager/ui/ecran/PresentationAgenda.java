@@ -1,7 +1,9 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.reglement.Formats;
+import com.pingmanager.core.ServiceAgenda;
 import com.pingmanager.model.AgendaCompte;
+import com.pingmanager.model.DateFederale;
 import com.pingmanager.model.EvenementAgenda;
 
 import com.pingmanager.model.OrigineEvenement;
@@ -53,9 +55,20 @@ final class PresentationAgenda {
                 continue;
             }
             res.add(new LigneAgenda(e.getId(), jour(e), heure(e), e.getTitre(), detail(e),
-                    e.estAutomatique() ? "Tournoi" : "Date personnelle", e.estAutomatique(), passee));
+                    etiquette(e), e.estAutomatique(), passee));
         }
         return res;
+    }
+
+    /** Étiquette de « Mes tournois » : Tournoi, Date fédérale ou Date personnelle. */
+    static String etiquette(EvenementAgenda e) {
+        if (e.estAutomatique()) {
+            return "Tournoi";
+        }
+        if (e.getOrigine() == OrigineEvenement.FEDERAL) {
+            return "Date fédérale";
+        }
+        return "Date personnelle";
     }
 
     /** « samedi 17 avril 2027 », ou « du samedi 10 au dimanche 11 avril 2027 ». */
@@ -131,7 +144,7 @@ final class PresentationAgenda {
             if (origine == OrigineEvenement.TOURNOI) {
                 return TOURNOI;
             }
-            if (origine != null && "FEDERAL".equals(origine.name())) {
+            if (origine == OrigineEvenement.FEDERAL) {
                 return FEDERAL;
             }
             return PERSONNEL;
@@ -146,10 +159,11 @@ final class PresentationAgenda {
      * @param modifiable vrai pour une date que l'on peut modifier et retirer à la main
      * @param statut     pour une date fédérale : « Confirmée » ou « À vérifier » ; sinon {@code null}
      * @param aVerifier  vrai si le statut fédéral est « à vérifier » (pastille d'attention)
+     * @param dansMonAgenda vrai pour une date fédérale déjà copiée dans l'agenda
      */
     record Element(String id, LocalDate date, LocalDate dateFin, String titre, String heure, String detail,
                    TypeDate type, boolean modifiable, boolean passee, boolean suggestion, String statut,
-                   boolean aVerifier) {
+                   boolean aVerifier, boolean dansMonAgenda) {
 
         /** @return vrai si l'élément couvre ce jour. */
         boolean couvre(LocalDate jour) {
@@ -190,7 +204,7 @@ final class PresentationAgenda {
             TypeDate type = TypeDate.de(e.getOrigine());
             res.add(new Element(e.getId(), e.getDate(), e.getDateFin(), e.getTitre(),
                     e.getHeure() == null ? null : Formats.heure(e.getHeure()), detail(e), type,
-                    !e.estAutomatique(), e.getDateFin().isBefore(aujourdhui), false, null, false));
+                    !e.estAutomatique(), e.getDateFin().isBefore(aujourdhui), false, null, false, false));
         }
         res.sort(ORDRE_ELEMENTS);
         return res;
@@ -347,5 +361,142 @@ final class PresentationAgenda {
     /** Texte de la page hors connexion. */
     static String texteHorsConnexion() {
         return "Connectez-vous pour tenir votre agenda : vos dates, et les tournois où vous êtes inscrit.";
+    }
+
+    // ==================================================================
+    // Calendrier fédéral (B045) : suggestions
+    // ==================================================================
+
+    /** Libellé de la pastille d'une date fédérale déjà copiée. */
+    static final String DANS_MON_AGENDA = "Dans mon agenda";
+
+    private static final DateTimeFormatter JJ_MM_AAAA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /** Les dates fédérales d'une catégorie, pour « Tout ajouter ». */
+    record CategorieFederale(String nom, List<DateFederale> dates, int dejaAjoutees) {
+
+        /** @return le nombre de dates pas encore dans l'agenda. */
+        int restantes() {
+            return dates.size() - dejaAjoutees;
+        }
+    }
+
+    /**
+     * Ajoute aux éléments de l'agenda les dates du calendrier fédéral : une date déjà
+     * copiée garde sa ligne d'agenda, marquée « dans mon agenda » avec son statut ;
+     * les autres deviennent des <b>suggestions</b> (rien n'est ajouté à l'agenda).
+     */
+    static List<Element> avecCalendrier(List<Element> elementsAgenda, List<DateFederale> federales,
+                                        AgendaCompte agenda, LocalDate aujourdhui) {
+        Map<String, DateFederale> parIdAgenda = new LinkedHashMap<>();
+        for (DateFederale d : federales) {
+            parIdAgenda.put(ServiceAgenda.identifiantFederal(d), d);
+        }
+        List<Element> res = new ArrayList<>();
+        for (Element e : elementsAgenda) {
+            DateFederale d = parIdAgenda.get(e.id());
+            if (d != null) {
+                res.add(new Element(e.id(), e.date(), e.dateFin(), e.titre(), e.heure(), e.detail(), e.type(),
+                        e.modifiable(), e.passee(), false, d.getStatut().libelle(), d.estAVerifier(), true));
+            } else {
+                res.add(e);
+            }
+        }
+        for (DateFederale d : federales) {
+            if (ServiceAgenda.estDansAgenda(agenda, d)) {
+                continue;
+            }
+            res.add(new Element(d.getId(), d.getDate(), d.getDateFin(), d.getTitre(), null, detailSuggestion(d),
+                    TypeDate.FEDERAL, false, d.getDateFin().isBefore(aujourdhui), true, d.getStatut().libelle(),
+                    d.estAVerifier(), false));
+        }
+        res.sort(ORDRE_ELEMENTS);
+        return res;
+    }
+
+    /** « Suggestion · source fftt.com, relue le 13/11/2026 ». */
+    static String detailSuggestion(DateFederale d) {
+        return "Suggestion · source " + domaine(d.getSource()) + ", relue le " + JJ_MM_AAAA.format(d.getReluLe());
+    }
+
+    /** Domaine d'une adresse (« https://www.fftt.com/site/… » → « fftt.com »), sinon le texte tel quel. */
+    static String domaine(String source) {
+        String s = source.trim().replaceFirst("^[a-zA-Z]+://", "");
+        int fin = s.indexOf('/');
+        if (fin >= 0) {
+            s = s.substring(0, fin);
+        }
+        return s.startsWith("www.") ? s.substring(4) : s;
+    }
+
+    /** Dates fédérales regroupées par catégorie (ordre de première apparition). */
+    static List<CategorieFederale> categories(List<DateFederale> federales, AgendaCompte agenda) {
+        Map<String, List<DateFederale>> parNom = new LinkedHashMap<>();
+        for (DateFederale d : federales) {
+            parNom.computeIfAbsent(d.getCategorie(), k -> new ArrayList<>()).add(d);
+        }
+        List<CategorieFederale> res = new ArrayList<>();
+        for (Map.Entry<String, List<DateFederale>> c : parNom.entrySet()) {
+            int deja = 0;
+            for (DateFederale d : c.getValue()) {
+                if (ServiceAgenda.estDansAgenda(agenda, d)) {
+                    deja++;
+                }
+            }
+            res.add(new CategorieFederale(c.getKey(), List.copyOf(c.getValue()), deja));
+        }
+        return res;
+    }
+
+    /** « 3 dates, 1 dans mon agenda, 2 à vérifier ». */
+    static String resumeCategorie(CategorieFederale c) {
+        int aVerifier = 0;
+        for (DateFederale d : c.dates()) {
+            if (d.estAVerifier()) {
+                aVerifier++;
+            }
+        }
+        StringBuilder sb = new StringBuilder(pluriel(c.dates().size(), "date", "dates"));
+        if (c.dejaAjoutees() > 0) {
+            sb.append(", ").append(c.dejaAjoutees()).append(" dans mon agenda");
+        }
+        if (aVerifier > 0) {
+            sb.append(", ").append(aVerifier).append(" à vérifier");
+        }
+        return sb.toString();
+    }
+
+    /** Question de confirmation de « Tout ajouter ». */
+    static String texteConfirmationToutAjouter(CategorieFederale c) {
+        return "Ajouter à votre agenda " + pluriel(c.restantes(), "date", "dates") + " « " + c.nom() + " » ? "
+                + "Ce sont des repères : vérifiez les dates marquées « à vérifier » auprès de la fédération, "
+                + "de votre ligue ou de votre comité.";
+    }
+
+    /** Message après « Tout ajouter ». */
+    static String texteApresToutAjouter(int ajoutees) {
+        if (ajoutees == 0) {
+            return "Ces dates étaient déjà toutes dans votre agenda.";
+        }
+        return pluriel(ajoutees, "date ajoutée", "dates ajoutées") + " à votre agenda.";
+    }
+
+    /** Titre du bloc du calendrier fédéral. */
+    static String titreCalendrier(List<DateFederale> federales) {
+        java.util.TreeSet<String> saisons = new java.util.TreeSet<>();
+        for (DateFederale d : federales) {
+            saisons.add(Formats.saison(d.getDate()));
+        }
+        return "Calendrier fédéral" + (saisons.isEmpty() ? "" : " " + String.join(", ", saisons));
+    }
+
+    /** Explication sous le titre du bloc du calendrier fédéral. */
+    static String aideCalendrier() {
+        return "Dates repères de la fédération, proposées en suggestions : rien n'est ajouté sans vous. "
+                + "Une date « à vérifier » n'a pas encore été confirmée sur une source officielle.";
+    }
+
+    private static String pluriel(int n, String un, String plusieurs) {
+        return n + " " + (n > 1 ? plusieurs : un);
     }
 }

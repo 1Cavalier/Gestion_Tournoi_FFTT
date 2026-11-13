@@ -275,6 +275,9 @@ final class ApplicationMapper {
         if ("TOURNOI".equals(valeur) && cle != null && !cle.isBlank()) {
             return OrigineEvenement.TOURNOI;
         }
+        if ("FEDERAL".equals(valeur)) {
+            return OrigineEvenement.FEDERAL; // B045 : repère du calendrier fédéral
+        }
         return OrigineEvenement.PERSONNEL;
     }
 }

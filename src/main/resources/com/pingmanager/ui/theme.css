@@ -4294,3 +4294,12 @@
 .agenda-fenetre-message {
     -fx-padding: 4 0 0 0;
 }
+
+/* Calendrier fédéral (B045, partie 2) : bloc des catégories, confirmation. */
+.agenda-federal .aide {
+    -fx-padding: 0 0 4 0;
+}
+
+.agenda-confirmation {
+    -fx-padding: 12 0 4 0;
+}

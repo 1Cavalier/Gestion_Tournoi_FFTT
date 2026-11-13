@@ -2,6 +2,7 @@ package com.pingmanager.core;
 
 import com.pingmanager.model.AgendaCompte;
 import com.pingmanager.model.EvenementAgenda;
+import com.pingmanager.model.OrigineEvenement;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -107,9 +108,19 @@ public final class ExportIcs {
         if (e.getNote() != null) {
             ligne(sb, "DESCRIPTION:" + echapper(e.getNote()));
         }
-        ligne(sb, "CATEGORIES:" + (e.estAutomatique() ? "Tournoi" : "Personnel"));
+        ligne(sb, "CATEGORIES:" + categorie(e));
         ligne(sb, "TRANSP:" + (e.getHeure() == null ? "TRANSPARENT" : "OPAQUE"));
         ligne(sb, "END:VEVENT");
+    }
+
+    private static String categorie(EvenementAgenda e) {
+        if (e.estAutomatique()) {
+            return "Tournoi";
+        }
+        if (e.getOrigine() == OrigineEvenement.FEDERAL) {
+            return "Fédéral";
+        }
+        return "Personnel";
     }
 
     /**

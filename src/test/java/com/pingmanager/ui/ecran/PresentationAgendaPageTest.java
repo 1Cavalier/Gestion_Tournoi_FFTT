@@ -128,7 +128,7 @@ class PresentationAgendaPageTest {
         assertEquals("sam. 5 → dim. 6 · Brunoy · Tableau : rien", PresentationAgenda.detailLigne(
                 new PresentationAgenda.Element("x", LocalDate.of(2026, 12, 5), LocalDate.of(2026, 12, 6), "X", null,
                         "Brunoy · Tableau : rien", PresentationAgenda.TypeDate.TOURNOI, false, false, false, null,
-                        false)));
+                        false, false)));
         assertEquals("Vendredi 20 novembre 2026", PresentationAgenda.titreJour(LocalDate.of(2026, 11, 20)));
         assertNotEquals(PresentationAgenda.texteVidePage(true), PresentationAgenda.texteVidePage(false));
         assertTrue(PresentationAgenda.texteVidePage(false).contains("filtres"));

@@ -1,10 +1,12 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.ChargeurCalendrierFederal;
 import com.pingmanager.core.ExportIcs;
 import com.pingmanager.core.Horloge;
 import com.pingmanager.core.ResultatAgenda;
 import com.pingmanager.core.ServiceAgenda;
 import com.pingmanager.model.AgendaCompte;
+import com.pingmanager.model.DateFederale;
 import com.pingmanager.model.EvenementAgenda;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.ui.ContexteApplication;
@@ -31,11 +33,13 @@ import javafx.stage.FileChooser;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +63,8 @@ final class PageAgenda {
     private final Set<PresentationAgenda.TypeDate> types = EnumSet.allOf(PresentationAgenda.TypeDate.class);
     private YearMonth moisAffiche = YearMonth.now();
     private LocalDate jourChoisi = LocalDate.now();
+    private List<DateFederale> federales = List.of();
+    private String erreurCalendrier;
 
     PageAgenda(ContexteApplication contexte) {
         this.contexte = contexte;
@@ -72,8 +78,34 @@ final class PageAgenda {
                 contexte.tousLesTournois(), licence, LocalDate.now(), service)) {
             contexte.sauvegarder();
         }
+        chargerCalendrierFederal();
         afficher();
         return Ui.defilant(racine);
+    }
+
+    /**
+     * Charge les fichiers de calendrier fédéral de la saison en cours et de la
+     * suivante (ressources versionnées) ; un fichier invalide est ignoré, avec un message.
+     */
+    private void chargerCalendrierFederal() {
+        List<DateFederale> res = new ArrayList<>();
+        for (String nom : ChargeurCalendrierFederal.ressourcesAChercher(aujourdhui())) {
+            try (InputStream in = PageAgenda.class.getResourceAsStream(
+                    ChargeurCalendrierFederal.DOSSIER_RESSOURCES + nom)) {
+                if (in == null) {
+                    continue; // saison pas encore publiée
+                }
+                ChargeurCalendrierFederal.Resultat r = ChargeurCalendrierFederal.lire(in);
+                if (r.estValide()) {
+                    res.addAll(r.dates());
+                } else {
+                    erreurCalendrier = "Calendrier fédéral « " + nom + " » ignoré : " + r.erreurs().get(0);
+                }
+            } catch (IOException ex) {
+                erreurCalendrier = "Calendrier fédéral « " + nom + " » illisible : " + ex.getMessage();
+            }
+        }
+        federales = List.copyOf(res);
     }
 
     private LocalDate aujourdhui() {
@@ -115,11 +147,62 @@ final class PageAgenda {
 
     /** Éléments affichés (dates de l'agenda, et suggestions quand elles existent). */
     private List<PresentationAgenda.Element> elements(AgendaCompte agenda) {
-        return PresentationAgenda.elements(agenda, aujourdhui());
+        return PresentationAgenda.avecCalendrier(PresentationAgenda.elements(agenda, aujourdhui()), federales,
+                agenda, aujourdhui());
     }
 
-    /** Point d'extension : blocs ajoutés sous la liste (calendrier fédéral). */
+    /** Bloc du calendrier fédéral : une ligne par catégorie avec « Tout ajouter ». */
     private void complements(VBox page, AgendaCompte agenda) {
+        if (erreurCalendrier != null) {
+            page.getChildren().add(Ui.etatVideCompact(erreurCalendrier));
+        }
+        if (federales.isEmpty()) {
+            return;
+        }
+        VBox lignes = new VBox(0);
+        boolean premiere = true;
+        for (PresentationAgenda.CategorieFederale c : PresentationAgenda.categories(federales, agenda)) {
+            Node droite;
+            if (c.restantes() == 0) {
+                droite = Ui.pastille(PresentationAgenda.DANS_MON_AGENDA, StatutPastille.SUCCES);
+            } else {
+                Button tout = Ui.boutonSecondaire("Tout ajouter (" + c.restantes() + ")");
+                tout.setOnAction(e -> confirmerToutAjouter(lignes, agenda, c));
+                droite = tout;
+            }
+            HBox l = Ui.ligneElement(pastilleType(PresentationAgenda.TypeDate.FEDERAL), c.nom(),
+                    PresentationAgenda.resumeCategorie(c), droite);
+            l.getStyleClass().add("agenda-categorie");
+            if (premiere) {
+                l.getStyleClass().add("ligne-element-premiere");
+                premiere = false;
+            }
+            lignes.getChildren().add(l);
+        }
+        Label aide = Ui.aide(PresentationAgenda.aideCalendrier());
+        aide.setWrapText(true);
+        VBox carte = Ui.carte(Ui.titreCarte(PresentationAgenda.titreCalendrier(federales)), aide, lignes);
+        carte.getStyleClass().add("agenda-federal");
+        page.getChildren().add(carte);
+    }
+
+    /** Confirmation en ligne avant « Tout ajouter » (rien n'est ajouté sans accord). */
+    private void confirmerToutAjouter(VBox lignes, AgendaCompte agenda, PresentationAgenda.CategorieFederale c) {
+        Button oui = Ui.boutonPrimaire("Ajouter");
+        Button non = Ui.boutonSecondaire("Renoncer");
+        VBox encart = Ui.encartConfirmation(PresentationAgenda.texteConfirmationToutAjouter(c), oui, non);
+        encart.getStyleClass().add("agenda-confirmation");
+        oui.setOnAction(e -> {
+            int n = service.ajouterDatesFederales(agenda, c.dates());
+            if (n > 0) {
+                contexte.sauvegarder();
+            }
+            afficher();
+            montrer(true, PresentationAgenda.texteApresToutAjouter(n));
+        });
+        non.setOnAction(e -> lignes.getChildren().remove(encart));
+        lignes.getChildren().removeIf(n -> n.getStyleClass().contains("agenda-confirmation"));
+        lignes.getChildren().add(encart);
     }
 
     // ------------------------------------------------------------------
@@ -227,9 +310,26 @@ final class PageAgenda {
         return h;
     }
 
-    /** Actions d'une ligne : modifier et retirer une date personnelle. */
+    /** Actions d'une ligne : ajouter une suggestion, ou modifier et retirer une date personnelle. */
     private void actionsLigne(AgendaCompte agenda, PresentationAgenda.Element e, HBox actions) {
-        if (!e.modifiable() || e.suggestion()) {
+        if (e.dansMonAgenda()) {
+            actions.getChildren().add(Ui.pastille(PresentationAgenda.DANS_MON_AGENDA, StatutPastille.NEUTRE));
+        }
+        if (e.suggestion()) {
+            Button ajouter = Ui.boutonSecondaire("Ajouter à mon agenda");
+            ajouter.setOnAction(a -> federales.stream().filter(d -> d.getId().equals(e.id())).findFirst()
+                    .ifPresent(d -> {
+                        ResultatAgenda r = service.ajouterDateFederale(agenda, d);
+                        if (r.getMotif() == ResultatAgenda.Motif.AJOUTE) {
+                            contexte.sauvegarder();
+                        }
+                        afficher();
+                        montrer(r.estAccepte(), r.message());
+                    }));
+            actions.getChildren().add(ajouter);
+            return;
+        }
+        if (!e.modifiable()) {
             return;
         }
         Button modifier = Ui.boutonLien("Modifier");

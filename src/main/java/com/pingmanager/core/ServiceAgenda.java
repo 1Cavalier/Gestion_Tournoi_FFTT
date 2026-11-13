@@ -2,6 +2,7 @@ package com.pingmanager.core;
 
 import com.pingmanager.model.AdresseTournoi;
 import com.pingmanager.model.AgendaCompte;
+import com.pingmanager.model.DateFederale;
 import com.pingmanager.model.EvenementAgenda;
 import com.pingmanager.model.OrigineEvenement;
 import com.pingmanager.model.Tableau;
@@ -33,6 +34,12 @@ public final class ServiceAgenda {
 
     /** Préfixe de l'identifiant (et de l'UID iCalendar) des dates de tournoi. */
     static final String PREFIXE_TOURNOI = "tournoi-";
+
+    /** Préfixe de l'identifiant des dates copiées du calendrier fédéral (B045). */
+    static final String PREFIXE_FEDERAL = "federal-";
+
+    private static final java.time.format.DateTimeFormatter JJ_MM_AAAA =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final Supplier<String> generateurId;
 
@@ -248,5 +255,78 @@ public final class ServiceAgenda {
             n.add(tab.getNom());
         }
         return String.join(", ", n);
+    }
+
+    // ==================================================================
+    // Calendrier fédéral (B045) : suggestions copiées à la demande
+    // ==================================================================
+
+    /**
+     * Identifiant, dans l'agenda, de la copie d'une date fédérale : stable (tiré de
+     * l'identifiant du fichier), pour qu'une date ne s'ajoute jamais deux fois et
+     * garde le même UID à l'export.
+     */
+    public static String identifiantFederal(DateFederale d) {
+        Objects.requireNonNull(d, "date fédérale");
+        return PREFIXE_FEDERAL + d.getId();
+    }
+
+    /** @return vrai si cette date fédérale a déjà été ajoutée à l'agenda. */
+    public static boolean estDansAgenda(AgendaCompte agenda, DateFederale d) {
+        return agenda != null && agenda.trouver(identifiantFederal(d)).isPresent();
+    }
+
+    /**
+     * Copie une date fédérale dans l'agenda (origine {@link OrigineEvenement#FEDERAL}),
+     * avec son statut et sa source en note. Rien n'est ajouté automatiquement : seul
+     * le titulaire le demande. Une date déjà ajoutée n'est pas dupliquée.
+     *
+     * @return {@code AJOUTE}, ou {@code DEJA_DANS_L_AGENDA}
+     */
+    public ResultatAgenda ajouterDateFederale(AgendaCompte agenda, DateFederale d) {
+        Objects.requireNonNull(agenda, "agenda");
+        Objects.requireNonNull(d, "date fédérale");
+        Optional<EvenementAgenda> existante = agenda.trouver(identifiantFederal(d));
+        if (existante.isPresent()) {
+            return new ResultatAgenda(ResultatAgenda.Motif.DEJA_DANS_L_AGENDA, existante.get());
+        }
+        EvenementAgenda e = EvenementAgenda.builder().id(identifiantFederal(d)).titre(tronquer(d.getTitre()))
+                .date(d.getDate()).dateFin(d.getDateFin()).note(noteFederale(d))
+                .origine(OrigineEvenement.FEDERAL).construire();
+        agenda.enregistrer(e);
+        return new ResultatAgenda(ResultatAgenda.Motif.AJOUTE, e);
+    }
+
+    /**
+     * « Tout ajouter » d'une catégorie : copie chaque date pas encore présente.
+     *
+     * @return le nombre de dates ajoutées (0 si toutes y étaient déjà)
+     */
+    public int ajouterDatesFederales(AgendaCompte agenda, List<DateFederale> dates) {
+        Objects.requireNonNull(dates, "dates");
+        int n = 0;
+        for (DateFederale d : dates) {
+            if (ajouterDateFederale(agenda, d).getMotif() == ResultatAgenda.Motif.AJOUTE) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Note de la copie : statut, note du calendrier, source et date de relecture. */
+    static String noteFederale(DateFederale d) {
+        StringBuilder sb = new StringBuilder("Calendrier fédéral (").append(d.getCategorie()).append(") : ")
+                .append(d.getStatut().libelle().toLowerCase(java.util.Locale.FRENCH)).append('.');
+        if (d.getNote() != null) {
+            sb.append('\n').append(d.getNote());
+        }
+        sb.append('\n').append("Source : ").append(d.getSource()).append(" (relue le ")
+                .append(JJ_MM_AAAA.format(d.getReluLe())).append(").");
+        String note = sb.toString();
+        return note.length() > LONGUEUR_MAX_NOTE ? note.substring(0, LONGUEUR_MAX_NOTE) : note;
+    }
+
+    private static String tronquer(String titre) {
+        return titre.length() > LONGUEUR_MAX_TITRE ? titre.substring(0, LONGUEUR_MAX_TITRE) : titre;
     }
 }
