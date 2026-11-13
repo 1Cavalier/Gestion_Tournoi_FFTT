@@ -65,7 +65,7 @@ class CompteEtClubTest {
     @Test
     void compte_construit_non_verifie_par_defaut() {
         CompteOrganisateur compte = new CompteOrganisateur(
-                "Serge.Boulier@Gmail.com", "Boulier", "Serge", "HASH", "08911132");
+                "Referent.Demo@Example.org", "Boulier", "Serge", "HASH", "08911132");
         assertFalse(compte.isEmailVerifie());
         assertEquals("08911132", compte.getNumeroClub());
         assertEquals("HASH", compte.getEmpreinteMotDePasse());
@@ -74,8 +74,8 @@ class CompteEtClubTest {
     @Test
     void compte_normalise_email_en_minuscules() {
         CompteOrganisateur compte = new CompteOrganisateur(
-                "Serge.Boulier@Gmail.com", "Boulier", "Serge", "HASH", "08911132");
-        assertEquals("serge.boulier@gmail.com", compte.getEmail());
+                "Referent.Demo@Example.org", "Boulier", "Serge", "HASH", "08911132");
+        assertEquals("referent.demo@example.org", compte.getEmail());
     }
 
     @Test

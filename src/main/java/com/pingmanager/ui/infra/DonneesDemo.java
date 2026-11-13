@@ -26,9 +26,14 @@ public final class DonneesDemo {
     public static final String CLUB_BRUNOY = "08911132";
     public static final String CLUB_PARIS_15 = "07500123";
 
-    // Profil personnel pré-chargé.
-    public static final String EMAIL_QUENTIN = "soumet.quentin@gmail.com";
-    public static final String LICENCE_QUENTIN = "9141442";
+    // Profil de démonstration pré-chargé : identité FICTIVE (le dépôt est public, aucune
+    // donnée personnelle réelle ici : email en example.org, licence et naissance inventées).
+    public static final String EMAIL_PROFIL_DEMO = "organisateur.demo@example.org";
+    public static final String LICENCE_PROFIL_DEMO = "9900000";
+    public static final String PROFIL_DEMO_NOM = "DUPONT";
+    public static final String PROFIL_DEMO_PRENOM = "Alexis";
+    /** Mot de passe clairement fictif du profil de démo (aucun usage ailleurs). */
+    public static final String MDP_PROFIL_DEMO = "Demo-Brunoy-2027";
 
     // Compte « ultra admin » (supervision PingManager) : accès à tous les tournois de tous
     // les clubs, pour vérifier et aider en direct. Ce compte n'est rattaché à aucun club.
@@ -37,9 +42,10 @@ public final class DonneesDemo {
     public static final java.util.Set<String> ULTRA_ADMINS = java.util.Set.of(EMAIL_ULTRA_ADMIN);
 
     // Administrateur par défaut (référent) de Brunoy, défini par la base.
-    public static final String EMAIL_REFERENT_BRUNOY = "sboulier@gmail.com";
-    public static final String REFERENT_BRUNOY_NOM = "BOULIER";
-    public static final String REFERENT_BRUNOY_PRENOM = "Serge";
+    // Identité fictive (le référent réel du club n'apparaît pas dans le code).
+    public static final String EMAIL_REFERENT_BRUNOY = "referent.brunoy@example.org";
+    public static final String REFERENT_BRUNOY_NOM = "LEROY";
+    public static final String REFERENT_BRUNOY_PRENOM = "Bernard";
 
     /** @return une fausse base clubs FFTT amorcée. */
     public static RegistreClubsMemoire clubs() {
@@ -90,9 +96,9 @@ public final class DonneesDemo {
     public static RegistreLicencesFFTT licences() {
         RegistreLicencesFFTT licences = new RegistreLicencesFFTT();
 
-        licences.ajouter(new FicheLicence.Builder(LICENCE_QUENTIN, "SOUMET", "Quentin")
+        licences.ajouter(new FicheLicence.Builder(LICENCE_PROFIL_DEMO, PROFIL_DEMO_NOM, PROFIL_DEMO_PRENOM)
                 .sexe(Sexe.HOMME)
-                .dateNaissance(LocalDate.of(2003, 1, 20))
+                .dateNaissance(LocalDate.of(2002, 3, 15))
                 .nationalite("Française")
                 .club(CLUB_BRUNOY, "Brunoy")
                 .saison("2026-2027")
@@ -130,11 +136,11 @@ public final class DonneesDemo {
         return """
                 PingManager — données de démo
 
-                Profil pré-chargé (connexion directe) :
-                  email       : soumet.quentin@gmail.com
-                  mot de passe: Soumet123/
-                  licence 9141442 ; administrateur (niveau 1) du club Brunoy (08911132).
-                  Référent / administrateur par défaut de Brunoy : Serge BOULIER <sboulier@gmail.com>.
+                Profil pré-chargé (connexion directe, identité fictive) :
+                  email       : organisateur.demo@example.org
+                  mot de passe: Demo-Brunoy-2027
+                  licence 9900000 (Alexis DUPONT) ; administrateur (niveau 1) du club Brunoy (08911132).
+                  Référent / administrateur par défaut de Brunoy (fictif) : Bernard LEROY <referent.brunoy@example.org>.
 
                 Compte ultra admin (supervision de tous les tournois) :
                   email       : admin@pingmanager.fr

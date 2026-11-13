@@ -66,11 +66,11 @@ class PresentationInscriptionSurPlaceTest {
 
     @Test
     void un_licencie_pas_encore_inscrit_est_propose_a_la_recherche() {
-        FicheLicence quentin = DonneesDemo.licences().trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElseThrow();
-        List<Joueur> res = PresentationInscriptionSurPlace.joueurs(t, "SOUMET", List.of(quentin));
-        assertTrue(res.stream().anyMatch(j -> j.getNumeroLicence().equals(DonneesDemo.LICENCE_QUENTIN)));
-        assertNull(PresentationInscriptionSurPlace.participant(t, DonneesDemo.LICENCE_QUENTIN));
+        FicheLicence quentin = DonneesDemo.licences().trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElseThrow();
+        List<Joueur> res = PresentationInscriptionSurPlace.joueurs(t, "DUPONT", List.of(quentin));
+        assertTrue(res.stream().anyMatch(j -> j.getNumeroLicence().equals(DonneesDemo.LICENCE_PROFIL_DEMO)));
+        assertNull(PresentationInscriptionSurPlace.participant(t, DonneesDemo.LICENCE_PROFIL_DEMO));
         assertEquals("Pas encore inscrit dans ce tournoi.", PresentationInscriptionSurPlace.situation(t,
-                res.stream().filter(j -> j.getNumeroLicence().equals(DonneesDemo.LICENCE_QUENTIN)).findFirst().orElseThrow()));
+                res.stream().filter(j -> j.getNumeroLicence().equals(DonneesDemo.LICENCE_PROFIL_DEMO)).findFirst().orElseThrow()));
     }
 }

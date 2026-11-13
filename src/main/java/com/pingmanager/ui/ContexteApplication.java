@@ -148,7 +148,7 @@ public final class ContexteApplication {
     private void amorcerProfilDemo() {
         boolean modifie = false;
 
-        // 1) Administrateur par défaut (référent) du club de Brunoy, défini par la base : Serge BOULIER.
+        // 1) Administrateur par défaut (référent, fictif) du club de Brunoy, défini par la base.
         if (!depot.aAcces(DonneesDemo.CLUB_BRUNOY, DonneesDemo.EMAIL_REFERENT_BRUNOY)) {
             depot.enregistrerAcces(new AccesClub(
                     DonneesDemo.CLUB_BRUNOY, DonneesDemo.EMAIL_REFERENT_BRUNOY,
@@ -157,31 +157,32 @@ public final class ContexteApplication {
             modifie = true;
         }
 
-        // 2) Profil personnel, créé une seule fois (mot de passe haché à la création).
-        CompteUtilisateur quentin = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_QUENTIN).orElse(null);
-        if (quentin == null) {
+        // 2) Profil de démo (identité fictive), créé une seule fois (mot de passe haché à la création).
+        CompteUtilisateur profilDemo = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_PROFIL_DEMO).orElse(null);
+        if (profilDemo == null) {
             Optional<CompteUtilisateur> compte = authentification.creerCompte(
-                    DonneesDemo.EMAIL_QUENTIN, "SOUMET", "Quentin", "Soumet123/",
+                    DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
+                    DonneesDemo.MDP_PROFIL_DEMO,
                     depot.emailUtilisateurDejaUtilise());
             if (compte.isPresent()) {
-                quentin = compte.get();
-                liaisonLicence.lier(quentin, DonneesDemo.LICENCE_QUENTIN);
-                depot.enregistrerCompteUtilisateur(quentin);
-                // Quentin est administrateur (niveau 1) de Brunoy — le référent est Serge.
+                profilDemo = compte.get();
+                liaisonLicence.lier(profilDemo, DonneesDemo.LICENCE_PROFIL_DEMO);
+                depot.enregistrerCompteUtilisateur(profilDemo);
+                // Le profil de démo est administrateur (niveau 1) de Brunoy, sous le référent.
                 depot.enregistrerAcces(new AccesClub(
-                        DonneesDemo.CLUB_BRUNOY, quentin.getEmail(), "SOUMET", "Quentin",
+                        DonneesDemo.CLUB_BRUNOY, profilDemo.getEmail(), DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
                         NiveauAcces.ADMIN_NIVEAU_1));
                 modifie = true;
             }
         } else {
-            // Correction d'anciennes données : si Quentin était principal de Brunoy,
-            // le ramener à niveau 1 (le référent est désormais Serge).
-            AccesClub a = depot.accesDe(quentin.getEmail()).stream()
+            // Correction d'anciennes données : si le profil de démo était principal de Brunoy,
+            // le ramener à niveau 1 (le référent est le principal).
+            AccesClub a = depot.accesDe(profilDemo.getEmail()).stream()
                     .filter(x -> x.getNumeroClub().equals(DonneesDemo.CLUB_BRUNOY))
                     .findFirst().orElse(null);
             if (a != null && a.estPrincipal()) {
                 depot.enregistrerAcces(new AccesClub(
-                        DonneesDemo.CLUB_BRUNOY, quentin.getEmail(), "SOUMET", "Quentin",
+                        DonneesDemo.CLUB_BRUNOY, profilDemo.getEmail(), DonneesDemo.PROFIL_DEMO_NOM, DonneesDemo.PROFIL_DEMO_PRENOM,
                         NiveauAcces.ADMIN_NIVEAU_1));
                 modifie = true;
             }
@@ -424,7 +425,7 @@ public final class ContexteApplication {
             Files.createDirectories(cible.getParent());
             Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
                     : TournoiDemoBrunoyJourJ.construire(DonneesDemo.JOUEURS_FICTIFS,
-                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElse(null));
+                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElse(null));
             service.nouveau(t, new RegistreDisciplinaire());
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (IOException | RuntimeException e) {

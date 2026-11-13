@@ -53,7 +53,7 @@ class TournoiDemoBrunoyTest {
         assertTrue(txt.contains("Les portes de la salle s'ouvrent dès 7h chaque jour du tournoi : venez tôt pour "
                 + "vous changer, vous échauffer et aborder le pointage sereinement. Accompagnateurs et spectateurs "
                 + "sont les bienvenus pour encourager les joueurs !"), txt);
-        assertTrue(txt.contains("Pour tout renseignement : Serge BOULIER, sboulier@gmail.com."), txt);
+        assertTrue(txt.contains("Pour tout renseignement : Bernard LEROY, referent.brunoy@example.org."), txt);
         assertTrue(txt.contains("Que le forfait intervienne pendant la période d'inscription, après la clôture des "
                 + "inscriptions ou le jour du tournoi, aucun remboursement n'est effectué : toute inscription est "
                 + "définitive et n'ouvre droit à aucun remboursement."), txt);

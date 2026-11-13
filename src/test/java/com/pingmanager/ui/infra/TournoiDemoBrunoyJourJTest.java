@@ -31,7 +31,7 @@ class TournoiDemoBrunoyJourJTest {
     Path dossier;
 
     static FicheLicence quentin() {
-        return DonneesDemo.licences().trouverParLicence(DonneesDemo.LICENCE_QUENTIN).orElseThrow();
+        return DonneesDemo.licences().trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElseThrow();
     }
 
     static Tournoi demo() {
@@ -137,7 +137,7 @@ class TournoiDemoBrunoyJourJTest {
     void compte_de_demo_inscrit_aux_2e_et_4e_tableaux_du_samedi() {
         Tournoi t = demo();
         List<Tableau> sa = samedi(t);
-        String licence = DonneesDemo.LICENCE_QUENTIN;
+        String licence = DonneesDemo.LICENCE_PROFIL_DEMO;
         assertTrue(sa.get(1).getInscrits().stream().anyMatch(j -> licence.equals(j.getNumeroLicence())));
         assertTrue(sa.get(3).getInscrits().stream().anyMatch(j -> licence.equals(j.getNumeroLicence())));
     }
@@ -193,7 +193,7 @@ class TournoiDemoBrunoyJourJTest {
         DepotTournoi.sauvegarder(TournoiDemoBrunoy.construire(), aLaMain);
 
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO).isPresent());
 
         assertFalse(Files.exists(ancienneDemo), "ancienne démo supprimée");
         assertFalse(Files.exists(aLaMain));

@@ -84,14 +84,14 @@ class ServiceComptesOrganisateursTest {
     @Test
     void inscription_reussie_envoie_le_code_a_l_email_officiel_du_club() {
         ResultatInscriptionOrganisateur res = service.inscrire(
-                "Serge.Boulier@Gmail.com", "Boulier", "Serge", "MotDePasse1!", NUM_CLUB, e -> false);
+                "Referent.Demo@Example.org", "Boulier", "Serge", "MotDePasse1!", NUM_CLUB, e -> false);
 
         assertTrue(res.estSucces());
         assertEquals(ResultatInscriptionOrganisateur.Motif.CODE_ENVOYE, res.getMotif());
 
         CompteOrganisateur compte = res.getCompte();
         assertNotNull(compte);
-        assertEquals("serge.boulier@gmail.com", compte.getEmail());
+        assertEquals("referent.demo@example.org", compte.getEmail());
         assertFalse(compte.isEmailVerifie(), "le compte n'est pas encore vérifié");
         assertEquals("h:MotDePasse1!", compte.getEmpreinteMotDePasse(), "mot de passe haché via le port");
 
@@ -104,7 +104,7 @@ class ServiceComptesOrganisateursTest {
         DemandeVerification demande = res.getDemande();
         assertNotNull(demande);
         assertEquals("h:000001", demande.getEmpreinteCode());
-        assertEquals("serge.boulier@gmail.com", demande.getEmail());
+        assertEquals("referent.demo@example.org", demande.getEmail());
     }
 
     @Test

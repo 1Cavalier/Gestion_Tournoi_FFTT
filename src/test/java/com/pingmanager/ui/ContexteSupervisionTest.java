@@ -36,7 +36,7 @@ class ContexteSupervisionTest {
         assertEquals(3, ctx.fichiersTournois().size(), "Brunoy + sa copie au jour J + Paris 15");
 
         ctx.deconnecter();
-        ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/");
+        ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO);
         assertFalse(ctx.estUltraAdmin());
         assertTrue(ctx.estTournoiDuCompte(TournoiDemoBrunoy.construire()));
         assertFalse(ctx.estTournoiDuCompte(paris));

@@ -63,7 +63,7 @@ class AgendaVerificationTest {
 
     private static FicheLicence fiche(String licence) {
         return new FicheLicence.Builder(licence, "NOM" + licence, "Prénom").sexe(Sexe.HOMME)
-                .club("07450115", "Orléans").points(923).dateNaissance(LocalDate.of(2003, 1, 20))
+                .club("07450115", "Orléans").points(923).dateNaissance(LocalDate.of(2002, 3, 15))
                 .typeLicence("Compétition").build();
     }
 

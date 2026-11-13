@@ -656,7 +656,7 @@ public final class ImportJoueurs {
         return null;
     }
 
-    /** 20/01/2003, 20-01-2003, 2003-01-20, ou numéro de série de tableur (jours depuis le 30/12/1899). */
+    /** 15/03/2002, 15-03-2002, 2002-03-15, ou numéro de série de tableur (jours depuis le 30/12/1899). */
     static LocalDate lireDate(String s) {
         String t = s.trim();
         if (t.isEmpty()) {

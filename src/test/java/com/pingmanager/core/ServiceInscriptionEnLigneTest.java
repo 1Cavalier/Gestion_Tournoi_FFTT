@@ -57,7 +57,7 @@ class ServiceInscriptionEnLigneTest {
 
     private static FicheLicence fiche(String licence, String club) {
         return new FicheLicence.Builder(licence, "NOM" + licence, "Prénom").sexe(Sexe.HOMME).club(club, "Club")
-                .points(923).dateNaissance(LocalDate.of(2003, 1, 20)).typeLicence("Compétition").build();
+                .points(923).dateNaissance(LocalDate.of(2002, 3, 15)).typeLicence("Compétition").build();
     }
 
     @Test

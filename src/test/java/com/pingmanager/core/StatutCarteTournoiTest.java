@@ -33,8 +33,8 @@ class StatutCarteTournoiTest {
     }
 
     private static FicheLicence licencie(int points) {
-        return new FicheLicence.Builder("1", "SOUMET", "Quentin").sexe(Sexe.HOMME).club("08911132", "Brunoy")
-                .points(points).typeLicence("Compétition").dateNaissance(LocalDate.of(2003, 1, 20)).build();
+        return new FicheLicence.Builder("1", "DUPONT", "Alexis").sexe(Sexe.HOMME).club("08911132", "Brunoy")
+                .points(points).typeLicence("Compétition").dateNaissance(LocalDate.of(2002, 3, 15)).build();
     }
 
     /** Tournoi publié du club donné, un tableau « A » (≤ 1000 pts, {@code places} places). */

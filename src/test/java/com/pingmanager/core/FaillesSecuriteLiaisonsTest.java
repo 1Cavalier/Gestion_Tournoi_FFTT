@@ -123,17 +123,17 @@ class FaillesSecuriteLiaisonsTest {
      */
     @Test
     void n_importe_quel_compte_se_lie_a_la_licence_d_un_tiers_faille_S05() {
-        FicheLicence victime = new FicheLicence("9141442", "VICTIME", "Vic", Sexe.HOMME, CLUB_VICTIME, "Club victime", 1500);
+        FicheLicence victime = new FicheLicence("9999001", "VICTIME", "Vic", Sexe.HOMME, CLUB_VICTIME, "Club victime", 1500);
         RegistreLicences registre = numero -> victime.getNumeroLicence().equals(numero)
                 ? Optional.of(victime) : Optional.empty();
         ServiceLiaisonLicence liaison = new ServiceLiaisonLicence(registre);
         CompteUtilisateur intrus1 = new CompteUtilisateur("intrus1@exemple.fr", "INTRUS", "Un", "h:x");
         CompteUtilisateur intrus2 = new CompteUtilisateur("intrus2@exemple.fr", "INTRUS", "Deux", "h:x");
 
-        assertTrue(liaison.lier(intrus1, "9141442").isPresent());
-        assertTrue(liaison.lier(intrus2, "9141442").isPresent());
+        assertTrue(liaison.lier(intrus1, "9999001").isPresent());
+        assertTrue(liaison.lier(intrus2, "9999001").isPresent());
 
-        assertEquals("9141442", intrus1.getLicenceLiee());
-        assertEquals("9141442", intrus2.getLicenceLiee(), "deux comptes étrangers portent la même licence");
+        assertEquals("9999001", intrus1.getLicenceLiee());
+        assertEquals("9999001", intrus2.getLicenceLiee(), "deux comptes étrangers portent la même licence");
     }
 }

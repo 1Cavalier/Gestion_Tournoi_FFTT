@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -42,16 +43,34 @@ class FaillesSecuriteContexteTest {
     }
 
     /**
-     * Faille S-02 : un compte personnel réel (email de Quentin, licence et date de
-     * naissance réelles, mot de passe écrit dans le code) est créé sur chaque poste,
-     * administrateur du club de Brunoy.
+     * Ex-faille S-02, corrigée (README section 5, point 11) : le profil pré-chargé n'est
+     * plus un compte personnel réel. Identité fictive (email en example.org, licence et
+     * date de naissance inventées), mot de passe clairement fictif. Il reste créé sur
+     * chaque poste, administrateur du club de démo de Brunoy (question en section 6).
      */
     @Test
-    void compte_personnel_du_developpeur_cree_sur_chaque_poste_faille_S02() {
+    void profil_de_demo_fictif_sans_donnee_personnelle_reelle() {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
 
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_QUENTIN, "Soumet123/").isPresent());
-        assertTrue(ctx.estOrganisateur(), "administrateur de Brunoy sur un poste qui n'est pas le sien");
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO).isPresent());
+        assertTrue(ctx.estOrganisateur(), "le profil de démo administre le club de démo");
+        assertTrue(DonneesDemo.EMAIL_PROFIL_DEMO.endsWith("@example.org"));
+        assertTrue(DonneesDemo.EMAIL_REFERENT_BRUNOY.endsWith("@example.org"));
+        assertTrue(ctx.ficheLicenceLiee().orElseThrow().getNumeroLicence().startsWith("99"),
+                "licence fictive (plage 99…, celle des joueurs fictifs)");
+    }
+
+    /** Garde-fou du point 11 : aucune adresse de messagerie personnelle dans les sources. */
+    @Test
+    void aucune_adresse_gmail_dans_les_sources() throws Exception {
+        for (String racine : List.of("src/main/java", "src/test/java")) {
+            try (var fichiers = Files.walk(Path.of(racine))) {
+                for (Path f : fichiers.filter(p -> p.toString().endsWith(".java")).toList()) {
+                    String texte = Files.readString(f).toLowerCase();
+                    assertFalse(texte.contains("@" + "gmail."), "adresse personnelle dans " + f);
+                }
+            }
+        }
     }
 
     /**
@@ -86,7 +105,7 @@ class FaillesSecuriteContexteTest {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
         String contenu = Files.readString(ctx.fichierDepot());
 
-        assertTrue(contenu.contains(DonneesDemo.EMAIL_QUENTIN));
+        assertTrue(contenu.contains(DonneesDemo.EMAIL_PROFIL_DEMO));
         assertTrue(contenu.contains("pbkdf2$120000$"), "empreintes lisibles : attaque hors ligne possible");
     }
 }

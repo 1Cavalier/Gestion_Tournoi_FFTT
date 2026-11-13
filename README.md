@@ -35,7 +35,7 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux), le vrai
     tournoi du club, à son état réel : **brouillon**, sans numéro
     d'homologation ni inscrit, avec les vraies personnes (juges-arbitres
-    Samuel LOOBUYCK et William PRIOU, contact Serge BOULIER). Son règlement
+    Samuel LOOBUYCK et William PRIOU ; contact du club remplacé par un référent fictif). Son règlement
     généré reprend les 21 articles du règlement du club (version du
     10 novembre 2026) ;
   - sa **copie au jour J** (« … – jour J (copie de démo) »), publiée avec un
