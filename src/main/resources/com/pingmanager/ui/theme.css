@@ -4026,3 +4026,36 @@
 .pointage-motif {
     -fx-font-size: 14px;
 }
+
+/* ==================================================================
+   B043 — Tournoi en cours : sélecteur de tournoi et liste des tableaux
+   ================================================================== */
+
+.encours-bandeau {
+    -fx-padding: 10 24 10 24;
+    -fx-alignment: center-left;
+    -fx-background-color: -surface;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.encours-selecteur {
+    -fx-min-width: 280px;
+}
+
+.encours-tableau {
+    -fx-padding: 10 0 10 0;
+    -fx-alignment: center-left;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.encours-tableau-premier {
+    -fx-border-width: 0;
+}
+
+.encours-tableau-nom {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}

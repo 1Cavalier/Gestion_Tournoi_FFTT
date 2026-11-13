@@ -65,14 +65,23 @@ public final class EcranPostePointage {
 
     private Path fichier;
     private Tournoi tournoi;
+    /** B043 : tournoi imposé (groupe « Tournoi en cours »), ou {@code null} : choix parmi ceux du club. */
+    private final Path fichierImpose;
 
     public EcranPostePointage(ContexteApplication contexte) {
+        this(contexte, null);
+    }
+
+    /** B043 : poste ouvert directement sur le tournoi en cours choisi. */
+    public EcranPostePointage(ContexteApplication contexte, Path fichierImpose) {
         this.contexte = contexte;
         this.poste = PresentationPostePointage.identifiantPoste(System.getenv());
+        this.fichierImpose = fichierImpose;
     }
 
     public Parent build() {
-        List<ProjetTournoi> tournois = tournoisDuCompte();
+        List<ProjetTournoi> tournois = fichierImpose != null ? List.of(new ProjetTournoi(fichierImpose, "", java.time.LocalDateTime.now()))
+                : tournoisDuCompte();
         if (tournois.isEmpty()) {
             racine.setCenter(Ui.page(1040, Ui.titre(PresentationPostePointage.TITRE),
                     Ui.etatVide(PresentationPostePointage.AUCUN_TOURNOI, null)));

@@ -951,6 +951,22 @@ public final class ContexteApplication {
         return res;
     }
 
+    /**
+     * B043 : tournois des clubs du compte <b>en cours</b>
+     * ({@link com.pingmanager.core.ServiceTournoiEnCours}), le plus proche d'aujourd'hui
+     * d'abord. En mode démo, la copie « jour J » de Brunoy est considérée en cours.
+     * Vide si le compte n'est pas organisateur.
+     */
+    public List<TournoiFichier> tournoisEnCours() {
+        if (compteConnecte == null || !estOrganisateur()) {
+            return List.of();
+        }
+        Path demo = fichierTournoiJourJDemo().toAbsolutePath().normalize();
+        return new com.pingmanager.core.ServiceTournoiEnCours(Horloge.systeme(), java.time.ZoneId.systemDefault())
+                .enCours(mesTournoisClub(tousLesTournois()), TournoiFichier::tournoi,
+                        tf -> modeDemo && tf.fichier().toAbsolutePath().normalize().equals(demo));
+    }
+
     /** Tournois organisés par les clubs du compte (tous statuts). */
     public List<TournoiFichier> mesTournoisClub(List<TournoiFichier> tous) {
         List<TournoiFichier> res = new ArrayList<>();
