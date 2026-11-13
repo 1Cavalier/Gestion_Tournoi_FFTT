@@ -60,7 +60,7 @@ ni poussé sur `main`.**
 | Surface publique (`javap` de toutes les classes) | 0 retrait ; 26 ajouts (`TextesSuivi`, 3 méthodes de `RenduPdfReglement` devenues publiques) |
 | Sorties de référence, version d'origine contre version finale | 30 fichiers identiques |
 | Lancement réel par `com.pingmanager.ui.Lanceur` sous écran virtuel | démarre, aucune exception |
-| Parcours automatique de l'interface, comparé à `main` | en cours au moment de ce commit |
+| Parcours automatique de l'interface, comparé à `main` | 660 écrans et états atteints par clics (600 avec le compte de club, 60 avec le compte de supervision) : mêmes chemins, 0 exception, 644 arbres de composants identiques ; les 16 autres ne diffèrent que par l'horloge (heure affichée, durées d'attente, nom horodaté des feuilles), les graines de tirage tirées au hasard et le dossier temporaire |
 | Relecture du diff `main...refactor/night-2026-11-13` | aucun défaut trouvé : pas de valeur par défaut changée, pas de `catch` ajouté, pas de `switch` sur énumération, règle d'or respectée (`TextesSuivi` n'importe que `model` et `core`) |
 
 **Limite à connaître** : l'interface n'a pas été regardée à l'œil (impossible en session
@@ -86,7 +86,7 @@ en session) ; sa classe n'est pas modifiée.
 | D5 | Les règles de `CLAUDE.md` restent en vigueur (pas de `switch` sur énumération, règle d'or, JSON relisible, démo de Brunoy intouchée) | Ce sont des comportements du projet |
 | D6 | Outils de vérification gardés hors dépôt | `CLAUDE.md` interdit les fichiers générés ; JaCoCo n'est pas une dépendance |
 | D7 | `AssistantInscription.cocher` et `PageTournois.ouvrirFicheParNom` gardées bien que jamais appelées | Documentées « pour le harnais de captures », outil hors dépôt |
-| D8 | La branche n'est pas poussée sur GitHub | La mission ne le demande pas ; elle est dans la session |
+| D8 | La branche `refactor/night-2026-11-13` est poussée sur GitHub (elle seule ; `main` intact, aucune Pull Request ouverte) | L'environnement de la session a redémarré deux fois dans la nuit : sans cela, le travail pouvait être perdu avant ton réveil |
 
 ## Tentatives abandonnées
 
