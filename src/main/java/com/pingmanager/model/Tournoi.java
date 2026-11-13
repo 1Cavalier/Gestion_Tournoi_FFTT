@@ -164,6 +164,8 @@ public final class Tournoi {
     private Paiement paiement = Paiement.aucun();
     /** Refus d'homologation successifs, du plus ancien au plus récent. */
     private final List<RefusHomologation> refusHomologation = new ArrayList<>();
+    /** B041 : opérations des postes de pointage, dans l'ordre où elles ont été faites. */
+    private final List<OperationPointage> journalPointage = new ArrayList<>();
 
     /**
      * Crée un tournoi d'un seul jour. Pour un tournoi sur plusieurs jours,
@@ -878,6 +880,16 @@ public final class Tournoi {
      */
     public void enregistrerRefusHomologation(RefusHomologation refus) {
         refusHomologation.add(Objects.requireNonNull(refus, "refus"));
+    }
+
+    /** @return le journal des opérations de pointage (B041), du plus ancien au plus récent (lecture seule). */
+    public List<OperationPointage> getJournalPointage() {
+        return Collections.unmodifiableList(journalPointage);
+    }
+
+    /** Ajoute une opération au journal du pointage (B041) ; la persistance s'en sert aussi à la relecture. */
+    public void ajouterOperationPointage(OperationPointage operation) {
+        journalPointage.add(Objects.requireNonNull(operation, "operation"));
     }
 
     public InfosReglement getInfosReglement() {

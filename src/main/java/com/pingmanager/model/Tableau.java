@@ -339,11 +339,33 @@ public final class Tableau {
     }
 
     /**
+     * B041 : marque le paiement en notant le mode de règlement (en ligne, espèces,
+     * chèque, autre). Mêmes conditions que {@link #marquerPaye(Joueur)}.
+     */
+    public void marquerPaye(Joueur joueur, ModeReglement mode) {
+        Objects.requireNonNull(mode, "mode");
+        EtatInscrit e = etatInscrit(joueur);
+        e.paye = true;
+        e.mode = mode;
+    }
+
+    /**
      * Annule le paiement d'un joueur sur ce tableau (correction d'une erreur de
      * saisie au pointage). Réservé aux inscrits, comme {@link #marquerPaye}.
      */
     public void annulerPaiement(Joueur joueur) {
-        etatInscrit(joueur).paye = false;
+        EtatInscrit e = etatInscrit(joueur);
+        e.paye = false;
+        e.mode = null;
+    }
+
+    /**
+     * @return le mode de règlement noté au pointage (B041), ou {@code null} si le
+     *         joueur n'a pas payé ou si le paiement a été noté sans mode (ancien fichier)
+     */
+    public ModeReglement modeReglement(Joueur joueur) {
+        EtatInscrit e = etats.get(joueur);
+        return e != null && e.paye ? e.mode : null;
     }
 
     /**
@@ -454,7 +476,9 @@ public final class Tableau {
             etats.computeIfAbsent(j, x -> new EtatInscrit()).pointe = true;
         }
         for (Joueur j : e.payes) {
-            etats.computeIfAbsent(j, x -> new EtatInscrit()).paye = true;
+            EtatInscrit etat = etats.computeIfAbsent(j, x -> new EtatInscrit());
+            etat.paye = true;
+            etat.mode = e.modesReglement.get(j);
         }
         rembourses.clear();
         rembourses.addAll(e.rembourses);
@@ -479,6 +503,8 @@ public final class Tableau {
         public final List<Joueur> pointes = new ArrayList<>();
         public final List<Joueur> payes = new ArrayList<>();
         public final java.util.Set<Joueur> rembourses = new java.util.HashSet<>();
+        /** B041 : mode de règlement des payés ; vide pour un ancien fichier. */
+        public final Map<Joueur, ModeReglement> modesReglement = new HashMap<>();
         public TableauElimination phaseFinale;
         public HorairesTableau horaires;
         public String type;
@@ -509,5 +535,7 @@ public final class Tableau {
     private static final class EtatInscrit {
         private boolean pointe = false;
         private boolean paye = false;
+        /** B041 : mode de règlement, {@code null} si inconnu. */
+        private ModeReglement mode = null;
     }
 }
