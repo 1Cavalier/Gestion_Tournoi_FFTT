@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -27,19 +28,50 @@ class FaillesSecuriteContexteTest {
     Path dossier;
 
     /**
-     * Faille S-01 : le compte « ultra admin » (supervision de TOUS les tournois de
-     * TOUS les clubs) est créé à chaque installation avec un mot de passe écrit dans
-     * le code, la documentation et la console. Toute personne qui a lu la doc ou
-     * décompilé le jar l'ouvre sur n'importe quel poste client.
-     * Correctif : aucun compte privilégié créé par défaut dans la version vendue.
+     * Ex-faille S-01, corrigée (README section 5, point 12) : le compte « ultra admin »
+     * (supervision de TOUS les tournois de TOUS les clubs) n'est plus créé hors du mode
+     * démo explicite ({@code -Dpingmanager.demo=true}), et aucun mot de passe n'est écrit
+     * dans le code : en mode démo, il est tiré au hasard à chaque démarrage.
      */
     @Test
-    void ultra_admin_ouvert_avec_le_mot_de_passe_ecrit_dans_le_code_faille_S01() {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+    void ultra_admin_absent_hors_mode_demo() {
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), false);
 
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, DonneesDemo.MDP_ULTRA_ADMIN).isPresent());
-        assertTrue(ctx.estUltraAdmin(), "accès supervision à tous les clubs");
-        assertTrue(ctx.memoDemo().contains(DonneesDemo.MDP_ULTRA_ADMIN), "mot de passe affiché dans la console au démarrage");
+        assertFalse(ctx.estModeDemo());
+        assertTrue(ctx.motDePasseSupervisionDemo().isEmpty());
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, "PingAdmin123/").isEmpty(),
+                "l'ancien mot de passe publié n'ouvre rien");
+        assertTrue(ctx.memoDemo().contains("non créé"));
+    }
+
+    @Test
+    void ultra_admin_en_mode_demo_avec_mot_de_passe_tire_a_chaque_demarrage() {
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), true);
+        String premier = ctx.motDePasseSupervisionDemo().orElseThrow();
+        assertTrue(premier.length() >= 10);
+        assertTrue(ctx.memoDemo().contains(premier), "affiché dans la console de ce démarrage");
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, premier).isPresent());
+        assertTrue(ctx.estUltraAdmin(), "accès supervision à tous les clubs en mode démo");
+        ctx.fermer();
+
+        ContexteApplication ctx2 = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), true);
+        String second = ctx2.motDePasseSupervisionDemo().orElseThrow();
+        assertNotEquals(premier, second);
+        assertTrue(ctx2.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, premier).isEmpty(), "l'ancien tirage n'ouvre plus");
+        assertTrue(ctx2.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, second).isPresent());
+        ctx2.fermer();
+    }
+
+    @Test
+    void compte_de_supervision_existant_sans_privilege_hors_mode_demo() {
+        ContexteApplication demo = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), true);
+        String mdp = demo.motDePasseSupervisionDemo().orElseThrow();
+        demo.fermer();
+
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), false);
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, mdp).isPresent());
+        assertTrue(ctx.compteConnecte().estSupervision(), "le rôle reste enregistré dans le compte");
+        assertFalse(ctx.estUltraAdmin(), "mais le privilège n'est honoré qu'en mode démo");
     }
 
     /**

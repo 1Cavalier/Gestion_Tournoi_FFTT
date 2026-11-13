@@ -37,6 +37,9 @@ public final class CompteUtilisateur {
     /** Numéro de licence FFTT lié, ou {@code null} tant qu'aucune liaison n'a été faite. */
     private String licenceLiee;
 
+    /** Rôle enregistré dans le compte ({@link RoleCompte#MEMBRE} par défaut). */
+    private RoleCompte role = RoleCompte.MEMBRE;
+
     /**
      * @param email               email de connexion (identité du compte, non vide)
      * @param nom                 nom de la personne (non vide)
@@ -109,6 +112,25 @@ public final class CompteUtilisateur {
      */
     public void lierLicence(String numeroLicence) {
         this.licenceLiee = Textes.obligatoire(numeroLicence, "numeroLicence");
+    }
+
+    // -------------------------------------------------------------------------
+    // Rôle (persisté ; jamais déduit de l'email)
+    // -------------------------------------------------------------------------
+
+    /** @return le rôle du compte, jamais {@code null}. */
+    public RoleCompte getRole() {
+        return role;
+    }
+
+    /** Fixe le rôle du compte ; {@code null} refusé. */
+    public void setRole(RoleCompte role) {
+        this.role = Objects.requireNonNull(role, "role");
+    }
+
+    /** @return {@code true} si le compte porte le rôle de supervision. */
+    public boolean estSupervision() {
+        return role == RoleCompte.SUPERVISION;
     }
 
     // -------------------------------------------------------------------------

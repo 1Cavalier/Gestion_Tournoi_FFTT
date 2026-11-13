@@ -25,12 +25,12 @@ class ContexteSupervisionTest {
 
     @Test
     void ultra_admin_voit_tous_les_tournois_et_le_club_seulement_les_siens() throws Exception {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
+        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), true);
         Tournoi paris = new Tournoi("Open de Paris 15", "TT Paris 15", LocalDate.of(2027, 5, 8));
         paris.setNumeroAffiliationClub(DonneesDemo.CLUB_PARIS_15);
         ctx.creerBrouillon(paris);
 
-        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, DonneesDemo.MDP_ULTRA_ADMIN).isPresent());
+        assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, ctx.motDePasseSupervisionDemo().orElseThrow()).isPresent());
         assertTrue(ctx.estUltraAdmin());
         assertFalse(ctx.estOrganisateur(), "l'ultra admin n'est rattaché à aucun club");
         assertEquals(3, ctx.fichiersTournois().size(), "Brunoy + sa copie au jour J + Paris 15");

@@ -24,6 +24,7 @@ import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteUtilisateur;
 import com.pingmanager.model.FicheLicence;
 import com.pingmanager.model.NiveauAcces;
+import com.pingmanager.model.RoleCompte;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.persistence.DepotApplication;
 import com.pingmanager.persistence.DepotTournoi;
@@ -103,12 +104,34 @@ public final class ContexteApplication {
     // Session.
     private CompteUtilisateur compteConnecte;
 
+    /** Propriété système du mode démo explicite : {@code -Dpingmanager.demo=true}. */
+    public static final String PROPRIETE_MODE_DEMO = "pingmanager.demo";
+
+    /**
+     * Mode démo explicite : seul ce mode crée le compte de supervision et honore son
+     * privilège (README section 5, point 12).
+     */
+    private final boolean modeDemo;
+    /** Mot de passe de supervision généré à ce démarrage (mode démo), sinon {@code null}. */
+    private String motDePasseSupervisionDemo;
+    private final HachageMotDePassePBKDF2 hachage = new HachageMotDePassePBKDF2();
+
     public ContexteApplication() {
         this(ServiceFichierTournoi.dossierDonneesParDefaut(), DonneesDemo.clubs(), DonneesDemo.licences());
     }
 
-    /** Constructeur ouvert (tests, données personnalisées). Prend le dossier de données. */
+    /**
+     * Constructeur ouvert (tests, données personnalisées). Prend le dossier de données ;
+     * le mode démo suit la propriété système {@value #PROPRIETE_MODE_DEMO}.
+     */
     public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT) {
+        this(dossierDonnees, clubsFFTT, licencesFFTT, Boolean.getBoolean(PROPRIETE_MODE_DEMO));
+    }
+
+    /** Constructeur ouvert avec le mode démo explicite (tests). */
+    public ContexteApplication(Path dossierDonnees, RegistreClubs clubsFFTT, RegistreLicences licencesFFTT,
+                               boolean modeDemo) {
+        this.modeDemo = modeDemo;
         this.dossierDonnees = dossierDonnees;
         this.fichierDepot = dossierDonnees.resolve(DepotApplication.NOM_FICHIER);
         this.clubsFFTT = registresImportes.clubs(clubsFFTT);
@@ -123,7 +146,6 @@ public final class ContexteApplication {
 
         this.email = new EmailConsole();
         GenerateurCodeAleatoire code = new GenerateurCodeAleatoire();
-        HachageMotDePassePBKDF2 hachage = new HachageMotDePassePBKDF2();
         Horloge horloge = Horloge.systeme();
 
         this.authentification = new ServiceAuthentification(hachage);
@@ -188,13 +210,22 @@ public final class ContexteApplication {
             }
         }
 
-        // 3) Compte « ultra admin » (supervision), créé une seule fois, sans club.
-        if (depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_ULTRA_ADMIN).isEmpty()) {
-            Optional<CompteUtilisateur> admin = authentification.creerCompte(
-                    DonneesDemo.EMAIL_ULTRA_ADMIN, "SUPERVISION", "PingManager", DonneesDemo.MDP_ULTRA_ADMIN,
-                    depot.emailUtilisateurDejaUtilise());
-            if (admin.isPresent()) {
-                depot.enregistrerCompteUtilisateur(admin.get());
+        // 3) Compte « ultra admin » (supervision), sans club : UNIQUEMENT en mode démo
+        //    explicite. Son mot de passe est tiré au hasard à chaque démarrage (jamais écrit
+        //    dans le code) et affiché dans la console de ce démarrage seulement.
+        if (modeDemo) {
+            motDePasseSupervisionDemo = DonneesDemo.genererMotDePasse();
+            CompteUtilisateur admin = depot.trouverCompteUtilisateur(DonneesDemo.EMAIL_ULTRA_ADMIN).orElse(null);
+            if (admin == null) {
+                admin = authentification.creerCompte(
+                        DonneesDemo.EMAIL_ULTRA_ADMIN, "SUPERVISION", "PingManager", motDePasseSupervisionDemo,
+                        depot.emailUtilisateurDejaUtilise()).orElse(null);
+            } else {
+                admin.setEmpreinteMotDePasse(hachage.hacher(motDePasseSupervisionDemo));
+            }
+            if (admin != null) {
+                admin.setRole(RoleCompte.SUPERVISION);
+                depot.enregistrerCompteUtilisateur(admin);
                 modifie = true;
             }
         }
@@ -353,7 +384,8 @@ public final class ContexteApplication {
 
     /** @return vrai si le compte connecté est un compte « ultra admin » (supervision). */
     public boolean estUltraAdmin() {
-        return compteConnecte != null && DonneesDemo.ULTRA_ADMINS.contains(compteConnecte.getEmail());
+        // Rôle lu dans le compte (persisté), et privilège honoré seulement en mode démo.
+        return modeDemo && compteConnecte != null && compteConnecte.estSupervision();
     }
 
     /**
@@ -912,7 +944,17 @@ public final class ContexteApplication {
     }
 
     public String memoDemo() {
-        return DonneesDemo.memo();
+        return DonneesDemo.memo(motDePasseSupervisionDemo);
+    }
+
+    /** @return vrai si l'application tourne en mode démo explicite ({@value #PROPRIETE_MODE_DEMO}). */
+    public boolean estModeDemo() {
+        return modeDemo;
+    }
+
+    /** @return le mot de passe de supervision tiré à ce démarrage (mode démo seulement). */
+    public Optional<String> motDePasseSupervisionDemo() {
+        return Optional.ofNullable(motDePasseSupervisionDemo);
     }
 
     /** @return le suivi sur téléphone (B021), démarré depuis le jour J. */

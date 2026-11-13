@@ -7,6 +7,7 @@ import com.pingmanager.model.OrigineEvenement;
 import com.pingmanager.model.Club;
 import com.pingmanager.model.CompteOrganisateur;
 import com.pingmanager.model.CompteUtilisateur;
+import com.pingmanager.model.RoleCompte;
 import com.pingmanager.model.NiveauAcces;
 import com.pingmanager.persistence.json.Json;
 
@@ -151,7 +152,34 @@ final class ApplicationMapper {
         if (c.getLicenceLiee() != null) {
             o.set("licenceLiee", c.getLicenceLiee());
         }
+        o.set("role", c.getRole().name());
         return o;
+    }
+
+    /**
+     * Email de l'ancien compte de supervision : jusqu'à la v19 de la démo, le rôle était
+     * déduit de cette adresse. Ne sert plus qu'à relire, une dernière fois, un ancien
+     * fichier dont les comptes n'ont pas de champ « role ».
+     */
+    static final String EMAIL_SUPERVISION_ANCIENS_FICHIERS = "admin@pingmanager.fr";
+
+    /**
+     * Rôle relu : celui du champ « role » ; à défaut (ancien fichier), celui que le compte
+     * avait (déduit de l'email, comme avant) ; valeur inconnue : {@link RoleCompte#MEMBRE}
+     * (le moins de droits).
+     */
+    static RoleCompte lireRole(Json o, String email) {
+        String role = o.getString("role", null);
+        if (role == null || role.isBlank()) {
+            return EMAIL_SUPERVISION_ANCIENS_FICHIERS.equalsIgnoreCase(email)
+                    ? RoleCompte.SUPERVISION : RoleCompte.MEMBRE;
+        }
+        for (RoleCompte r : RoleCompte.values()) {
+            if (r.name().equals(role)) {
+                return r;
+            }
+        }
+        return RoleCompte.MEMBRE;
     }
 
     static CompteUtilisateur lireCompteUtilisateur(Json o) {
@@ -164,6 +192,7 @@ final class ApplicationMapper {
         if (licence != null && !licence.isBlank()) {
             c.lierLicence(licence);
         }
+        c.setRole(lireRole(o, c.getEmail()));
         return c;
     }
 
