@@ -1228,6 +1228,20 @@ public final class ContexteApplication {
     // Interne
     // ==================================================================
 
+    /** Nombre d'avertissements de relecture déjà rendus par {@link #nouveauxAvertissementsLecture()}. */
+    private int avertissementsRendus;
+
+    /**
+     * Point 21 : fichiers relus depuis leur copie de secours « .bak » (fichier principal
+     * illisible ou tronqué) depuis le dernier appel, pour les signaler à l'écran.
+     */
+    public List<String> nouveauxAvertissementsLecture() {
+        List<String> tous = com.pingmanager.persistence.EcritureSure.avertissements();
+        List<String> nouveaux = new ArrayList<>(tous.subList(Math.min(avertissementsRendus, tous.size()), tous.size()));
+        avertissementsRendus = tous.size();
+        return nouveaux;
+    }
+
     /** Persiste le dépôt applicatif (écriture atomique). */
     public void sauvegarder() {
         try {

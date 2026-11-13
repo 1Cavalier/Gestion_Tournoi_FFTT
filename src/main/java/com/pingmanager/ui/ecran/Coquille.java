@@ -270,9 +270,20 @@ public final class Coquille {
             page = pageDroitRefuse(refus); // point 16 : droit vérifié par le contexte
         }
         racine.setCenter(page);
+        signalerCopiesDeSecours();
         titrePage.setText(cible.libelle);
         Ui.apparition(page);
         souligneCourant();
+    }
+
+    /** Point 21 : un fichier relu depuis sa copie « .bak » est signalé, sans bloquer. */
+    private void signalerCopiesDeSecours() {
+        for (String message : contexte.nouveauxAvertissementsLecture()) {
+            javafx.scene.control.Alert a = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.WARNING, message);
+            a.setHeaderText("Copie de secours utilisée");
+            a.show();
+        }
     }
 
     /** Page affichée quand le contexte refuse l'accès (point 16). */
