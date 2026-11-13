@@ -337,6 +337,8 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 10. Paiement HelloAsso.
 
 ### Sécurité, indispensable avant la vente (B004 et suite)
+- **B044 — Sécurité, suite de B004a/B004b** (en cours, branche
+  `tache/B044-securite-suite`) : points 13, 14, 16, reliquat du 18 et 21.
 13. Vérifier l'email à la création de compte : sinon, qui crée un compte avec
     l'email d'un référent devient administrateur du club.
 14. Liaison de licence : une licence pour un seul compte, et une preuve
