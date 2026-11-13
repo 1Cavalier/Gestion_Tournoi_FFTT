@@ -407,22 +407,42 @@ public final class ContexteApplication {
     }
 
     /**
-     * Le tournoi appartient-il à l'un des clubs du compte connecté ? (par n°
-     * d'affiliation, ou par nom de club pour les anciens fichiers sans numéro).
+     * Le tournoi appartient-il à l'un des clubs du compte connecté ? Par n° d'affiliation
+     * seulement (point 16) : un club se désigne par son numéro, jamais par son nom (un
+     * ancien fichier sans numéro n'appartient à aucun club).
      */
     public boolean estTournoiDuCompte(Tournoi t) {
+        String numero = t == null ? null : t.getNumeroAffiliationClub();
+        if (numero == null || numero.isBlank()) {
+            return false;
+        }
         for (AccesClub a : accesCourants()) {
-            if (a.getNumeroClub().equals(t.getNumeroAffiliationClub())) {
+            if (a.getNumeroClub().trim().equals(numero.trim())) {
                 return true;
-            }
-            if (t.getNumeroAffiliationClub() == null) {
-                String nom = clubParNumero(a.getNumeroClub()).map(Club::getNom).orElse(null);
-                if (nom != null && nom.equalsIgnoreCase(String.valueOf(t.getClubOrganisateur()))) {
-                    return true;
-                }
             }
         }
         return false;
+    }
+
+    // ==================================================================
+    // Droits (point 16)
+    // ==================================================================
+
+    /**
+     * Vérifie que le compte connecté peut effectuer l'opération sur ce club
+     * ({@link com.pingmanager.core.ControleDroits}).
+     *
+     * @param numeroClub numéro FFTT du club visé ({@code null} pour la supervision)
+     * @throws com.pingmanager.core.DroitRefuseException si le droit manque (message prêt à afficher)
+     */
+    public void exigerDroit(com.pingmanager.core.OperationProtegee operation, String numeroClub) {
+        com.pingmanager.core.ControleDroits.exiger(compteConnecte, accesCourants(), modeDemo, operation, numeroClub);
+    }
+
+    /** @return vrai si le compte connecté peut effectuer l'opération (sans lever d'exception). */
+    public boolean aLeDroit(com.pingmanager.core.OperationProtegee operation, String numeroClub) {
+        return com.pingmanager.core.ControleDroits.refus(compteConnecte, accesCourants(), modeDemo, operation,
+                numeroClub).isEmpty();
     }
 
     /** Fichier du brouillon de démo « Tournoi National B de Brunoy 2027 ». */
@@ -765,6 +785,7 @@ public final class ContexteApplication {
         if (numeroClub == null) {
             return res;
         }
+        exigerDroit(com.pingmanager.core.OperationProtegee.DONNEES_CLUB, numeroClub);
         for (AccesClub a : depot.tousLesAcces()) {
             if (numeroClub.equals(a.getNumeroClub())) {
                 res.add(a);
@@ -809,6 +830,7 @@ public final class ContexteApplication {
      * @return {nom, prénom, email} — jamais {@code null}, éléments éventuellement vides
      */
     public String[] correspondantParDefaut(String numeroClub) {
+        exigerDroit(com.pingmanager.core.OperationProtegee.DONNEES_CLUB, numeroClub);
         for (AccesClub a : membresDuClub(numeroClub)) {
             if (a.estPrincipal()) {
                 return new String[] {a.getNom(), a.getPrenom(), a.getEmail()};
@@ -863,14 +885,46 @@ public final class ContexteApplication {
      * @return le chemin du brouillon créé
      */
     public Path creerBrouillon(Tournoi tournoi) {
+        exigerDroit(com.pingmanager.core.OperationProtegee.CREER_TOURNOI, tournoi.getNumeroAffiliationClub());
         service.nouveau(tournoi, new RegistreDisciplinaire());
         Path cible = cibleBrouillon(tournoi);
         service.enregistrerSous(tournoi, new RegistreDisciplinaire(), cible);
         return cible;
     }
 
-    /** Enregistre les modifications d'un tournoi déjà sur disque. */
+    /**
+     * Enregistre les modifications d'un tournoi déjà sur disque. Point 16 : le compte doit
+     * avoir le droit de modifier le tournoi (club du fichier sur disque <b>et</b> club du
+     * tournoi enregistré), et de l'homologuer si son étape change.
+     *
+     * @throws com.pingmanager.core.DroitRefuseException si le droit manque (rien n'est écrit)
+     */
     public void enregistrerTournoi(Tournoi tournoi, Path fichier) {
+        controlerEcriture(tournoi, fichier);
+        ecrireTournoi(tournoi, fichier);
+    }
+
+    private void controlerEcriture(Tournoi tournoi, Path fichier) {
+        Tournoi surDisque = null;
+        if (fichier != null && Files.isRegularFile(fichier)) {
+            try {
+                surDisque = DepotTournoi.charger(fichier).getTournoi();
+            } catch (RuntimeException illisible) {
+                surDisque = null; // fichier abîmé : seul le club du tournoi écrit est contrôlé
+            }
+        }
+        com.pingmanager.core.OperationProtegee operation = surDisque != null
+                && surDisque.getStatut() != tournoi.getStatut()
+                ? com.pingmanager.core.OperationProtegee.HOMOLOGUER_TOURNOI
+                : com.pingmanager.core.OperationProtegee.MODIFIER_TOURNOI;
+        if (surDisque != null) {
+            exigerDroit(operation, surDisque.getNumeroAffiliationClub());
+        }
+        exigerDroit(operation, tournoi.getNumeroAffiliationClub());
+    }
+
+    /** Écriture sans contrôle de droit : réservée aux opérations internes (effacement RGPD). */
+    private void ecrireTournoi(Tournoi tournoi, Path fichier) {
         service.enregistrerSous(tournoi, new RegistreDisciplinaire(), fichier);
         cacheLectures.remove(fichier);
     }
@@ -888,7 +942,7 @@ public final class ContexteApplication {
         Tournoi tournoi = chargerTournoi(fichier);
         int effaces = convocationsSms.effacerSiTermine(tournoi, maintenant);
         if (effaces > 0) {
-            enregistrerTournoi(tournoi, fichier);
+            ecrireTournoi(tournoi, fichier); // effacement de données personnelles : jamais bloqué
         }
         return effaces;
     }

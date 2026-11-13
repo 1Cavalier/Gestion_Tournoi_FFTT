@@ -80,6 +80,11 @@ public final class ServiceLiaisonClub {
      */
     public Optional<DemandeVerification> demander(CompteUtilisateur compte, String numeroClub) {
         Objects.requireNonNull(compte, "compte");
+        if (!compte.isEmailVerifie()) {
+            // Point 13 : aucun droit de club sans email vérifié.
+            throw new com.pingmanager.core.DroitRefuseException(DroitRefuseException.Motif.EMAIL_NON_VERIFIE,
+                    OperationProtegee.COMPTES_CLUB, numeroClub);
+        }
         Club club = registreClubs.trouverParNumero(numeroClub).orElse(null);
         if (club == null) {
             return Optional.empty();
@@ -97,7 +102,8 @@ public final class ServiceLiaisonClub {
                         + "Code de vérification : " + code + "\n"
                         + "Ce code est valable " + validiteCode.toMinutes() + " minutes.");
 
-        return Optional.of(new DemandeVerification(compte.getEmail(), empreinteCode, expiration));
+        return Optional.of(new DemandeVerification(compte.getEmail(), empreinteCode, expiration,
+                objet(club.getNumero())));
     }
 
     /**
@@ -121,6 +127,10 @@ public final class ServiceLiaisonClub {
         Club club = registreClubs.trouverParNumero(numeroClub).orElse(null);
         if (club == null) {
             return ResultatLiaisonClub.clubIntrouvable();
+        }
+        // Ex-faille S-04 : le code vaut pour le club demandé, et pour lui seul.
+        if (!demande.viseObjet(objet(club.getNumero()))) {
+            return ResultatLiaisonClub.demandeDUnAutreClub();
         }
         if (codeSaisi == null || codeSaisi.isBlank()) {
             return ResultatLiaisonClub.codeIncorrect();
@@ -148,6 +158,10 @@ public final class ServiceLiaisonClub {
         AccesClub acces = new AccesClub(
                 club.getNumero(), compte.getEmail(), compte.getNom(), compte.getPrenom(), niveau);
         return ResultatLiaisonClub.verifie(acces);
+    }
+
+    static String objet(String numeroClub) {
+        return "club:" + numeroClub.trim();
     }
 
     /**

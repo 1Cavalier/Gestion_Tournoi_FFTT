@@ -21,8 +21,9 @@ class EffacementSmsOuvertureTest {
 
     @Test
     void numeros_effaces_et_enregistres_a_l_ouverture_d_un_tournoi_termine() {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        Path f = ctx.creerBrouillon(new Tournoi("Open SMS", "Brunoy", JOUR)).toAbsolutePath();
+        ContexteApplication ctx = TournoisDeTest.connecteBrunoy(
+                new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences()));
+        Path f = ctx.creerBrouillon(TournoisDeTest.deBrunoy(new Tournoi("Open SMS", "Brunoy", JOUR))).toAbsolutePath();
         Tournoi t = ctx.chargerTournoi(f);
         assertTrue(ctx.convocationsSms().enregistrerContact(t, "1", "0612345678", true,
                 JOUR.minusDays(3).atStartOfDay()).estReussi());

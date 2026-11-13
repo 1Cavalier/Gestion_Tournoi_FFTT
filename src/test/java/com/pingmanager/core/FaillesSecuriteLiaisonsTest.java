@@ -76,26 +76,35 @@ class FaillesSecuriteLiaisonsTest {
         Instant t0 = Instant.parse("2026-11-05T10:00:00Z");
         service = new ServiceLiaisonClub(clubs, new CodesSequentiels(), boite, new HachageFactice(), () -> t0);
         attaquant = new CompteUtilisateur("president@club-attaquant.fr", "PIRATE", "Paul", "h:x");
+        attaquant.marquerEmailVerifie(); // l'attaquant a prouvé SON adresse (point 13)
     }
 
     /**
-     * Faille S-04 : la {@link DemandeVerification} ne mémorise pas le club visé.
-     * L'attaquant demande un code pour SON club (le code arrive dans SA boîte), puis
-     * confirme ce code en indiquant le numéro d'un AUTRE club : l'accès est accordé
-     * sur le club victime, dont le référent n'a jamais été sollicité.
-     * Correctif : lier le numéro de club à la demande et refuser toute divergence.
+     * Ex-faille S-04, corrigée (B044) : la {@link DemandeVerification} mémorise le club
+     * visé. Le code reçu pour SON club (dans SA boîte) ne peut plus être confirmé en
+     * indiquant le numéro d'un AUTRE club.
      */
     @Test
-    void code_recu_pour_son_club_ouvre_l_acces_a_un_autre_club_faille_S04() {
+    void code_recu_pour_son_club_n_ouvre_pas_l_acces_a_un_autre_club() {
         DemandeVerification demande = service.demander(attaquant, CLUB_ATTAQUANT).orElseThrow();
         assertEquals(EMAIL_CLUB_ATTAQUANT, boite.envoyes.get(0)[0], "le code part chez l'attaquant");
 
         ResultatLiaisonClub r = service.confirmer(attaquant, CLUB_VICTIME, demande, "000001");
 
-        assertTrue(r.estReussi(), "comportement vulnérable : le code d'un club ouvre un autre club");
-        assertEquals(CLUB_VICTIME, r.getAcces().getNumeroClub());
-        assertTrue(boite.envoyes.stream().noneMatch(m -> m[0].equals(EMAIL_CLUB_VICTIME)),
-                "le référent du club victime n'a reçu aucun message");
+        assertEquals(ResultatLiaisonClub.Statut.DEMANDE_D_UN_AUTRE_CLUB, r.getStatut());
+        assertTrue(!r.estReussi() && r.getAcces() == null);
+        // Le même code reste valable pour le club demandé.
+        assertTrue(service.confirmer(attaquant, CLUB_ATTAQUANT, demande, "000001").estReussi());
+    }
+
+    /** Point 13 : un compte dont l'email n'est pas vérifié ne peut même pas demander un club. */
+    @Test
+    void compte_non_verifie_ne_demande_pas_de_rattachement() {
+        CompteUtilisateur nonVerifie = new CompteUtilisateur("nv@exemple.fr", "NV", "Nv", "h:x");
+        DroitRefuseException e = org.junit.jupiter.api.Assertions.assertThrows(DroitRefuseException.class,
+                () -> service.demander(nonVerifie, CLUB_VICTIME));
+        assertEquals(DroitRefuseException.Motif.EMAIL_NON_VERIFIE, e.getMotif());
+        assertTrue(boite.envoyes.isEmpty());
     }
 
     /**

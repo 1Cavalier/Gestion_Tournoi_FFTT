@@ -22,7 +22,9 @@ public final class ResultatLiaisonClub {
         /** Le code saisi est incorrect. */
         CODE_INCORRECT,
         /** Trop de codes faux récents : essai refusé sans vérification (point 15). */
-        TROP_D_ESSAIS
+        TROP_D_ESSAIS,
+        /** Le code a été demandé pour un autre club (ex-faille S-04). */
+        DEMANDE_D_UN_AUTRE_CLUB
     }
 
     private final Statut statut;
@@ -63,6 +65,10 @@ public final class ResultatLiaisonClub {
 
     public static ResultatLiaisonClub codeExpire() {
         return new ResultatLiaisonClub(Statut.CODE_EXPIRE, null);
+    }
+
+    public static ResultatLiaisonClub demandeDUnAutreClub() {
+        return new ResultatLiaisonClub(Statut.DEMANDE_D_UN_AUTRE_CLUB, null);
     }
 
     public static ResultatLiaisonClub codeIncorrect() {

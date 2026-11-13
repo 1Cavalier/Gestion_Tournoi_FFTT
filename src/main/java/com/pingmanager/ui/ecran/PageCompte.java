@@ -348,7 +348,7 @@ public final class PageCompte {
 
     /** Le bouton d'envoi ne s'active qu'après confirmation explicite de l'avertissement. */
     private void majEnvoiPossible() {
-        boutonEnvoyer.setDisable(!caseConfirmation.isSelected());
+        boutonEnvoyer.setDisable(!caseConfirmation.isSelected() || !contexte.emailVerifie());
     }
 
     /** Clubs reliés : pour chacun, niveau, tableau des droits, équipe et dissociation. */
@@ -464,6 +464,7 @@ public final class PageCompte {
             case "CODE_INCORRECT" -> erreur(messageClub, "Code incorrect.");
             case "CLUB_INTROUVABLE" -> erreur(messageClub, "Club introuvable.");
             case "TROP_D_ESSAIS" -> erreur(messageClub, resultat.messageBlocage());
+            case "DEMANDE_D_UN_AUTRE_CLUB" -> erreur(messageClub, "Ce code a été demandé pour un autre club.");
             default -> erreur(messageClub, "Rattachement impossible.");
         }
     }

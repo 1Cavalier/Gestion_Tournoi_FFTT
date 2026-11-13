@@ -48,6 +48,7 @@ public final class PageSupervision {
     }
 
     private void afficherListe() {
+        contexte.exigerDroit(com.pingmanager.core.OperationProtegee.SUPERVISION, null); // point 16
         Map<String, List<Ligne>> parClub = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         int total = 0;
         for (Path f : contexte.fichiersTournois()) {

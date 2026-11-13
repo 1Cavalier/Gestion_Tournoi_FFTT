@@ -28,7 +28,10 @@ class ContexteSupervisionTest {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences(), true);
         Tournoi paris = new Tournoi("Open de Paris 15", "TT Paris 15", LocalDate.of(2027, 5, 8));
         paris.setNumeroAffiliationClub(DonneesDemo.CLUB_PARIS_15);
-        ctx.creerBrouillon(paris);
+        // Fixture : le fichier du club de Paris est déposé tel quel (personne ici n'a de
+        // droit sur ce club, point 16).
+        DepotTournoi.sauvegarder(paris, new RegistreDisciplinaire(), Files.createDirectories(
+                dossier.resolve("tournois")).resolve("paris" + DepotTournoi.EXTENSION));
 
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, ctx.motDePasseSupervisionDemo().orElseThrow()).isPresent());
         assertTrue(ctx.estUltraAdmin());
@@ -61,8 +64,8 @@ class ContexteSupervisionTest {
         assertTrue(Files.exists(tournois.resolve("archives").resolve("open" + DepotTournoi.EXTENSION)));
 
         // Une seule fois : un tournoi créé ensuite n'est plus archivé au redémarrage.
-        Tournoi nouveau = new Tournoi("Nouveau", "Brunoy", LocalDate.of(2027, 6, 5));
-        ctx.creerBrouillon(nouveau);
+        Tournoi nouveau = TournoisDeTest.deBrunoy(new Tournoi("Nouveau", "Brunoy", LocalDate.of(2027, 6, 5)));
+        TournoisDeTest.connecteBrunoy(ctx).creerBrouillon(nouveau);
         ContexteApplication ctx2 = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
         assertEquals(3, ctx2.fichiersTournois().size(), "Brunoy, sa copie au jour J et le nouveau");
     }

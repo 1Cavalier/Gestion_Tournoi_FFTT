@@ -30,8 +30,9 @@ class CacheLecturesTournoisTest {
 
     @Test
     void fichier_inchange_pas_relu_puis_relu_apres_modification() throws Exception {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        Path f = ctx.creerBrouillon(new Tournoi("Open du cache", "Brunoy", LocalDate.of(2027, 6, 5))).toAbsolutePath();
+        ContexteApplication ctx = TournoisDeTest.connecteBrunoy(
+                new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences()));
+        Path f = ctx.creerBrouillon(TournoisDeTest.deBrunoy(new Tournoi("Open du cache", "Brunoy", LocalDate.of(2027, 6, 5)))).toAbsolutePath();
 
         Tournoi premier = trouver(ctx.tousLesTournois(), f);
         assertSame(premier, trouver(ctx.tousLesTournois(), f), "fichier inchangé : même lecture");
@@ -47,8 +48,9 @@ class CacheLecturesTournoisTest {
 
     @Test
     void fichier_supprime_disparait_de_la_liste() throws Exception {
-        ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        Path f = ctx.creerBrouillon(new Tournoi("Open éphémère", "Brunoy", LocalDate.of(2027, 6, 5))).toAbsolutePath();
+        ContexteApplication ctx = TournoisDeTest.connecteBrunoy(
+                new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences()));
+        Path f = ctx.creerBrouillon(TournoisDeTest.deBrunoy(new Tournoi("Open éphémère", "Brunoy", LocalDate.of(2027, 6, 5)))).toAbsolutePath();
         assertTrue(ctx.tousLesTournois().stream().anyMatch(tf -> tf.fichier().equals(f)));
 
         Files.delete(f);
