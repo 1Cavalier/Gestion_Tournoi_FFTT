@@ -55,6 +55,15 @@ public final class SuggestionsBuvetteJson {
                 // suggestion abîmée : écartée
             }
         }
-        return new SuggestionsBuvette(doc.getInt("version", 1), doc.getString("avertissement", null), produits);
+        List<com.pingmanager.model.buvette.Ingredient> ingredients = new ArrayList<>();
+        for (Json j : BuvetteMapper.objetsOuValeurs(doc, "ingredients")) {
+            try {
+                ingredients.add(BuvetteMapper.lireIngredient(j));
+            } catch (RuntimeException illisible) {
+                // suggestion abîmée : écartée
+            }
+        }
+        return new SuggestionsBuvette(doc.getInt("version", 1), doc.getString("avertissement", null), produits,
+                ingredients);
     }
 }

@@ -29,8 +29,8 @@ class PresentationCatalogueBuvetteTest {
         PresentationCatalogueBuvette pr = new PresentationCatalogueBuvette(new CatalogueBuvette("1"), suggestions,
                 new ServiceCatalogueBuvette());
         assertTrue(pr.vide());
-        assertEquals("2", pr.tuiles().get(2).valeur());
-        assertEquals("suggestions à examiner", pr.tuiles().get(2).libelle());
+        assertEquals("2", pr.tuiles().get(3).valeur());
+        assertEquals("suggestions à examiner", pr.tuiles().get(3).libelle());
         assertTrue(pr.mentionSuggestions().startsWith("Prix indicatifs à valider par le club"));
         assertTrue(pr.confirmationToutAjouter().startsWith("Ajouter les 2 produits suggérés"));
     }
@@ -47,7 +47,7 @@ class PresentationCatalogueBuvetteTest {
         List<PresentationCatalogueBuvette.Groupe> g = pr.groupes();
         assertEquals(List.of("Boissons froides", "Boissons chaudes"), g.stream().map(x -> x.titre()).toList());
         PresentationCatalogueBuvette.LigneProduit cafe = g.get(1).lignes().get(0);
-        assertEquals("Gobelet · 1,20 € · déjà vendu", cafe.detail());
+        assertEquals("Gobelet · 1,20 € · recette à renseigner · déjà vendu", cafe.detail());
         assertEquals("Désactiver", cafe.actionRetrait());
         assertEquals("Retirer", g.get(1).lignes().get(1).actionRetrait());
         assertFalse(g.get(1).lignes().get(1).actif());
@@ -66,5 +66,27 @@ class PresentationCatalogueBuvetteTest {
         c.setAlcoolActive(true);
         assertTrue(pr.categoriesSaisissables().contains(CategorieProduit.ALCOOLISEES));
         assertTrue(pr.actionAlcool().startsWith("Désactiver"));
+    }
+
+    @Test
+    void recette_expliquee_et_synthese_avec_marge_et_taux() {
+        CatalogueBuvette c = new CatalogueBuvette("1");
+        c.enregistrerIngredient(com.pingmanager.model.buvette.Ingredient.builder().id("baguette").nom("Baguette")
+                .uniteAchat("baguette").unitePortion("sandwichs").prixAchatCentimes(110).rendement(2, 3).build());
+        c.enregistrerProduit(Produit.builder().id("s").nom("Sandwich").categorie(CategorieProduit.SANDWICHS)
+                .unite(UniteVente.PIECE).prixVenteCentimes(300)
+                .recette(List.of(new com.pingmanager.model.buvette.LigneRecette("baguette", 1))).build());
+        PresentationCatalogueBuvette pr = new PresentationCatalogueBuvette(c, suggestions,
+                new ServiceCatalogueBuvette());
+        PresentationCatalogueBuvette.Recette r = pr.recette("s").orElseThrow();
+        assertEquals("Recette : Sandwich", r.titre());
+        assertEquals("Baguette : 1,10 € ÷ 2 sandwichs = 0,55 €", r.lignes().get(0).explication());
+        assertEquals("Coût de revient 0,55 € (de 0,37 € à 0,55 € selon le rendement) · marge 2,45 € · "
+                + "taux de marge 445 % · taux de marque 82 %", r.synthese());
+        assertEquals("Pièce · 3,00 € · coût 0,55 € · marge 2,45 €", pr.groupes().get(0).lignes().get(0).detail());
+        assertEquals("Baguette à 1,10 € · 2 à 3 sandwichs · 0,55 € la portion", pr.ingredients().get(0).detail());
+        assertEquals("Désactiver", pr.ingredients().get(0).actionRetrait(),
+                "l'ingrédient sert dans une recette : il se désactive");
+        assertTrue(pr.recette("absent").isEmpty());
     }
 }

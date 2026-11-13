@@ -4138,3 +4138,11 @@
     -fx-text-fill: -texte-doux;
     -fx-padding: 12 0 4 0;
 }
+
+.buvette-synthese {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+    -fx-wrap-text: true;
+    -fx-padding: 8 0 0 0;
+}

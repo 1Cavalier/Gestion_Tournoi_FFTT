@@ -12,7 +12,8 @@ import java.util.Objects;
  * Règles du catalogue de la buvette (B046) : enregistrement d'un produit
  * contrôlé, désactivation, retrait (jamais d'un produit déjà vendu),
  * activation manuelle de la catégorie « alcoolisées », et acceptation des
- * suggestions (une par une ou toutes).
+ * suggestions (une par une ou toutes ; un produit suggéré amène les ingrédients
+ * suggérés de sa recette).
  */
 public final class ServiceCatalogueBuvette {
 
@@ -132,7 +133,20 @@ public final class ServiceCatalogueBuvette {
         if (dejaPresent(catalogue, s)) {
             return ResultatProduitBuvette.refus(ResultatProduitBuvette.Motif.DEJA_PRESENT);
         }
-        return enregistrer(catalogue, s);
+        // B046 partie 2 : la recette suggérée amène ses ingrédients suggérés manquants ;
+        // une ligne dont l'ingrédient reste introuvable est écartée.
+        java.util.List<com.pingmanager.model.buvette.LigneRecette> recette = new ArrayList<>();
+        for (com.pingmanager.model.buvette.LigneRecette l : s.getRecette()) {
+            if (catalogue.ingredient(l.idIngredient()).isEmpty()) {
+                suggestions.ingredient(l.idIngredient())
+                        .filter(i -> !ServiceIngredientsBuvette.dejaPresent(catalogue, i))
+                        .ifPresent(catalogue::enregistrerIngredient);
+            }
+            if (catalogue.ingredient(l.idIngredient()).isPresent()) {
+                recette.add(l);
+            }
+        }
+        return enregistrer(catalogue, s.modifier().recette(recette).build());
     }
 
     /**

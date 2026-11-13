@@ -21,6 +21,7 @@ public record ResultatProduitBuvette(Motif motif, Produit produit) {
         PRIX_INVALIDE(false, "Le prix doit être un montant positif, par exemple 1,50."),
         ALCOOL_NON_ACTIVE(false, "Activez d'abord la catégorie « Boissons alcoolisées »."),
         DEJA_PRESENT(false, "Cette suggestion est déjà dans le catalogue."),
+        INGREDIENT_INCONNU(false, "La recette cite un ingrédient absent du catalogue : ajoutez-le d'abord."),
         INCONNU(false, "Produit introuvable.");
 
         private final boolean accepte;

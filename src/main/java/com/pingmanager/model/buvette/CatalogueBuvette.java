@@ -14,7 +14,7 @@ import java.util.Set;
 
 /**
  * Catalogue de la buvette d'un club (B046), réutilisé d'un tournoi à l'autre :
- * produits vendus et réglages du club.
+ * produits vendus, ingrédients achetés (et leurs recettes) et réglages du club.
  *
  * <p>Entité mutable gardée : les règles (nom en double, alcool non activé,
  * suppression d'un produit déjà vendu) sont contrôlées par
@@ -27,6 +27,8 @@ public final class CatalogueBuvette {
     private final String numeroClub;
     private final Map<String, Produit> produits = new LinkedHashMap<>();
     private final Set<String> produitsVendus = new LinkedHashSet<>();
+    private final Map<String, Ingredient> ingredients = new LinkedHashMap<>();
+    private final Set<String> ingredientsUtilises = new LinkedHashSet<>();
     private boolean alcoolActive;
 
     public CatalogueBuvette(String numeroClub) {
@@ -80,6 +82,69 @@ public final class CatalogueBuvette {
         return Collections.unmodifiableSet(produitsVendus);
     }
 
+    /** @return les ingrédients, dans l'ordre d'ajout (lecture seule). */
+    public List<Ingredient> getIngredients() {
+        return Collections.unmodifiableList(new ArrayList<>(ingredients.values()));
+    }
+
+    public Optional<Ingredient> ingredient(String id) {
+        return Optional.ofNullable(id == null ? null : ingredients.get(id));
+    }
+
+    /** Ajoute ou remplace un ingrédient (même identifiant). */
+    public void enregistrerIngredient(Ingredient i) {
+        ingredients.put(Objects.requireNonNull(i, "ingredient").getId(), i);
+    }
+
+    /**
+     * Retire un ingrédient. Refusé (exception) s'il figure dans une recette ou a déjà
+     * eu des mouvements de stock : passer par le service, qui le désactive à la place.
+     */
+    public void retirerIngredient(String id) {
+        if (ingredientsUtilises.contains(id) || estDansUneRecette(id)) {
+            throw new IllegalStateException("Un ingrédient utilisé ne se supprime pas : il se désactive.");
+        }
+        ingredients.remove(id);
+    }
+
+    /** @return vrai si l'ingrédient entre dans la recette d'au moins un produit. */
+    public boolean estDansUneRecette(String idIngredient) {
+        for (Produit p : produits.values()) {
+            for (LigneRecette l : p.getRecette()) {
+                if (l.idIngredient().equals(idIngredient)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Retient qu'un ingrédient a eu au moins un mouvement de stock. */
+    public void marquerIngredientUtilise(String id) {
+        if (id != null && !id.isBlank()) {
+            ingredientsUtilises.add(id);
+        }
+    }
+
+    public boolean estIngredientUtilise(String id) {
+        return ingredientsUtilises.contains(id) || estDansUneRecette(id);
+    }
+
+    public Set<String> getIngredientsUtilises() {
+        return Collections.unmodifiableSet(ingredientsUtilises);
+    }
+
+    /** Identifiant libre d'ingrédient dérivé d'un nom. */
+    public String idLibreIngredient(String nom) {
+        String base = slug(nom);
+        String id = base;
+        int i = 2;
+        while (ingredients.containsKey(id)) {
+            id = base + "-" + i++;
+        }
+        return id;
+    }
+
     /** @return vrai si la catégorie « boissons alcoolisées » a été activée à la main. */
     public boolean isAlcoolActive() {
         return alcoolActive;
@@ -91,7 +156,8 @@ public final class CatalogueBuvette {
 
     /** @return vrai si rien n'a été saisi (le dépôt ne l'écrit alors pas). */
     public boolean estVide() {
-        return produits.isEmpty() && produitsVendus.isEmpty() && !alcoolActive;
+        return produits.isEmpty() && produitsVendus.isEmpty() && ingredients.isEmpty()
+                && ingredientsUtilises.isEmpty() && !alcoolActive;
     }
 
     /**

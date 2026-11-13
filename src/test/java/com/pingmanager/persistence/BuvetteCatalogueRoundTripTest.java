@@ -89,4 +89,33 @@ class BuvetteCatalogueRoundTripTest {
         assertEquals(1, s.produits().size());
         assertEquals(SuggestionsBuvette.MENTION, s.avertissement());
     }
+
+    @Test
+    void aller_retour_des_ingredients_et_des_recettes() {
+        DepotApplication depot = new DepotApplication();
+        CatalogueBuvette c = depot.catalogueBuvette("1");
+        c.enregistrerIngredient(com.pingmanager.model.buvette.Ingredient.builder().id("baguette").nom("Baguette")
+                .uniteAchat("baguette").unitePortion("sandwich").prixAchatCentimes(110).rendement(2, 3)
+                .pertePourcent(5).actif(false).build());
+        c.enregistrerProduit(Produit.builder().id("s").nom("Sandwich").prixVenteCentimes(300)
+                .recette(java.util.List.of(new com.pingmanager.model.buvette.LigneRecette("baguette", 2))).build());
+        c.marquerIngredientUtilise("baguette");
+        CatalogueBuvette relu = DepotApplication.lire(depot.ecrire()).catalogueBuvette("1");
+        assertEquals(c.getIngredients(), relu.getIngredients());
+        assertEquals(c.getProduits(), relu.getProduits());
+        assertTrue(relu.getIngredientsUtilises().contains("baguette"));
+    }
+
+    @Test
+    void les_recettes_suggerees_citent_des_ingredients_suggeres() {
+        SuggestionsBuvette s = SuggestionsBuvetteJson.charger();
+        assertTrue(s.ingredients().size() >= 15);
+        for (Produit p : s.produits()) {
+            assertFalse(p.getRecette().isEmpty(), p.getNom());
+            p.getRecette().forEach(l -> assertTrue(s.ingredient(l.idIngredient()).isPresent(), l.idIngredient()));
+        }
+        com.pingmanager.model.buvette.Ingredient baguette = s.ingredient("baguette").orElseThrow();
+        assertEquals(2, baguette.getRendementMin());
+        assertEquals(3, baguette.getRendementMax());
+    }
 }

@@ -1,10 +1,14 @@
 package com.pingmanager.model.buvette;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
  * Produit vendu à la buvette (B046) : nom, catégorie, unité de vente, prix de
  * vente <b>en centimes</b> et état actif. Objet immuable (builder).
+ *
+ * <p>Sa <b>recette</b> dit quels ingrédients il consomme (vide si le club ne la
+ * renseigne pas : le coût de revient est alors inconnu).</p>
  *
  * <p>Un produit déjà vendu n'est jamais supprimé du catalogue : il est
  * désactivé, pour que l'historique des ventes garde son nom et son prix.</p>
@@ -17,6 +21,7 @@ public final class Produit {
     private final UniteVente unite;
     private final long prixVenteCentimes;
     private final boolean actif;
+    private final List<LigneRecette> recette;
 
     private Produit(Builder b) {
         this.id = exiger(b.id, "id");
@@ -28,6 +33,7 @@ public final class Produit {
         }
         this.prixVenteCentimes = b.prixVenteCentimes;
         this.actif = b.actif;
+        this.recette = List.copyOf(b.recette);
     }
 
     private static String exiger(String s, String champ) {
@@ -50,6 +56,7 @@ public final class Produit {
         b.unite = unite;
         b.prixVenteCentimes = prixVenteCentimes;
         b.actif = actif;
+        b.recette = recette;
         return b;
     }
 
@@ -77,18 +84,23 @@ public final class Produit {
         return actif;
     }
 
+    /** @return la recette (lecture seule, vide si non renseignée). */
+    public List<LigneRecette> getRecette() {
+        return recette;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Produit p)) {
             return false;
         }
         return id.equals(p.id) && nom.equals(p.nom) && categorie == p.categorie && unite == p.unite
-                && prixVenteCentimes == p.prixVenteCentimes && actif == p.actif;
+                && prixVenteCentimes == p.prixVenteCentimes && actif == p.actif && recette.equals(p.recette);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, nom, categorie, unite, prixVenteCentimes, actif);
+        return Objects.hash(id, nom, categorie, unite, prixVenteCentimes, actif, recette);
     }
 
     @Override
@@ -104,6 +116,7 @@ public final class Produit {
         private UniteVente unite = UniteVente.PORTION;
         private long prixVenteCentimes;
         private boolean actif = true;
+        private List<LigneRecette> recette = List.of();
 
         public Builder id(String v) {
             this.id = v;
@@ -132,6 +145,11 @@ public final class Produit {
 
         public Builder actif(boolean v) {
             this.actif = v;
+            return this;
+        }
+
+        public Builder recette(List<LigneRecette> v) {
+            this.recette = v == null ? List.of() : v;
             return this;
         }
 
