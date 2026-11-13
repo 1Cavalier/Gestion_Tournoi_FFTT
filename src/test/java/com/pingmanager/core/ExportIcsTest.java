@@ -95,4 +95,21 @@ class ExportIcsTest {
         assertFalse(ics.contains("VEVENT"));
         assertEquals("agenda-pingmanager.ics", ExportIcs.nomFichier());
     }
+
+    @Test
+    void export_seulement_les_tournois_ne_garde_que_les_dates_automatiques() {
+        String ics = export.exporterTournois(agenda());
+        assertEquals(1, ics.split("BEGIN:VEVENT", -1).length - 1);
+        assertTrue(ics.contains("\r\nUID:tournoi-x@pingmanager\r\n"));
+        assertFalse(ics.contains("UID:p1@"));
+        assertTrue(ics.endsWith("END:VCALENDAR\r\n"));
+    }
+
+    @Test
+    void export_filtre_quelconque_et_filtre_qui_refuse_tout_donne_un_calendrier_vide_valide() {
+        String ics = export.exporter(agenda(), e -> false);
+        assertFalse(ics.contains("VEVENT"));
+        assertTrue(ics.startsWith("BEGIN:VCALENDAR\r\n"));
+        assertEquals(export.exporter(agenda()), export.exporter(agenda(), e -> true));
+    }
 }

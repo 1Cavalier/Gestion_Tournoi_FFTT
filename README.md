@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 698 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 729 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -192,6 +192,18 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   liste d'attente), paiement « à régler plus tard ».
 - Mes tournois (en cours, à venir, passés avec victoires et défaites),
   désinscription, agenda du compte et export .ics.
+- **Agenda** (B045, menu Agenda) : vue Liste groupée par mois ou vue Mois
+  (grille, un point par type, clic = détail du jour) ; filtres Personnel,
+  Tournoi, Fédéral et « Afficher les dates passées » ; prochaine date ;
+  dates personnelles ajoutées, modifiées, retirées dans une petite fenêtre ;
+  tournois ajoutés tout seuls d'après les inscriptions (non modifiables) ;
+  export .ics « tout » ou « seulement les tournois ». **Calendrier fédéral**
+  en suggestions (fichier `resources/com/pingmanager/calendrier-federal/
+  calendrier-federal-AAAA-AAAA.csv`, une ligne par date avec source, date de
+  relecture et statut « confirmee » ou « a-verifier », validé au chargement) :
+  « Ajouter à mon agenda », « Tout ajouter » par catégorie avec confirmation,
+  date déjà ajoutée marquée « Dans mon agenda ». Simples repères : aucune
+  règle du Critérium ni des équipes n'est appliquée.
 
 **Jour J**
 - **Inscription sur place** (bouton « Inscrire sur place… ») : un joueur du
@@ -376,6 +388,11 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     tournoi ouvert (plus rapide, refonte plus large).
 24. Géocodage en arrière-plan (il fige l'écran jusqu'à 5 s sans réseau).
 
+### Joueur
+- ~~B045 — Agenda~~ — **fait** (section 3) ; à vérifier à l'écran. Reste :
+  compléter le calendrier fédéral 2026-2027 avec les dates confirmées par
+  Quentin (section 6).
+
 ### Plus tard
 25. **B014** — Finitions graphiques et cohérence de tous les écrans (en dernier).
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
@@ -493,6 +510,31 @@ parenthèses.
   **Textes FFTT 2026-2027 à fournir** (désistement, forfait, non-présentation
   au pointage, remboursement des engagements) : aucun article n'est cité,
   rien n'a été deviné ; aucun remboursement automatique, le club décide.
+- **Agenda et calendrier fédéral (B045)** — fftt.com n'était pas joignable
+  depuis la session (13/11/2026) : les dates n'ont été relevées que dans les
+  extraits d'un moteur de recherche, recoupés par des ligues et comités
+  (fftt-idf.com, cd64tt.fr, liguehdftt.fr, pingmap.fr). Choix provisoire :
+  seuls les **trois premiers tours du Critérium fédéral (Nationale 1)** sont
+  dans le fichier, tous « à vérifier » (9-11 octobre 2026, 13-15 novembre
+  2026, 29-31 janvier 2027 ; source
+  https://www.fftt.com/site/competition/criterium-federal). À confirmer ou
+  donner par Quentin, à partir du calendrier sportif officiel :
+  - **4e tour du Critérium fédéral** : sources en désaccord (5-7 mars 2027
+    sur la page Critérium de fftt.com, 2-4 avril 2027 dans l'appel à
+    candidatures des compétitions fédérales 2026-2027) : non mis ;
+  - **journées du championnat par équipes** (phases 1 et 2) : aucun
+    calendrier national trouvé (seule une journée régionale des
+    Hauts-de-France, 21-22 novembre 2026) : non mises ;
+  - finales par classement, championnats de France 2027, interclubs
+    jeunes, vacances sportives, dates de licences et de mutations : rien
+    trouvé de publié : non mises.
+  Pour ajouter une date : une ligne dans le fichier `.csv`, statut
+  `confirmee` une fois lue sur fftt.com. Saison de l'agenda : septembre à
+  août (comme le reste du logiciel) ; la saison en cours et la suivante sont
+  chargées.
+- Une date fédérale ajoutée à l'agenda est une copie : si le fichier change
+  ensuite, la copie n'est pas mise à jour (le titulaire la modifie ou la
+  retire, puis la rajoute). Choix prudent : rien ne change sans lui.
 - **Sécurité et RGPD (B044)** — choix provisoires, réversibles :
   (1) anciens comptes (fichier sans le champ `emailVerifie`) considérés
   vérifiés ; tant que les emails ne partent pas vraiment, le code n'est lu

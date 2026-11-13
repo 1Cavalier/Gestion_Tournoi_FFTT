@@ -4125,3 +4125,181 @@
 .desinscription-motif-joueur {
     -fx-font-weight: bold;
 }
+
+/* ==================================================================
+   === Agenda (B045) : PageAgenda, FenetreDateAgenda ===
+   Types : agenda-type-personnel (gris), agenda-type-tournoi (bleu),
+   agenda-type-federal (cyan). Classes posées par le code
+   (ligne-element-premiere, agenda-case-…), jamais :first-child.
+   ================================================================== */
+
+.agenda-entete .titre {
+    -fx-padding: 0 8 0 0;
+}
+
+.agenda-filtres {
+    -fx-padding: 0 0 4 0;
+}
+
+.agenda-filtre,
+.agenda-filtre-passees {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13px;
+}
+
+.agenda-filtres-separateur {
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -bordure;
+}
+
+.agenda-prochain {
+    -fx-text-fill: -info-texte;
+    -fx-background-color: -primaire-doux;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+    -fx-font-size: 13px;
+}
+
+.agenda-mois-titre {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -texte-doux;
+    -fx-padding: 0 0 -8 4;
+}
+
+.agenda-mois-carte {
+    -fx-padding: 4 16 4 16;
+}
+
+.agenda-ligne.agenda-ligne-passee .ligne-element-titre,
+.agenda-ligne.agenda-ligne-passee .ligne-element-detail {
+    -fx-opacity: 0.6;
+}
+
+.agenda-ligne.agenda-ligne-suggestion {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.agenda-ligne.agenda-ligne-suggestion .ligne-element-titre {
+    -fx-font-style: italic;
+}
+
+/* Pastilles de type (fond doux + texte foncé). */
+.badge.agenda-pastille {
+    -fx-min-width: 72px;
+    -fx-alignment: center;
+}
+
+.badge.agenda-pastille.agenda-type-personnel {
+    -fx-background-color: -neutre-doux;
+    -fx-text-fill: -neutre-texte;
+}
+
+.badge.agenda-pastille.agenda-type-tournoi {
+    -fx-background-color: -info-doux;
+    -fx-text-fill: -info-texte;
+}
+
+.theme-clair .badge.agenda-pastille.agenda-type-federal {
+    -fx-background-color: #DDF5F8;
+    -fx-text-fill: #0A6170;
+}
+
+.theme-sombre .badge.agenda-pastille.agenda-type-federal {
+    -fx-background-color: #123A44;
+    -fx-text-fill: #9BE6EE;
+}
+
+/* Vue Mois : grille simple, un point par type présent. */
+.agenda-mois-nav {
+    -fx-padding: 0 0 4 0;
+}
+
+.agenda-grille {
+    -fx-hgap: 4;
+    -fx-vgap: 4;
+}
+
+.agenda-grille-entete {
+    -fx-alignment: center;
+    -fx-font-size: 12px;
+    -fx-text-fill: -texte-doux;
+    -fx-padding: 0 0 4 0;
+}
+
+.agenda-case {
+    -fx-min-height: 56px;
+    -fx-padding: 6 4 6 4;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.agenda-case:hover {
+    -fx-background-color: -surface-2;
+}
+
+.agenda-case-numero {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+.agenda-case.agenda-case-hors-mois .agenda-case-numero {
+    -fx-text-fill: -texte-doux;
+    -fx-opacity: 0.55;
+}
+
+.agenda-case.agenda-case-aujourdhui .agenda-case-numero {
+    -fx-font-weight: 700;
+    -fx-text-fill: -primaire;
+}
+
+.agenda-case.agenda-case-choisie {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.agenda-point {
+    -fx-min-width: 7px;
+    -fx-min-height: 7px;
+    -fx-pref-width: 7px;
+    -fx-pref-height: 7px;
+    -fx-max-width: 7px;
+    -fx-max-height: 7px;
+    -fx-background-radius: 999;
+}
+
+.agenda-point.agenda-type-personnel {
+    -fx-background-color: -neutre-texte;
+}
+
+.agenda-point.agenda-type-tournoi {
+    -fx-background-color: -primaire;
+}
+
+.agenda-point.agenda-type-federal {
+    -fx-background-color: -accent;
+}
+
+/* Fenêtres d'ajout, de modification et d'export. */
+.agenda-fenetre-contenu {
+    -fx-padding: 8 4 4 4;
+    -fx-pref-width: 380px;
+}
+
+.agenda-fenetre-message {
+    -fx-padding: 4 0 0 0;
+}
+
+/* Calendrier fédéral (B045, partie 2) : bloc des catégories, confirmation. */
+.agenda-federal .aide {
+    -fx-padding: 0 0 4 0;
+}
+
+.agenda-confirmation {
+    -fx-padding: 12 0 4 0;
+}

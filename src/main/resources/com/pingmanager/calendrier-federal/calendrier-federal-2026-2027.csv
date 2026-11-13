@@ -1,0 +1,25 @@
+# Calendrier fédéral FFTT, saison 2026-2027 : dates REPÈRES de l'Agenda (B045).
+# Aucune règle sportive n'en dépend : ce ne sont que des suggestions d'agenda.
+#
+# Format : UTF-8, séparateur « ; » (pas de « ; » dans les textes), une date par ligne.
+#   id        identifiant stable (ne pas le changer : il reconnaît une date déjà ajoutée)
+#   categorie regroupement du bouton « Tout ajouter » (ex. Critérium fédéral)
+#   titre     texte affiché
+#   debut/fin AAAA-MM-JJ (fin facultative)
+#   statut    confirmee (lue dans une source officielle) ou a-verifier
+#   source    adresse de la source officielle, ou de la plus proche
+#   relu_le   AAAA-MM-JJ, jour de la relecture de la source
+#   note      facultative
+# Saison suivante : ajouter calendrier-federal-2027-2028.csv dans ce dossier.
+#
+# Relecture du 2026-11-13 : fftt.com n'était pas joignable depuis la session de
+# travail ; les dates ci-dessous viennent des extraits de la page Critérium fédéral
+# de fftt.com donnés par un moteur de recherche, recoupés par des ligues et comités.
+# Elles restent « a-verifier » tant que Quentin ne les a pas lues sur fftt.com.
+# Non retenues (README section 6) : 4e tour du Critérium fédéral (sources en
+# désaccord : 5-7 mars ou 2-4 avril 2027), journées du championnat par équipes,
+# finales et championnats de France 2027.
+id;categorie;titre;debut;fin;statut;source;relu_le;note
+cf-2026-2027-t1-n1;Critérium fédéral;Critérium fédéral : 1er tour (Nationale 1);2026-10-09;2026-10-11;a-verifier;https://www.fftt.com/site/competition/criterium-federal;2026-11-13;Dates de l'échelon national. Échelons régionaux et départementaux : voir votre ligue ou votre comité (souvent le samedi ou le dimanche de ce week-end).
+cf-2026-2027-t2-n1;Critérium fédéral;Critérium fédéral : 2e tour (Nationale 1);2026-11-13;2026-11-15;a-verifier;https://www.fftt.com/site/competition/criterium-federal;2026-11-13;Dates de l'échelon national. Échelons régionaux et départementaux : voir votre ligue ou votre comité (souvent le samedi ou le dimanche de ce week-end).
+cf-2026-2027-t3-n1;Critérium fédéral;Critérium fédéral : 3e tour (Nationale 1);2027-01-29;2027-01-31;a-verifier;https://www.fftt.com/site/competition/criterium-federal;2026-11-13;Dates de l'échelon national. Échelons régionaux et départementaux : voir votre ligue ou votre comité (souvent le samedi ou le dimanche de ce week-end).

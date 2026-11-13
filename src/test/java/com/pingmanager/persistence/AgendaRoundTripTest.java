@@ -57,4 +57,30 @@ class AgendaRoundTripTest {
         assertEquals(3, a.taille());
         assertTrue(a.evenements().stream().noneMatch(EvenementAgenda::estAutomatique));
     }
+
+    @Test
+    void date_federale_sauvegardee_puis_relue_avec_son_origine() throws Exception {
+        DepotApplication depot = new DepotApplication();
+        AgendaCompte a = depot.agendaDe("a@b.fr");
+        a.enregistrer(EvenementAgenda.builder().id("federal-cf-t1").titre("Critérium fédéral : 1er tour")
+                .date(LocalDate.of(2026, 10, 9)).dateFin(LocalDate.of(2026, 10, 11))
+                .note("Calendrier fédéral : à vérifier.").origine(OrigineEvenement.FEDERAL).construire());
+        Path fichier = Files.createTempDirectory("agenda-federal").resolve(DepotApplication.NOM_FICHIER);
+        depot.sauvegarder(fichier);
+        AgendaCompte r = DepotApplication.charger(fichier).agendaDe("a@b.fr");
+        assertEquals(a.evenements(), r.evenements());
+        assertEquals(OrigineEvenement.FEDERAL, r.trouver("federal-cf-t1").orElseThrow().getOrigine());
+    }
+
+    @Test
+    void ancien_fichier_sans_origine_federal_relu_a_l_identique() {
+        // fichier écrit avant B045 : seules PERSONNEL et TOURNOI existaient
+        String ancien = "{\"version\":1,\"agendas\":[{\"email\":\"a@b.fr\",\"evenements\":["
+                + "{\"id\":\"1\",\"titre\":\"X\",\"date\":\"2027-01-01\",\"origine\":\"PERSONNEL\"},"
+                + "{\"id\":\"2\",\"titre\":\"Y\",\"date\":\"2027-01-02\",\"origine\":\"TOURNOI\","
+                + "\"cleTournoi\":\"k\"}]}]}";
+        AgendaCompte a = DepotApplication.lire(JsonParser.analyser(ancien)).agendaDe("a@b.fr");
+        assertEquals(OrigineEvenement.PERSONNEL, a.trouver("1").orElseThrow().getOrigine());
+        assertEquals(OrigineEvenement.TOURNOI, a.trouver("2").orElseThrow().getOrigine());
+    }
 }

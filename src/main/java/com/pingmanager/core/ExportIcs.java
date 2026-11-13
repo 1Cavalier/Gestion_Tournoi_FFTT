@@ -2,12 +2,14 @@ package com.pingmanager.core;
 
 import com.pingmanager.model.AgendaCompte;
 import com.pingmanager.model.EvenementAgenda;
+import com.pingmanager.model.OrigineEvenement;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * Export de l'agenda au format iCalendar ({@code .ics}, RFC 5545), écrit à la main
@@ -56,7 +58,18 @@ public final class ExportIcs {
 
     /** @return le calendrier complet (toutes les dates de l'agenda). */
     public String exporter(AgendaCompte agenda) {
+        return exporter(agenda, e -> true);
+    }
+
+    /** @return le calendrier des seules dates de tournoi (choix « seulement les tournois » de l'Agenda). */
+    public String exporterTournois(AgendaCompte agenda) {
+        return exporter(agenda, EvenementAgenda::estAutomatique);
+    }
+
+    /** @return le calendrier des dates de l'agenda retenues par {@code filtre}. */
+    public String exporter(AgendaCompte agenda, Predicate<EvenementAgenda> filtre) {
         Objects.requireNonNull(agenda, "agenda");
+        Objects.requireNonNull(filtre, "filtre");
         Instant maintenant = horloge.maintenant();
         StringBuilder sb = new StringBuilder();
         ligne(sb, "BEGIN:VCALENDAR");
@@ -66,6 +79,9 @@ public final class ExportIcs {
         ligne(sb, "METHOD:PUBLISH");
         ligne(sb, "X-WR-CALNAME:" + echapper("Agenda PingManager"));
         for (EvenementAgenda e : agenda.evenements()) {
+            if (!filtre.test(e)) {
+                continue;
+            }
             evenement(sb, e, maintenant);
         }
         ligne(sb, "END:VCALENDAR");
@@ -92,9 +108,19 @@ public final class ExportIcs {
         if (e.getNote() != null) {
             ligne(sb, "DESCRIPTION:" + echapper(e.getNote()));
         }
-        ligne(sb, "CATEGORIES:" + (e.estAutomatique() ? "Tournoi" : "Personnel"));
+        ligne(sb, "CATEGORIES:" + categorie(e));
         ligne(sb, "TRANSP:" + (e.getHeure() == null ? "TRANSPARENT" : "OPAQUE"));
         ligne(sb, "END:VEVENT");
+    }
+
+    private static String categorie(EvenementAgenda e) {
+        if (e.estAutomatique()) {
+            return "Tournoi";
+        }
+        if (e.getOrigine() == OrigineEvenement.FEDERAL) {
+            return "Fédéral";
+        }
+        return "Personnel";
     }
 
     /**
