@@ -65,6 +65,9 @@ public final class DepotApplication implements RegistreClubs {
     /** B018 : prononciations phonétiques des joueurs et des clubs (appels au micro). */
     private final RegistrePrononciations prononciations = new RegistrePrononciations();
 
+    /** B046 : catalogue de la buvette de chaque club, réutilisé d'un tournoi à l'autre. */
+    private final Map<String, com.pingmanager.model.buvette.CatalogueBuvette> buvettes = new LinkedHashMap<>();
+
     /** Tournois récemment ouverts, du plus récent au plus ancien. */
     private final List<ProjetTournoi> recents = new ArrayList<>();
 
@@ -261,6 +264,21 @@ public final class DepotApplication implements RegistreClubs {
     }
 
     // ==================================================================
+    // Buvette (B046)
+    // ==================================================================
+
+    /**
+     * Catalogue de la buvette d'un club ; créé vide (et retenu) au premier appel.
+     * Les modifications faites sur le catalogue renvoyé sont sauvegardées avec le dépôt.
+     */
+    public com.pingmanager.model.buvette.CatalogueBuvette catalogueBuvette(String numeroClub) {
+        if (numeroClub == null || numeroClub.isBlank()) {
+            throw new IllegalArgumentException("numéro de club obligatoire");
+        }
+        return buvettes.computeIfAbsent(cleClub(numeroClub), com.pingmanager.model.buvette.CatalogueBuvette::new);
+    }
+
+    // ==================================================================
     // Tournois récents
     // ==================================================================
 
@@ -367,6 +385,17 @@ public final class DepotApplication implements RegistreClubs {
         pron.set("clubs", pc);
         doc.set("prononciations", pron);
 
+        // B046 : écrit seulement si un club a une buvette (un ancien fichier reste identique).
+        Json buv = Json.tableau();
+        for (com.pingmanager.model.buvette.CatalogueBuvette c : buvettes.values()) {
+            if (!c.estVide()) {
+                buv.add(BuvetteMapper.ecrireCatalogue(c));
+            }
+        }
+        if (buv.taille() > 0) {
+            doc.set("buvettes", buv);
+        }
+
         Json rec = Json.tableau();
         for (ProjetTournoi p : recents) {
             Json o = Json.objet();
@@ -414,6 +443,16 @@ public final class DepotApplication implements RegistreClubs {
         }
         if (doc.has("prononciations")) { // absent des fichiers antérieurs à B018
             lirePrononciations(doc.get("prononciations"), depot.prononciations);
+        }
+        if (doc.has("buvettes")) { // absent des fichiers antérieurs à B046
+            for (Json o : entreesObjets(doc.get("buvettes"))) {
+                try {
+                    com.pingmanager.model.buvette.CatalogueBuvette c = BuvetteMapper.lireCatalogue(o);
+                    depot.buvettes.put(cleClub(c.getNumeroClub()), c);
+                } catch (RuntimeException illisible) {
+                    // catalogue abîmé : ignoré, le reste du fichier est relu
+                }
+            }
         }
         if (doc.has("recents")) {
             for (Json o : doc.get("recents").elements()) {

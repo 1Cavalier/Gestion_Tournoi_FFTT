@@ -185,9 +185,7 @@ public final class Coquille {
                             "Les statistiques du club sur ses tournois passés (recettes, nombre "
                                     + "de joueurs, présents) apparaîtront ici.")));
             gestion.add(new Entree("buvette", "Buvette", Icones.BUVETTE,
-                    () -> PagePlaceholder.page("Buvette",
-                            "La gestion de la buvette (stocks, prix, prévisionnel en direct) "
-                                    + "apparaîtra ici.")));
+                    () -> new PageBuvette(contexte).build())); // B046
         }
 
         // Supervision, réservée au compte « ultra admin ».

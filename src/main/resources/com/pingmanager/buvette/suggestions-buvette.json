@@ -1,0 +1,607 @@
+{
+  "version": 1,
+  "avertissement": "Suggestions de départ pour une buvette de tournoi : prix indicatifs à valider par le club. Ce ne sont pas des prix de marché, seulement des hypothèses à modifier.",
+  "hypotheses": {
+    "commentaire": "Hypothèses à ajuster : accompagnants pour 100 joueurs (%), présence moyenne en dixièmes de demi-journée (15 = 1,5), scénarios bas et haut en % du scénario moyen. Dans chaque produit, consommation = centièmes de produit par personne et par demi-journée (35 = 0,35).",
+    "accompagnants": 30,
+    "presence": 15,
+    "scenarioBas": 75,
+    "scenarioHaut": 125
+  },
+  "produits": [
+    {
+      "id": "cafe",
+      "nom": "Café",
+      "categorie": "BOISSONS_CHAUDES",
+      "unite": "GOBELET",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "cafe-moulu",
+          "quantite": 1
+        },
+        {
+          "ingredient": "gobelets",
+          "quantite": 1
+        },
+        {
+          "ingredient": "sucre-morceaux",
+          "quantite": 1
+        },
+        {
+          "ingredient": "touillettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 35
+    },
+    {
+      "id": "the",
+      "nom": "Thé",
+      "categorie": "BOISSONS_CHAUDES",
+      "unite": "GOBELET",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "the-sachets",
+          "quantite": 1
+        },
+        {
+          "ingredient": "gobelets",
+          "quantite": 1
+        },
+        {
+          "ingredient": "sucre-morceaux",
+          "quantite": 1
+        },
+        {
+          "ingredient": "touillettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 5
+    },
+    {
+      "id": "chocolat-chaud",
+      "nom": "Chocolat chaud",
+      "categorie": "BOISSONS_CHAUDES",
+      "unite": "GOBELET",
+      "prix": 120,
+      "recette": [
+        {
+          "ingredient": "chocolat-poudre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "lait",
+          "quantite": 1
+        },
+        {
+          "ingredient": "gobelets",
+          "quantite": 1
+        },
+        {
+          "ingredient": "touillettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 8
+    },
+    {
+      "id": "eau",
+      "nom": "Eau (50 cl)",
+      "categorie": "BOISSONS_FROIDES",
+      "unite": "BOUTEILLE",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "eau-50cl",
+          "quantite": 1
+        }
+      ],
+      "consommation": 40
+    },
+    {
+      "id": "soda",
+      "nom": "Soda (canette 33 cl)",
+      "categorie": "BOISSONS_FROIDES",
+      "unite": "CANETTE",
+      "prix": 150,
+      "recette": [
+        {
+          "ingredient": "soda-canettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 30
+    },
+    {
+      "id": "jus-de-fruits",
+      "nom": "Jus de fruits (brique 20 cl)",
+      "categorie": "BOISSONS_FROIDES",
+      "unite": "BOUTEILLE",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "jus-briques",
+          "quantite": 1
+        }
+      ],
+      "consommation": 10
+    },
+    {
+      "id": "sandwich-jambon-beurre",
+      "nom": "Sandwich jambon-beurre",
+      "categorie": "SANDWICHS",
+      "unite": "PIECE",
+      "prix": 300,
+      "recette": [
+        {
+          "ingredient": "baguette",
+          "quantite": 1
+        },
+        {
+          "ingredient": "jambon",
+          "quantite": 1
+        },
+        {
+          "ingredient": "beurre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 12
+    },
+    {
+      "id": "sandwich-fromage",
+      "nom": "Sandwich fromage",
+      "categorie": "SANDWICHS",
+      "unite": "PIECE",
+      "prix": 250,
+      "recette": [
+        {
+          "ingredient": "baguette",
+          "quantite": 1
+        },
+        {
+          "ingredient": "emmental",
+          "quantite": 2
+        },
+        {
+          "ingredient": "beurre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 6
+    },
+    {
+      "id": "croque-monsieur",
+      "nom": "Croque-monsieur",
+      "categorie": "SANDWICHS",
+      "unite": "PIECE",
+      "prix": 250,
+      "recette": [
+        {
+          "ingredient": "pain-de-mie",
+          "quantite": 1
+        },
+        {
+          "ingredient": "jambon",
+          "quantite": 1
+        },
+        {
+          "ingredient": "emmental",
+          "quantite": 1
+        },
+        {
+          "ingredient": "beurre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 8
+    },
+    {
+      "id": "crepe-sucre",
+      "nom": "Crêpe au sucre",
+      "categorie": "DESSERTS",
+      "unite": "PIECE",
+      "prix": 150,
+      "recette": [
+        {
+          "ingredient": "pate-crepes",
+          "quantite": 1
+        },
+        {
+          "ingredient": "sucre-poudre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 10
+    },
+    {
+      "id": "crepe-chocolat",
+      "nom": "Crêpe pâte à tartiner",
+      "categorie": "DESSERTS",
+      "unite": "PIECE",
+      "prix": 200,
+      "recette": [
+        {
+          "ingredient": "pate-crepes",
+          "quantite": 1
+        },
+        {
+          "ingredient": "pate-tartiner",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 12
+    },
+    {
+      "id": "gaufre",
+      "nom": "Gaufre",
+      "categorie": "DESSERTS",
+      "unite": "PIECE",
+      "prix": 200,
+      "recette": [
+        {
+          "ingredient": "gaufres",
+          "quantite": 1
+        },
+        {
+          "ingredient": "sucre-poudre",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 6
+    },
+    {
+      "id": "gateau",
+      "nom": "Part de gâteau",
+      "categorie": "DESSERTS",
+      "unite": "PART",
+      "prix": 150,
+      "recette": [
+        {
+          "ingredient": "gateau",
+          "quantite": 1
+        },
+        {
+          "ingredient": "serviettes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 15
+    },
+    {
+      "id": "barre-chocolatee",
+      "nom": "Barre chocolatée",
+      "categorie": "SNACKS",
+      "unite": "PIECE",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "barres",
+          "quantite": 1
+        }
+      ],
+      "consommation": 15
+    },
+    {
+      "id": "chips",
+      "nom": "Chips (sachet)",
+      "categorie": "SNACKS",
+      "unite": "SACHET",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "chips",
+          "quantite": 1
+        }
+      ],
+      "consommation": 10
+    },
+    {
+      "id": "fruit",
+      "nom": "Fruit (pomme, banane)",
+      "categorie": "SNACKS",
+      "unite": "PIECE",
+      "prix": 80,
+      "recette": [
+        {
+          "ingredient": "fruits",
+          "quantite": 1
+        }
+      ],
+      "consommation": 5
+    },
+    {
+      "id": "compote",
+      "nom": "Compote à boire",
+      "categorie": "SNACKS",
+      "unite": "PIECE",
+      "prix": 100,
+      "recette": [
+        {
+          "ingredient": "compotes",
+          "quantite": 1
+        }
+      ],
+      "consommation": 4
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "baguette",
+      "nom": "Baguette",
+      "uniteAchat": "baguette",
+      "portion": "sandwich",
+      "prixAchat": 110,
+      "rendementMin": 2,
+      "rendementMax": 3,
+      "perte": 5
+    },
+    {
+      "id": "jambon",
+      "nom": "Jambon (paquet de 4 tranches)",
+      "uniteAchat": "paquet de 4 tranches",
+      "portion": "tranche",
+      "prixAchat": 260,
+      "rendementMin": 4,
+      "rendementMax": 4,
+      "perte": 0
+    },
+    {
+      "id": "emmental",
+      "nom": "Emmental en tranches (paquet de 10)",
+      "uniteAchat": "paquet de 10 tranches",
+      "portion": "tranche",
+      "prixAchat": 250,
+      "rendementMin": 10,
+      "rendementMax": 10,
+      "perte": 0
+    },
+    {
+      "id": "beurre",
+      "nom": "Beurre (plaquette de 250 g)",
+      "uniteAchat": "plaquette de 250 g",
+      "portion": "noisette de 10 g",
+      "prixAchat": 240,
+      "rendementMin": 22,
+      "rendementMax": 25,
+      "perte": 0
+    },
+    {
+      "id": "pain-de-mie",
+      "nom": "Pain de mie (20 tranches)",
+      "uniteAchat": "paquet de 20 tranches",
+      "portion": "croque (2 tranches)",
+      "prixAchat": 180,
+      "rendementMin": 10,
+      "rendementMax": 10,
+      "perte": 5
+    },
+    {
+      "id": "cafe-moulu",
+      "nom": "Café moulu (1 kg)",
+      "uniteAchat": "paquet de 1 kg",
+      "portion": "dose de 7 g",
+      "prixAchat": 1200,
+      "rendementMin": 120,
+      "rendementMax": 140,
+      "perte": 3
+    },
+    {
+      "id": "the-sachets",
+      "nom": "Thé (boîte de 100 sachets)",
+      "uniteAchat": "boîte de 100 sachets",
+      "portion": "sachet",
+      "prixAchat": 400,
+      "rendementMin": 100,
+      "rendementMax": 100,
+      "perte": 0
+    },
+    {
+      "id": "chocolat-poudre",
+      "nom": "Chocolat en poudre (1 kg)",
+      "uniteAchat": "boîte de 1 kg",
+      "portion": "dose de 20 g",
+      "prixAchat": 600,
+      "rendementMin": 45,
+      "rendementMax": 50,
+      "perte": 3
+    },
+    {
+      "id": "lait",
+      "nom": "Lait (brique de 1 L)",
+      "uniteAchat": "brique de 1 L",
+      "portion": "verre de 20 cl",
+      "prixAchat": 110,
+      "rendementMin": 4,
+      "rendementMax": 5,
+      "perte": 5
+    },
+    {
+      "id": "sucre-morceaux",
+      "nom": "Sucre en morceaux (1 kg)",
+      "uniteAchat": "boîte de 1 kg",
+      "portion": "2 morceaux",
+      "prixAchat": 160,
+      "rendementMin": 80,
+      "rendementMax": 85,
+      "perte": 0
+    },
+    {
+      "id": "gobelets",
+      "nom": "Gobelets carton (lot de 50)",
+      "uniteAchat": "lot de 50",
+      "portion": "gobelet",
+      "prixAchat": 300,
+      "rendementMin": 50,
+      "rendementMax": 50,
+      "perte": 2
+    },
+    {
+      "id": "touillettes",
+      "nom": "Touillettes (lot de 100)",
+      "uniteAchat": "lot de 100",
+      "portion": "touillette",
+      "prixAchat": 150,
+      "rendementMin": 100,
+      "rendementMax": 100,
+      "perte": 0
+    },
+    {
+      "id": "serviettes",
+      "nom": "Serviettes (paquet de 100)",
+      "uniteAchat": "paquet de 100",
+      "portion": "serviette",
+      "prixAchat": 120,
+      "rendementMin": 100,
+      "rendementMax": 100,
+      "perte": 0
+    },
+    {
+      "id": "eau-50cl",
+      "nom": "Eau 50 cl (pack de 24)",
+      "uniteAchat": "pack de 24 bouteilles",
+      "portion": "bouteille",
+      "prixAchat": 550,
+      "rendementMin": 24,
+      "rendementMax": 24,
+      "perte": 0
+    },
+    {
+      "id": "soda-canettes",
+      "nom": "Soda (carton de 24 canettes)",
+      "uniteAchat": "carton de 24 canettes",
+      "portion": "canette",
+      "prixAchat": 1200,
+      "rendementMin": 24,
+      "rendementMax": 24,
+      "perte": 0
+    },
+    {
+      "id": "jus-briques",
+      "nom": "Jus de fruits (lot de 6 briques)",
+      "uniteAchat": "lot de 6 briques",
+      "portion": "brique",
+      "prixAchat": 240,
+      "rendementMin": 6,
+      "rendementMax": 6,
+      "perte": 0
+    },
+    {
+      "id": "pate-crepes",
+      "nom": "Pâte à crêpes (préparation pour 1 L)",
+      "uniteAchat": "sachet pour 1 L",
+      "portion": "crêpe",
+      "prixAchat": 250,
+      "rendementMin": 15,
+      "rendementMax": 20,
+      "perte": 10
+    },
+    {
+      "id": "sucre-poudre",
+      "nom": "Sucre en poudre (1 kg)",
+      "uniteAchat": "paquet de 1 kg",
+      "portion": "pincée de 10 g",
+      "prixAchat": 130,
+      "rendementMin": 90,
+      "rendementMax": 100,
+      "perte": 5
+    },
+    {
+      "id": "pate-tartiner",
+      "nom": "Pâte à tartiner (pot de 1 kg)",
+      "uniteAchat": "pot de 1 kg",
+      "portion": "dose de 25 g",
+      "prixAchat": 650,
+      "rendementMin": 35,
+      "rendementMax": 40,
+      "perte": 5
+    },
+    {
+      "id": "gaufres",
+      "nom": "Gaufres (paquet de 10)",
+      "uniteAchat": "paquet de 10",
+      "portion": "gaufre",
+      "prixAchat": 350,
+      "rendementMin": 10,
+      "rendementMax": 10,
+      "perte": 0
+    },
+    {
+      "id": "gateau",
+      "nom": "Gâteau (plaque)",
+      "uniteAchat": "plaque",
+      "portion": "part",
+      "prixAchat": 800,
+      "rendementMin": 10,
+      "rendementMax": 12,
+      "perte": 10
+    },
+    {
+      "id": "barres",
+      "nom": "Barres chocolatées (lot de 10)",
+      "uniteAchat": "lot de 10",
+      "portion": "barre",
+      "prixAchat": 450,
+      "rendementMin": 10,
+      "rendementMax": 10,
+      "perte": 0
+    },
+    {
+      "id": "chips",
+      "nom": "Chips (lot de 20 sachets)",
+      "uniteAchat": "lot de 20 sachets",
+      "portion": "sachet",
+      "prixAchat": 550,
+      "rendementMin": 20,
+      "rendementMax": 20,
+      "perte": 0
+    },
+    {
+      "id": "fruits",
+      "nom": "Fruits (1 kg)",
+      "uniteAchat": "kilo",
+      "portion": "fruit",
+      "prixAchat": 250,
+      "rendementMin": 5,
+      "rendementMax": 6,
+      "perte": 10
+    },
+    {
+      "id": "compotes",
+      "nom": "Compotes à boire (lot de 12)",
+      "uniteAchat": "lot de 12",
+      "portion": "gourde",
+      "prixAchat": 400,
+      "rendementMin": 12,
+      "rendementMax": 12,
+      "perte": 0
+    }
+  ]
+}

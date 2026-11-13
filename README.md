@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 729 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 831 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -286,6 +286,30 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   `~/.pingmanager/documents/` (anciens tournois : copie à la première
   ouverture, sinon « fichier introuvable »). La carte n'affiche que sa page :
   un lien d'attribution s'ouvre dans le navigateur du système.
+**Buvette (B046)** — menu Gestion → **Buvette** (organisateurs), onglets :
+- **Catalogue** (par club) : produits par catégorie, prix en centimes,
+  désactivation (un produit déjà vendu n'est jamais supprimé) ; ingrédients
+  (unité d'achat, prix, rendement min-max « 1 baguette = 2 à 3 sandwichs »,
+  perte en %) et recette de chaque produit, avec coût de revient, marge,
+  taux de marge et de marque. Produits, ingrédients et recettes de départ
+  en **suggestions** (pastille, « prix indicatifs à valider par le club »),
+  ajoutées seulement au clic (« Ajouter », « Tout ajouter » confirmé).
+  Boissons alcoolisées : jamais suggérées, catégorie activable à la main
+  après un avertissement.
+- **Stock** (par tournoi) : stock de départ, achats (date, prix payé),
+  pertes et dons, inventaire de fin, seuil d'alerte, report du stock d'un
+  autre tournoi ; journal daté et signé, correction par mouvement inverse.
+- **Budget** : joueurs par jour (estimés des inscriptions ou saisis),
+  hypothèses de consommation « à ajuster », scénarios bas / moyen / haut,
+  recette, achats, marge, seuil de rentabilité, liste de courses en CSV et
+  PDF ; chaque nombre expliqué par une phrase.
+- **Ventes** : caisse à gros boutons (une seule caisse, « Caisse 1 »), « − »
+  et « Annuler la dernière vente », total du jour ; le stock suit les recettes.
+- **Historique** : bilan prévu / réel par tournoi, filtre par saison, export
+  CSV, « Reprendre les quantités de ce tournoi » pour le budget d'un autre.
+- Données : catalogue dans le fichier d'application (section `buvettes`) ;
+  stock, budget et ventes dans `X.buvette.json`, à côté du fichier du tournoi
+  (jamais modifié). Suggestions : `src/main/resources/com/pingmanager/buvette/suggestions-buvette.json`.
 
 **Moteur sportif (testé)**
 - Ordre des parties I.301, placement I.302, classement I.303, placement du
@@ -398,8 +422,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
     Statistiques du joueur (rencontres, victoires, adversaires, par
     saison).
-27. **B026** — Buvette (cahier des charges à écrire : qui vend, sur quel
-    poste, carte ou non, stock).
+27. ~~B026 — Buvette (cahier des charges à écrire)~~ — remplacée par **B046**.
+27 bis. ~~B046 — Buvette~~ — **fait** (section 3) ; à vérifier à l'écran.
+    Suites : **B046a** plusieurs caisses synchronisées (avec la synchronisation
+    entre ordinateurs, voir B041 suite) ; **B046b** résultat net de la buvette
+    affiché dans « Remplissage et finances » (si Quentin le veut, section 6) ;
+    **B046c** effacer le fichier `X.buvette.json` quand la purge RGPD supprime
+    le tournoi ; **B046d** allergènes par produit, si Quentin le décide.
 28. Tableaux réservés aux licences loisir (IX.101), inscription d'un licencié
     par son club, export de la liste des inscrits (attention à l'injection de
     formules dans les cellules).
@@ -560,6 +589,29 @@ parenthèses.
   faire valider par Quentin ou un juriste, et le contact « administrateur de
   PingManager sur cet ordinateur » à préciser ; (9) verrou : expiré après
   30 s, 3 s d'essais avant le message « tournoi occupé ».
+- **Buvette (B046)** — choix provisoires, réversibles :
+  (1) **prix, recettes, rendements et consommations suggérés** (ressource
+  `suggestions-buvette.json`) : ordres de grandeur inventés, **pas des prix de
+  marché** — à relire par Quentin ou un club (ex. café 1 €, sandwich
+  jambon-beurre 3 €, baguette 1,10 € pour 2 à 3 sandwichs, 30 accompagnants
+  pour 100 joueurs, 1,5 demi-journée de présence, 0,35 café par personne et
+  par demi-journée, scénarios 75 % et 125 %) ; (2) coût retenu **prudent**
+  (rendement minimal) et achats au rendement minimal, perte comprise ;
+  (3) stock et budget dans un **fichier voisin** du tournoi pour que la caisse
+  n'écrase jamais les saisies du juge-arbitre (et inversement) : à garder ou
+  à fondre dans le fichier du tournoi ? ; (4) **une seule caisse** ; plusieurs
+  postes = synchronisation entre ordinateurs (B046a) ; (5) faut-il afficher le
+  résultat net de la buvette dans « Remplissage et finances » ? (non, rien
+  n'y est touché) ; (6) joueurs estimés = joueurs distincts inscrits aux
+  tableaux de chaque jour (tableau sans jour : premier jour).
+  **Questions légales, non tranchées, rien n'est affirmé à l'écran** :
+  autorisation de buvette temporaire (mairie) et licence ou catégorie de
+  boissons autorisées, en particulier l'**alcool** (l'avertissement dit
+  seulement « peut nécessiter une autorisation ») ; **TVA et fiscalité** des
+  recettes d'une association (le logiciel ne calcule aucune taxe) ; **hygiène
+  alimentaire** (chaîne du froid, préparations maison comme les gâteaux) ;
+  **allergènes** à afficher ou non ; tenue de caisse exigée par la
+  comptabilité du club.
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
