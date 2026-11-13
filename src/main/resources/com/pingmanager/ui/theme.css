@@ -4059,3 +4059,23 @@
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
+
+/* B043 — Pointage sur plusieurs jours : onglets des jours, total du tournoi */
+
+.pointage-onglet-jour {
+    -fx-font-size: 14px;
+    -fx-padding: 8 16 8 16;
+}
+
+.pointage-total-tournoi {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.pointage-tous-les-jours {
+    -fx-font-size: 13px;
+}
+
+.pointage-pastille-jour {
+    -fx-font-weight: bold;
+}

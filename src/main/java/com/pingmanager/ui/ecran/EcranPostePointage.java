@@ -1,6 +1,7 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.Horloge;
+import com.pingmanager.core.JoursPointage;
 import com.pingmanager.core.ListePointage;
 import com.pingmanager.core.ResultatActionPointage;
 import com.pingmanager.core.ServicePostePointage;
@@ -62,6 +63,12 @@ public final class EcranPostePointage {
     private final Label compte = Ui.discret("");
     private final Label message = Ui.message();
     private final Label sousTitre = Ui.discret("");
+    /** B043 : un onglet par jour du tournoi, la case « Tous les jours » et le total du tournoi. */
+    private final ToggleGroup groupeJour = new ToggleGroup();
+    private final HBox ongletsJours = new HBox();
+    private final CheckBox tousLesJours = new CheckBox(PresentationPostePointage.TOUS_LES_JOURS);
+    private final Label totalTournoi = Ui.discret("");
+    private LocalDate jourChoisi;
 
     private Path fichier;
     private Tournoi tournoi;
@@ -115,6 +122,7 @@ public final class EcranPostePointage {
             choixTournoi.setOnAction(e -> {
                 fichier = choixTournoi.getValue().getFichier();
                 choixTableau.getItems().clear();
+                jourChoisi = null;
                 recharger(true);
             });
             haut = Ui.enteteAvecActions(titres, choixTournoi);
@@ -157,10 +165,18 @@ public final class EcranPostePointage {
             focaliserRecherche();
         });
 
-        HBox barre = Ui.ligne(12, recherche, choixTableau, filtres);
+        tousLesJours.getStyleClass().add("pointage-tous-les-jours");
+        tousLesJours.setOnAction(e -> {
+            afficherListe();
+            focaliserRecherche();
+        });
+        ongletsJours.getStyleClass().add("pointage-jours");
+        totalTournoi.getStyleClass().add("pointage-total-tournoi");
+
+        HBox barre = Ui.ligne(12, recherche, choixTableau, filtres, tousLesJours);
         barre.getStyleClass().add("pointage-barre");
 
-        VBox v = new VBox(12, haut, tuiles, barre, Ui.aide(PresentationPostePointage.AIDE), Ui.ligne(12, compte),
+        VBox v = new VBox(12, haut, ongletsJours, tuiles, totalTournoi, barre, Ui.aide(PresentationPostePointage.AIDE), Ui.ligne(12, compte),
                 message);
         v.getStyleClass().add("pointage-entete");
         return v;
@@ -179,10 +195,16 @@ public final class EcranPostePointage {
             return;
         }
         sousTitre.setText(PresentationPostePointage.sousTitre(tournoi.getNom(), poste));
+        ListePointage lp = new ListePointage(tournoi);
+        List<LocalDate> jours = lp.jours();
+        if (jourChoisi == null || !jours.contains(jourChoisi)) {
+            jourChoisi = JoursPointage.jourParDefaut(tournoi, java.time.LocalDateTime.now());
+        }
+        afficherOngletsJours(lp, jours);
         String choix = choixTableau.getValue();
         List<String> noms = new ArrayList<>();
         noms.add(PresentationPostePointage.TOUS);
-        noms.addAll(new ListePointage(tournoi).nomsTableaux());
+        noms.addAll(lp.nomsTableaux(jourChoisi));
         if (!choixTableau.getItems().equals(noms)) {
             choixTableau.getItems().setAll(noms);
         }
@@ -194,14 +216,48 @@ public final class EcranPostePointage {
         }
     }
 
+    /** B043 : un onglet par jour (seulement si le tournoi en a plusieurs), avec ses non-pointés. */
+    private void afficherOngletsJours(ListePointage lp, List<LocalDate> jours) {
+        ongletsJours.getChildren().clear();
+        boolean plusieurs = jours.size() > 1;
+        ongletsJours.setVisible(plusieurs);
+        ongletsJours.setManaged(plusieurs);
+        tousLesJours.setVisible(plusieurs);
+        tousLesJours.setManaged(plusieurs);
+        if (!plusieurs) {
+            tousLesJours.setSelected(false);
+            return;
+        }
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (LocalDate j : jours) {
+            ToggleButton b = new ToggleButton(PresentationPostePointage.ongletJour(j, lp.nonPointes(j)));
+            b.setUserData(j);
+            b.getStyleClass().add("pointage-onglet-jour");
+            b.setSelected(j.equals(jourChoisi));
+            b.setOnAction(e -> {
+                if (!b.isSelected()) {
+                    b.setSelected(true); // toujours un jour choisi
+                    return;
+                }
+                jourChoisi = j;
+                choixTableau.setValue(PresentationPostePointage.TOUS);
+                recharger(true);
+            });
+            boutons.add(b);
+        }
+        ongletsJours.getChildren().add(Ui.segment(groupeJour, boutons.toArray(new ToggleButton[0])));
+    }
+
     private void afficherTuiles() {
         if (tournoi == null) {
             return;
         }
         ListePointage lp = new ListePointage(tournoi);
+        totalTournoi.setText(PresentationPostePointage.totalTournoi(lp.totalGeneral()));
         String nom = PresentationPostePointage.nomTableau(choixTableau.getValue());
-        ListePointage.Totaux t = nom == null ? lp.totalGeneral()
-                : lp.totaux().stream().filter(x -> x.tableau().equals(nom)).findFirst().orElse(lp.totalGeneral());
+        ListePointage.Totaux duJour = lp.totalJour(jourChoisi);
+        ListePointage.Totaux t = nom == null ? duJour
+                : lp.totaux().stream().filter(x -> x.tableau().equals(nom)).findFirst().orElse(duJour);
         tuiles.getChildren().setAll(
                 Ui.tuileChiffre(String.valueOf(t.inscrits()), "Inscrits"),
                 Ui.tuileChiffre(PresentationPostePointage.proportion(t.pointes(), t.inscrits()), "Pointés"),
@@ -216,8 +272,10 @@ public final class EcranPostePointage {
         }
         ListePointage.FiltreEtat etat = groupeEtat.getSelectedToggle() == null ? ListePointage.FiltreEtat.TOUS
                 : (ListePointage.FiltreEtat) groupeEtat.getSelectedToggle().getUserData();
+        // B043 : le jour choisi, ou tous les jours si la case est cochée (recherche étendue).
+        LocalDate jour = tousLesJours.isSelected() ? null : jourChoisi;
         List<ListePointage.Ligne> lignes = new ListePointage(tournoi).lignes(recherche.getText(),
-                PresentationPostePointage.nomTableau(choixTableau.getValue()), etat);
+                PresentationPostePointage.nomTableau(choixTableau.getValue()), etat, jour);
         int n = Math.min(lignes.size(), PresentationPostePointage.LIMITE_LIGNES);
         compte.setText(PresentationPostePointage.compte(n, lignes.size()));
         List<Node> noeuds = new ArrayList<>();
@@ -292,6 +350,15 @@ public final class EcranPostePointage {
         FlowPane etiquettes = new FlowPane(6, 6);
         etiquettes.getStyleClass().add("pointage-etiquettes");
         etiquettes.getChildren().add(Ui.pastille(PresentationPostePointage.libelleTableau(e.tableau()), StatutPastille.INFO));
+        if (tousLesJours.isVisible() && e.jour() != null) {
+            Label pJour = Ui.pastille(PresentationPostePointage.jour(e.jour()), StatutPastille.NEUTRE);
+            pJour.getStyleClass().add("pointage-pastille-jour");
+            etiquettes.getChildren().add(pJour);
+        }
+        if (e.jourNonDefini() && tousLesJours.isVisible()) {
+            etiquettes.getChildren().add(Ui.pastille(PresentationPostePointage.JOUR_NON_DEFINI,
+                    StatutPastille.ATTENTION));
+        }
         if (e.payeEnLigne()) {
             etiquettes.getChildren().add(Ui.pastille("Payé en ligne", StatutPastille.SUCCES));
         }

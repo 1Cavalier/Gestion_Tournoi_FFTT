@@ -160,6 +160,7 @@ public final class ServicePostePointage {
                 .valeur(valeur)
                 .horodatage(horloge.maintenant())
                 .poste(poste)
+                .jour(JoursPointage.jourDe(tournoi, c.tableau)) // B043 : le pointage reste par tableau
                 .build();
         tournoi.ajouterOperationPointage(op);
         return ResultatActionPointage.acceptee(op, repeche);

@@ -14,6 +14,9 @@ import java.util.Objects;
  * se rejoue sans ambiguïté, car elle désigne le joueur par sa licence et le
  * tableau par son nom.</p>
  *
+ * <p>B043 : le <b>jour</b> du tableau (facultatif : les opérations des anciens
+ * fichiers n'en ont pas, {@link #getJour()} rend alors {@code null}).</p>
+ *
  * <p>Valeur : le nom du {@link ModeReglement} pour {@link TypeOperationPointage#MARQUER_PAYE}
  * (obligatoire), le motif pour {@link TypeOperationPointage#DESINSCRIRE}
  * (obligatoire), {@code null} pour les autres types.</p>
@@ -26,8 +29,10 @@ public final class OperationPointage {
     private final String valeur;
     private final Instant horodatage;
     private final String poste;
+    private final java.time.LocalDate jour;
 
     private OperationPointage(Builder b) {
+        this.jour = b.jour;
         this.licence = exigerTexte(b.licence, "licence");
         this.tableau = exigerTexte(b.tableau, "tableau");
         this.type = Objects.requireNonNull(b.type, "type");
@@ -90,6 +95,11 @@ public final class OperationPointage {
         return poste;
     }
 
+    /** @return le jour du tableau au moment de l'opération (B043), ou {@code null} (ancien fichier). */
+    public java.time.LocalDate getJour() {
+        return jour;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -100,12 +110,13 @@ public final class OperationPointage {
         }
         OperationPointage x = (OperationPointage) o;
         return licence.equals(x.licence) && tableau.equals(x.tableau) && type == x.type
-                && Objects.equals(valeur, x.valeur) && horodatage.equals(x.horodatage) && poste.equals(x.poste);
+                && Objects.equals(valeur, x.valeur) && horodatage.equals(x.horodatage) && poste.equals(x.poste)
+                && Objects.equals(jour, x.jour);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(licence, tableau, type, valeur, horodatage, poste);
+        return Objects.hash(licence, tableau, type, valeur, horodatage, poste, jour);
     }
 
     @Override
@@ -122,8 +133,15 @@ public final class OperationPointage {
         private String valeur;
         private Instant horodatage;
         private String poste;
+        private java.time.LocalDate jour;
 
         private Builder() {
+        }
+
+        /** B043 : jour du tableau (facultatif). */
+        public Builder jour(java.time.LocalDate v) {
+            this.jour = v;
+            return this;
         }
 
         public Builder licence(String v) {
