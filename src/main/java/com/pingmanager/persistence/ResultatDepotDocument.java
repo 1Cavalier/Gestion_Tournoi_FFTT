@@ -15,6 +15,8 @@ public final class ResultatDepotDocument {
         DEPOSE,
         FICHIER_INTROUVABLE,
         PAS_UN_PDF,
+        /** Image promotionnelle : ni PNG ni JPEG (signature du contenu). */
+        PAS_UNE_IMAGE,
         TROP_VOLUMINEUX,
         ECHEC_COPIE
     }

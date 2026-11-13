@@ -17,7 +17,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Documents déposés par l'organisateur (PDF du règlement), copiés dans le
+ * Documents déposés par l'organisateur (PDF du règlement, image promotionnelle
+ * PNG ou JPEG depuis B044), copiés dans le
  * dossier de données de l'application ({@value #DOSSIER}/) au lieu d'être
  * référencés par un chemin absolu libre (README section 5, point 18).
  *
@@ -28,7 +29,8 @@ import java.util.Optional;
  * contient une empreinte du contenu : déposer deux fois le même fichier ne
  * crée qu'une copie.</p>
  *
- * <p>Anciens fichiers de tournoi (chemin absolu) : {@link #migrerReglement}
+ * <p>Anciens fichiers de tournoi (chemin absolu) : {@link #migrerReglement} et
+ * {@link #migrerImage}
  * copie le PDF s'il existe encore ; sinon la référence est laissée telle quelle
  * (jamais ouverte) et le règlement apparaît « fichier introuvable ».</p>
  */
@@ -55,6 +57,35 @@ public final class DocumentsDeposes {
      * @return la référence relative créée, ou le motif du refus (rien n'est copié)
      */
     public ResultatDepotDocument deposer(Path source, String libelle) {
+        return deposer(source, libelle, null);
+    }
+
+    /**
+     * Copie l'image {@code source} (PNG ou JPEG, reconnue à son contenu) dans le dossier
+     * des documents (reliquat du point 18).
+     *
+     * @return la référence relative créée, ou le motif du refus (rien n'est copié)
+     */
+    public ResultatDepotDocument deposerImage(Path source, String libelle) {
+        if (source == null || !Files.isRegularFile(source)) {
+            return ResultatDepotDocument.refuse(ResultatDepotDocument.Motif.FICHIER_INTROUVABLE,
+                    "Fichier introuvable.");
+        }
+        String extension;
+        try {
+            extension = extensionImage(source);
+        } catch (IOException e) {
+            extension = null;
+        }
+        if (extension == null) {
+            return ResultatDepotDocument.refuse(ResultatDepotDocument.Motif.PAS_UNE_IMAGE,
+                    "Ce fichier n'est pas une image PNG ou JPEG.");
+        }
+        return deposer(source, libelle, extension);
+    }
+
+    /** @param extensionImage {@code null} pour un PDF, sinon l'extension de l'image reconnue */
+    private ResultatDepotDocument deposer(Path source, String libelle, String extensionImage) {
         if (source == null || !Files.isRegularFile(source)) {
             return ResultatDepotDocument.refuse(ResultatDepotDocument.Motif.FICHIER_INTROUVABLE,
                     "Fichier introuvable.");
@@ -64,11 +95,11 @@ public final class DocumentsDeposes {
                 return ResultatDepotDocument.refuse(ResultatDepotDocument.Motif.TROP_VOLUMINEUX,
                         "Fichier trop volumineux (plus de " + TAILLE_MAX_OCTETS / (1024 * 1024) + " Mo).");
             }
-            if (!commeUnPdf(source)) {
+            if (extensionImage == null && !commeUnPdf(source)) {
                 return ResultatDepotDocument.refuse(ResultatDepotDocument.Motif.PAS_UN_PDF,
                         "Ce fichier n'est pas un document PDF.");
             }
-            String nom = nomStocke(source);
+            String nom = nomStocke(source, extensionImage == null ? ".pdf" : extensionImage);
             Files.createDirectories(dossier);
             Path cible = dossier.resolve(nom);
             if (!Files.isRegularFile(cible)) {
@@ -133,6 +164,35 @@ public final class DocumentsDeposes {
         return true;
     }
 
+    /**
+     * Reliquat du point 18 : même migration pour l'image promotionnelle d'un ancien
+     * fichier (chemin absolu). L'image est copiée si elle existe encore et est bien une
+     * image ; sinon la référence reste telle quelle, jamais ouverte (« image introuvable »).
+     *
+     * @return vrai si le tournoi a changé (à enregistrer)
+     */
+    public boolean migrerImage(Tournoi tournoi) {
+        DocumentReference ref = tournoi.getImagePromotionnelle();
+        if (ref == null || emplacementStocke(ref.getEmplacement())) {
+            return false;
+        }
+        Path ancien;
+        try {
+            ancien = Path.of(ref.getEmplacement());
+        } catch (RuntimeException e) {
+            return false;
+        }
+        if (!ancien.isAbsolute() || !Files.isRegularFile(ancien)) {
+            return false;
+        }
+        ResultatDepotDocument r = deposerImage(ancien, ref.getLibelle());
+        if (!r.estDepose()) {
+            return false;
+        }
+        tournoi.setImagePromotionnelle(r.getReference());
+        return true;
+    }
+
     /** Nom affichable d'une référence (dernier segment), sans jamais ouvrir le fichier. */
     public static String nomAffiche(DocumentReference reference) {
         if (reference == null) {
@@ -149,7 +209,20 @@ public final class DocumentsDeposes {
             return false;
         }
         String nom = emplacement.substring(DOSSIER.length() + 1);
-        return !nom.isEmpty() && nom.equals(assainir(nom));
+        String extension = extensionAutorisee(nom);
+        return !nom.isEmpty() && extension != null && nom.equals(assainir(nom, extension));
+    }
+
+    /** Extensions des documents stockés : le PDF du règlement et les images. */
+    private static final java.util.List<String> EXTENSIONS = java.util.List.of(".pdf", ".png", ".jpg");
+
+    private static String extensionAutorisee(String nom) {
+        for (String e : EXTENSIONS) {
+            if (nom.endsWith(e)) {
+                return e;
+            }
+        }
+        return null;
     }
 
     /**
@@ -158,25 +231,51 @@ public final class DocumentsDeposes {
      * « .. », extension {@code .pdf}, longueur bornée.
      */
     static String assainir(String nom) {
+        return assainir(nom, ".pdf");
+    }
+
+    /** {@link #assainir(String)} avec l'extension imposée ({@code .pdf}, {@code .png}, {@code .jpg}). */
+    static String assainir(String nom, String extension) {
         String s = nom == null ? "" : nom;
         int i = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'));
         s = s.substring(i + 1);
         s = Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         s = s.replaceAll("[^A-Za-z0-9._-]", "_").replaceAll("\\.{2,}", ".");
-        if (s.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
-            s = s.substring(0, s.length() - 4);
+        String[] suffixes = ".jpg".equals(extension) ? new String[] {".jpg", ".jpeg"} : new String[] {extension};
+        for (String e : suffixes) {
+            if (s.toLowerCase(Locale.ROOT).endsWith(e)) {
+                s = s.substring(0, s.length() - e.length());
+                break;
+            }
         }
         s = s.replaceAll("^[._-]+", "").replaceAll("[._-]+$", "");
         if (s.length() > LONGUEUR_MAX_NOM) {
             s = s.substring(0, LONGUEUR_MAX_NOM).replaceAll("[._-]+$", "");
         }
-        return (s.isEmpty() ? "reglement" : s) + ".pdf";
+        return (s.isEmpty() ? (".pdf".equals(extension) ? "reglement" : "image") : s) + extension;
     }
 
-    private static String nomStocke(Path source) throws IOException {
-        String base = assainir(source.getFileName().toString());
-        base = base.substring(0, base.length() - 4);
-        return base + "-" + empreinte(source) + ".pdf";
+    private static String nomStocke(Path source, String extension) throws IOException {
+        String base = assainir(source.getFileName().toString(), extension);
+        base = base.substring(0, base.length() - extension.length());
+        return base + "-" + empreinte(source) + extension;
+    }
+
+    /** Signature PNG ou JPEG du contenu : {@code .png}, {@code .jpg}, sinon {@code null}. */
+    private static String extensionImage(Path source) throws IOException {
+        byte[] d = new byte[8];
+        int lus;
+        try (InputStream in = Files.newInputStream(source)) {
+            lus = in.readNBytes(d, 0, d.length);
+        }
+        if (lus >= 8 && (d[0] & 0xFF) == 0x89 && d[1] == 'P' && d[2] == 'N' && d[3] == 'G'
+                && d[4] == 0x0D && d[5] == 0x0A && d[6] == 0x1A && d[7] == 0x0A) {
+            return ".png";
+        }
+        if (lus >= 3 && (d[0] & 0xFF) == 0xFF && (d[1] & 0xFF) == 0xD8 && (d[2] & 0xFF) == 0xFF) {
+            return ".jpg";
+        }
+        return null;
     }
 
     /** 12 premiers caractères hexadécimaux du SHA-256 du contenu. */

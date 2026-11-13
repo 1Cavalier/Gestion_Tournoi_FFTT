@@ -857,13 +857,16 @@ public final class ContexteApplication {
 
     /**
      * Charge le tournoi d'un fichier (pour lire son statut et ses détails). Un
-     * ancien fichier dont le règlement déposé est un chemin absolu est migré :
+     * ancien fichier dont le règlement déposé ou l'image promotionnelle est un chemin
+     * absolu est migré :
      * PDF copié dans le dossier de données et fichier réenregistré (sinon,
      * « fichier introuvable » à l'affichage, sans erreur).
      */
     public Tournoi chargerTournoi(Path fichier) {
         com.pingmanager.persistence.TournoiMapper.DocumentCharge doc = DepotTournoi.charger(fichier);
-        if (documents.migrerReglement(doc.getTournoi())) {
+        boolean reglementMigre = documents.migrerReglement(doc.getTournoi());
+        boolean imageMigree = documents.migrerImage(doc.getTournoi()); // reliquat du point 18
+        if (reglementMigre || imageMigree) {
             try {
                 DepotTournoi.sauvegarder(doc.getTournoi(), doc.getDiscipline(), fichier);
             } catch (RuntimeException e) {

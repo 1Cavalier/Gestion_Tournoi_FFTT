@@ -86,7 +86,9 @@ final class EcranComplementaire {
     private final Label etatReglement = new Label();
 
     // Image, conditions, site
-    private String cheminImage;
+    /** Image promotionnelle : référence relative dans le dossier de données (point 18). */
+    private DocumentReference imageChoisie;
+    private String erreurImage;
     private final ImageView vignette = new ImageView();
     private final Label libelleImage = new Label();
     private final CheckBox licencePromo = new CheckBox("Licence promotionnelle acceptée");
@@ -523,7 +525,7 @@ final class EcranComplementaire {
     // ==================================================================
 
     private Node carteImage() {
-        cheminImage = tournoi.getImagePromotionnelle() == null ? null : tournoi.getImagePromotionnelle().getEmplacement();
+        imageChoisie = tournoi.getImagePromotionnelle();
         vignette.setFitWidth(260);
         vignette.setFitHeight(160);
         vignette.setPreserveRatio(true);
@@ -531,13 +533,20 @@ final class EcranComplementaire {
         Button choisir = Ui.boutonSecondaire("Choisir une image…");
         choisir.setOnAction(e -> choisirFichier("Image promotionnelle", "*.png", "*.jpg", "*.jpeg")
                 .ifPresent(f -> {
-                    cheminImage = f.getAbsolutePath();
+                    // Copie dans le dossier de données : aucun chemin absolu n'est conservé.
+                    com.pingmanager.persistence.ResultatDepotDocument r =
+                            documents.deposerImage(f.toPath(), "Image promotionnelle");
+                    erreurImage = r.estDepose() ? null : r.getMessage();
+                    if (r.estDepose()) {
+                        imageChoisie = r.getReference();
+                    }
                     majImage();
                 }));
         Button retirer = Ui.boutonLien("Retirer");
         retirer.getStyleClass().add("lien-danger");
         retirer.setOnAction(e -> {
-            cheminImage = null;
+            imageChoisie = null;
+            erreurImage = null;
             majImage();
         });
         libelleImage.setWrapText(true);
@@ -549,20 +558,23 @@ final class EcranComplementaire {
     }
 
     private void majImage() {
-        if (cheminImage == null) {
+        String prefixe = erreurImage == null ? "" : erreurImage + "\n";
+        if (imageChoisie == null) {
             vignette.setImage(null);
             Ui.afficherSi(vignette, false);
-            libelleImage.setText("Aucune image choisie.");
+            libelleImage.setText(prefixe + "Aucune image choisie.");
             return;
         }
-        File f = new File(cheminImage);
-        libelleImage.setText(f.getName());
-        if (f.isFile()) {
-            vignette.setImage(new Image(f.toURI().toString(), 260, 160, true, true, true));
+        String nom = com.pingmanager.persistence.DocumentsDeposes.nomAffiche(imageChoisie);
+        java.util.Optional<java.nio.file.Path> f = documents.fichier(imageChoisie);
+        if (f.isPresent()) {
+            libelleImage.setText(prefixe + nom);
+            vignette.setImage(new Image(f.get().toUri().toString(), 260, 160, true, true, true));
             Ui.afficherSi(vignette, true);
         } else {
+            // Ancien chemin absolu introuvable ou forgé : jamais ouvert.
             Ui.afficherSi(vignette, false);
-            libelleImage.setText(f.getName() + " (fichier introuvable)");
+            libelleImage.setText(prefixe + nom + " (image introuvable)");
         }
     }
 
@@ -695,8 +707,7 @@ final class EcranComplementaire {
             reglements.deposer(tournoi, reglementChoisi);
         }
         tournoi.setPaiement(paiement);
-        tournoi.setImagePromotionnelle(cheminImage == null ? null
-                : new DocumentReference("Image promotionnelle", cheminImage));
+        tournoi.setImagePromotionnelle(imageChoisie);
         tournoi.setAccepteLicencePromotionnelle(licencePromo.isSelected());
         tournoi.setAccepteJoueursEtrangers(tournoi.getNiveau() == NiveauTournoi.INTERNATIONAL && etrangers.isSelected());
         List<CategorieAge> exclues = new ArrayList<>();
