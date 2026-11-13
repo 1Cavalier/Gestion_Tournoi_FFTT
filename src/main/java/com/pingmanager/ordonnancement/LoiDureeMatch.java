@@ -109,10 +109,6 @@ public final class LoiDureeMatch {
         return Duration.ofSeconds(Math.round(maximum * 60));
     }
 
-    double getMoyenneMinutes() {
-        return moyenne;
-    }
-
     /**
      * Moyenne θ de l'exponentielle telle que, tronquée à {@code l}, sa moyenne
      * vaille {@code cible} (0 &lt; cible &lt; l / 2). La moyenne tronquée

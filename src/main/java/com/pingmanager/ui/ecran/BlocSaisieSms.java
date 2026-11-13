@@ -65,9 +65,4 @@ final class BlocSaisieSms {
         }
         return r;
     }
-
-    void vider() {
-        numero.clear();
-        consentement.setSelected(false);
-    }
 }

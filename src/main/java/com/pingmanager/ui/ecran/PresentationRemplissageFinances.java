@@ -103,10 +103,6 @@ final class PresentationRemplissageFinances {
                 + ". Si tous les inscrits règlent, solde de " + signe(bilan.soldePrevisionnel()) + ".";
     }
 
-    Tonalite tonaliteSoldePrevisionnel() {
-        return tonalite(bilan.soldePrevisionnel());
-    }
-
     /** Une ligne par tableau, dans l'ordre du planning. */
     List<Ligne> lignes() {
         List<Ligne> res = new ArrayList<>();
