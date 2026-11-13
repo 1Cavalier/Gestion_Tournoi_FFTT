@@ -88,6 +88,11 @@ public final class Joueur {
         return prenom;
     }
 
+    /** Point 21 (RGPD) : remplacement du prénom, pour l'anonymisation à la demande du joueur. */
+    public void setPrenom(String prenom) {
+        this.prenom = Objects.requireNonNull(prenom, "prenom");
+    }
+
     public Sexe getSexe() {
         return sexe;
     }

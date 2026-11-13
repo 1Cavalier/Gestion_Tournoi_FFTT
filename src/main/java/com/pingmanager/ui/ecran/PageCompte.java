@@ -333,8 +333,96 @@ public final class PageCompte {
         intro.setWrapText(true);
 
         VBox bloc = new VBox(16, Ui.ligne(12, tuile, titreClub), intro, boiteAcces, carteLiaison);
+        if (contexte.estOrganisateur()) {
+            bloc.getChildren().add(construireCarteRgpdClub());
+        }
         bloc.getStyleClass().add("profil-bloc-club");
         return bloc;
+    }
+
+    /**
+     * Point 21 (RGPD) : purge des tournois terminés (aperçu, puis confirmation explicite)
+     * et effacement d'un joueur à sa demande, pour les tournois des clubs du compte.
+     */
+    private VBox construireCarteRgpdClub() {
+        javafx.scene.control.Spinner<Integer> annees = new javafx.scene.control.Spinner<>(1, 20,
+                com.pingmanager.core.ServiceDonneesPersonnelles.ANNEES_CONSERVATION_PAR_DEFAUT);
+        annees.setPrefWidth(90);
+        VBox listeApercu = new VBox(4);
+        Label msgPurge = message();
+        CheckBox confirmerPurge = new CheckBox("Je confirme la suppression définitive de ces tournois");
+        Button supprimer = Ui.boutonSecondaire("Supprimer ces tournois");
+        supprimer.getStyleClass().add("lien-danger");
+        cacher(confirmerPurge);
+        cacher(supprimer);
+        @SuppressWarnings("unchecked")
+        List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<java.nio.file.Path>>[] apercu =
+                new List[] {List.of()};
+        Button voir = Ui.boutonSecondaire("Aperçu (rien n'est supprimé)");
+        voir.setOnAction(e -> {
+            apercu[0] = contexte.apercuPurge(annees.getValue());
+            listeApercu.getChildren().clear();
+            cacherMessage(msgPurge);
+            confirmerPurge.setSelected(false);
+            if (apercu[0].isEmpty()) {
+                info(msgPurge, "Aucun tournoi terminé depuis plus de " + annees.getValue() + " ans.");
+                cacher(confirmerPurge);
+                cacher(supprimer);
+                return;
+            }
+            for (com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<java.nio.file.Path> a : apercu[0]) {
+                listeApercu.getChildren().add(Ui.texte("•  " + a.nom() + " — dernier jour " + a.dernierJour()));
+            }
+            montrer(confirmerPurge);
+            montrer(supprimer);
+        });
+        supprimer.disableProperty().bind(confirmerPurge.selectedProperty().not());
+        supprimer.setOnAction(e -> {
+            ContexteApplication.BilanPurge b = contexte.purgerTournois(apercu[0], annees.getValue(),
+                    confirmerPurge.isSelected());
+            listeApercu.getChildren().clear();
+            cacher(confirmerPurge);
+            cacher(supprimer);
+            String texte = b.supprimes().size() + " tournoi(s) supprimé(s)."
+                    + (b.refuses().isEmpty() ? "" : " Non supprimés : " + String.join(" ; ", b.refuses()));
+            if (b.refuses().isEmpty()) {
+                info(msgPurge, texte);
+            } else {
+                erreur(msgPurge, texte);
+            }
+        });
+
+        TextField licence = champ("numéro de licence", 200);
+        CheckBox demande = new CheckBox("Le joueur a demandé l'effacement de ses données");
+        Label msgEffacement = message();
+        Button effacer = Ui.boutonSecondaire("Effacer le joueur");
+        effacer.disableProperty().bind(demande.selectedProperty().not());
+        effacer.setOnAction(e -> {
+            ContexteApplication.BilanEffacement b = contexte.effacerJoueur(valeur(licence), demande.isSelected());
+            String texte = "Joueur effacé dans " + b.tournoisModifies() + " tournoi(s)"
+                    + (b.prononciationRetiree() ? ", prononciation retirée" : "") + "."
+                    + (b.refuses().isEmpty() ? "" : " Refus : " + String.join(" ; ", b.refuses()));
+            if (b.refuses().isEmpty()) {
+                info(msgEffacement, texte);
+                licence.clear();
+                demande.setSelected(false);
+            } else {
+                erreur(msgEffacement, texte);
+            }
+        });
+
+        return Ui.carte("Données personnelles des joueurs",
+                Ui.sousTitre("Tournois terminés"),
+                aide("Supprime les tournois de vos clubs terminés depuis plus du nombre d'années choisi. "
+                        + "Regardez d'abord l'aperçu ; la suppression demande une confirmation."),
+                ligne(new Label("Conserver"), annees, new Label("ans"), voir),
+                listeApercu, confirmerPurge, ligne(supprimer), msgPurge,
+                new Separator(),
+                Ui.sousTitre("Effacer un joueur à sa demande"),
+                aide("Remplace son nom et son prénom par « ANONYME Joueur » et efface son numéro de portable dans "
+                        + "les tournois de vos clubs, terminés ou non. Son numéro de licence et ses résultats "
+                        + "sportifs restent."),
+                ligne(licence, effacer), demande, msgEffacement);
     }
 
     /** Point 14 : un administrateur délie une licence de son club du compte qui la porte. */

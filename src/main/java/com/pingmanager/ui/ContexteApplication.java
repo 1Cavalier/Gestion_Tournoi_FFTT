@@ -1195,6 +1195,126 @@ public final class ContexteApplication {
     }
 
     // ==================================================================
+    // RGPD (point 21) : purge des tournois anciens, effacement d'un joueur
+    // ==================================================================
+
+    private final com.pingmanager.core.ServiceDonneesPersonnelles donneesPersonnelles =
+            new com.pingmanager.core.ServiceDonneesPersonnelles(Horloge.systeme(), java.time.ZoneId.systemDefault());
+
+    /** Journal (sans donnée personnelle) des purges et effacements. */
+    public com.pingmanager.persistence.JournalDonneesPersonnelles journalRgpd() {
+        return new com.pingmanager.persistence.JournalDonneesPersonnelles(dossierDonnees);
+    }
+
+    /**
+     * Aperçu de la purge : tournois des clubs du compte terminés depuis plus de
+     * {@code annees} ans, que le compte a le droit de supprimer. <b>Ne supprime rien.</b>
+     */
+    public List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path>> apercuPurge(int annees) {
+        List<TournoiFichier> miens = new ArrayList<>();
+        for (TournoiFichier tf : mesTournoisClub(tousLesTournois())) {
+            if (aLeDroit(com.pingmanager.core.OperationProtegee.SUPPRIMER_TOURNOI,
+                    tf.tournoi().getNumeroAffiliationClub())) {
+                miens.add(tf);
+            }
+        }
+        return donneesPersonnelles.apercuPurge(com.pingmanager.core.ServiceDonneesPersonnelles.parCle(
+                miens, TournoiFichier::fichier, TournoiFichier::tournoi), annees);
+    }
+
+    /** Bilan d'une purge : confirmée ou non, tournois supprimés et refusés (avec motif). */
+    public record BilanPurge(boolean confirmee, List<String> supprimes, List<String> refuses) {
+    }
+
+    /**
+     * Supprime les tournois de l'aperçu, <b>seulement</b> sur confirmation explicite.
+     * Chaque tournoi est recontrôlé (droit de suppression, toujours à purger) juste avant ;
+     * son fichier, sa copie de secours et son entrée dans les récents disparaissent. Le
+     * journal garde le nom du tournoi et sa date, sans donnée personnelle.
+     */
+    public BilanPurge purgerTournois(List<com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path>> apercu,
+                                     int annees, boolean confirmationExplicite) {
+        if (!confirmationExplicite) {
+            return new BilanPurge(false, List.of(), List.of("Confirmation explicite requise : rien n'a été supprimé."));
+        }
+        List<String> supprimes = new ArrayList<>();
+        List<String> refuses = new ArrayList<>();
+        for (com.pingmanager.core.ServiceDonneesPersonnelles.TournoiAPurger<Path> a : apercu) {
+            Path f = a.cle();
+            try {
+                sousVerrou(f, () -> {
+                    Tournoi t = DepotTournoi.charger(f).getTournoi();
+                    exigerDroit(com.pingmanager.core.OperationProtegee.SUPPRIMER_TOURNOI, t.getNumeroAffiliationClub());
+                    if (!donneesPersonnelles.estAPurger(t, annees)) {
+                        throw new IllegalStateException("n'est plus à purger");
+                    }
+                    try {
+                        Files.deleteIfExists(f);
+                        Files.deleteIfExists(com.pingmanager.persistence.EcritureSure.secours(f));
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return null;
+                });
+                depot.oublierRecent(f);
+                cacheLectures.remove(f);
+                supprimes.add(a.nom());
+                journalRgpd().ajouter(Horloge.systeme().maintenant(), "PURGE",
+                        "Tournoi supprimé : " + a.nom() + " (dernier jour " + a.dernierJour() + ", conservation "
+                                + annees + " ans)");
+            } catch (RuntimeException e) {
+                refuses.add(a.nom() + " : " + e.getMessage());
+            }
+        }
+        if (!supprimes.isEmpty()) {
+            sauvegarder();
+        }
+        return new BilanPurge(true, supprimes, refuses);
+    }
+
+    /** Bilan de l'effacement d'un joueur : tournois modifiés, prononciation retirée. */
+    public record BilanEffacement(int tournoisModifies, boolean prononciationRetiree, List<String> refuses) {
+    }
+
+    /**
+     * Efface un joueur à sa demande dans les tournois des clubs du compte (terminés ou
+     * non) : nom, prénom, numéro de portable et SMS ; la licence et les résultats restent.
+     * Sa prononciation enregistrée est retirée. Journal sans donnée personnelle.
+     */
+    public BilanEffacement effacerJoueur(String numeroLicence, boolean confirmationExplicite) {
+        exigerConnecte();
+        if (!confirmationExplicite || numeroLicence == null || numeroLicence.isBlank()) {
+            return new BilanEffacement(0, false, List.of("Confirmation explicite et numéro de licence requis."));
+        }
+        String licence = numeroLicence.trim();
+        int modifies = 0;
+        List<String> refuses = new ArrayList<>();
+        for (TournoiFichier tf : mesTournoisClub(tousLesTournois())) {
+            try {
+                boolean[] change = {false};
+                modifierTournoi(tf.fichier(), t -> {
+                    change[0] = donneesPersonnelles.anonymiser(t, licence).aModifie();
+                    return change[0];
+                });
+                if (change[0]) {
+                    modifies++;
+                }
+            } catch (RuntimeException e) {
+                refuses.add(tf.tournoi().getNom() + " : " + e.getMessage());
+            }
+        }
+        boolean prononciation = depot.prononciations().retirerJoueur(licence);
+        if (prononciation) {
+            sauvegarder();
+        }
+        journalRgpd().ajouter(Horloge.systeme().maintenant(), "EFFACEMENT_JOUEUR",
+                "Joueur effacé à sa demande : " + modifies + " tournoi(s) modifié(s)"
+                        + (prononciation ? ", prononciation retirée" : "") + (refuses.isEmpty() ? "" : ", "
+                        + refuses.size() + " refus"));
+        return new BilanEffacement(modifies, prononciation, refuses);
+    }
+
+    // ==================================================================
     // Accès aux briques (pour l'UI)
     // ==================================================================
 
