@@ -3,6 +3,7 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.Horloge;
 import com.pingmanager.core.JoursPointage;
 import com.pingmanager.core.ListePointage;
+import com.pingmanager.core.ListeRetraits;
 import com.pingmanager.core.ResultatActionPointage;
 import com.pingmanager.core.ServicePostePointage;
 import com.pingmanager.model.Joueur;
@@ -70,6 +71,14 @@ public final class EcranPostePointage {
     private final Label totalTournoi = Ui.discret("");
     private LocalDate jourChoisi;
 
+    /** B043 : vue « Liste » ou « Retraits » (non pointés et désinscrits, séparés). */
+    private final ToggleGroup groupeVue = new ToggleGroup();
+    private final ToggleButton vueListe = new ToggleButton(PresentationRetraits.VUE_LISTE);
+    private final ToggleButton vueRetraits = new ToggleButton(PresentationRetraits.ongletRetraits(0));
+    private final VBox retraits = new VBox(16);
+    private final ScrollPane defilListe = new ScrollPane(liste);
+    private final ScrollPane defilRetraits = new ScrollPane(retraits);
+
     private Path fichier;
     private Tournoi tournoi;
     /** B043 : tournoi imposé (groupe « Tournoi en cours »), ou {@code null} : choix parmi ceux du club. */
@@ -97,7 +106,10 @@ public final class EcranPostePointage {
         fichier = parDefaut(tournois);
         racine.getStyleClass().add("pointage-poste");
         racine.setTop(entete(tournois));
-        ScrollPane defil = new ScrollPane(liste);
+        retraits.getStyleClass().add("pointage-retraits");
+        defilRetraits.setFitToWidth(true);
+        defilRetraits.getStyleClass().add("pointage-defilement");
+        ScrollPane defil = defilListe;
         defil.setFitToWidth(true);
         defil.getStyleClass().add("pointage-defilement");
         liste.getStyleClass().add("pointage-liste");
@@ -173,7 +185,20 @@ public final class EcranPostePointage {
         ongletsJours.getStyleClass().add("pointage-jours");
         totalTournoi.getStyleClass().add("pointage-total-tournoi");
 
-        HBox barre = Ui.ligne(12, recherche, choixTableau, filtres, tousLesJours);
+        vueListe.setSelected(true);
+        vueListe.getStyleClass().add("pointage-vue");
+        vueRetraits.getStyleClass().addAll("pointage-vue", "pointage-vue-retraits");
+        HBox vues = Ui.segment(groupeVue, vueListe, vueRetraits);
+        groupeVue.selectedToggleProperty().addListener((o, a, n) -> {
+            if (n == null) {
+                a.setSelected(true);
+                return;
+            }
+            racine.setCenter(n == vueRetraits ? defilRetraits : defilListe);
+            afficherListe();
+        });
+
+        HBox barre = Ui.ligne(12, vues, recherche, choixTableau, filtres, tousLesJours);
         barre.getStyleClass().add("pointage-barre");
 
         VBox v = new VBox(12, haut, ongletsJours, tuiles, totalTournoi, barre, Ui.aide(PresentationPostePointage.AIDE), Ui.ligne(12, compte),
@@ -286,6 +311,107 @@ public final class EcranPostePointage {
             noeuds.add(Ui.etatVideCompact("Aucun joueur ne correspond à la recherche et aux filtres."));
         }
         liste.getChildren().setAll(noeuds);
+        afficherRetraits(jour);
+    }
+
+    // ------------------------------------------------------------------
+    // B043 : vue « Retraits » (non pointés et désinscrits, séparés)
+    // ------------------------------------------------------------------
+
+    private void afficherRetraits(LocalDate jour) {
+        ListeRetraits lr = new ListeRetraits(tournoi);
+        List<ListeRetraits.Retrait> nonPointes = filtrer(lr.nonPointes(jour));
+        List<ListeRetraits.Retrait> desinscrits = filtrer(lr.desinscrits(jour));
+        vueRetraits.setText(PresentationRetraits.ongletRetraits(nonPointes.size() + desinscrits.size()));
+        retraits.getChildren().setAll(
+                Ui.aide(PresentationRetraits.AIDE),
+                carteRetraits(PresentationRetraits.TITRE_DESINSCRITS, desinscrits, PresentationRetraits.AUCUN_DESINSCRIT),
+                carteRetraits(PresentationRetraits.TITRE_NON_POINTES, nonPointes, PresentationRetraits.AUCUN_NON_POINTE));
+    }
+
+    /** La recherche et le choix du tableau s'appliquent aussi aux retraits. */
+    private List<ListeRetraits.Retrait> filtrer(List<ListeRetraits.Retrait> tous) {
+        String nomTableau = PresentationPostePointage.nomTableau(choixTableau.getValue());
+        List<ListeRetraits.Retrait> res = new ArrayList<>();
+        for (ListeRetraits.Retrait r : tous) {
+            boolean texteOk = r.joueur() != null ? ListePointage.correspond(r.joueur(), recherche.getText())
+                    : recherche.getText().isBlank() || r.licence().contains(recherche.getText().trim());
+            if (texteOk && (nomTableau == null || nomTableau.equals(r.tableau()))) {
+                res.add(r);
+            }
+        }
+        return res;
+    }
+
+    private Node carteRetraits(String titre, List<ListeRetraits.Retrait> liste, String vide) {
+        VBox lignes = new VBox();
+        lignes.getStyleClass().add("retraits-liste");
+        if (liste.isEmpty()) {
+            lignes.getChildren().add(Ui.etatVideCompact(vide));
+        }
+        boolean premier = true;
+        for (ListeRetraits.Retrait r : liste) {
+            lignes.getChildren().add(ligneRetrait(r, premier));
+            premier = false;
+        }
+        return Ui.carte(titre + " · " + liste.size(), lignes);
+    }
+
+    private Node ligneRetrait(ListeRetraits.Retrait r, boolean premier) {
+        Label nom = Ui.label(PresentationRetraits.nom(r), "pointage-nom");
+        Label motif = Ui.label(PresentationRetraits.motif(r), "retrait-motif");
+        Label detail = Ui.label(PresentationRetraits.detail(r, java.time.ZoneId.systemDefault()), "pointage-detail");
+        VBox identite = new VBox(2, nom, motif, detail);
+        HBox.setHgrow(identite, Priority.ALWAYS);
+
+        FlowPane etiquettes = new FlowPane(6, 6);
+        etiquettes.getStyleClass().add("pointage-etiquettes");
+        StatutPastille couleur = r.nature() == ListeRetraits.Nature.NON_POINTE ? StatutPastille.NEUTRE
+                : StatutPastille.INFO;
+        etiquettes.getChildren().add(Ui.pastille(r.nature().getLibelle(), couleur));
+        if (r.avaitPaye()) {
+            etiquettes.getChildren().add(Ui.pastille(PresentationRetraits.A_REMBOURSER, StatutPastille.ATTENTION));
+        }
+
+        Button annuler = Ui.boutonSecondaire(PresentationRetraits.ANNULER);
+        annuler.getStyleClass().add("retrait-annuler");
+        annuler.setDisable(r.tableauLance());
+        annuler.setOnAction(x -> annulerRetrait(r));
+
+        HBox ligne = Ui.ligne(16, identite, etiquettes, annuler);
+        ligne.getStyleClass().add("retrait-ligne");
+        if (premier) {
+            ligne.getStyleClass().add("retrait-ligne-premiere");
+        }
+        return ligne;
+    }
+
+    private void annulerRetrait(ListeRetraits.Retrait retrait) {
+        Tournoi frais;
+        try {
+            frais = contexte.chargerTournoi(fichier);
+        } catch (RuntimeException e) {
+            Ui.erreur(message, "Lecture du tournoi impossible : " + e.getMessage());
+            return;
+        }
+        ResultatActionPointage r = new ServicePostePointage(frais, horloge, poste)
+                .annulerRetrait(retrait.tableau(), retrait.licence());
+        if (r.aModifie()) {
+            try {
+                contexte.enregistrerTournoi(frais, fichier);
+            } catch (RuntimeException e) {
+                Ui.erreur(message, "Enregistrement impossible : " + e.getMessage() + " Rien n'a été modifié.");
+                recharger(false);
+                return;
+            }
+        }
+        String texte = PresentationRetraits.messageAnnulation(r, PresentationRetraits.nom(retrait), retrait.tableau());
+        if (r.estAcceptee()) {
+            Ui.succes(message, texte);
+        } else {
+            Ui.erreur(message, texte);
+        }
+        recharger(false);
     }
 
     // ------------------------------------------------------------------
@@ -374,7 +500,9 @@ public final class EcranPostePointage {
         desinscrire.getStyleClass().add("pointage-desinscrire");
         desinscrire.setDisable(!e.desistementPossible());
         VBox conteneur = new VBox();
-        desinscrire.setOnAction(x -> confirmerDesistement(conteneur, j, e.tableau()));
+        // B043 : fenêtre des motifs (décision du joueur en premier), puis confirmation.
+        desinscrire.setOnAction(x -> FenetreDesinscription.demander(desinscrire, j, e.tableau())
+                .ifPresent(choix -> agir(j, e.tableau(), TypeOperationPointage.DESINSCRIRE, choix)));
 
         HBox ligne = Ui.ligne(16, cases, identite, etiquettes, mode, montant, desinscrire);
         ligne.getStyleClass().add("pointage-engagement");
@@ -383,33 +511,6 @@ public final class EcranPostePointage {
         }
         conteneur.getChildren().add(ligne);
         return conteneur;
-    }
-
-    private void confirmerDesistement(VBox conteneur, Joueur j, String tableau) {
-        if (conteneur.getChildren().size() > 1) {
-            return; // encart déjà ouvert
-        }
-        TextField motif = Ui.champ("Motif (obligatoire) : blessure, absent prévenu…");
-        motif.getStyleClass().add("pointage-motif");
-        Button confirmer = Ui.boutonPrimaire("Confirmer le désistement");
-        Button renoncer = Ui.boutonSecondaire("Renoncer");
-        VBox encart = Ui.encartConfirmation(PresentationPostePointage.confirmationDesistement(j, tableau),
-                confirmer, renoncer);
-        encart.getChildren().add(1, motif);
-        encart.getStyleClass().add("pointage-encart-desistement");
-        confirmer.disableProperty().bind(motif.textProperty().isEmpty());
-        confirmer.setOnAction(x -> agir(j, tableau, TypeOperationPointage.DESINSCRIRE, motif.getText()));
-        motif.setOnAction(x -> {
-            if (!motif.getText().isBlank()) {
-                agir(j, tableau, TypeOperationPointage.DESINSCRIRE, motif.getText());
-            }
-        });
-        renoncer.setOnAction(x -> {
-            conteneur.getChildren().remove(encart);
-            focaliserRecherche();
-        });
-        conteneur.getChildren().add(encart);
-        Platform.runLater(motif::requestFocus);
     }
 
     // ------------------------------------------------------------------
@@ -436,7 +537,8 @@ public final class EcranPostePointage {
         } else if (type == TypeOperationPointage.MARQUER_NON_PAYE) {
             r = service.marquerNonPaye(tableau, licence);
         } else {
-            r = service.desinscrire(tableau, licence, (String) valeur);
+            FenetreDesinscription.Choix choix = (FenetreDesinscription.Choix) valeur;
+            r = service.desinscrire(tableau, licence, choix.motif(), choix.precision());
         }
         if (r.aModifie()) {
             try {

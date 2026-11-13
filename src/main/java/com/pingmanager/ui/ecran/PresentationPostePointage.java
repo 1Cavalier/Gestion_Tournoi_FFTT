@@ -98,7 +98,8 @@ final class PresentationPostePointage {
 
     static String confirmationDesistement(Joueur j, String tableau) {
         return "Désinscrire " + nomAffiche(j) + " du tableau " + tableau + " ? Sa place est libérée et le premier "
-                + "de la liste d'attente est repêché. Ce désistement ne se défait pas depuis ce poste.";
+                + "de la liste d'attente est repêché. Le retrait pourra être annulé (vue « Retraits ») "
+                + "seulement s'il reste une place libre.";
     }
 
     /** Message après une action : le refus expliqué, ou ce qui a été enregistré. */
@@ -118,7 +119,13 @@ final class PresentationPostePointage {
         } else if (type == TypeOperationPointage.MARQUER_NON_PAYE) {
             texte = "Paiement annulé : " + qui + ".";
         } else {
-            texte = "Désinscrit : " + qui + ".";
+            com.pingmanager.model.MotifRetrait m = r.getOperation() == null ? null
+                    : r.getOperation().getMotifRetrait();
+            texte = "Désinscrit : " + qui + "." + (m == null ? "" : " Motif : "
+                    + m.getLibelle().toLowerCase(Locale.FRENCH) + ".");
+            if (r.getOperation() != null && r.getOperation().avaitPaye()) {
+                texte += " Il avait payé : à rembourser ou à reporter (voir « Retraits »).";
+            }
         }
         if (r.getRepeche() != null) {
             texte += " " + nomAffiche(r.getRepeche()) + " est repêché de la liste d'attente : à pointer et à faire payer.";

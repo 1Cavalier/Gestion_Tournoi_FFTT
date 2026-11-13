@@ -1,5 +1,6 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.JournalRetraits;
 import com.pingmanager.core.ResultatPointage;
 import com.pingmanager.core.ResultatVerificationLancement;
 import com.pingmanager.core.ServiceLancementTableau;
@@ -55,6 +56,8 @@ final class EcranPointageTableau {
     private final Consumer<Tableau> versPoules;
 
     private final ServicePointage pointage;
+    /** B043 : les retraits (non pointés, désistements) sont notés au journal du pointage. */
+    private static final com.pingmanager.core.Horloge HORLOGE = com.pingmanager.core.Horloge.systeme();
     private final ServiceLancementTableau lancement;
 
     private final BorderPane racine = new BorderPane();
@@ -300,7 +303,7 @@ final class EcranPointageTableau {
                     + suite, confirmer, renoncer);
             confirmer.setOnAction(e -> {
                 Joueur[] repeche = new Joueur[1];
-                if (executer(() -> repeche[0] = pointage.desister(tableau, j))) {
+                if (executer(() -> repeche[0] = JournalRetraits.desister(tournoi, tableau, j, HORLOGE, poste()))) {
                     apresAction(j.getNomComplet() + " s'est désisté."
                             + (repeche[0] == null ? "" : " " + repeche[0].getNomComplet() + " est repêché (à pointer)."),
                             false);
@@ -315,7 +318,8 @@ final class EcranPointageTableau {
                     + "automatique n'est fait.", confirmer, renoncer);
             encart.getChildren().add(1, rembourser);
             confirmer.setOnAction(e -> {
-                if (executer(() -> pointage.desisterCasParticulier(tableau, j, rembourser.isSelected()))) {
+                if (executer(() -> JournalRetraits.desisterCasParticulier(tournoi, tableau, j,
+                        rembourser.isSelected(), HORLOGE, poste()))) {
                     apresAction(j.getNomComplet() + " est retiré du tableau"
                             + (rembourser.isSelected() ? " (remboursement noté)." : "."), false);
                 }
@@ -402,7 +406,7 @@ final class EcranPointageTableau {
                     + PresentationJourJ.texteCloture(tableau) + " Elle ne se défait pas.", confirmer, renoncer);
             confirmer.setOnAction(ev -> {
                 ResultatPointage[] r = new ResultatPointage[1];
-                if (executer(() -> r[0] = pointage.cloturerPointage(tableau))) {
+                if (executer(() -> r[0] = JournalRetraits.cloturerPointage(tournoi, tableau, HORLOGE, poste()))) {
                     apresAction(PresentationJourJ.compteRenduCloture(r[0]), false);
                 }
             });
@@ -511,5 +515,10 @@ final class EcranPointageTableau {
             r.setMaxWidth(Double.MAX_VALUE);
         }
         return r;
+    }
+
+    /** Nom de l'ordinateur, noté au journal avec chaque retrait (comme le poste de pointage). */
+    private static String poste() {
+        return PresentationPostePointage.identifiantPoste(System.getenv());
     }
 }

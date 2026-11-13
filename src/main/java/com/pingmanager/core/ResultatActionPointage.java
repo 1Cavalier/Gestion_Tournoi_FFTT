@@ -34,7 +34,21 @@ public final class ResultatActionPointage {
         /** Désistement sans motif. */
         MOTIF_OBLIGATOIRE("Indiquer le motif du désistement."),
         /** Paiement sans mode de règlement. */
-        MODE_OBLIGATOIRE("Indiquer le mode de règlement.");
+        MODE_OBLIGATOIRE("Indiquer le mode de règlement."),
+        /** B043 : motif « Autre » sans précision. */
+        PRECISION_OBLIGATOIRE("Préciser le motif « Autre »."),
+        /** B043 : aucun retrait en cours pour ce joueur et ce tableau (déjà annulé ?). */
+        RETRAIT_INTROUVABLE("Aucun retrait à annuler pour ce joueur dans ce tableau."),
+        /** B043 : le joueur est déjà inscrit (ou en liste d'attente) dans ce tableau. */
+        DEJA_INSCRIT("Ce joueur est déjà inscrit (ou en liste d'attente) dans ce tableau."),
+        /** B043 : le tableau est complet : le retrait ne peut pas être annulé. */
+        PLUS_DE_PLACE("Plus de place libre dans ce tableau : le retrait ne peut pas être annulé "
+                + "(la place a été reprise, par exemple par un repêché)."),
+        /** B043 : le joueur ne remplit plus les conditions du tableau. */
+        NON_ELIGIBLE("Ce joueur ne remplit pas les conditions de ce tableau."),
+        /** B043 : retrait antérieur à B043, la fiche du joueur n'a pas été gardée. */
+        FICHE_JOUEUR_ABSENTE("La fiche de ce joueur n'a pas été gardée (retrait ancien) : "
+                + "le réinscrire avec « Inscrire sur place ».");
 
         private final String message;
 

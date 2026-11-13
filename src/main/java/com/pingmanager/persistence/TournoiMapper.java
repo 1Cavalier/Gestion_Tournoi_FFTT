@@ -468,6 +468,14 @@ public final class TournoiMapper {
             }
         }
         o.set("rembourses", rembourses);
+        // B043 : joueurs retirés (annulation du retrait), écrits seulement s'il y en a.
+        if (!tab.getRetires().isEmpty()) {
+            Json retires = Json.tableau();
+            for (Joueur j : tab.getRetires()) {
+                retires.add(ctx.refJoueur(j));
+            }
+            o.set("retires", retires);
+        }
 
         // Poules.
         Json poules = Json.tableau();
@@ -818,6 +826,11 @@ public final class TournoiMapper {
         if (o.has("rembourses")) {
             for (Json ref : o.get("rembourses").elements()) {
                 e.rembourses.add(ctx.joueur(ref));
+            }
+        }
+        if (o.has("retires")) {
+            for (Json ref : o.get("retires").elements()) {
+                e.retires.add(ctx.joueur(ref));
             }
         }
         if (o.has("poules")) {

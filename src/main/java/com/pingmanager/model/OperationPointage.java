@@ -30,9 +30,16 @@ public final class OperationPointage {
     private final Instant horodatage;
     private final String poste;
     private final java.time.LocalDate jour;
+    /** B043 : motif d'une désinscription ({@code null} : ancien fichier ou autre type). */
+    private final MotifRetrait motifRetrait;
+    /** B043 : le joueur avait-il payé ce tableau au moment du retrait ? */
+    private final boolean avaitPaye;
 
     private OperationPointage(Builder b) {
         this.jour = b.jour;
+        boolean retrait = b.type == TypeOperationPointage.DESINSCRIRE || b.type == TypeOperationPointage.NON_POINTE;
+        this.motifRetrait = b.type == TypeOperationPointage.DESINSCRIRE ? b.motifRetrait : null;
+        this.avaitPaye = retrait && b.avaitPaye;
         this.licence = exigerTexte(b.licence, "licence");
         this.tableau = exigerTexte(b.tableau, "tableau");
         this.type = Objects.requireNonNull(b.type, "type");
@@ -45,6 +52,9 @@ public final class OperationPointage {
             }
             ModeReglement.valueOf(v); // refuse un mode inconnu
         } else if (type == TypeOperationPointage.DESINSCRIRE) {
+            if (v == null && motifRetrait != null && !motifRetrait.exigePrecision()) {
+                v = motifRetrait.getLibelle(); // lisible aussi par une version d'avant B043
+            }
             if (v == null) {
                 throw new IllegalArgumentException("Le motif du désistement est obligatoire.");
             }
@@ -95,6 +105,40 @@ public final class OperationPointage {
         return poste;
     }
 
+    /**
+     * @return le motif d'une désinscription ; une désinscription d'avant B043 (sans
+     *         motif choisi) se lit comme {@link MotifRetrait#DECISION_JOUEUR} ;
+     *         {@code null} pour les autres types
+     */
+    public MotifRetrait getMotifRetrait() {
+        if (type != TypeOperationPointage.DESINSCRIRE) {
+            return null;
+        }
+        return motifRetrait != null ? motifRetrait : MotifRetrait.DECISION_JOUEUR;
+    }
+
+    /** @return vrai si le motif a été choisi dans la liste (B043), faux pour un ancien désistement. */
+    public boolean motifRetraitNote() {
+        return motifRetrait != null;
+    }
+
+    /**
+     * @return la précision en texte libre d'une désinscription, ou {@code null} si
+     *         la valeur n'est que le libellé du motif
+     */
+    public String getPrecision() {
+        if (type != TypeOperationPointage.DESINSCRIRE) {
+            return null;
+        }
+        MotifRetrait m = getMotifRetrait();
+        return valeur == null || (motifRetrait != null && valeur.equals(m.getLibelle())) ? null : valeur;
+    }
+
+    /** @return vrai si le joueur avait payé ce tableau au moment du retrait (B043). */
+    public boolean avaitPaye() {
+        return avaitPaye;
+    }
+
     /** @return le jour du tableau au moment de l'opération (B043), ou {@code null} (ancien fichier). */
     public java.time.LocalDate getJour() {
         return jour;
@@ -111,12 +155,12 @@ public final class OperationPointage {
         OperationPointage x = (OperationPointage) o;
         return licence.equals(x.licence) && tableau.equals(x.tableau) && type == x.type
                 && Objects.equals(valeur, x.valeur) && horodatage.equals(x.horodatage) && poste.equals(x.poste)
-                && Objects.equals(jour, x.jour);
+                && Objects.equals(jour, x.jour) && motifRetrait == x.motifRetrait && avaitPaye == x.avaitPaye;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(licence, tableau, type, valeur, horodatage, poste, jour);
+        return Objects.hash(licence, tableau, type, valeur, horodatage, poste, jour, motifRetrait, avaitPaye);
     }
 
     @Override
@@ -134,8 +178,22 @@ public final class OperationPointage {
         private Instant horodatage;
         private String poste;
         private java.time.LocalDate jour;
+        private MotifRetrait motifRetrait;
+        private boolean avaitPaye;
 
         private Builder() {
+        }
+
+        /** B043 : motif d'une désinscription (facultatif : sans motif = ancien désistement). */
+        public Builder motifRetrait(MotifRetrait v) {
+            this.motifRetrait = v;
+            return this;
+        }
+
+        /** B043 : le joueur avait payé ce tableau au moment du retrait. */
+        public Builder avaitPaye(boolean v) {
+            this.avaitPaye = v;
+            return this;
         }
 
         /** B043 : jour du tableau (facultatif). */

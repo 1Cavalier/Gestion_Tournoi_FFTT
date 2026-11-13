@@ -4079,3 +4079,49 @@
 .pointage-pastille-jour {
     -fx-font-weight: bold;
 }
+
+/* B043 — Retraits : vue « Retraits » du pointage et fenêtre des motifs */
+
+.pointage-retraits {
+    -fx-padding: 16 24 24 24;
+}
+
+.retrait-ligne {
+    -fx-padding: 10 0 10 0;
+    -fx-alignment: center-left;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.retrait-ligne-premiere {
+    -fx-border-width: 0;
+}
+
+.retrait-motif {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte;
+}
+
+.fenetre-desinscription {
+    -fx-background-color: -surface;
+    -fx-min-width: 520px;
+}
+
+.desinscription-contenu {
+    -fx-padding: 8 4 4 4;
+}
+
+.desinscription-titre {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.desinscription-motif {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte;
+}
+
+.desinscription-motif-joueur {
+    -fx-font-weight: bold;
+}

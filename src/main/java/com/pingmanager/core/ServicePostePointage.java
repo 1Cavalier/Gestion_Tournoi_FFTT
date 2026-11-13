@@ -2,6 +2,7 @@ package com.pingmanager.core;
 
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.ModeReglement;
+import com.pingmanager.model.MotifRetrait;
 import com.pingmanager.model.OperationPointage;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
@@ -29,9 +30,12 @@ import java.util.Objects;
  *   <li>pointage clôturé : on peut encore pointer (repêché arrivé), mais ni
  *       dépointer ni désinscrire : c'est au juge-arbitre de décider
  *       ({@link ServicePointage#desisterCasParticulier}) ;</li>
- *   <li>un désistement exige un motif ; il libère la place et repêche le
- *       premier de la liste d'attente ({@link ServicePointage#desister}) ;
- *       un paiement déjà noté n'est pas marqué remboursé (décision du club).</li>
+ *   <li>une désinscription exige un motif ({@link com.pingmanager.model.MotifRetrait},
+ *       B043 : décision du joueur ou autre motif) ; elle libère la place et
+ *       repêche le premier de la liste d'attente ({@link ServicePointage#desister}) ;
+ *       un paiement déjà noté n'est pas marqué remboursé (décision du club) ;</li>
+ *   <li>B043 : un retrait s'annule seulement s'il reste une place libre
+ *       ({@link #annulerRetrait}).</li>
  * </ul>
  */
 public final class ServicePostePointage {
@@ -128,13 +132,32 @@ public final class ServicePostePointage {
     }
 
     /**
-     * Désistement du joueur sur ce tableau, avec un motif : la place est libérée
-     * et le premier de la liste d'attente est repêché (il devra pointer et payer).
-     * Refusé après la clôture du pointage ou le lancement : le juge-arbitre décide.
+     * Désistement du joueur sur ce tableau, avec un motif en texte libre (B041) :
+     * noté comme une décision du joueur, le texte servant de précision.
      */
     public ResultatActionPointage desinscrire(String nomTableau, String licence, String motif) {
         if (motif == null || motif.isBlank()) {
             return ResultatActionPointage.refusee(ResultatActionPointage.Motif.MOTIF_OBLIGATOIRE);
+        }
+        return desinscrire(nomTableau, licence, MotifRetrait.DECISION_JOUEUR, motif);
+    }
+
+    /**
+     * B043 : désinscription du joueur de ce tableau, pour un motif de la liste
+     * (décision du joueur, blessure…, « Autre » avec une précision obligatoire) :
+     * la place est libérée et le premier de la liste d'attente est repêché (il
+     * devra pointer et payer). Refusée après la clôture du pointage ou le
+     * lancement : le juge-arbitre décide. Le motif, l'heure, le poste, le jour et
+     * le paiement éventuel sont notés au journal (aucun remboursement
+     * automatique : le club décide).
+     */
+    public ResultatActionPointage desinscrire(String nomTableau, String licence, MotifRetrait motif,
+                                              String precision) {
+        if (motif == null) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.MOTIF_OBLIGATOIRE);
+        }
+        if (motif.exigePrecision() && (precision == null || precision.isBlank())) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.PRECISION_OBLIGATOIRE);
         }
         Cible c = cible(nomTableau, licence);
         if (c.refus != null) {
@@ -146,8 +169,56 @@ public final class ServicePostePointage {
         if (c.tableau.pointageEstCloture()) {
             return ResultatActionPointage.refusee(ResultatActionPointage.Motif.POINTAGE_CLOTURE);
         }
+        boolean avaitPaye = c.tableau.aPaye(c.joueur);
         Joueur repeche = pointage.desister(c.tableau, c.joueur);
-        return journaliser(c, TypeOperationPointage.DESINSCRIRE, motif.trim(), repeche);
+        c.tableau.noterRetire(c.joueur);
+        OperationPointage op = JournalRetraits.operation(tournoi, c.tableau, c.joueur,
+                TypeOperationPointage.DESINSCRIRE, motif, precision, avaitPaye, horloge, poste);
+        tournoi.ajouterOperationPointage(op);
+        return ResultatActionPointage.acceptee(op, repeche);
+    }
+
+    /**
+     * B043 : annule le dernier retrait (désinscription ou non pointé) de ce joueur
+     * dans ce tableau : il est réinscrit, <b>seulement si une place est libre</b>
+     * (jamais de dépassement du nombre de places, jamais en liste d'attente). Le
+     * joueur réinscrit doit (re)pointer ; son paiement n'est pas rétabli
+     * d'office (le club le note au besoin). Refusé sur un tableau lancé.
+     */
+    public ResultatActionPointage annulerRetrait(String nomTableau, String licence) {
+        if (!politique.autorise(tournoi.getStatut())) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.TOURNOI_FERME);
+        }
+        Tableau tableau = tableau(nomTableau);
+        if (tableau == null) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.TABLEAU_INCONNU);
+        }
+        if (!new ListeRetraits(tournoi).estRetire(nomTableau, licence)) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.RETRAIT_INTROUVABLE);
+        }
+        if (estLance(tableau)) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.TABLEAU_LANCE);
+        }
+        Joueur joueur = ListeRetraits.ficheDuJoueur(tournoi, tableau, licence);
+        if (joueur == null) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.FICHE_JOUEUR_ABSENTE);
+        }
+        if (tableau.getInscrits().contains(joueur) || tableau.getFileAttente().contains(joueur)) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.DEJA_INSCRIT);
+        }
+        if (tableau.estPlein()) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.PLUS_DE_PLACE);
+        }
+        if (!tableau.getConfiguration().joueurEligible(joueur)) {
+            return ResultatActionPointage.refusee(ResultatActionPointage.Motif.NON_ELIGIBLE);
+        }
+        // Place libre et joueur éligible, ni inscrit ni en attente : inscrit directement.
+        tableau.inscrire(joueur);
+        tableau.oublierRetire(joueur);
+        OperationPointage op = JournalRetraits.operation(tournoi, tableau, joueur,
+                TypeOperationPointage.ANNULER_RETRAIT, null, null, false, horloge, poste);
+        tournoi.ajouterOperationPointage(op);
+        return ResultatActionPointage.acceptee(op, null);
     }
 
     // ------------------------------------------------------------------
@@ -174,13 +245,7 @@ public final class ServicePostePointage {
         if (!politique.autorise(tournoi.getStatut())) {
             return new Cible(ResultatActionPointage.Motif.TOURNOI_FERME, null, null);
         }
-        Tableau tableau = null;
-        for (Tableau t : tournoi.getTableaux()) {
-            if (t.getNom().equals(nomTableau)) {
-                tableau = t;
-                break;
-            }
-        }
+        Tableau tableau = tableau(nomTableau);
         if (tableau == null) {
             return new Cible(ResultatActionPointage.Motif.TABLEAU_INCONNU, null, null);
         }
@@ -190,6 +255,15 @@ public final class ServicePostePointage {
             }
         }
         return new Cible(ResultatActionPointage.Motif.JOUEUR_NON_INSCRIT, tableau, null);
+    }
+
+    private Tableau tableau(String nomTableau) {
+        for (Tableau t : tournoi.getTableaux()) {
+            if (t.getNom().equals(nomTableau)) {
+                return t;
+            }
+        }
+        return null;
     }
 
     private static final class Cible {
