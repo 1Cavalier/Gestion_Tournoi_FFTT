@@ -20,6 +20,7 @@ public final class ResultatAgenda {
         DATE_MANQUANTE("Indiquez une date."),
         FIN_AVANT_DEBUT("La date de fin ne peut pas précéder la date de début."),
         INTROUVABLE("Cette date n'est plus dans l'agenda."),
+        DEJA_DANS_L_AGENDA("Cette date est déjà dans votre agenda."),
         DATE_AUTOMATIQUE("Cette date suit votre inscription au tournoi : elle se retire en vous désinscrivant.");
 
         private final String message;
@@ -50,10 +51,10 @@ public final class ResultatAgenda {
         return evenement;
     }
 
-    /** @return vrai si l'opération est acceptée (y compris « déjà à jour »). */
+    /** @return vrai si l'opération est acceptée (y compris « déjà à jour » et « déjà dans l'agenda »). */
     public boolean estAccepte() {
         return motif == Motif.AJOUTE || motif == Motif.MODIFIE || motif == Motif.RETIRE
-                || motif == Motif.INCHANGE;
+                || motif == Motif.INCHANGE || motif == Motif.DEJA_DANS_L_AGENDA;
     }
 
     public String message() {
