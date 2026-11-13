@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "avertissement": "Suggestions de départ pour une buvette de tournoi : prix indicatifs à valider par le club. Ce ne sont pas des prix de marché, seulement des hypothèses à modifier.",
+  "produits": [
+    {"id": "cafe", "nom": "Café", "categorie": "BOISSONS_CHAUDES", "unite": "GOBELET", "prix": 100},
+    {"id": "the", "nom": "Thé", "categorie": "BOISSONS_CHAUDES", "unite": "GOBELET", "prix": 100},
+    {"id": "chocolat-chaud", "nom": "Chocolat chaud", "categorie": "BOISSONS_CHAUDES", "unite": "GOBELET", "prix": 120},
+    {"id": "eau", "nom": "Eau (50 cl)", "categorie": "BOISSONS_FROIDES", "unite": "BOUTEILLE", "prix": 100},
+    {"id": "soda", "nom": "Soda (canette 33 cl)", "categorie": "BOISSONS_FROIDES", "unite": "CANETTE", "prix": 150},
+    {"id": "jus-de-fruits", "nom": "Jus de fruits (brique 20 cl)", "categorie": "BOISSONS_FROIDES", "unite": "BOUTEILLE", "prix": 100},
+    {"id": "sandwich-jambon-beurre", "nom": "Sandwich jambon-beurre", "categorie": "SANDWICHS", "unite": "PIECE", "prix": 300},
+    {"id": "sandwich-fromage", "nom": "Sandwich fromage", "categorie": "SANDWICHS", "unite": "PIECE", "prix": 250},
+    {"id": "croque-monsieur", "nom": "Croque-monsieur", "categorie": "SANDWICHS", "unite": "PIECE", "prix": 250},
+    {"id": "crepe-sucre", "nom": "Crêpe au sucre", "categorie": "DESSERTS", "unite": "PIECE", "prix": 150},
+    {"id": "crepe-chocolat", "nom": "Crêpe pâte à tartiner", "categorie": "DESSERTS", "unite": "PIECE", "prix": 200},
+    {"id": "gaufre", "nom": "Gaufre", "categorie": "DESSERTS", "unite": "PIECE", "prix": 200},
+    {"id": "gateau", "nom": "Part de gâteau", "categorie": "DESSERTS", "unite": "PART", "prix": 150},
+    {"id": "barre-chocolatee", "nom": "Barre chocolatée", "categorie": "SNACKS", "unite": "PIECE", "prix": 100},
+    {"id": "chips", "nom": "Chips (sachet)", "categorie": "SNACKS", "unite": "SACHET", "prix": 100},
+    {"id": "fruit", "nom": "Fruit (pomme, banane)", "categorie": "SNACKS", "unite": "PIECE", "prix": 50},
+    {"id": "compote", "nom": "Compote à boire", "categorie": "SNACKS", "unite": "PIECE", "prix": 100}
+  ]
+}

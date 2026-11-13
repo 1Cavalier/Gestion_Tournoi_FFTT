@@ -4125,3 +4125,16 @@
 .desinscription-motif-joueur {
     -fx-font-weight: bold;
 }
+
+/* === Buvette (B046) : catalogue, stock, budget, caisse, historique === */
+
+.page-buvette .segment {
+    -fx-max-width: 560px;
+}
+
+.buvette-categorie {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+    -fx-padding: 12 0 4 0;
+}
