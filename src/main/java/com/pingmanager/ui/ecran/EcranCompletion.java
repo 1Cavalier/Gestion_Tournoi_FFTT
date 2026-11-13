@@ -740,8 +740,9 @@ final class EcranCompletion {
     private Node lienReglementFige() {
         Path dossier = fichier.toAbsolutePath().getParent();
         Runnable enregistrer = () -> contexte.enregistrerTournoi(tournoi, fichier);
-        return VueReglementFige.lien(tournoi, dossier, enregistrer, () -> racine.setCenter(
-                VueReglementFige.page(tournoi, dossier, enregistrer, this::afficherApercu, "← Vue d'ensemble")));
+        return VueReglementFige.lien(tournoi, contexte.documents(), dossier, enregistrer, () -> racine.setCenter(
+                VueReglementFige.page(tournoi, contexte.documents(), dossier, enregistrer, this::afficherApercu,
+                        "← Vue d'ensemble")));
     }
 
     /** Une ligne : rond de dépendance, libellé, et état à droite (même code que les cadres). */
@@ -776,7 +777,7 @@ final class EcranCompletion {
         }
         if (index == 3) {
             // Complémentaire : règlement (déposé ou généré), image, conditions, site web.
-            racine.setCenter(new EcranComplementaire(tournoi, fichier.toAbsolutePath().getParent(),
+            racine.setCenter(new EcranComplementaire(tournoi, contexte.documents(), fichier.toAbsolutePath().getParent(),
                     () -> contexte.enregistrerTournoi(tournoi, fichier),
                     this::afficherApercu).build());
             return;

@@ -215,6 +215,12 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
 - Suivi sur téléphone en lecture seule, avec « Ma prochaine partie ».
 - Export des résultats d'un tableau terminé (format provisoire).
+- Fichiers piégés refusés proprement : JSON trop gros ou trop imbriqué,
+  bombes zip, numéros de ligne géants, XML à entités (message lisible, jamais
+  de plantage). Le PDF du règlement déposé est **copié** dans
+  `~/.pingmanager/documents/` (anciens tournois : copie à la première
+  ouverture, sinon « fichier introuvable »). La carte n'affiche que sa page :
+  un lien d'attribution s'ouvre dans le navigateur du système.
 
 **Moteur sportif (testé)**
 - Ordre des parties I.301, placement I.302, classement I.303, placement du
@@ -292,12 +298,11 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     de possession.
 16. Contrôle des droits dans le contexte (`exigerDroit`) et pas seulement par
     la navigation ; suppression du repli par nom de club.
-17. Robustesse face aux fichiers piégés : profondeur et taille maximales dans
-    `JsonParser`, bornes de l'import (bombe zip, numéros de ligne géants).
-18. Règlement déposé : copier le PDF dans le dossier de données au lieu de
-    garder un chemin absolu libre.
-19. Carte : n'injecter le pont Java que sur la page locale, bloquer la
-    navigation de la WebView.
+17. ~~Fichiers piégés (JSON, import)~~ — **fait** (B004b).
+18. ~~Règlement déposé copié dans le dossier de données~~ — **fait** (B004b).
+    Reste : l'**image promotionnelle** garde un chemin absolu libre, même
+    correction à faire (`DocumentsDeposes`).
+19. ~~Carte : pont Java et navigation de la WebView~~ — **fait** (B004b).
 20. Mettre à jour JavaFX (dernière 21.0.x) et PDFBox.
 21. RGPD : mention d'information, purge des tournois anciens, effacement d'un
     joueur ; écriture sûre (`fsync`, copie `.bak`, verrou entre deux instances).
@@ -385,6 +390,16 @@ parenthèses.
 - Tournoi importé : le règlement déposé est-il obligatoire avant d'ouvrir le
   jour J ? (non : le bandeau rappelle ce qui manque, le jour J reste ouvert dès
   qu'il y a des tableaux).
+- Bornes contre les fichiers piégés (B004b) : JSON 64 Mo et 128 niveaux ;
+  tableur 50 Mo, 50 Mo décompressés, taux de décompression 100, 10 000
+  fichiers dans l'archive ; PDF du règlement 50 Mo et en-tête `%PDF`. Un
+  tableur de plus de 20 000 lignes est tronqué (anomalie signalée), comme
+  avant. À ajuster si un vrai fichier est refusé.
+- PDF déposés puis remplacés : l'ancienne copie reste dans
+  `documents/` (aucune purge, par prudence). Purger les copies orphelines ?
+  (non pour l'instant)
+- Carte : un lien externe (attributions IGN, OSM, Leaflet) s'ouvre dans le
+  navigateur du système ; toute autre navigation est bloquée. (oui)
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
