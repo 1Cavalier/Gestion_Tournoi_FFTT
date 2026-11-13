@@ -19,6 +19,7 @@ public final class BuvetteTournoi {
 
     private final List<MouvementStock> mouvements = new ArrayList<>();
     private final Map<String, Long> seuils = new LinkedHashMap<>();
+    private BudgetBuvette budget = BudgetBuvette.VIDE;
 
     /** @return les mouvements, dans l'ordre de saisie (lecture seule). */
     public List<MouvementStock> getMouvements() {
@@ -58,8 +59,17 @@ public final class BuvetteTournoi {
         return Collections.unmodifiableMap(seuils);
     }
 
+    /** Réglages du budget prévisionnel (jamais {@code null}). */
+    public BudgetBuvette getBudget() {
+        return budget;
+    }
+
+    public void setBudget(BudgetBuvette budget) {
+        this.budget = budget == null ? BudgetBuvette.VIDE : budget;
+    }
+
     /** @return vrai si rien n'a été saisi pour ce tournoi. */
     public boolean estVide() {
-        return mouvements.isEmpty() && seuils.isEmpty();
+        return mouvements.isEmpty() && seuils.isEmpty() && budget.estVide();
     }
 }

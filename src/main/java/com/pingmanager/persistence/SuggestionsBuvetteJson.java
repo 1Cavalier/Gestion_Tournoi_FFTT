@@ -45,11 +45,15 @@ public final class SuggestionsBuvetteJson {
     public static SuggestionsBuvette lire(String texte) {
         Json doc = JsonParser.analyser(texte);
         List<Produit> produits = new ArrayList<>();
+        java.util.Map<String, Integer> consommations = new java.util.LinkedHashMap<>();
         for (Json j : BuvetteMapper.objetsOuValeurs(doc, "produits")) {
             try {
                 Produit p = BuvetteMapper.lireProduit(j);
                 if (!p.getCategorie().estAlcoolisee()) {
                     produits.add(p);
+                    if (j.has("consommation")) {
+                        consommations.put(p.getId(), Math.max(0, j.get("consommation").asInt()));
+                    }
                 }
             } catch (RuntimeException illisible) {
                 // suggestion abîmée : écartée
@@ -63,7 +67,14 @@ public final class SuggestionsBuvetteJson {
                 // suggestion abîmée : écartée
             }
         }
+        com.pingmanager.model.buvette.HypothesesConsommation hypotheses;
+        try {
+            hypotheses = BuvetteMapper.lireHypotheses(doc.get("hypotheses").estObjet() ? doc.get("hypotheses")
+                    : com.pingmanager.persistence.json.Json.objet(), consommations);
+        } catch (RuntimeException horsBornes) {
+            hypotheses = new com.pingmanager.model.buvette.HypothesesConsommation(30, 15, 75, 125, consommations);
+        }
         return new SuggestionsBuvette(doc.getInt("version", 1), doc.getString("avertissement", null), produits,
-                ingredients);
+                ingredients, hypotheses);
     }
 }

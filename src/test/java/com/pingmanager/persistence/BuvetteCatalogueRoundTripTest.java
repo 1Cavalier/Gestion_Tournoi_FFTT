@@ -118,4 +118,16 @@ class BuvetteCatalogueRoundTripTest {
         assertEquals(2, baguette.getRendementMin());
         assertEquals(3, baguette.getRendementMax());
     }
+
+    @Test
+    void hypotheses_de_consommation_suggerees_pour_chaque_produit() {
+        SuggestionsBuvette s = SuggestionsBuvetteJson.charger();
+        assertEquals(30, s.hypotheses().accompagnantsPourcent());
+        assertEquals(15, s.hypotheses().presenceDixiemes());
+        assertEquals(75, s.hypotheses().scenarioBasPourcent());
+        assertEquals(125, s.hypotheses().scenarioHautPourcent());
+        for (Produit p : s.produits()) {
+            assertTrue(s.hypotheses().consommation(p.getId()) > 0, p.getNom());
+        }
+    }
 }

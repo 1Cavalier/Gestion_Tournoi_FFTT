@@ -3,9 +3,13 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.core.DroitRefuseException;
 import com.pingmanager.core.buvette.Centimes;
 import com.pingmanager.core.Horloge;
+import com.pingmanager.core.buvette.BudgetCalcule;
+import com.pingmanager.core.buvette.CalculBudgetBuvette;
+import com.pingmanager.core.buvette.ResultatBudgetBuvette;
 import com.pingmanager.core.buvette.ResultatIngredientBuvette;
 import com.pingmanager.core.buvette.ResultatMouvementStock;
 import com.pingmanager.core.buvette.ResultatProduitBuvette;
+import com.pingmanager.core.buvette.ServiceBudgetBuvette;
 import com.pingmanager.core.buvette.ServiceIngredientsBuvette;
 import com.pingmanager.core.buvette.ServiceStockBuvette;
 import com.pingmanager.model.Tournoi;
@@ -37,6 +41,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
 
 import java.nio.file.Path;
@@ -71,6 +76,9 @@ final class PageBuvette {
     private final ServiceCatalogueBuvette serviceCatalogue = new ServiceCatalogueBuvette();
     private final ServiceIngredientsBuvette serviceIngredients = new ServiceIngredientsBuvette();
     private final ServiceStockBuvette serviceStock = new ServiceStockBuvette(Horloge.systeme());
+    private final ServiceBudgetBuvette serviceBudget = new ServiceBudgetBuvette();
+    /** Scénario affiché dans l'onglet Budget. */
+    private String scenarioCourant = "Moyen";
     /** Tournoi choisi pour les onglets Stock, Budget et Ventes ({@code null} : aucun). */
     private Path fichierTournoi;
     /** Produit dont la recette est ouverte dans l'onglet Catalogue ({@code null} : aucune). */
@@ -171,6 +179,9 @@ final class PageBuvette {
         }
         if (STOCK.equals(ongletCourant)) {
             return avecTournoi(this::ongletStock);
+        }
+        if (BUDGET.equals(ongletCourant)) {
+            return avecTournoi(this::ongletBudget);
         }
         return Ui.carteNue(Ui.etatVide("Cet onglet arrive bientôt.", null));
     }
@@ -770,6 +781,175 @@ final class PageBuvette {
         }
         return Ui.carte(Ui.titreAvecCompteur("Journal des mouvements", lignes.size()),
                 Ui.aide("« Corriger » ajoute le mouvement inverse : rien ne s'efface."), liste);
+    }
+
+    // ==================================================================
+    // Onglet Budget
+    // ==================================================================
+
+    private void annoncer(BuvetteTournoi b, ResultatBudgetBuvette r) {
+        if (r.accepte()) {
+            enregistrerTournoi(b, null, r.explication());
+        } else {
+            Ui.erreur(message, r.explication());
+        }
+    }
+
+    private Node ongletBudget(Tournoi tournoi) {
+        CatalogueBuvette cat = catalogue();
+        BuvetteTournoi b = buvette();
+        BudgetCalcule calcul = new CalculBudgetBuvette().calculer(tournoi, b, cat, suggestions.hypotheses());
+        PresentationBudgetBuvette p = new PresentationBudgetBuvette(calcul, tournoi.getNom());
+        VBox v = new VBox(20);
+        v.getChildren().add(tuiles(p.tuiles().stream().map(t -> Ui.tuileChiffre(t.valeur(), t.libelle())).toList()));
+
+        // Affluence : joueurs par jour.
+        VBox jours = new VBox(6, Ui.texte(p.affluence()));
+        for (PresentationBudgetBuvette.LigneJour j : p.jours()) {
+            TextField n = Ui.champ("Joueurs");
+            n.setText(j.joueurs());
+            n.setPrefColumnCount(5);
+            Button ok = Ui.boutonLien("Enregistrer");
+            ok.setOnAction(e -> annoncer(b, serviceBudget.saisirJoueurs(b, j.jour(), n.getText())));
+            jours.getChildren().add(Ui.ligneListe(Ui.gras(j.libelle()), Ui.espace(), n, Ui.discret(j.origine()), ok));
+        }
+        jours.getChildren().add(Ui.aide("Laissez vide pour revenir à l'estimation d'après les inscriptions."));
+        v.getChildren().add(Ui.carte("Affluence prévue", jours));
+
+        // Hypothèses générales.
+        TextField acc = Ui.champ("30");
+        acc.setText(p.accompagnants());
+        TextField pres = Ui.champ("1,5");
+        pres.setText(p.presence());
+        TextField bas = Ui.champ("75");
+        bas.setText(p.scenarioBas());
+        TextField haut = Ui.champ("125");
+        haut.setText(p.scenarioHaut());
+        Button enregistrer = Ui.boutonPrimaire("Enregistrer les hypothèses");
+        enregistrer.setOnAction(e -> annoncer(b, serviceBudget.saisirHypotheses(b, acc.getText(), pres.getText(),
+                bas.getText(), haut.getText())));
+        Button revenir = Ui.boutonSecondaire("Revenir aux suggestions");
+        revenir.setOnAction(e -> annoncer(b, serviceBudget.revenirAuxSuggestions(b)));
+        javafx.scene.control.CheckBox stock = new javafx.scene.control.CheckBox(
+                "Déduire le stock disponible de la liste de courses");
+        stock.setSelected(b.getBudget().deduireStock());
+        stock.setOnAction(e -> annoncer(b, serviceBudget.deduireStock(b, stock.isSelected())));
+        v.getChildren().add(Ui.carte(Ui.ligne(10, Ui.titreCarte("Hypothèses"),
+                        Ui.pastille(SuggestionsBuvette.MENTION_HYPOTHESE, StatutPastille.INFO)),
+                Ui.aide(p.mentionHypotheses()),
+                new FlowPane(12, 12, Ui.champEtiquete("Accompagnants pour 100 joueurs (%)", acc),
+                        Ui.champEtiquete("Présence moyenne (demi-journées)", pres),
+                        Ui.champEtiquete("Scénario bas (%)", bas), Ui.champEtiquete("Scénario haut (%)", haut)),
+                stock, Ui.actions(enregistrer, revenir)));
+
+        // Scénarios.
+        VBox sc = new VBox(4);
+        for (PresentationBudgetBuvette.LigneScenario l : p.scenarios()) {
+            sc.getChildren().add(Ui.ligneListe(Ui.gras(l.nom()), Ui.espace(), Ui.discret(l.detail())));
+        }
+        ToggleGroup groupe = new ToggleGroup();
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (String nom : List.of("Bas", "Moyen", "Haut")) {
+            ToggleButton t = new ToggleButton(nom);
+            t.setSelected(nom.equals(scenarioCourant));
+            t.setOnAction(e -> {
+                scenarioCourant = nom;
+                afficher();
+            });
+            boutons.add(t);
+        }
+        sc.getChildren().addAll(Ui.texte(p.phraseSeuil(scenarioCourant)),
+                Ui.ligne(10, Ui.libelleChamp("Détail du scénario"),
+                        Ui.segment(groupe, boutons.toArray(new ToggleButton[0]))));
+        v.getChildren().add(Ui.carte("Scénarios", sc));
+
+        if (p.sansProduit()) {
+            v.getChildren().add(Ui.carteNue(Ui.etatVide(p.messageSansProduit(), null)));
+            return v;
+        }
+        // Produits prévus, avec la consommation modifiable.
+        VBox produits = new VBox(4);
+        boolean premiere = true;
+        for (PresentationBudgetBuvette.Ligne l : p.produits(scenarioCourant)) {
+            String id = l.id();
+            TextField conso = Ui.champ("0,35");
+            conso.setText(p.consommation(id));
+            conso.setPrefColumnCount(4);
+            Button ok = Ui.boutonLien("Modifier");
+            ok.setOnAction(e -> annoncer(b, serviceBudget.saisirConsommation(b, suggestions.hypotheses(), cat, id,
+                    conso.getText())));
+            List<Node> droite = new ArrayList<>();
+            if (!l.pastille().isEmpty()) {
+                droite.add(Ui.pastille(l.pastille(), StatutPastille.NEUTRE));
+            }
+            droite.add(Ui.discret("par personne"));
+            droite.add(conso);
+            droite.add(ok);
+            HBox ligne = Ui.ligneElement(null, l.titre(), l.detail(), droite.toArray(new Node[0]));
+            if (premiere) {
+                ligne.getStyleClass().add("ligne-element-premiere");
+                premiere = false;
+            }
+            produits.getChildren().add(ligne);
+        }
+        if (!b.getBudget().origineQuantites().isEmpty()) {
+            Button oublier = Ui.boutonLien("Revenir au calcul");
+            oublier.setOnAction(e -> annoncer(b, serviceBudget.oublierQuantitesReprises(b)));
+            produits.getChildren().add(0, Ui.ligne(10, Ui.encartInfo("Quantités reprises de « "
+                    + b.getBudget().origineQuantites() + " »."), oublier));
+        }
+        v.getChildren().add(Ui.carte("Produits prévus · scénario " + scenarioCourant.toLowerCase(),
+                Ui.aide("Consommation par personne et par demi-journée de présence (0,35 = 35 pour 100 personnes)."),
+                produits));
+
+        // Liste de courses.
+        VBox courses = new VBox(4);
+        premiere = true;
+        for (PresentationBudgetBuvette.Ligne l : p.courses(scenarioCourant)) {
+            HBox ligne = l.pastille().isEmpty() ? Ui.ligneElement(null, l.titre(), l.detail())
+                    : Ui.ligneElement(null, l.titre(), l.detail(), Ui.pastille(l.pastille(), StatutPastille.SUCCES));
+            if (premiere) {
+                ligne.getStyleClass().add("ligne-element-premiere");
+                premiere = false;
+            }
+            courses.getChildren().add(ligne);
+        }
+        Button csv = Ui.boutonSecondaire("Exporter en CSV…");
+        csv.setOnAction(e -> exporter(p.nomFichier(scenarioCourant, "csv"), "Fichier CSV", "*.csv",
+                () -> p.csvCourses(scenarioCourant).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        Button pdf = Ui.boutonSecondaire("Exporter en PDF…");
+        pdf.setOnAction(e -> exporter(p.nomFichier(scenarioCourant, "pdf"), "Document PDF", "*.pdf",
+                () -> com.pingmanager.ui.infra.RenduPdfBuvette.tableau("Liste de courses de la buvette",
+                        tournoi.getNom() + " · scénario " + scenarioCourant.toLowerCase(),
+                        List.of("Ingrédient", "À acheter", "Besoin", "Coût estimé"),
+                        p.lignesPdfCourses(scenarioCourant), new float[] {4, 4, 2, 2},
+                        List.of(SuggestionsBuvette.MENTION + ".", "Quantités issues d'hypothèses à ajuster."))));
+        v.getChildren().add(Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Liste de courses · scénario "
+                + scenarioCourant.toLowerCase()), csv, pdf), courses));
+        return v;
+    }
+
+    /** Contenu d'un fichier à exporter (peut échouer). */
+    @FunctionalInterface
+    private interface Contenu {
+        byte[] produire() throws java.io.IOException;
+    }
+
+    /** Demande où enregistrer puis écrit le fichier exporté. */
+    private void exporter(String nomPropose, String description, String extension, Contenu contenu) {
+        FileChooser fc = new FileChooser();
+        fc.setInitialFileName(nomPropose);
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(description, extension));
+        java.io.File f = fc.showSaveDialog(racine.getScene() == null ? null : racine.getScene().getWindow());
+        if (f == null) {
+            return;
+        }
+        try {
+            java.nio.file.Files.write(f.toPath(), contenu.produire());
+            Ui.succes(message, "Fichier enregistré : " + f.getName());
+        } catch (java.io.IOException | RuntimeException echec) {
+            Ui.erreur(message, "Export impossible : " + echec.getMessage());
+        }
     }
 
     // ==================================================================

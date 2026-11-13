@@ -1,6 +1,8 @@
 package com.pingmanager.persistence;
 
+import com.pingmanager.model.buvette.BudgetBuvette;
 import com.pingmanager.model.buvette.BuvetteTournoi;
+import com.pingmanager.model.buvette.HypothesesConsommation;
 import com.pingmanager.model.buvette.CatalogueBuvette;
 import com.pingmanager.model.buvette.CategorieProduit;
 import com.pingmanager.model.buvette.Ingredient;
@@ -219,7 +221,105 @@ final class BuvetteMapper {
             mouvements.add(j);
         }
         o.set("mouvements", mouvements);
+        if (!b.getBudget().estVide()) {
+            o.set("budget", ecrireBudget(b.getBudget()));
+        }
         return o;
+    }
+
+    /**
+     * Budget prévisionnel (facultatif).
+     *
+     * <pre>
+     * "budget": {"joueurs": {"2027-01-10": 120}, "deduireStock": true, "origine": "Open 2026",
+     *            "quantitesImposees": {"cafe": 80},
+     *            "hypotheses": {"accompagnants": 30, "presence": 15, "scenarioBas": 75,
+     *                           "scenarioHaut": 125, "consommations": {"cafe": 35}}}
+     * </pre>
+     */
+    static Json ecrireBudget(BudgetBuvette budget) {
+        Json o = Json.objet();
+        Json joueurs = Json.objet();
+        budget.joueursSaisis().forEach((j, n) -> joueurs.set(j.toString(), n.intValue()));
+        o.set("joueurs", joueurs);
+        o.set("deduireStock", budget.deduireStock());
+        if (!budget.origineQuantites().isEmpty()) {
+            o.set("origine", budget.origineQuantites());
+        }
+        Json q = Json.objet();
+        budget.quantitesImposees().forEach((id, n) -> q.set(id, n.longValue()));
+        o.set("quantitesImposees", q);
+        if (budget.hypotheses() != null) {
+            o.set("hypotheses", ecrireHypotheses(budget.hypotheses()));
+        }
+        return o;
+    }
+
+    static Json ecrireHypotheses(HypothesesConsommation h) {
+        Json o = Json.objet();
+        o.set("accompagnants", h.accompagnantsPourcent());
+        o.set("presence", h.presenceDixiemes());
+        o.set("scenarioBas", h.scenarioBasPourcent());
+        o.set("scenarioHaut", h.scenarioHautPourcent());
+        Json c = Json.objet();
+        h.consommations().forEach((id, v) -> c.set(id, v.intValue()));
+        o.set("consommations", c);
+        return o;
+    }
+
+    /** Hypothèses générales d'un objet JSON ; consommations lues à part (elles peuvent être ailleurs). */
+    static HypothesesConsommation lireHypotheses(Json o, java.util.Map<String, Integer> consommations) {
+        HypothesesConsommation d = HypothesesConsommation.PAR_DEFAUT;
+        return new HypothesesConsommation(o.getInt("accompagnants", d.accompagnantsPourcent()),
+                o.getInt("presence", d.presenceDixiemes()), o.getInt("scenarioBas", d.scenarioBasPourcent()),
+                o.getInt("scenarioHaut", d.scenarioHautPourcent()), consommations);
+    }
+
+    static BudgetBuvette lireBudget(Json o) {
+        java.util.Map<LocalDate, Integer> joueurs = new java.util.LinkedHashMap<>();
+        if (o.get("joueurs").estObjet()) {
+            o.get("joueurs").entrees().forEach((j, n) -> {
+                try {
+                    joueurs.put(LocalDate.parse(j), Math.max(0, n.asInt()));
+                } catch (RuntimeException illisible) {
+                    // jour ou nombre illisible : ignoré
+                }
+            });
+        }
+        java.util.Map<String, Long> quantites = new java.util.LinkedHashMap<>();
+        if (o.get("quantitesImposees").estObjet()) {
+            o.get("quantitesImposees").entrees().forEach((id, n) -> {
+                try {
+                    quantites.put(id, Math.max(0, n.asLong()));
+                } catch (RuntimeException illisible) {
+                    // quantité illisible : ignorée
+                }
+            });
+        }
+        HypothesesConsommation h = null;
+        if (o.get("hypotheses").estObjet()) {
+            try {
+                Json jh = o.get("hypotheses");
+                h = lireHypotheses(jh, lireConsommations(jh.get("consommations")));
+            } catch (RuntimeException illisibles) {
+                h = null; // hypothèses hors bornes : retour aux suggestions
+            }
+        }
+        return new BudgetBuvette(joueurs, h, quantites, o.getString("origine", ""), o.getBoolean("deduireStock", true));
+    }
+
+    static java.util.Map<String, Integer> lireConsommations(Json o) {
+        java.util.Map<String, Integer> res = new java.util.LinkedHashMap<>();
+        if (o.estObjet()) {
+            o.entrees().forEach((id, v) -> {
+                try {
+                    res.put(id, v.asInt());
+                } catch (RuntimeException illisible) {
+                    // valeur illisible : ignorée
+                }
+            });
+        }
+        return res;
     }
 
     static BuvetteTournoi lireBuvetteTournoi(Json o) {
@@ -232,6 +332,13 @@ final class BuvetteMapper {
                     // seuil d'un autre type : ignoré
                 }
             });
+        }
+        if (o.get("budget").estObjet()) {
+            try {
+                b.setBudget(lireBudget(o.get("budget")));
+            } catch (RuntimeException illisible) {
+                // budget abîmé : tout redevient estimé
+            }
         }
         for (Json j : objetsOuValeurs(o, "mouvements")) {
             try {

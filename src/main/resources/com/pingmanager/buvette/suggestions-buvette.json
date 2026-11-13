@@ -1,6 +1,13 @@
 {
   "version": 1,
   "avertissement": "Suggestions de départ pour une buvette de tournoi : prix indicatifs à valider par le club. Ce ne sont pas des prix de marché, seulement des hypothèses à modifier.",
+  "hypotheses": {
+    "commentaire": "Hypothèses à ajuster : accompagnants pour 100 joueurs (%), présence moyenne en dixièmes de demi-journée (15 = 1,5), scénarios bas et haut en % du scénario moyen. Dans chaque produit, consommation = centièmes de produit par personne et par demi-journée (35 = 0,35).",
+    "accompagnants": 30,
+    "presence": 15,
+    "scenarioBas": 75,
+    "scenarioHaut": 125
+  },
   "produits": [
     {
       "id": "cafe",
@@ -25,7 +32,8 @@
           "ingredient": "touillettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 35
     },
     {
       "id": "the",
@@ -50,7 +58,8 @@
           "ingredient": "touillettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 5
     },
     {
       "id": "chocolat-chaud",
@@ -75,7 +84,8 @@
           "ingredient": "touillettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 8
     },
     {
       "id": "eau",
@@ -88,7 +98,8 @@
           "ingredient": "eau-50cl",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 40
     },
     {
       "id": "soda",
@@ -101,7 +112,8 @@
           "ingredient": "soda-canettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 30
     },
     {
       "id": "jus-de-fruits",
@@ -114,7 +126,8 @@
           "ingredient": "jus-briques",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 10
     },
     {
       "id": "sandwich-jambon-beurre",
@@ -139,7 +152,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 12
     },
     {
       "id": "sandwich-fromage",
@@ -164,7 +178,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 6
     },
     {
       "id": "croque-monsieur",
@@ -193,7 +208,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 8
     },
     {
       "id": "crepe-sucre",
@@ -214,7 +230,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 10
     },
     {
       "id": "crepe-chocolat",
@@ -235,7 +252,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 12
     },
     {
       "id": "gaufre",
@@ -256,7 +274,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 6
     },
     {
       "id": "gateau",
@@ -273,7 +292,8 @@
           "ingredient": "serviettes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 15
     },
     {
       "id": "barre-chocolatee",
@@ -286,7 +306,8 @@
           "ingredient": "barres",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 15
     },
     {
       "id": "chips",
@@ -299,7 +320,8 @@
           "ingredient": "chips",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 10
     },
     {
       "id": "fruit",
@@ -312,7 +334,8 @@
           "ingredient": "fruits",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 5
     },
     {
       "id": "compote",
@@ -325,7 +348,8 @@
           "ingredient": "compotes",
           "quantite": 1
         }
-      ]
+      ],
+      "consommation": 4
     }
   ],
   "ingredients": [

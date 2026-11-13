@@ -88,4 +88,34 @@ class DepotBuvetteTest {
         assertFalse(Files.readString(f).contains("buvette"));
         assertEquals(TypeMouvementStock.STOCK_DEPART, DepotBuvette.charger(f).getMouvements().get(0).type());
     }
+
+    @Test
+    void aller_retour_du_budget_previsionnel() {
+        BuvetteTournoi b = new BuvetteTournoi();
+        b.setBudget(com.pingmanager.model.buvette.BudgetBuvette.VIDE
+                .avecJoueurs(LocalDate.of(2027, 1, 9), 120)
+                .avecHypotheses(new com.pingmanager.model.buvette.HypothesesConsommation(20, 20, 80, 120,
+                        java.util.Map.of("cafe", 50)))
+                .avecQuantitesImposees(java.util.Map.of("the", 12L), "Open 2026")
+                .avecDeduireStock(false));
+        BuvetteTournoi relue = DepotBuvette.lire(DepotBuvette.ecrire(b));
+        assertEquals(b.getBudget(), relue.getBudget());
+        assertFalse(DepotBuvette.ecrire(new BuvetteTournoi()).has("budget"), "budget vide : non écrit");
+    }
+
+    @Test
+    void hypotheses_hors_bornes_reviennent_aux_suggestions() {
+        String texte = "{\"version\":1,\"budget\":{\"joueurs\":{\"2027-01-09\":50,\"pas-une-date\":3},"
+                + "\"hypotheses\":{\"accompagnants\":9999}}}";
+        BuvetteTournoi b = DepotBuvette.lire(JsonParser.analyser(texte));
+        assertEquals(java.util.Map.of(LocalDate.of(2027, 1, 9), 50), b.getBudget().joueursSaisis());
+        org.junit.jupiter.api.Assertions.assertNull(b.getBudget().hypotheses());
+        assertTrue(b.getBudget().deduireStock());
+    }
+
+    @Test
+    void version_plus_recente_refusee() {
+        org.junit.jupiter.api.Assertions.assertThrows(com.pingmanager.persistence.json.JsonException.class,
+                () -> DepotBuvette.lire(JsonParser.analyser("{\"version\":99}")));
+    }
 }
