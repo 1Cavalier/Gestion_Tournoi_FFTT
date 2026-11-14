@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 844 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 862 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -216,6 +216,14 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   date déjà ajoutée marquée « Dans mon agenda ». Simples repères : aucune
   règle du Critérium ni des équipes n'est appliquée.
 
+**Demande d'homologation (B048)** : tant que le tournoi est en
+`DEMANDE_HOMOLOGATION`, le dossier est figé : les fiches s'ouvrent en
+consultation (champs désactivés, ni « Enregistrer », ni ajout, suppression ou
+dépôt de fichier), avec le bandeau « Demande en cours : dossier figé ». Restent
+possibles : enregistrer l'homologation ou le refus, les aperçus et exports PDF.
+Garde-fou aussi dans `ServiceVerrousHomologation` et
+`ContexteApplication.enregistrerSection`, pas seulement des boutons grisés.
+
 **Jour J**
 - **Inscription sur place** (bouton « Inscrire sur place… ») : un joueur du
   tournoi ou un licencié, à un tableau qui n'a pas commencé et qui a une place
@@ -358,15 +366,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   relecture** : des attendus de tests existants ont changé (nombre de
   tournois de démo : 2 devient 5, 3 devient 6), voulu par la tâche. À retirer
   de cette liste à la fusion.
-- **B048 (P1) — Demande d'homologation en lecture seule.** Tant que le tournoi
-  est au statut `DEMANDE_HOMOLOGATION`, **aucune fiche n'est modifiable** :
-  les quatre blocs s'ouvrent en consultation (champs désactivés, pas
-  d'« Enregistrer », pas d'ajout, de suppression ni de dépôt de fichier,
-  tableaux compris), avec un bandeau « Demande en cours : dossier figé ».
-  Seules actions possibles : **enregistrer l'homologation** (numéro) ou
-  **enregistrer le refus** (retour au brouillon, modifiable de nouveau), plus
-  les aperçus et exports PDF. Le garde-fou est aussi dans le contexte ou le
-  service (pas seulement des boutons grisés), avec tests.
 - **B049 (P1) — Tournoi homologué : inscriptions en consultation, plus de plan
   de salle.** (1) Sur l'écran d'un tournoi **homologué**, la partie
   Inscriptions permet seulement de **voir** les inscrits : retirer « ajouter
@@ -489,6 +488,10 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     **tous** les fichiers du dossier `tournois` sont archivés, y compris ceux
     d'un vrai utilisateur (comportement ancien, jamais de suppression) : ne
     plus archiver que les fichiers de démo.
+26. **B048** : `EcranTournoiImporte` écrit hors du garde-fou du dossier figé
+    (non atteignable en demande d'homologation par l'interface). Aucun bouton
+    n'ouvre un règlement PDF déposé. Tout bouton ajouté dans ces écrans doit
+    être marqué `Ui.consultation` pour rester visible pendant la demande.
 
 ### Joueur
 - ~~B045 — Agenda~~ — **fait** (section 3) ; à vérifier à l'écran. Reste :
@@ -598,6 +601,10 @@ parenthèses.
   « non noté ») ; (5) les joueurs en liste d'attente n'apparaissent pas au
   poste tant qu'ils ne sont pas repêchés ; (6) nom du poste = nom de
   l'ordinateur. Articles à citer : à fournir.
+- **Demande d'homologation figée (B048)** — questions : (1) garder
+  « Retirer la demande » (retour au brouillon sans motif) à côté de la
+  validation et du refus ? (2) « Publier le tournoi » est resté visible
+  pendant la demande : voulu ?
 - **Démo par statut (B047)** — questions : (1) la copie « jour J » est
   visible dans « Tournoi en cours » pour les comptes de Brunoy **même sans
   l'option de démo** : la garder ainsi ? ; (2) inscrire le compte joueur de
