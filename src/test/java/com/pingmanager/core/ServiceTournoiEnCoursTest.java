@@ -45,6 +45,58 @@ class ServiceTournoiEnCoursTest {
         assertTrue(a(DIMANCHE, 9).estEnCours(tournoi(StatutTournoi.HOMOLOGUE, SAMEDI, DIMANCHE)));
     }
 
+    // B047 : visible à partir de J-7 avant le premier jour (et plus seulement le jour même).
+
+    @Test
+    void tournoi_publie_ou_homologue_est_en_cours_a_partir_de_j_moins_7() {
+        assertEquals(7, ServiceTournoiEnCours.JOURS_AVANT);
+        LocalDate jMoins7 = SAMEDI.minusDays(7);
+        assertTrue(a(jMoins7, 0).estEnCours(tournoi(StatutTournoi.PUBLIE, SAMEDI, DIMANCHE)), "J-7, dès minuit");
+        assertTrue(a(jMoins7, 9).estEnCours(tournoi(StatutTournoi.HOMOLOGUE, SAMEDI, DIMANCHE)));
+        assertTrue(a(SAMEDI.minusDays(1), 9).estEnCours(tournoi(StatutTournoi.PUBLIE, SAMEDI)), "la veille");
+    }
+
+    @Test
+    void tournoi_publie_n_est_pas_en_cours_a_j_moins_8() {
+        LocalDate jMoins8 = SAMEDI.minusDays(8);
+        assertFalse(a(jMoins8, 23).estEnCours(tournoi(StatutTournoi.PUBLIE, SAMEDI, DIMANCHE)));
+        assertFalse(a(jMoins8, 23).estEnCours(tournoi(StatutTournoi.HOMOLOGUE, SAMEDI)));
+    }
+
+    @Test
+    void j_moins_7_se_compte_depuis_le_premier_jour_du_tournoi() {
+        // Tournoi sur deux week-ends : J-7 du premier samedi, pas du dernier jour.
+        Tournoi t = tournoi(StatutTournoi.PUBLIE, SAMEDI, SAMEDI.plusDays(7));
+        assertFalse(a(SAMEDI.minusDays(8), 9).estEnCours(t));
+        assertTrue(a(SAMEDI.minusDays(7), 9).estEnCours(t));
+        assertTrue(a(SAMEDI.plusDays(3), 9).estEnCours(t), "entre deux jours du tournoi");
+        assertTrue(a(SAMEDI.plusDays(7), 9).estEnCours(t), "dernier jour");
+        assertFalse(a(SAMEDI.plusDays(8), 9).estEnCours(t), "lendemain du dernier jour, aucun tableau commencé");
+    }
+
+    @Test
+    void brouillon_ou_demande_a_j_moins_7_sans_tableau_commence_n_est_pas_en_cours() {
+        assertFalse(a(SAMEDI.minusDays(3), 9).estEnCours(tournoi(StatutTournoi.BROUILLON, SAMEDI)));
+        Tournoi demande = tournoi(StatutTournoi.BROUILLON, SAMEDI);
+        demande.changerStatut(StatutTournoi.DEMANDE_HOMOLOGATION);
+        assertFalse(a(SAMEDI.minusDays(3), 9).estEnCours(demande));
+        assertFalse(a(SAMEDI, 9).estEnCours(demande));
+    }
+
+    @Test
+    void brouillon_dont_un_tableau_est_commence_est_en_cours_a_partir_de_j_moins_7() {
+        Tournoi t = tournoi(StatutTournoi.BROUILLON, SAMEDI);
+        t.getTableaux().get(0).ouvrirPointage();
+        assertFalse(a(SAMEDI.minusDays(8), 9).estEnCours(t));
+        assertTrue(a(SAMEDI.minusDays(7), 9).estEnCours(t));
+        assertTrue(a(SAMEDI, 9).estEnCours(t));
+    }
+
+    @Test
+    void tournoi_annule_n_est_pas_en_cours_a_j_moins_7() {
+        assertFalse(a(SAMEDI.minusDays(2), 9).estEnCours(tournoi(StatutTournoi.ANNULE, SAMEDI)));
+    }
+
     @Test
     void brouillon_du_jour_sans_tableau_commence_n_est_pas_en_cours() {
         assertFalse(a(SAMEDI, 9).estEnCours(tournoi(StatutTournoi.BROUILLON, SAMEDI)));

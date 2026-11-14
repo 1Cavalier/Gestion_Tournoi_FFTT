@@ -23,11 +23,13 @@ import java.util.function.Predicate;
  *
  * <p>Un tournoi est en cours s'il n'est pas annulé et :</p>
  * <ul>
- *   <li>soit il est homologué ou publié et l'un de ses jours
- *       ({@link Tournoi#getJours()}) est aujourd'hui ;</li>
+ *   <li>soit il est homologué ou publié et l'on est entre <b>J-7</b>
+ *       ({@link #JOURS_AVANT} jours avant son premier jour, B047 : l'organisateur
+ *       prépare son jour J la semaine qui précède) et son dernier jour
+ *       ({@link Tournoi#getJours()}) ;</li>
  *   <li>soit au moins un de ses tableaux est commencé (pointage ouvert, tirage
- *       fait, matchs en cours) et pas terminé, et l'on est entre son premier jour
- *       et le lendemain de son dernier jour (tournoi qui déborde après minuit).
+ *       fait, matchs en cours) et pas terminé, et l'on est entre J-7 et le
+ *       lendemain de son dernier jour (tournoi qui déborde après minuit).
  *       Au-delà, un tableau resté « commencé » (tournoi abandonné, fichier
  *       ancien) ne rend plus le tournoi en cours : il reste accessible par
  *       « Gestion des tournois » (choix prudent, README section 6).</li>
@@ -36,6 +38,9 @@ import java.util.function.Predicate;
  * <p>La date du jour vient du port {@link Horloge}, dans le fuseau donné.</p>
  */
 public final class ServiceTournoiEnCours {
+
+    /** B047 : le tournoi devient « en cours » ce nombre de jours avant son premier jour (J-7). */
+    public static final int JOURS_AVANT = 7;
 
     private final Horloge horloge;
     private final ZoneId fuseau;
@@ -59,11 +64,12 @@ public final class ServiceTournoiEnCours {
         LocalDate jour = aujourdhui();
         boolean homologueOuPublie = t.getStatut() == StatutTournoi.HOMOLOGUE
                 || t.getStatut() == StatutTournoi.PUBLIE;
-        if (homologueOuPublie && t.getJours().contains(jour)) {
+        LocalDate debut = t.getJours().first().minusDays(JOURS_AVANT);
+        LocalDate fin = t.getJours().last();
+        if (homologueOuPublie && !jour.isBefore(debut) && !jour.isAfter(fin)) {
             return true;
         }
-        boolean dansLaPeriode = !jour.isBefore(t.getJours().first())
-                && !jour.isAfter(t.getJours().last().plusDays(1));
+        boolean dansLaPeriode = !jour.isBefore(debut) && !jour.isAfter(fin.plusDays(1));
         return dansLaPeriode && aUnTableauCommenceNonTermine(t);
     }
 
