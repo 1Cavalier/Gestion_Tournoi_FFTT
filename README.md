@@ -341,6 +341,75 @@ impression directe, pare-feu pour le suivi sur téléphone.
 
 Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
+### Retours de Quentin du 14 novembre 2026 (P1, dans cet ordre)
+- **B047 (P1) — Démo : un seul tournoi, une copie par statut.** Les données de
+  démo ne gardent que le National B de Brunoy : l'original en **brouillon**
+  (inchangé) et quatre copies du même tournoi, nommées par leur état :
+  **demande d'homologation**, **homologation validée**, **publié** (rempli de
+  joueurs fictifs) et **jour J** (la copie actuelle `TournoiDemoBrunoyJourJ`).
+  Les cinq autres tournois de démo disparaissent de « Gestion des tournois »
+  (s'ils servent à la carte ou à l'agenda des joueurs, les y laisser et le
+  dire). Le groupe de navigation **« Tournoi en cours »** affiche la copie
+  jour J **dès maintenant**, quelle que soit la date (démo), et la règle
+  générale devient : visible à partir de **J-7** avant le premier jour (au
+  lieu du jour même). `VERSION_DEMO` incrémenté à la fin.
+- **B048 (P1) — Demande d'homologation en lecture seule.** Tant que le tournoi
+  est au statut `DEMANDE_HOMOLOGATION`, **aucune fiche n'est modifiable** :
+  les quatre blocs s'ouvrent en consultation (champs désactivés, pas
+  d'« Enregistrer », pas d'ajout, de suppression ni de dépôt de fichier,
+  tableaux compris), avec un bandeau « Demande en cours : dossier figé ».
+  Seules actions possibles : **enregistrer l'homologation** (numéro) ou
+  **enregistrer le refus** (retour au brouillon, modifiable de nouveau), plus
+  les aperçus et exports PDF. Le garde-fou est aussi dans le contexte ou le
+  service (pas seulement des boutons grisés), avec tests.
+- **B049 (P1) — Tournoi homologué : inscriptions en consultation, plus de plan
+  de salle.** (1) Sur l'écran d'un tournoi **homologué**, la partie
+  Inscriptions permet seulement de **voir** les inscrits : retirer « ajouter
+  un joueur », l'import et toute inscription manuelle à ce statut ; le reste
+  de la partie Inscriptions ne change pas. (2) **Supprimer tout ce qui
+  concerne le plan de la salle** (jugé mauvaise idée) : écran
+  `EcranPlanSalle`, `PresentationPlanSalle`, entrées, boutons, étapes et
+  textes qui y mènent (préparation et jour J), services et tests devenus
+  inutiles. Les anciens fichiers JSON qui contiennent un plan restent
+  **lisibles** (le plan est ignoré à la lecture, test de rétrocompatibilité).
+  L'écran Salle du jour J garde ses matchs proposés, ses tables et ses
+  stratégies.
+- **B050 (P1) — Stratégie d'ordonnancement et prévisions refaites.**
+  (1) En haut, une **micro-description** puis **trois cartes côte à côte**,
+  une par stratégie : nom, trois lignes d'information (comment elle lance
+  les matchs, pour quel tournoi, son point faible) et un bouton **« Choisir
+  cette stratégie »** sous chaque carte (la stratégie choisie est marquée et
+  enregistrée dans le tournoi). (2) **Sous les trois cartes, les
+  Prévisions**, avec **beaucoup plus de statistiques** pour comparer de façon
+  crédible (par stratégie : fin moyenne, médiane, au plus tôt et au plus tard,
+  dispersion, risque de dépasser l'heure visée, retards au début des
+  tableaux, attente moyenne et maximale d'un joueur, plus longue pause,
+  occupation des tables et pic, heure des finales, nombre de matchs par
+  heure, tableaux les plus à risque…). (3) Réglages : on **garde Tables** ;
+  on **supprime Tirages et Graine** (100 tirages fixes, graine interne) et on
+  les remplace par une **vraie explication** au-dessus : le tournoi est
+  rejoué 100 fois, comment les durées sont tirées, comment chaque chiffre est
+  calculé. (4) **Heure de fin visée** mieux écrite : jour **et** heure, une
+  fin peut tomber le lendemain (samedi fini à 1 h du matin = dimanche 1 h),
+  par journée. (5) Durée moyenne, minimum, maximum : inchangés. (6) **Temps
+  autour du match** : mêmes valeurs, meilleure présentation (groupes,
+  libellés, total par match), prête à recevoir d'autres variables.
+  (7) Nouveau : **remplissage des tableaux** — un taux global (100 %, 95 %
+  ou autre valeur) et un taux **par tableau** pour affiner ; la simulation
+  complète ou réduit les tableaux selon ces taux. (8) « Remplissage et
+  finances » : inchangé. Cœur (`ScenarioSimulation`, simulateur) testé.
+- **B051 (P1) — Point 5 « J-7 : préparer le jour J ».** Sur l'écran du tournoi
+  homologué ou publié, après Remplissage et finances, une cinquième étape
+  **J-7** qui ouvre une nouvelle interface de préparation de la mise en place
+  du jour J, **très proche de l'écran du jour J** (mêmes onglets et même
+  disposition, en mode préparation : rien n'est lancé, pas de pointage ni de
+  score) : tableaux par jour avec inscrits, attente et horaires, tables,
+  stratégie choisie (B050) et prévision résumée, alertes (tableau sans
+  horaire, sous le seuil, juge-arbitre non désigné, joueur sans club ou sans
+  points), impressions à préparer. Reprend B006 (tableau de bord de la
+  veille), qui est retiré une fois B051 fait. Accessible à partir de J-7
+  (toujours en démo).
+
 ### Jour J
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
