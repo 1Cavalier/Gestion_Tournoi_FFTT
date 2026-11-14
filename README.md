@@ -31,14 +31,22 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
 
 ### Au premier lancement
 - Les **données de démonstration** sont créées : clubs, licenciés fictifs et
-  deux tournois du club de Brunoy :
+  un seul tournoi du club de Brunoy en **cinq exemplaires, un par état**
+  (B047), pour comparer l'interface de chaque statut :
   - le **National B de Brunoy** (10-11 avril 2027, 13 tableaux), le vrai
     tournoi du club, à son état réel : **brouillon**, sans numéro
     d'homologation ni inscrit, avec les vraies personnes (juges-arbitres
     Samuel LOOBUYCK et William PRIOU ; contact du club remplacé par un référent fictif). Son règlement
     généré reprend les 21 articles du règlement du club (version du
     10 novembre 2026) ;
-  - sa **copie au jour J** (« … – jour J (copie de démo) »), publiée avec un
+  - trois copies nommées par leur état, avec des **personnes fictives**
+    (juges-arbitres, correspondant, lien de paiement) : « … — **demande
+    d'homologation** » (dossier complet, pas de numéro, aucun inscrit),
+    « … — **homologation validée** » (faux numéro, pas encore publié) et
+    « … — **publié** » (règlement figé) ; ces deux dernières sont remplies de
+    joueurs fictifs (même remplissage que la copie au jour J, listes
+    d'attente comprises) ;
+  - sa **copie au jour J** (« … — jour J »), publiée avec un
     **faux numéro d'homologation et des personnes fictives** (juges-arbitres,
     correspondant, lien de paiement) : mêmes tableaux,
     756 inscrits sur 768 places, samedi en cours. Dans l'ordre des horaires du
@@ -46,10 +54,13 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
     terminées (tableau final à tirer), poules en cours (trois parties aux
     tables 4, 7 et 9), pointage clôturé (tirage à lancer), pointage ouvert ;
     les autres tableaux et tout le dimanche sont encore en inscription. Le
-    compte de démo y est inscrit aux 2e et 4e tableaux du samedi.
+    compte de démo y est inscrit aux 2e et 4e tableaux du samedi. Elle est
+    toujours dans le groupe de navigation « Tournoi en cours », quelle que
+    soit la date.
 - Quand la version de la démo change, les autres fichiers de tournoi du dossier
-  sont **archivés** dans `tournois/archives` (jamais supprimés), et les deux
-  tournois de démo sont recréés.
+  sont **archivés** dans `tournois/archives` (jamais supprimés), et les cinq
+  tournois de démo sont recréés (les quatre copies sont remplacées, le
+  brouillon précédent part aux archives).
 - Les **comptes de démo** (club de Brunoy, joueur licencié, identités
   fictives en `example.org`) sont affichés dans la **console** au démarrage.
   Le compte de **supervision** n'existe qu'en mode démo explicite
@@ -212,9 +223,10 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
 - **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
   « Gestion », visible seulement pour un organisateur dont un tournoi se joue
-  (homologué ou publié et c'est un de ses jours, ou un tableau commencé et pas
-  terminé, jusqu'au lendemain du dernier jour ; en mode démo, la copie « jour J »
-  de Brunoy). **Gestion** ouvre directement le jour J du tournoi (et sa fiche,
+  ou approche (homologué ou publié, de **J-7** avant le premier jour au dernier
+  jour, ou un tableau commencé et pas terminé, de J-7 au lendemain du dernier
+  jour ; la copie de démo « jour J » de Brunoy y est toujours, quelle que soit
+  la date). **Gestion** ouvre directement le jour J du tournoi (et sa fiche,
   avec tous ses onglets), **Tableau** liste les tableaux par jour avec leur
   statut et ouvre pointage et tirage, poules ou arbre, **Pointage** ouvre le
   poste de pointage. Sélecteur en haut des pages s'il y a plusieurs tournois en
@@ -590,11 +602,16 @@ parenthèses.
   poste tant qu'ils ne sont pas repêchés ; (6) nom du poste = nom de
   l'ordinateur. Articles à citer : à fournir.
 - **Tournoi en cours (B043)** — choix provisoires, réversibles :
-  (1) « en cours » : homologué ou publié et c'est l'un de ses jours, ou un
-  tableau commencé et pas terminé, mais seulement jusqu'au lendemain du
-  dernier jour (un tableau oublié « commencé » ne fait plus apparaître le
-  groupe ; le tournoi reste dans « Gestion des tournois ») ; un brouillon
-  importé dont un tableau a commencé compte aussi ; (2) tableau « terminé » :
+  (1) « en cours » (modifié par B047) : homologué ou publié, à partir de
+  **J-7** avant le premier jour et jusqu'au dernier jour (jours intermédiaires
+  compris pour un tournoi sur plusieurs dates), ou un tableau commencé et pas
+  terminé, de J-7 jusqu'au lendemain du dernier jour (un tableau oublié
+  « commencé » ne fait plus apparaître le groupe ; le tournoi reste dans
+  « Gestion des tournois ») ; un brouillon importé dont un tableau a commencé
+  compte aussi ; un brouillon ou une demande d'homologation sans tableau
+  commencé n'apparaît jamais, même à J-7. La copie de démo « jour J » de Brunoy
+  est affichée quelle que soit la date, y compris au lancement habituel (avant
+  B047, seulement avec `-Dpingmanager.demo=true`) : à confirmer par Quentin ; (2) tableau « terminé » :
   phase finale jouée, ou poules terminées pour un tableau sans phase finale ;
   (3) jour du pointage pendant la nuit : avant 6 h, la veille si elle n'est pas
   terminée ; (4) la dernière page ouverte est mémorisée par compte dans les
