@@ -23,7 +23,7 @@ class OngletTournoisContexteTest {
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO).isPresent());
         List<ContexteApplication.TournoiFichier> tous = ctx.tousLesTournois();
-        assertEquals(2, tous.size(), "le National B de Brunoy et sa copie au jour J");
+        assertEquals(5, tous.size(), "le National B de Brunoy et ses quatre copies (une par statut, B047)");
         // Le vrai National B en brouillon, sa copie de démo publiée.
         assertEquals(StatutTournoi.BROUILLON, ctx.chargerTournoi(ctx.fichierTournoiDemo()).getStatut());
         assertEquals(StatutTournoi.PUBLIE, ctx.chargerTournoi(ctx.fichierTournoiJourJDemo()).getStatut());
@@ -32,8 +32,8 @@ class OngletTournoisContexteTest {
         List<ContexteApplication.TournoiFichier> joueur = ctx.mesTournoisJoueur(tous);
         assertEquals(1, joueur.size());
         assertEquals(TournoiDemoBrunoyJourJ.NOM, joueur.get(0).tournoi().getNom());
-        // Club : le National B de Brunoy et sa copie au jour J.
-        assertEquals(2, ctx.mesTournoisClub(tous).size());
+        // Club : le National B de Brunoy et ses quatre copies.
+        assertEquals(5, ctx.mesTournoisClub(tous).size());
 
         // La copie rechargée depuis le disque : remplie par les joueurs fictifs.
         var copie = ctx.chargerTournoi(ctx.fichierTournoiJourJDemo());

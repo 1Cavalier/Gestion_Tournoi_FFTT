@@ -53,7 +53,8 @@ import java.util.Map;
  */
 public final class TournoiDemoBrunoyJourJ {
 
-    public static final String NOM = "Tournoi National B de Brunoy – jour J (copie de démo)";
+    /** B047 : même nom que l'original, suivi de son état (comme les copies de {@link TournoiDemoBrunoyParStatut}). */
+    public static final String NOM = TournoiDemoBrunoy.NOM + " — jour J";
 
     /** Graines des tirages, pour retrouver les mêmes poules et le même tableau. */
     public static final long GRAINE_POULES = 101027L;

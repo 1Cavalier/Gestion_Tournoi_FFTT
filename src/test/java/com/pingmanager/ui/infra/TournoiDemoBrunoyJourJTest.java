@@ -200,7 +200,7 @@ class TournoiDemoBrunoyJourJTest {
         assertTrue(Files.exists(tournois.resolve("archives").resolve(aLaMain.getFileName())),
                 "tournoi créé à la main archivé, pas supprimé");
         List<Path> fichiers = ctx.fichiersTournois();
-        assertEquals(2, fichiers.size(), fichiers.toString());
+        assertEquals(5, fichiers.size(), fichiers.toString()); // B047 : l'original et ses quatre copies
         Path copie = ctx.fichierTournoiJourJDemo().toAbsolutePath();
         assertTrue(fichiers.contains(copie));
         assertTrue(fichiers.contains(ctx.fichierTournoiDemo().toAbsolutePath()));
