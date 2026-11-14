@@ -484,12 +484,11 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     (non atteignable en demande d'homologation par l'interface). Aucun bouton
     n'ouvre un règlement PDF déposé. Tout bouton ajouté dans ces écrans doit
     être marqué `Ui.consultation` pour rester visible pendant la demande.
-
 - **B049** : `ReservationsTables`, `Ordonnanceur.setReservations` et
   `ServiceSalle.pretsBloquesParReservation` n'ont plus de producteur depuis
   la suppression du plan de salle : code mort à supprimer si Quentin
   confirme (section 6). `FEATURE_INVENTORY.md` cite encore le plan : à
-    régénérer.
+  régénérer.
 
 ### Joueur
 - ~~B045 — Agenda~~ — **fait** (section 3) ; à vérifier à l'écran. Reste :
