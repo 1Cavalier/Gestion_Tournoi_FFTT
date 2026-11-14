@@ -673,6 +673,99 @@ final class Ui {
         }
     }
 
+    // ------------------------------------------------------------------
+    // Fiche en consultation : dossier figé pendant la demande d'homologation (B048)
+    // ------------------------------------------------------------------
+
+    /** Marque un bouton qui reste utilisable en consultation (retour, aperçu, export PDF). */
+    static <B extends javafx.scene.control.ButtonBase> B consultation(B bouton) {
+        if (!bouton.getStyleClass().contains(PresentationDossierFige.CLASSE_ACTION_CONSULTATION)) {
+            bouton.getStyleClass().add(PresentationDossierFige.CLASSE_ACTION_CONSULTATION);
+        }
+        return bouton;
+    }
+
+    /** Bandeau « Demande en cours : dossier figé » en tête d'une fiche en consultation. */
+    static Label bandeauDossierFige() {
+        Label l = bandeauVerrou(PresentationDossierFige.bandeau());
+        l.getStyleClass().add("bandeau-dossier-fige");
+        return l;
+    }
+
+    /**
+     * Met tout un contenu en consultation : champs de texte en lecture seule, choix
+     * désactivés (valeur visible), boutons de modification retirés. Seuls les boutons
+     * marqués par {@link #consultation} restent actifs. À rappeler sur chaque contenu
+     * posé à l'écran (les lignes ajoutées ensuite ne sont pas suivies).
+     */
+    static void figer(Node n) {
+        if (n == null) {
+            return;
+        }
+        PresentationDossierFige.Traitement t = PresentationDossierFige.traitement(nature(n),
+                n.getStyleClass().contains(PresentationDossierFige.CLASSE_ACTION_CONSULTATION));
+        if (t == PresentationDossierFige.Traitement.LECTURE_SEULE) {
+            javafx.scene.control.TextInputControl champ = (javafx.scene.control.TextInputControl) n;
+            champ.setEditable(false);
+            champ.setFocusTraversable(false);
+            ajouterClasse(n, "champ-verrouille");
+            return;
+        }
+        if (t == PresentationDossierFige.Traitement.DESACTIVER) {
+            n.setDisable(true);
+            ajouterClasse(n, n instanceof javafx.scene.control.ComboBoxBase ? "champ-verrouille" : "choix-fige");
+            return;
+        }
+        if (t == PresentationDossierFige.Traitement.MASQUER) {
+            n.setDisable(true);
+            cacher(n);
+            return;
+        }
+        if (n instanceof javafx.scene.control.Control && !(n instanceof ScrollPane)
+                && !(n instanceof javafx.scene.control.TitledPane)
+                && !(n instanceof javafx.scene.control.TabPane)) {
+            return; // libellé, jauge, action de consultation : rien à l'intérieur à figer
+        }
+        if (n instanceof ScrollPane defilant) {
+            figer(defilant.getContent());
+        } else if (n instanceof javafx.scene.control.TitledPane repliable) {
+            figer(repliable.getContent());
+        } else if (n instanceof javafx.scene.control.TabPane onglets) {
+            onglets.getTabs().forEach(o -> figer(o.getContent()));
+        } else if (n instanceof javafx.scene.Parent parent) {
+            List<Node> enfants = List.copyOf(parent.getChildrenUnmodifiable());
+            boolean queDesActionsRetirees = !enfants.isEmpty();
+            for (Node enfant : enfants) {
+                figer(enfant);
+                queDesActionsRetirees &= enfant instanceof javafx.scene.control.ButtonBase && !enfant.isVisible();
+            }
+            if (queDesActionsRetirees) {
+                cacher(parent); // barre d'actions devenue vide : pas de trou dans la page
+            }
+        }
+    }
+
+    private static PresentationDossierFige.Nature nature(Node n) {
+        if (n instanceof javafx.scene.control.TextInputControl) {
+            return PresentationDossierFige.Nature.SAISIE_TEXTE;
+        }
+        if (n instanceof javafx.scene.control.ComboBoxBase || n instanceof javafx.scene.control.ChoiceBox
+                || n instanceof javafx.scene.control.CheckBox || n instanceof javafx.scene.control.ToggleButton
+                || n instanceof javafx.scene.control.Spinner || n instanceof javafx.scene.control.Slider) {
+            return PresentationDossierFige.Nature.CHOIX; // RadioButton est un ToggleButton
+        }
+        if (n instanceof javafx.scene.control.ButtonBase) {
+            return PresentationDossierFige.Nature.ACTION; // Button, Hyperlink, MenuButton
+        }
+        return PresentationDossierFige.Nature.AUTRE;
+    }
+
+    private static void ajouterClasse(Node n, String classe) {
+        if (!n.getStyleClass().contains(classe)) {
+            n.getStyleClass().add(classe);
+        }
+    }
+
     /** Carte d'une partie annoncée mais pas encore disponible (pastille « Bientôt »). */
     static VBox carteBientot(String titre, String description, String tache) {
         return carteBientot(null, titre, description, tache);

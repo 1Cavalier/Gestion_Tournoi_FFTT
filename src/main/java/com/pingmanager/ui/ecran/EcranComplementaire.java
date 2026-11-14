@@ -119,9 +119,13 @@ final class EcranComplementaire {
     }
 
     private void afficher() {
-        Button btnRetour = Ui.boutonLien("← Vue d'ensemble");
+        Button btnRetour = Ui.consultation(Ui.boutonLien("← Vue d'ensemble"));
         btnRetour.setOnAction(e -> retour.run());
         VBox enTete = new VBox(6, btnRetour, Ui.titre("Complémentaire"));
+        boolean fige = PresentationDossierFige.estFige(tournoi);
+        if (fige) {
+            enTete.getChildren().add(Ui.bandeauDossierFige());
+        }
 
         Label message = Ui.message();
         Button valider = Ui.boutonPrimaire("Enregistrer");
@@ -143,6 +147,22 @@ final class EcranComplementaire {
                 message, Ui.actions(valider));
         racine.setCenter(Ui.defilant(page));
         majEtatReglement();
+        if (fige) {
+            Ui.figer(page); // B048 : consultation pendant la demande d'homologation
+        }
+    }
+
+    /**
+     * Avant un aperçu ou un export : reporte la saisie dans le tournoi et l'enregistre.
+     * B048 : en consultation (demande d'homologation en cours), rien n'a pu être saisi,
+     * donc rien n'est reporté ni enregistré ; l'aperçu montre le dossier tel que déposé.
+     */
+    private void appliquerEtEnregistrer() {
+        if (PresentationDossierFige.estFige(tournoi)) {
+            return;
+        }
+        appliquer();
+        enregistrer.run();
     }
 
     // ==================================================================
@@ -207,34 +227,31 @@ final class EcranComplementaire {
         }
         majMenuArticles();
 
-        Button apercu = Ui.boutonPrimaire("Aperçu du règlement");
+        Button apercu = Ui.consultation(Ui.boutonPrimaire("Aperçu du règlement"));
         apercu.setOnAction(e -> {
             Ui.cacher(message);
             try {
-                appliquer();
-                enregistrer.run();
+                appliquerEtEnregistrer();
                 afficherApercu();
             } catch (IllegalArgumentException ex) {
                 Ui.erreur(message, ex.getMessage());
             }
         });
-        Button telecharger = Ui.boutonSecondaire("Télécharger le règlement (PDF)…");
+        Button telecharger = Ui.consultation(Ui.boutonSecondaire("Télécharger le règlement (PDF)…"));
         telecharger.setOnAction(e -> {
             Ui.cacher(message);
             try {
-                appliquer();
-                enregistrer.run();
+                appliquerEtEnregistrer();
                 telecharger().ifPresent(f -> Ui.succes(message, "Règlement enregistré : " + f + "."));
             } catch (IllegalArgumentException | IOException ex) {
                 Ui.erreur(message, ex.getMessage());
             }
         });
-        Button feuilleEngagement = Ui.boutonSecondaire("Feuille d'engagement (PDF)…");
+        Button feuilleEngagement = Ui.consultation(Ui.boutonSecondaire("Feuille d'engagement (PDF)…"));
         feuilleEngagement.setOnAction(e -> {
             Ui.cacher(message);
             try {
-                appliquer();
-                enregistrer.run();
+                appliquerEtEnregistrer();
                 telecharger("Télécharger la feuille d'engagement", "Feuille d'engagement - ", this::ecrireFeuilleEngagement)
                         .ifPresent(f -> Ui.succes(message, "Feuille d'engagement enregistrée : " + f + "."));
             } catch (IllegalArgumentException | IOException ex) {
@@ -461,10 +478,10 @@ final class EcranComplementaire {
 
     private void afficherApercu() {
         DocumentReglement d = reglements.reglement(tournoi);
-        Button btnRetour = Ui.boutonLien("← Complémentaire");
+        Button btnRetour = Ui.consultation(Ui.boutonLien("← Complémentaire"));
         btnRetour.setOnAction(e -> afficher());
         Label message = Ui.message();
-        Button exporter = Ui.boutonPrimaire("Télécharger le règlement (PDF)…");
+        Button exporter = Ui.consultation(Ui.boutonPrimaire("Télécharger le règlement (PDF)…"));
         exporter.setOnAction(e -> {
             try {
                 telecharger().ifPresent(f -> Ui.succes(message, "Règlement enregistré : " + f + "."));

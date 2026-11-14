@@ -121,7 +121,8 @@ final class FormulaireTableau {
                 Ui.erreur(erreur, ex.getMessage());
             }
         });
-        Button annuler = Ui.boutonSecondaire("Annuler");
+        // B048 : en consultation (demande d'homologation en cours), seul ce bouton reste.
+        Button annuler = Ui.consultation(Ui.boutonSecondaire(PresentationDossierFige.libelleQuitter(tournoi)));
         annuler.setCancelButton(true);
         annuler.setOnAction(e -> onAnnuler.run());
 
@@ -138,7 +139,12 @@ final class FormulaireTableau {
                 Ui.titre(existant == null ? "Nouveau tableau" : "Tableau « " + existant.getNom() + " »"),
                 Ui.discret("Une fois validé, le tableau rejoint la grille de la section. "
                         + "Rien n'est enregistré avant la validation."));
-        verrouillerDossier(enTete);
+        if (PresentationDossierFige.estFige(tournoi)) {
+            // B048 : consultation ; l'écran appelant fige les champs et retire « Enregistrer ».
+            enTete.getChildren().set(1, Ui.bandeauDossierFige());
+        } else {
+            verrouillerDossier(enTete);
+        }
 
         // Chaque groupe de champs devient sa propre carte (règles B012 de theme.css).
         Node cartes = Ui.carteNue(corps);

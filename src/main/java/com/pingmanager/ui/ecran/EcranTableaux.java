@@ -70,6 +70,9 @@ final class EcranTableaux {
     }
 
     private void poser(Node contenu) {
+        if (PresentationDossierFige.estFige(tournoi)) {
+            Ui.figer(contenu); // B048 : consultation pendant la demande d'homologation
+        }
         racine.setCenter(Ui.defilant(contenu));
     }
 
@@ -78,10 +81,13 @@ final class EcranTableaux {
     // ==================================================================
 
     private void afficherListe() {
-        Button btnRetour = Ui.boutonLien("← Vue d'ensemble");
+        Button btnRetour = Ui.consultation(Ui.boutonLien("← Vue d'ensemble"));
         btnRetour.setOnAction(e -> retour.run());
 
         VBox enTete = new VBox(6, btnRetour, Ui.titre("Tableaux et inscriptions"));
+        if (PresentationDossierFige.estFige(tournoi)) {
+            enTete.getChildren().add(Ui.bandeauDossierFige());
+        }
         poser(Ui.page(1040, enTete,
                 Ui.legende(EnumSet.of(Niveau.OBLIGATOIRE_HOMOLOGATION, Niveau.OBLIGATOIRE_PUBLICATION,
                         Niveau.RECOMMANDE, Niveau.OPTIONNEL)),
@@ -448,6 +454,12 @@ final class EcranTableaux {
     }
 
     private HBox actions(Tableau t) {
+        if (PresentationDossierFige.estFige(tournoi)) {
+            // B048 : le tableau s'ouvre en consultation, sans modification ni retrait.
+            Button voir = Ui.consultation(Ui.boutonLien("Voir"));
+            voir.setOnAction(e -> ouvrirFormulaire(t));
+            return Ui.ligne(10, voir);
+        }
         Button modifier = Ui.boutonLien("Modifier");
         modifier.setOnAction(e -> ouvrirFormulaire(t));
         Button retirer = Ui.boutonLien("Retirer");
@@ -542,7 +554,7 @@ final class EcranTableaux {
                 Ui.erreur(message, ex.getMessage());
             }
         });
-        Button retourListe = Ui.boutonLien("← Tableaux");
+        Button retourListe = Ui.consultation(Ui.boutonLien("← Tableaux"));
         retourListe.setOnAction(e -> afficherListe());
         GridPane g = grilleDeuxColonnes();
         g.add(Ui.champEtiquete("Jour", jour), 0, 0);

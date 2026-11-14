@@ -78,6 +78,42 @@ public final class ServiceVerrousHomologation {
         return "Le tournoi est homologué : " + objet + ".";
     }
 
+    // -------------------------------------------------------------------------
+    // Dossier figé pendant la demande d'homologation (B048)
+    // -------------------------------------------------------------------------
+
+    /** Motif affiché quand une modification est refusée parce que la demande est en cours. */
+    public static final String MOTIF_DOSSIER_FIGE = "Demande d'homologation en cours : le dossier est figé, "
+            + "rien ne peut être modifié. Enregistrez la réponse (homologation acceptée ou refusée) "
+            + "pour continuer.";
+
+    /**
+     * B048 (choix de l'application, pas une règle FFTT) : tant que la demande
+     * d'homologation est en cours, <b>toutes</b> les fiches du dossier sont en
+     * consultation, pas seulement les champs de la grille d'homologation. Le
+     * dossier redevient modifiable au refus (retour au brouillon) ; après
+     * l'homologation, seuls les champs {@link ChampHomologation} restent verrouillés.
+     *
+     * @return vrai si le tournoi est en demande d'homologation
+     */
+    public boolean dossierFige(Tournoi tournoi) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        return tournoi.getStatut() == StatutTournoi.DEMANDE_HOMOLOGATION;
+    }
+
+    /**
+     * Garde-fou à appeler avant d'enregistrer une fiche (section) du dossier.
+     *
+     * @return {@link ResultatModificationTournoi#estAppliquee()} vrai si le dossier
+     *         est modifiable ; sinon un refus {@code DOSSIER_FIGE} avec
+     *         {@link #MOTIF_DOSSIER_FIGE} (rien n'est modifié)
+     */
+    public ResultatModificationTournoi verifierDossierModifiable(Tournoi tournoi) {
+        return dossierFige(tournoi)
+                ? ResultatModificationTournoi.dossierFige(MOTIF_DOSSIER_FIGE)
+                : ResultatModificationTournoi.appliquee();
+    }
+
     /** @return {@link ResultatModificationTournoi#estAppliquee()} vrai si le champ est modifiable. */
     public ResultatModificationTournoi verifier(Tournoi tournoi, ChampHomologation champ) {
         Objects.requireNonNull(champ, "champ");

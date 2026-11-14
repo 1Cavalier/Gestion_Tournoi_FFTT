@@ -103,9 +103,13 @@ final class EcranSportif {
     }
 
     private void afficher() {
-        Button btnRetour = Ui.boutonLien("← Vue d'ensemble");
+        Button btnRetour = Ui.consultation(Ui.boutonLien("← Vue d'ensemble"));
         btnRetour.setOnAction(e -> retour.run());
         VBox enTete = new VBox(6, btnRetour, Ui.titre("Informations sportives et techniques"));
+        boolean fige = PresentationDossierFige.estFige(tournoi);
+        if (fige) {
+            enTete.getChildren().add(Ui.bandeauDossierFige());
+        }
 
         Label message = Ui.message();
         Button valider = Ui.boutonPrimaire("Enregistrer le matériel et l'aire de jeu");
@@ -118,6 +122,9 @@ final class EcranSportif {
                 message, Ui.actions(valider));
         racine.setCenter(Ui.defilant(page));
         majRappels();
+        if (fige) {
+            Ui.figer(page); // B048 : consultation pendant la demande d'homologation
+        }
     }
 
     // ==================================================================
