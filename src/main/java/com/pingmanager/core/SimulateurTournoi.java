@@ -64,8 +64,87 @@ public final class SimulateurTournoi {
     /** Heure de début des matchs d'un tableau sans horaire. */
     public static final LocalTime DEBUT_PAR_DEFAUT = LocalTime.of(9, 0);
 
+    /**
+     * Nombre de tirages d'une prévision (B050) : le tournoi est rejoué 100 fois
+     * par stratégie. Fixe : ni le club ni l'écran ne le règlent.
+     */
+    public static final int NOMBRE_DE_TIRAGES = 100;
+
     /** Nombre de tirages par défaut d'une simulation statistique. */
-    public static final int TIRAGES_PAR_DEFAUT = 100;
+    public static final int TIRAGES_PAR_DEFAUT = NOMBRE_DE_TIRAGES;
+
+    /**
+     * Graine interne d'une prévision (B050). Fixe : deux prévisions lancées avec
+     * les mêmes réglages sur le même tournoi donnent exactement les mêmes
+     * chiffres. La valeur elle-même n'a pas de sens particulier.
+     */
+    public static final long GRAINE_INTERNE = 20_262_027L;
+
+    /**
+     * Prévision complète d'un tournoi (B050) : chaque journée est simulée seule,
+     * {@value #NOMBRE_DE_TIRAGES} fois par stratégie, avec la graine interne.
+     * L'appelant ne fournit ni tirages ni graine ; le résultat ne dépend que du
+     * tournoi et des réglages.
+     *
+     * <p>Les tableaux sont complétés ou réduits selon les taux de remplissage
+     * des réglages ; chaque journée vise la fin réglée, sinon celle proposée par
+     * {@link #finsViseesProposees}.</p>
+     */
+    public PrevisionTournoi prevoir(Tournoi tournoi, ReglagesPrevision reglages) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        Objects.requireNonNull(reglages, "reglages");
+        Construction c = construire(tournoi, reglages.getNombreDeTables(), GRAINE_INTERNE,
+                reglages.getRemplissage());
+        ScenarioSimulation scenario = c.scenario.avecDurees(reglages.getLoiDuree(), reglages.getTempsAnnexes());
+        java.util.SortedMap<LocalDate, LocalDateTime> proposees = finsProposees(scenario);
+        java.util.SortedMap<LocalDate, PrevisionTournoi.PrevisionJournee> journees = new TreeMap<>();
+        for (Map.Entry<LocalDate, ScenarioSimulation> j : scenario.parJour().entrySet()) {
+            LocalDate jour = j.getKey();
+            LocalDateTime finVisee = reglages.finVisee(jour).orElse(proposees.get(jour));
+            ScenarioSimulation journee = j.getValue().avecFinVisee(finVisee);
+            List<PrevisionTournoi.EffectifTableau> effectifs = c.effectifs.stream()
+                    .filter(e -> e.debut().toLocalDate().equals(jour)).toList();
+            journees.put(jour, new PrevisionTournoi.PrevisionJournee(jour, finVisee,
+                    scenario.getNombreDeTables(), effectifs, comparerToutes(journee, NOMBRE_DE_TIRAGES)));
+        }
+        return new PrevisionTournoi(NOMBRE_DE_TIRAGES, journees);
+    }
+
+    /**
+     * Fin visée proposée pour chaque journée du tournoi (jour de début des
+     * matchs) : la fin théorique la plus tardive de ses tableaux — déjà
+     * enregistrée dans leurs horaires, elle peut tomber le lendemain — sinon
+     * {@link ScenarioSimulation#HEURE_LIMITE_PAR_DEFAUT} le jour même.
+     */
+    public static java.util.SortedMap<LocalDate, LocalDateTime> finsViseesProposees(Tournoi tournoi) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        return finsProposees(construire(tournoi, 1, GRAINE_INTERNE, RemplissageSimulation.INSCRITS_REELS).scenario);
+    }
+
+    private static java.util.SortedMap<LocalDate, LocalDateTime> finsProposees(ScenarioSimulation scenario) {
+        java.util.SortedMap<LocalDate, LocalDateTime> fins = new TreeMap<>();
+        for (ScenarioSimulation.TableauSimule t : scenario.getTableaux()) {
+            LocalDate jour = t.debut().toLocalDate();
+            fins.putIfAbsent(jour, null);
+            if (t.finSouhaitee() != null) {
+                fins.put(jour, plusTard(fins.get(jour), t.finSouhaitee()));
+            }
+        }
+        fins.replaceAll((jour, fin) -> fin != null ? fin : jour.atTime(scenario.getHeureLimite()));
+        return fins;
+    }
+
+    /**
+     * Effectif simulé de chaque tableau qui a un format, dans l'ordre du
+     * tournoi, pour les taux de remplissage donnés (inscrits, capacité, taux
+     * appliqué, joueurs joués) : sert à montrer l'effet des taux avant de simuler.
+     */
+    public static List<PrevisionTournoi.EffectifTableau> effectifs(Tournoi tournoi,
+                                                                   RemplissageSimulation remplissage) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        Objects.requireNonNull(remplissage, "remplissage");
+        return construire(tournoi, 1, GRAINE_INTERNE, remplissage).effectifs;
+    }
 
     /** Simule le scénario avec la stratégie donnée (un seul tirage, celui de la graine). */
     public ResultatSimulation simuler(ScenarioSimulation scenario, StrategieOrdonnancement strategie) {
@@ -146,15 +225,41 @@ public final class SimulateurTournoi {
      * tournoi) et sa fin théorique.
      *
      * @param completer vrai pour compléter chaque tableau limité jusqu'à ses places
-     *                  maximales avec des joueurs fictifs (prévision « tableaux pleins »)
+     *                  maximales avec des joueurs fictifs (prévision « tableaux pleins ») ;
+     *                  équivaut à un taux de remplissage global de 100 %
      */
     public static ScenarioSimulation scenarioDepuis(Tournoi tournoi, int nombreDeTables, long graine,
                                                     boolean completer) {
+        return construire(tournoi, nombreDeTables, graine, completer
+                ? RemplissageSimulation.global(RemplissageSimulation.TAUX_PLEIN)
+                : RemplissageSimulation.INSCRITS_REELS).scenario;
+    }
+
+    /**
+     * Scénario d'un tournoi avec la graine interne et des taux de remplissage
+     * (B050) : chaque tableau limité en places est complété par des joueurs
+     * fictifs ou réduit à ses premiers inscrits jusqu'à
+     * {@code arrondi(capacité × taux)} ; le taux propre à un tableau prime sur
+     * le taux global.
+     */
+    public static ScenarioSimulation scenarioDepuis(Tournoi tournoi, int nombreDeTables,
+                                                    RemplissageSimulation remplissage) {
+        return construire(tournoi, nombreDeTables, GRAINE_INTERNE, remplissage).scenario;
+    }
+
+    /** Scénario et effectifs retenus par tableau. */
+    private record Construction(ScenarioSimulation scenario, List<PrevisionTournoi.EffectifTableau> effectifs) {
+    }
+
+    private static Construction construire(Tournoi tournoi, int nombreDeTables, long graine,
+                                           RemplissageSimulation remplissage) {
         Objects.requireNonNull(tournoi, "tournoi");
+        Objects.requireNonNull(remplissage, "remplissage");
         ScenarioSimulation.Builder b = ScenarioSimulation.builder()
                 .nombreDeTables(Math.max(1, nombreDeTables)).graine(graine);
         LocalDate jour = tournoi.getDate() != null ? tournoi.getDate() : LocalDate.of(2000, 1, 1);
         Random fictifs = new Random(graine);
+        List<PrevisionTournoi.EffectifTableau> effectifs = new ArrayList<>();
         int index = 0;
         for (Tableau t : tournoi.getTableaux()) {
             index++;
@@ -163,18 +268,26 @@ public final class SimulateurTournoi {
                 continue;
             }
             List<Joueur> joueurs = new ArrayList<>(t.getInscrits());
-            if (completer && c.aLimiteDePlaces()) {
-                for (int n = joueurs.size() + 1; n <= c.getPlacesMax(); n++) {
-                    joueurs.add(joueurFictif(c, index, n, fictifs));
-                }
+            int inscrits = joueurs.size();
+            int capacite = c.aLimiteDePlaces() ? c.getPlacesMax() : 0;
+            int cible = remplissage.effectif(t.getNom(), capacite, inscrits);
+            // Compléter : joueurs fictifs au niveau du tableau.
+            for (int n = inscrits + 1; n <= cible; n++) {
+                joueurs.add(joueurFictif(c, index, n, fictifs));
+            }
+            // Réduire : on garde les premiers inscrits.
+            if (cible < joueurs.size()) {
+                joueurs = new ArrayList<>(joueurs.subList(0, cible));
             }
             LocalDateTime debut = t.getHoraires() != null && t.getHoraires().getDebutMatchs() != null
                     ? t.getHoraires().getDebutMatchs() : jour.atTime(DEBUT_PAR_DEFAUT);
             LocalDateTime finSouhaitee = t.getHoraires() != null ? t.getHoraires().getFinTheorique() : null;
             b.tableau(new ScenarioSimulation.TableauSimule(t.getNom(), debut, joueurs, c.getFormat(),
                     c.avecPetiteFinale(), finSouhaitee, Math.max(0, c.getPointsMax())));
+            effectifs.add(new PrevisionTournoi.EffectifTableau(t.getNom(), debut, inscrits, capacite,
+                    capacite > 0 ? remplissage.tauxPour(t.getNom()).orElse(-1) : -1, joueurs.size()));
         }
-        return b.build();
+        return new Construction(b.build(), effectifs);
     }
 
     private static Joueur joueurFictif(ConfigurationTableau c, int tableau, int n, Random r) {
@@ -207,6 +320,11 @@ public final class SimulateurTournoi {
         final Map<Poule, LocalDateTime> debutPoule = new IdentityHashMap<>();
         final Map<Match, Poule> pouleDe = new IdentityHashMap<>();
         LocalDateTime premierLancement;
+        /** Dernier lancement du tableau (à défaut de finale connue). */
+        LocalDateTime dernierLancement;
+        /** La finale du tableau final (pas la petite finale), et l'heure de son lancement. */
+        Match finale;
+        LocalDateTime debutFinale;
 
         EtatTableau(ScenarioSimulation.TableauSimule def, int rang, LocalTime heureLimite) {
             this.def = def;
@@ -243,6 +361,11 @@ public final class SimulateurTournoi {
         private final List<Long> attentesPlusieursTableaux = new ArrayList<>();
         /** Licence → nombre de tableaux simulés où le joueur est inscrit. */
         private final Map<String, Integer> tableauxParJoueur = new HashMap<>();
+        /** Jour → heure pleine → matchs lancés dans l'heure. */
+        private final java.util.SortedMap<LocalDateTime, Integer> matchsParHeure = new TreeMap<>();
+        private long pauseMax = -1;
+        private String joueurPauseMax;
+        private int picTables;
         private long attenteMax = -1;
         private long secondesAnnexes;
         private long matchsLances;
@@ -372,11 +495,27 @@ public final class SimulateurTournoi {
             if (e.premierLancement == null) {
                 e.premierLancement = maintenant;
             }
+            e.dernierLancement = maintenant;
+            if (m == e.finale) {
+                e.debutFinale = maintenant;
+            }
+            matchsParHeure.merge(maintenant.truncatedTo(java.time.temporal.ChronoUnit.HOURS), 1, Integer::sum);
             Poule poule = e.pouleDe.get(m);
             if (poule != null) {
                 e.debutPoule.putIfAbsent(poule, maintenant);
             }
             for (Joueur j : List.of(m.getJoueurA(), m.getJoueurB())) {
+                // Pause : temps réel entre deux parties d'un même joueur, tous tableaux
+                // confondus, dans la même journée (l'attente, elle, ne court qu'à partir
+                // du début du tableau).
+                LocalDateTime precedente = libreDepuis.get(j.getNumeroLicence());
+                if (precedente != null && precedente.toLocalDate().equals(maintenant.toLocalDate())) {
+                    long pause = Math.max(0, Duration.between(precedente, maintenant).toMinutes());
+                    if (pause > pauseMax) {
+                        pauseMax = pause;
+                        joueurPauseMax = j.getNomComplet();
+                    }
+                }
                 LocalDateTime dispo = plusTard(e.def.debut(), libreDepuis.get(j.getNumeroLicence()));
                 long attente = Math.max(0, Duration.between(dispo, maintenant).toMinutes());
                 attentes.add(attente);
@@ -406,6 +545,7 @@ public final class SimulateurTournoi {
             Duration duree = duree(mo, e, u).plusSeconds(annexes.total());
             LocalDateTime fin = maintenant.plus(duree);
             enCours.add(new EnCours(mo, fin, manches, sequence++));
+            picTables = Math.max(picTables, enCours.size());
             LocalDate jour = maintenant.toLocalDate();
             occupation.computeIfAbsent(jour, k -> new long[1])[0] += duree.toSeconds();
             LocalDateTime[] b = bornes.computeIfAbsent(jour, k -> new LocalDateTime[2]);
@@ -446,6 +586,12 @@ public final class SimulateurTournoi {
                     e.def.petiteFinale());
             progression.propager(e.phaseFinale);
             List<Tour> tours = e.phaseFinale.getTours();
+            // La finale : unique match du dernier tour qui n'est pas la petite finale.
+            for (int k = tours.size() - 1; k >= 0 && e.finale == null; k--) {
+                if (!"Petite finale".equals(tours.get(k).getNom()) && tours.get(k).getMatchs().size() == 1) {
+                    e.finale = tours.get(k).getMatchs().get(0);
+                }
+            }
             for (int k = 0; k < tours.size(); k++) {
                 PhaseMatch phase = k == 0 ? PhaseMatch.PREMIER_TOUR_TABLEAU : PhaseMatch.TOUR_SUIVANT_TABLEAU;
                 for (Match m : tours.get(k).getMatchs()) {
@@ -542,7 +688,29 @@ public final class SimulateurTournoi {
                     bilans, ignores, parties, moyenne(attentes), Math.max(0, attenteMax), joueurAttenteMax,
                     taux, complete, attentesUnTableau.isEmpty() ? -1 : moyenne(attentesUnTableau),
                     attentesPlusieursTableaux.isEmpty() ? -1 : moyenne(attentesPlusieursTableaux),
-                    matchsLances == 0 ? 0 : secondesAnnexes / 60.0 / matchsLances);
+                    matchsLances == 0 ? 0 : secondesAnnexes / 60.0 / matchsLances, mesures(debut, fin));
+        }
+
+        /** Mesures complémentaires du tirage (B050). */
+        private MesuresTirage mesures(LocalDateTime debut, LocalDateTime fin) {
+            LocalDateTime premiere = null;
+            LocalDateTime derniere = null;
+            for (EtatTableau e : etats) {
+                if (!e.demarre || e.restants != 0) {
+                    continue; // tableau non terminé : sa finale n'a pas eu lieu
+                }
+                LocalDateTime f = e.debutFinale != null ? e.debutFinale : e.dernierLancement;
+                if (f == null) {
+                    continue;
+                }
+                premiere = premiere == null || f.isBefore(premiere) ? f : premiere;
+                derniere = plusTard(derniere, f);
+            }
+            long[] tries = attentes.stream().mapToLong(Long::longValue).sorted().toArray();
+            Double mediane = StatistiquesSimulation.quantile(tries, 0.5);
+            long duree = debut == null || fin == null ? -1 : Duration.between(debut, fin).toMinutes();
+            return new MesuresTirage(mediane == null ? 0 : mediane, Math.max(0, pauseMax), joueurPauseMax,
+                    picTables, matchsParHeure, premiere, derniere, duree);
         }
 
         /**
