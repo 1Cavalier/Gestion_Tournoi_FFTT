@@ -227,8 +227,6 @@ public final class ServiceSalle {
             // carte n'est montrée et toute affectation est refusée (hors limites).
             this.ordonnanceur = new Ordonnanceur(Math.max(1, nombreDeTables),
                     poids != null ? poids : PoidsOrdonnancement.pour(tournoi.getStrategieOrdonnancement()));
-            // B024 : tables et salles réservées, préférences des tableaux (aucune sans plan).
-            this.ordonnanceur.setReservations(new ServicePlanSalle().reservations(tournoi));
             recenser();
             this.ordonnanceur.setTableauxAttendus(tableauxDuJourPasCommences());
             restaurerOccupation();

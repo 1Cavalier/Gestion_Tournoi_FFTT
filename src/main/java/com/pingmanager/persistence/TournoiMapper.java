@@ -211,8 +211,6 @@ public final class TournoiMapper {
         if (t.strategieOrdonnancementChoisie()) {
             o.set("strategieOrdonnancement", ecrireEnum(t.getStrategieOrdonnancement()));
         }
-        // B024 : salles et plans, écrits seulement si le club a préparé un plan.
-        PlanSalleMapper.ecrire(t, o);
         // B019 : convocations par SMS, écrites seulement si le club s'en sert.
         ConvocationsSmsMapper.ecrire(t, o);
         // B041 : journal des postes de pointage, écrit seulement s'il n'est pas vide.
@@ -657,7 +655,7 @@ public final class TournoiMapper {
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
         t.setImprimerFeuilleALEnvoi(o.getBoolean("feuilleALEnvoi", false));
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));
-        PlanSalleMapper.lire(o, t);
+        // B049 : le plan de salle est supprimé ; la clé « salles » d'un ancien fichier est ignorée.
         ConvocationsSmsMapper.lire(o, t);
         JournalPointageMapper.lire(o, t);
         AnnoncesVocalesMapper.lire(o, t);

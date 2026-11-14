@@ -357,6 +357,17 @@ class ServiceVerrousHomologationTest {
     }
 
     @Test
+    void inscriptions_en_consultation_seulement_au_statut_homologue() {
+        assertFalse(verrous.inscriptionsEnConsultation(brouillonComplet()));
+        Tournoi t = enDemande();
+        assertFalse(verrous.inscriptionsEnConsultation(t));
+        t.changerStatut(StatutTournoi.HOMOLOGUE);
+        assertTrue(verrous.inscriptionsEnConsultation(t));
+        t.changerStatut(StatutTournoi.PUBLIE);
+        assertFalse(verrous.inscriptionsEnConsultation(t));
+    }
+
+    @Test
     void retrait_de_la_demande_deverrouille() {
         Tournoi t = enDemande();
         cycle.retirerDemande(t);
