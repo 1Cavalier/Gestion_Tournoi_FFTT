@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 831 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 844 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -354,6 +354,10 @@ impression directe, pare-feu pour le suivi sur téléphone.
 Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 ### Retours de Quentin du 14 novembre 2026 (P1, dans cet ordre)
+- **B047 (P1) — Démo : une copie par statut** : fait, **en attente de
+  relecture** : des attendus de tests existants ont changé (nombre de
+  tournois de démo : 2 devient 5, 3 devient 6), voulu par la tâche. À retirer
+  de cette liste à la fusion.
 - **B048 (P1) — Demande d'homologation en lecture seule.** Tant que le tournoi
   est au statut `DEMANDE_HOMOLOGATION`, **aucune fiche n'est modifiable** :
   les quatre blocs s'ouvrent en consultation (champs désactivés, pas
