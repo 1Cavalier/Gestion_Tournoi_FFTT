@@ -354,17 +354,6 @@ impression directe, pare-feu pour le suivi sur téléphone.
 Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 ### Retours de Quentin du 14 novembre 2026 (P1, dans cet ordre)
-- **B047 (P1) — Démo : un seul tournoi, une copie par statut.** Les données de
-  démo ne gardent que le National B de Brunoy : l'original en **brouillon**
-  (inchangé) et quatre copies du même tournoi, nommées par leur état :
-  **demande d'homologation**, **homologation validée**, **publié** (rempli de
-  joueurs fictifs) et **jour J** (la copie actuelle `TournoiDemoBrunoyJourJ`).
-  Les cinq autres tournois de démo disparaissent de « Gestion des tournois »
-  (s'ils servent à la carte ou à l'agenda des joueurs, les y laisser et le
-  dire). Le groupe de navigation **« Tournoi en cours »** affiche la copie
-  jour J **dès maintenant**, quelle que soit la date (démo), et la règle
-  générale devient : visible à partir de **J-7** avant le premier jour (au
-  lieu du jour même). `VERSION_DEMO` incrémenté à la fin.
 - **B048 (P1) — Demande d'homologation en lecture seule.** Tant que le tournoi
   est au statut `DEMANDE_HOMOLOGATION`, **aucune fiche n'est modifiable** :
   les quatre blocs s'ouvrent en consultation (champs désactivés, pas
@@ -492,6 +481,10 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 23. Chaque écran relit le fichier du tournoi : envisager un objet partagé par
     tournoi ouvert (plus rapide, refonte plus large).
 24. Géocodage en arrière-plan (il fige l'écran jusqu'à 5 s sans réseau).
+25. **Avant la vente** (relecture de B047) : au changement de `VERSION_DEMO`,
+    **tous** les fichiers du dossier `tournois` sont archivés, y compris ceux
+    d'un vrai utilisateur (comportement ancien, jamais de suppression) : ne
+    plus archiver que les fichiers de démo.
 
 ### Joueur
 - ~~B045 — Agenda~~ — **fait** (section 3) ; à vérifier à l'écran. Reste :
@@ -601,6 +594,12 @@ parenthèses.
   « non noté ») ; (5) les joueurs en liste d'attente n'apparaissent pas au
   poste tant qu'ils ne sont pas repêchés ; (6) nom du poste = nom de
   l'ordinateur. Articles à citer : à fournir.
+- **Démo par statut (B047)** — questions : (1) la copie « jour J » est
+  visible dans « Tournoi en cours » pour les comptes de Brunoy **même sans
+  l'option de démo** : la garder ainsi ? ; (2) inscrire le compte joueur de
+  démo à la copie **publiée** (comme à la copie jour J) ? Provisoire : non ;
+  (3) personnes fictives des copies (juges-arbitres, correspondant, lien de
+  paiement) : les noms conviennent-ils ?
 - **Tournoi en cours (B043)** — choix provisoires, réversibles :
   (1) « en cours » (modifié par B047) : homologué ou publié, à partir de
   **J-7** avant le premier jour et jusqu'au dernier jour (jours intermédiaires
