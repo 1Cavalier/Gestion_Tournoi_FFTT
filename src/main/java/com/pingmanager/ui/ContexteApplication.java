@@ -285,8 +285,11 @@ public final class ContexteApplication {
      * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
      * v20 (13/11/2026) : identités fictives (profil de démo, référent de Brunoy) à la place
      * des données personnelles réelles.
+     * v21 (15/11/2026, B047) : le National B en cinq exemplaires, un par état : brouillon
+     * (inchangé), demande d'homologation, homologation validée, publié
+     * ({@link TournoiDemoBrunoyParStatut}) et jour J (renommé « … — jour J »).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v20";
+    private static final String VERSION_DEMO = ".demo-brunoy-v21";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
