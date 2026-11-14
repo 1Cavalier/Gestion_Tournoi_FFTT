@@ -186,7 +186,7 @@ final class PresentationSalle {
             return "Aucun match prêt : les joueurs attendus sont déjà en jeu, ou il ne reste rien à jouer.";
         }
         if (motif == ResultatPropositionSalle.Motif.TABLES_LIBRES_RESERVEES) {
-            return "Des matchs sont prêts, mais les tables libres sont réservées à d'autres tableaux .";
+            return "Des matchs sont prêts, mais les tables libres sont réservées à d'autres tableaux.";
         }
         if (motif == ResultatPropositionSalle.Motif.SALLE_SANS_TABLE) {
             return "Le nombre de tables du tournoi n'est pas renseigné (Informations sportives et techniques).";
