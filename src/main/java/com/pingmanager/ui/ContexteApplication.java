@@ -960,6 +960,36 @@ public final class ContexteApplication {
     }
 
     /**
+     * B048 : enregistre une <b>fiche</b> du dossier (Général, tableaux, sportif,
+     * complémentaire). Refusé tant que la demande d'homologation est en cours, que
+     * ce soit d'après le tournoi présenté ou d'après le fichier sur disque (écran
+     * resté ouvert pendant qu'une autre fenêtre faisait la demande) : rien n'est
+     * alors écrit. Les changements d'étape (demande, homologation acceptée ou
+     * refusée, publication) passent par {@link #enregistrerTournoi(Tournoi, Path)}.
+     *
+     * @return le résultat ; en cas de refus, le motif à afficher
+     * @throws com.pingmanager.core.DroitRefuseException si le droit manque (rien n'est écrit)
+     */
+    public com.pingmanager.core.ResultatModificationTournoi enregistrerSection(Tournoi tournoi, Path fichier) {
+        com.pingmanager.core.ServiceVerrousHomologation verrous =
+                new com.pingmanager.core.ServiceVerrousHomologation();
+        return com.pingmanager.persistence.VerrouFichier.executer(fichier, () -> {
+            com.pingmanager.core.ResultatModificationTournoi r = verrous.verifierDossierModifiable(tournoi);
+            if (r.estAppliquee() && Files.isRegularFile(fichier)) {
+                try {
+                    r = verrous.verifierDossierModifiable(DepotTournoi.charger(fichier).getTournoi());
+                } catch (RuntimeException illisible) {
+                    // Fichier abîmé : seul le tournoi présenté fait foi (comme pour les droits).
+                }
+            }
+            if (r.estAppliquee()) {
+                enregistrerTournoi(tournoi, fichier);
+            }
+            return r;
+        });
+    }
+
+    /**
      * Point 21 : exécute une relecture-modification-écriture sous le verrou du fichier,
      * pour qu'un autre poste ou une autre fenêtre n'écrase pas la modification. La
      * lecture seule n'est jamais bloquée.

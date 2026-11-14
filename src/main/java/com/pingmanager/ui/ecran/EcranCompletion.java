@@ -129,8 +129,10 @@ final class EcranCompletion {
             contenu.getChildren().addAll(sectionDossier(sections), sectionEtapes());
         }
         // Tant qu'aucun joueur n'est inscrit, le club peut basculer vers l'import (tournoi préparé ailleurs).
+        // B048 : pas pendant la demande d'homologation (ce serait modifier un dossier figé).
         if (com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(tournoi) == 0
-                && tournoi.getStatut() != StatutTournoi.PUBLIE) {
+                && tournoi.getStatut() != StatutTournoi.PUBLIE
+                && PresentationDossierFige.basculeImportProposee(tournoi)) {
             Button versImport = Ui.boutonLien("Tournoi déjà préparé ailleurs ? Déposer le règlement et importer "
                     + "les tableaux et les joueurs");
             versImport.setOnAction(e -> {
@@ -481,7 +483,7 @@ final class EcranCompletion {
         }
         int autres = s.items().size() - montres.size();
 
-        Button ouvrir = Ui.boutonSecondaire(index == 1 ? "Gérer les tableaux" : "Ouvrir");
+        Button ouvrir = Ui.boutonSecondaire(PresentationDossierFige.libelleOuvrirSection(tournoi, index));
         ouvrir.setOnAction(e -> afficherFormulaire(index, s.titre()));
         Label reste = Ui.discret(autres > 0 ? "+ " + autres + (autres > 1 ? " autres éléments" : " autre élément") : "");
         reste.setWrapText(true);
@@ -764,21 +766,21 @@ final class EcranCompletion {
             // Tableaux et inscriptions : écran dédié (échéances + grille + formulaire
             // d'un tableau). Il gère son propre défilement.
             racine.setCenter(new EcranTableaux(tournoi,
-                    () -> contexte.enregistrerTournoi(tournoi, fichier),
+                    this::enregistrerFiche,
                     this::afficherApercu).build());
             return;
         }
         if (index == 2) {
             // Informations sportives et techniques : écran dédié (JA, arbitres, matériel, rappels).
             racine.setCenter(new EcranSportif(tournoi, contexte::rechercherLicences,
-                    () -> contexte.enregistrerTournoi(tournoi, fichier),
+                    this::enregistrerFiche,
                     this::afficherApercu).build());
             return;
         }
         if (index == 3) {
             // Complémentaire : règlement (déposé ou généré), image, conditions, site web.
             racine.setCenter(new EcranComplementaire(tournoi, contexte.documents(), fichier.toAbsolutePath().getParent(),
-                    () -> contexte.enregistrerTournoi(tournoi, fichier),
+                    this::enregistrerFiche,
                     this::afficherApercu).build());
             return;
         }
@@ -786,13 +788,39 @@ final class EcranCompletion {
                 contexte.clubsGeres(), contexte::correspondantParDefaut);
         Node form = FormulairesSection.construire(
                 index, titreSection, tournoi, ref,
-                () -> contexte.enregistrerTournoi(tournoi, fichier),
+                this::enregistrerFiche,
                 () -> {                        // à l'enregistrement
-                    contexte.enregistrerTournoi(tournoi, fichier);
-                    afficherApercu();
+                    if (enregistrerFiche()) {
+                        afficherApercu();
+                    }
                 },
                 this::afficherApercu);         // à l'annulation
         poser(form);
+    }
+
+    /**
+     * B048 : enregistre une fiche du dossier par le garde-fou du contexte. Pendant la
+     * demande d'homologation les fiches sont en consultation et n'appellent jamais
+     * ceci ; si cela arrivait quand même (écran resté ouvert pendant qu'une autre
+     * fenêtre faisait la demande), rien n'est écrit : la vue d'ensemble est relue
+     * depuis le fichier et le motif du refus est affiché.
+     *
+     * @return vrai si la fiche est enregistrée
+     */
+    private boolean enregistrerFiche() {
+        String refus = PresentationDossierFige.messageRefus(contexte.enregistrerSection(tournoi, fichier));
+        if (refus == null) {
+            return true;
+        }
+        afficherApercu();
+        Label motif = new Label(refus);
+        motif.setWrapText(true);
+        motif.getStyleClass().addAll("rappel-attention", "rappel-doux");
+        if (racine.getCenter() instanceof javafx.scene.control.ScrollPane defilant
+                && defilant.getContent() instanceof VBox page) {
+            page.getChildren().add(Math.min(1, page.getChildren().size()), motif);
+        }
+        return false;
     }
 
     private static String libelleStatut(StatutTournoi statut) {
