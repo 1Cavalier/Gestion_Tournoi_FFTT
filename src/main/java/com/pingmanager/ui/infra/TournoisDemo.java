@@ -16,8 +16,9 @@ import java.util.Random;
 
 /**
  * Outils des tournois de démo : remplissage par des joueurs fictifs et publication.
- * Utilisés par la copie de démonstration du National B ({@link TournoiDemoBrunoyJourJ}) ;
- * le vrai National B ({@link TournoiDemoBrunoy}) reste en brouillon, sans inscrit.
+ * Utilisés par les copies de démonstration du National B ({@link TournoiDemoBrunoyParStatut},
+ * {@link TournoiDemoBrunoyJourJ}) ; le vrai National B ({@link TournoiDemoBrunoy}) reste en
+ * brouillon, sans inscrit.
  *
  * <p>Toutes les inscriptions passent par {@link ServiceInscription} : quotas, tableau
  * dames imposé, tableaux consécutifs, points, catégories, capacité et liste d'attente

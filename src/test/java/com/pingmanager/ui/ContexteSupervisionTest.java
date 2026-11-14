@@ -36,7 +36,7 @@ class ContexteSupervisionTest {
         assertTrue(ctx.connecter(DonneesDemo.EMAIL_ULTRA_ADMIN, ctx.motDePasseSupervisionDemo().orElseThrow()).isPresent());
         assertTrue(ctx.estUltraAdmin());
         assertFalse(ctx.estOrganisateur(), "l'ultra admin n'est rattaché à aucun club");
-        assertEquals(3, ctx.fichiersTournois().size(), "Brunoy + sa copie au jour J + Paris 15");
+        assertEquals(6, ctx.fichiersTournois().size(), "Brunoy + ses quatre copies (B047) + Paris 15");
 
         ctx.deconnecter();
         ctx.connecter(DonneesDemo.EMAIL_PROFIL_DEMO, DonneesDemo.MDP_PROFIL_DEMO);
@@ -56,9 +56,11 @@ class ContexteSupervisionTest {
                 tournois.resolve("Tournoi_National_B_Brunoy_2027-demo" + DepotTournoi.EXTENSION));
 
         ContexteApplication ctx = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        // Hors copie au jour J du National B.
-        Path copieJourJ = ctx.fichierTournoiJourJDemo().toAbsolutePath();
-        List<Path> restants = ctx.fichiersTournois().stream().filter(p -> !p.equals(copieJourJ)).toList();
+        // Hors copies de démo du National B (une par statut, B047).
+        List<Path> copies = List.of(ctx.fichierTournoiJourJDemo().toAbsolutePath(),
+                ctx.fichierTournoiDemandeDemo().toAbsolutePath(), ctx.fichierTournoiHomologueDemo().toAbsolutePath(),
+                ctx.fichierTournoiPublieDemo().toAbsolutePath());
+        List<Path> restants = ctx.fichiersTournois().stream().filter(p -> !copies.contains(p)).toList();
         assertEquals(1, restants.size(), restants.toString());
         assertEquals(13, ctx.chargerTournoi(restants.get(0)).getTableaux().size(), "version de la réunion");
         assertTrue(Files.exists(tournois.resolve("archives").resolve("open" + DepotTournoi.EXTENSION)));
@@ -67,6 +69,6 @@ class ContexteSupervisionTest {
         Tournoi nouveau = TournoisDeTest.deBrunoy(new Tournoi("Nouveau", "Brunoy", LocalDate.of(2027, 6, 5)));
         TournoisDeTest.connecteBrunoy(ctx).creerBrouillon(nouveau);
         ContexteApplication ctx2 = new ContexteApplication(dossier, DonneesDemo.clubs(), DonneesDemo.licences());
-        assertEquals(3, ctx2.fichiersTournois().size(), "Brunoy, sa copie au jour J et le nouveau");
+        assertEquals(6, ctx2.fichiersTournois().size(), "Brunoy, ses quatre copies et le nouveau");
     }
 }

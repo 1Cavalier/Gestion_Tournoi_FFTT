@@ -35,6 +35,7 @@ import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.persistence.ServiceFichierTournoi;
 import com.pingmanager.ui.infra.DonneesDemo;
 import com.pingmanager.ui.infra.TournoiDemoBrunoyJourJ;
+import com.pingmanager.ui.infra.TournoiDemoBrunoyParStatut;
 import com.pingmanager.ui.infra.TournoiDemoBrunoy;
 import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import com.pingmanager.ui.infra.EmailConsole;
@@ -250,6 +251,7 @@ public final class ContexteApplication {
         nettoyerTournoisBrunoy();
         rafraichirTournoiDemo();
         amorcerTournoiDemo();
+        amorcerCopiesParStatutDemo();
         amorcerTournoiJourJDemo();
     }
 
@@ -283,8 +285,11 @@ public final class ContexteApplication {
      * 1 h 30 entre deux tableaux et 2 h entre deux blocs, un tableau de plus après élimination).
      * v20 (13/11/2026) : identités fictives (profil de démo, référent de Brunoy) à la place
      * des données personnelles réelles.
+     * v21 (15/11/2026, B047) : le National B en cinq exemplaires, un par état : brouillon
+     * (inchangé), demande d'homologation, homologation validée, publié
+     * ({@link TournoiDemoBrunoyParStatut}) et jour J (renommé « … — jour J »).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v20";
+    private static final String VERSION_DEMO = ".demo-brunoy-v21";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
@@ -309,6 +314,11 @@ public final class ContexteApplication {
                 Files.deleteIfExists(dossier.resolve(nom + "-demo" + DepotTournoi.EXTENSION));
             }
             Files.deleteIfExists(fichierTournoiJourJDemo()); // recréé par amorcerTournoiJourJDemo
+            for (Path copie : List.of(fichierTournoiDemandeDemo(), fichierTournoiHomologueDemo(),
+                    fichierTournoiPublieDemo())) {
+                depot.oublierRecent(copie);
+                Files.deleteIfExists(copie); // recréées par amorcerCopiesParStatutDemo
+            }
             Path archives = dossier.resolve("archives");
             for (Path f : fichiersTournois()) {
                 depot.oublierRecent(f);
@@ -474,9 +484,42 @@ public final class ContexteApplication {
         }
     }
 
+    /** B047 : fichier de la copie « demande d'homologation » du National B de Brunoy. */
+    public Path fichierTournoiDemandeDemo() {
+        return fichierCopieDemo("demande");
+    }
+
+    /** B047 : fichier de la copie « homologation validée » du National B de Brunoy. */
+    public Path fichierTournoiHomologueDemo() {
+        return fichierCopieDemo("homologue");
+    }
+
+    /** B047 : fichier de la copie « publié » du National B de Brunoy. */
+    public Path fichierTournoiPublieDemo() {
+        return fichierCopieDemo("publie");
+    }
+
     /** Fichier de la copie au jour J du National B de Brunoy. */
     public Path fichierTournoiJourJDemo() {
-        return dossierDonnees.resolve("tournois").resolve("Tournoi_National_B_Brunoy_2027-jour-J-demo" + DepotTournoi.EXTENSION);
+        return fichierCopieDemo("jour-J");
+    }
+
+    private Path fichierCopieDemo(String etat) {
+        return dossierDonnees.resolve("tournois")
+                .resolve("Tournoi_National_B_Brunoy_2027-" + etat + "-demo" + DepotTournoi.EXTENSION);
+    }
+
+    /**
+     * B047 : crée une seule fois les copies du National B en demande d'homologation,
+     * homologuée et publiée ({@link TournoiDemoBrunoyParStatut}), pour comparer l'interface
+     * de chaque statut. Même règle que les autres démos : une copie existante n'est pas touchée.
+     */
+    private void amorcerCopiesParStatutDemo() {
+        amorcerCopieDemo(fichierTournoiDemandeDemo(), TournoiDemoBrunoyParStatut::demandeHomologation);
+        amorcerCopieDemo(fichierTournoiHomologueDemo(),
+                () -> TournoiDemoBrunoyParStatut.homologue(DonneesDemo.JOUEURS_FICTIFS));
+        amorcerCopieDemo(fichierTournoiPublieDemo(),
+                () -> TournoiDemoBrunoyParStatut.publie(DonneesDemo.JOUEURS_FICTIFS));
     }
 
     /**
@@ -485,7 +528,13 @@ public final class ContexteApplication {
      * Brunoy. S'il existe déjà (éventuellement pointé ou joué depuis), il n'est pas touché.
      */
     private void amorcerTournoiJourJDemo() {
-        Path cible = fichierTournoiJourJDemo();
+        amorcerCopieDemo(fichierTournoiJourJDemo(),
+                () -> TournoiDemoBrunoyJourJ.construire(DonneesDemo.JOUEURS_FICTIFS,
+                        licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElse(null)));
+    }
+
+    /** Crée la copie si son fichier manque et l'ajoute aux récents si elle n'y est pas. */
+    private void amorcerCopieDemo(Path cible, java.util.function.Supplier<Tournoi> construction) {
         boolean dejaListe = service.recents().stream()
                 .anyMatch(p -> p.getFichier().equals(cible.toAbsolutePath()));
         if (Files.exists(cible) && dejaListe) {
@@ -493,13 +542,12 @@ public final class ContexteApplication {
         }
         try {
             Files.createDirectories(cible.getParent());
-            Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi()
-                    : TournoiDemoBrunoyJourJ.construire(DonneesDemo.JOUEURS_FICTIFS,
-                            licencesFFTT.trouverParLicence(DonneesDemo.LICENCE_PROFIL_DEMO).orElse(null));
+            Tournoi t = Files.exists(cible) ? DepotTournoi.charger(cible).getTournoi() : construction.get();
             service.nouveau(t, new RegistreDisciplinaire());
             service.enregistrerSous(t, new RegistreDisciplinaire(), cible);
         } catch (IOException | RuntimeException e) {
-            System.err.println("Copie au jour J du National B non créée : " + e.getMessage());
+            System.err.println("Copie de démo du National B non créée (" + cible.getFileName() + ") : "
+                    + e.getMessage());
         }
     }
 
@@ -1169,8 +1217,11 @@ public final class ContexteApplication {
 
     /**
      * B043 : tournois des clubs du compte <b>en cours</b>
-     * ({@link com.pingmanager.core.ServiceTournoiEnCours}), le plus proche d'aujourd'hui
-     * d'abord. En mode démo, la copie « jour J » de Brunoy est considérée en cours.
+     * ({@link com.pingmanager.core.ServiceTournoiEnCours} : à partir de J-7), le plus proche
+     * d'aujourd'hui d'abord. La copie de démo « jour J » de Brunoy est toujours considérée en
+     * cours, quelle que soit la date (B047) : c'est un fichier créé par l'application, visible
+     * des seuls comptes de Brunoy, avec ou sans {@code -Dpingmanager.demo=true} (avant B047,
+     * seulement avec cette option, donc jamais au lancement habituel).
      * Vide si le compte n'est pas organisateur.
      */
     public List<TournoiFichier> tournoisEnCours() {
@@ -1180,7 +1231,7 @@ public final class ContexteApplication {
         Path demo = fichierTournoiJourJDemo().toAbsolutePath().normalize();
         return new com.pingmanager.core.ServiceTournoiEnCours(Horloge.systeme(), java.time.ZoneId.systemDefault())
                 .enCours(mesTournoisClub(tousLesTournois()), TournoiFichier::tournoi,
-                        tf -> modeDemo && tf.fichier().toAbsolutePath().normalize().equals(demo));
+                        tf -> tf.fichier().toAbsolutePath().normalize().equals(demo));
     }
 
     /** Tournois organisés par les clubs du compte (tous statuts). */
