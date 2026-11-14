@@ -161,6 +161,36 @@ public final class ScenarioSimulation {
         return b.build();
     }
 
+    /**
+     * Copie où chaque tableau doit être fini au même <b>instant</b> (jour et
+     * heure) : la fin visée d'une journée peut tomber le lendemain (B050 : un
+     * samedi visé « dimanche 1 h »). Le risque de dépassement et les minutes de
+     * dépassement se calculent sur cet instant. À appliquer à une seule journée
+     * (voir {@link #parJour()}).
+     */
+    public ScenarioSimulation avecFinVisee(LocalDateTime instant) {
+        Objects.requireNonNull(instant, "instant");
+        Builder b = copieSansTableaux();
+        for (TableauSimule t : tableaux) {
+            b.tableau(new TableauSimule(t.nom(), t.debut(), t.joueurs(), t.format(), t.petiteFinale(),
+                    instant, t.niveauPoints()));
+        }
+        return b.build();
+    }
+
+    /** Copie avec une autre loi de durée et d'autres temps autour du match ({@code null} : inchangé). */
+    public ScenarioSimulation avecDurees(LoiDureeMatch loi, TempsAnnexesMatch annexes) {
+        Builder b = copie();
+        if (loi != null) {
+            // La durée de départ suit la moyenne de la nouvelle loi.
+            b.loiDuree(loi).estimateur(null);
+        }
+        if (annexes != null) {
+            b.tempsAnnexes(annexes);
+        }
+        return b.build();
+    }
+
     /** Copie avec une autre graine (un autre tirage : poules, tableau, résultats, durées). */
     public ScenarioSimulation avecGraine(long autreGraine) {
         Builder b = copie();

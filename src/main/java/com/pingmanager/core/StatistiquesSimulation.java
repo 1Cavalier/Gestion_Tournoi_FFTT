@@ -45,6 +45,8 @@ import java.util.Objects;
  * @param tempsAnnexesMoyen       temps moyen autour du jeu par match, en minutes
  * @param tiragesIncomplets       tirages arrêtés avant la fin (blocage)
  * @param tableaux                statistiques par tableau, dans l'ordre du scénario
+ * @param detail                  statistiques détaillées (B050) ; jamais {@code null}
+ *                                ({@link StatistiquesDetaillees#VIDE} si inconnues)
  */
 public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tirages, int nombreDeTables,
                                      LocalDateTime finMoyenne, LocalDateTime finTot, LocalDateTime finMediane,
@@ -55,7 +57,7 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
                                      double plusLongueAttente, double occupationMoyenne,
                                      double probabiliteDebordement, double tempsAnnexesMoyen,
                                      int tiragesIncomplets,
-                                     List<StatTableau> tableaux) {
+                                     List<StatTableau> tableaux, StatistiquesDetaillees detail) {
 
     /** Retard de début toléré pour être « à l'heure », en minutes. */
     public static final int RETARD_A_L_HEURE = 5;
@@ -65,6 +67,24 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
     public StatistiquesSimulation {
         Objects.requireNonNull(strategie, "strategie");
         tableaux = List.copyOf(tableaux);
+        detail = detail == null ? StatistiquesDetaillees.VIDE : detail;
+    }
+
+    /** Sans les statistiques détaillées (inconnues : {@link StatistiquesDetaillees#VIDE}). */
+    public StatistiquesSimulation(StrategieOrdonnancement strategie, int tirages, int nombreDeTables,
+                                  LocalDateTime finMoyenne, LocalDateTime finTot, LocalDateTime finMediane,
+                                  LocalDateTime finTard, LocalDateTime finMax, LocalDateTime premiereFinale,
+                                  LocalDateTime finMoyenneTableau, double debutALHeure,
+                                  double debutLegerRetard, double debutGrosRetard, double attenteMoyenne,
+                                  double attenteUnTableau, double attentePlusieursTableaux,
+                                  double plusLongueAttente, double occupationMoyenne,
+                                  double probabiliteDebordement, double tempsAnnexesMoyen,
+                                  int tiragesIncomplets, List<StatTableau> tableaux) {
+        this(strategie, tirages, nombreDeTables, finMoyenne, finTot, finMediane, finTard, finMax, premiereFinale,
+                finMoyenneTableau, debutALHeure, debutLegerRetard, debutGrosRetard, attenteMoyenne,
+                attenteUnTableau, attentePlusieursTableaux, plusLongueAttente, occupationMoyenne,
+                probabiliteDebordement, tempsAnnexesMoyen, tiragesIncomplets, tableaux,
+                StatistiquesDetaillees.VIDE);
     }
 
     /**
@@ -162,7 +182,8 @@ public record StatistiquesSimulation(StrategieOrdonnancement strategie, int tira
                 heure(moyenne(premieres.stream().mapToLong(Long::longValue).toArray())),
                 heure(moyenne(finsTableaux.stream().mapToLong(Long::longValue).toArray())), (double) aLHeure / d, (double) leger / d,
                 (double) gros / d, attente / n, unTableau.valeur(), plusieurs.valeur(), plusLongue / n,
-                occupation / n, (double) debordements / n, annexes / n, incomplets, tableaux);
+                occupation / n, (double) debordements / n, annexes / n, incomplets, tableaux,
+                StatistiquesDetaillees.depuis(resultats));
     }
 
     /** Moyenne des valeurs connues (les -1 « aucun joueur » sont ignorés) ; -1 si aucune. */
