@@ -4379,3 +4379,15 @@
     -fx-font-weight: bold;
     -fx-text-fill: -erreur;
 }
+
+/* === B048 : fiches en consultation pendant la demande d'homologation === */
+
+/* Bandeau « Demande en cours : dossier figé » : reprend .bandeau-verrou. */
+.bandeau-dossier-fige {
+    -fx-padding: 12 14 12 16;
+}
+
+/* Cases, boutons radio, segments et compteurs figés : désactivés mais lisibles. */
+.choix-fige:disabled {
+    -fx-opacity: 0.8;
+}

@@ -78,7 +78,7 @@ final class FormulairesSection {
                                 Runnable persister, Runnable onSave, Runnable onCancel) {
         SectionGenerale s = new SectionGenerale(t, ref);
         return cadre(titre, EnumSet.of(H, P, R, O), s.motifVerrou, s.corps(), onCancel,
-                erreur -> s.enregistrer(erreur, persister, onSave));
+                erreur -> s.enregistrer(erreur, persister, onSave), PresentationDossierFige.estFige(t));
     }
 
     private static final Niveau H = Niveau.OBLIGATOIRE_HOMOLOGATION;
@@ -484,8 +484,20 @@ final class FormulairesSection {
     }
 
     private static Node cadre(String titre, Set<Niveau> dependances, String motifVerrou, Node corps,
-                              Runnable onCancel, Applicateur appliquer) {
+                              Runnable onCancel, Applicateur appliquer, boolean fige) {
         Label erreur = Ui.message();
+        if (fige) {
+            // B048 : demande d'homologation en cours, la fiche s'ouvre en consultation.
+            Button retour = Ui.consultation(Ui.boutonSecondaire("Retour"));
+            retour.setCancelButton(true);
+            retour.setOnAction(e -> onCancel.run());
+            Node cartesFigees = Ui.carteNue(corps);
+            cartesFigees.getStyleClass().add("formulaire-cartes");
+            Node page = Ui.page(760, new VBox(6, Ui.titre(titre), Ui.bandeauDossierFige()),
+                    Ui.legende(dependances), cartesFigees, Ui.actions(retour));
+            Ui.figer(page);
+            return page;
+        }
 
         Button enregistrer = Ui.boutonPrimaire("Enregistrer");
         enregistrer.setOnAction(e -> {

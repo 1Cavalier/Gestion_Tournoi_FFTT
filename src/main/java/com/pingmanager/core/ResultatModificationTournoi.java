@@ -16,7 +16,9 @@ public final class ResultatModificationTournoi {
         /** La modification est appliquée (ou la valeur était déjà celle demandée). */
         APPLIQUEE,
         /** Le champ fait partie du dossier d'homologation, verrouillé depuis la demande. */
-        CHAMP_VERROUILLE
+        CHAMP_VERROUILLE,
+        /** B048 : demande d'homologation en cours, tout le dossier est figé. */
+        DOSSIER_FIGE
     }
 
     private static final ResultatModificationTournoi APPLIQUEE =
@@ -38,6 +40,11 @@ public final class ResultatModificationTournoi {
 
     static ResultatModificationTournoi verrouille(List<ChampHomologation> champs, String message) {
         return new ResultatModificationTournoi(Motif.CHAMP_VERROUILLE, champs, message);
+    }
+
+    /** B048 : refus global, le dossier entier est figé pendant la demande d'homologation. */
+    static ResultatModificationTournoi dossierFige(String message) {
+        return new ResultatModificationTournoi(Motif.DOSSIER_FIGE, List.of(), message);
     }
 
     public Motif getMotif() {
