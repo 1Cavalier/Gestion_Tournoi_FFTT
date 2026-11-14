@@ -102,6 +102,19 @@ public final class ServiceVerrousHomologation {
     }
 
     /**
+     * B049 (choix de l'application, pas une règle FFTT) : tant que le tournoi est
+     * homologué mais pas encore publié, le club ne peut que <b>voir</b> les
+     * inscrits ; aucun ajout de joueur, aucun import, aucune inscription manuelle.
+     * Les inscriptions s'ouvrent à la publication.
+     *
+     * @return vrai si le tournoi est au statut homologué (non publié)
+     */
+    public boolean inscriptionsEnConsultation(Tournoi tournoi) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        return tournoi.getStatut() == StatutTournoi.HOMOLOGUE;
+    }
+
+    /**
      * Garde-fou à appeler avant d'enregistrer une fiche (section) du dossier.
      *
      * @return {@link ResultatModificationTournoi#estAppliquee()} vrai si le dossier

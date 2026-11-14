@@ -28,7 +28,7 @@ public final class ResultatAffectationTable {
         TABLE_HORS_LIMITES,
         /** Un autre match est déjà en cours sur cette table. */
         TABLE_OCCUPEE,
-        /** La table est réservée à d'autres tableaux (plan de la salle, B024). */
+        /** La table est réservée à d'autres tableaux (réservation de tables). */
         TABLE_RESERVEE,
         /** Le match n'appartient à aucun tableau en cours de jeu du tournoi. */
         MATCH_INCONNU,

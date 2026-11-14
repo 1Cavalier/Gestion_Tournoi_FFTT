@@ -90,12 +90,19 @@ final class VueInscriptionsClub {
         bJou.setOnAction(e -> { parJoueur = true; bJou.setSelected(true); remplirZone(); });
         Button actualiser = Ui.boutonSecondaire("Actualiser");
         actualiser.setOnAction(e -> recharger());
-        Button importer = Ui.boutonSecondaire("Importer des joueurs…");
-        importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::recharger,
-                this::recharger).build()));
-        HBox barre = Ui.ligne(10, segment, Ui.espace(), importer, actualiser);
+        HBox barre = Ui.ligne(10, segment, Ui.espace());
+        // B049 : au statut homologué, consultation seule (pas d'import de joueurs).
+        if (PresentationInscriptionsClub.importPropose(tournoi)) {
+            Button importer = Ui.boutonSecondaire(PresentationInscriptionsClub.LIBELLE_IMPORT);
+            importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::recharger,
+                    this::recharger).build()));
+            barre.getChildren().add(importer);
+        }
+        barre.getChildren().add(actualiser);
 
-        VBox page = Ui.page(1060, new VBox(4, retour, titre, sous), resume(), barre, zone);
+        VBox entete = new VBox(4, retour, titre, sous);
+        PresentationInscriptionsClub.rappelEcran(tournoi).ifPresent(r -> entete.getChildren().add(Ui.aide(r)));
+        VBox page = Ui.page(1060, entete, resume(), barre, zone);
         remplirZone();
         racine.setCenter(Ui.defilant(page));
     }
