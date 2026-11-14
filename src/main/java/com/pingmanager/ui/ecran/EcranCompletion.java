@@ -111,9 +111,6 @@ final class EcranCompletion {
             // Homologué ou publié (B035) : les inscriptions et les nouvelles parties en haut,
             // les étapes puis le dossier et le règlement en bas.
             contenu.getChildren().add(carteInscriptions());
-            if (presentation.afficheSalle()) {
-                contenu.getChildren().add(cartePlanSalle());
-            }
             if (presentation.afficheStrategie()) {
                 contenu.getChildren().add(carteStrategie());
             }
@@ -130,9 +127,9 @@ final class EcranCompletion {
         }
         // Tant qu'aucun joueur n'est inscrit, le club peut basculer vers l'import (tournoi préparé ailleurs).
         // B048 : pas pendant la demande d'homologation (ce serait modifier un dossier figé).
-        if (com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(tournoi) == 0
-                && tournoi.getStatut() != StatutTournoi.PUBLIE
-                && PresentationDossierFige.basculeImportProposee(tournoi)) {
+        // B049 : ni au statut homologué (inscriptions en consultation).
+        if (PresentationInscriptionsClub.basculeImportProposee(tournoi,
+                com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(tournoi))) {
             Button versImport = Ui.boutonLien("Tournoi déjà préparé ailleurs ? Déposer le règlement et importer "
                     + "les tableaux et les joueurs");
             versImport.setOnAction(e -> {
@@ -162,9 +159,16 @@ final class EcranCompletion {
         Button voir = Ui.boutonPrimaire("Voir les inscriptions");
         voir.setOnAction(e -> racine.setCenter(new VueInscriptionsClub(contexte, fichier,
                 this::afficherApercu).build()));
-        Button importer = Ui.boutonSecondaire("Importer des joueurs…");
-        importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::afficherApercu,
-                () -> racine.setCenter(new VueInscriptionsClub(contexte, fichier, this::afficherApercu).build())).build()));
+        // B049 : au statut homologué, on ne fait que voir les inscrits (pas d'import).
+        List<Node> actions = new java.util.ArrayList<>();
+        if (PresentationInscriptionsClub.importPropose(tournoi)) {
+            Button importer = Ui.boutonSecondaire(PresentationInscriptionsClub.LIBELLE_IMPORT);
+            importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::afficherApercu,
+                    () -> racine.setCenter(new VueInscriptionsClub(contexte, fichier, this::afficherApercu).build()))
+                    .build()));
+            actions.add(importer);
+        }
+        actions.add(voir);
         String phrase = participants == 0
                 ? (tournoi.getStatut() == StatutTournoi.PUBLIE ? "Aucune inscription pour l'instant."
                 : "Les inscriptions ouvriront à la publication du tournoi.")
@@ -174,9 +178,8 @@ final class EcranCompletion {
                 places == 0 ? 0 : Math.min(1, inscrits / (double) places));
         barre.getStyleClass().add("jauge");
         barre.setMaxWidth(Double.MAX_VALUE);
-        return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Inscriptions"), importer, voir), barre, Ui.discret(phrase),
-                Ui.aide("Tournoi préparé hors de PingManager ? « Importer des joueurs » crée les tableaux et les "
-                        + "inscrits à partir d'un fichier Excel, LibreOffice, CSV ou JSON."));
+        return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Inscriptions"), actions.toArray(new Node[0])), barre,
+                Ui.discret(phrase), Ui.aide(PresentationInscriptionsClub.aideCarte(tournoi)));
     }
 
     /** Rappel du dernier refus d'homologation, en tête du brouillon. */
@@ -211,37 +214,6 @@ final class EcranCompletion {
         }
         VBox bloc = new VBox(10, Ui.sousTitre("Pour la suite de la préparation"), tuiles);
         return bloc;
-    }
-
-    /**
-     * Carte « Plan de la salle » (B024) : salles et tables placées, alertes de
-     * cohérence, accès à l'éditeur de plan.
-     */
-    private Node cartePlanSalle() {
-        com.pingmanager.core.ServicePlanSalle service = new com.pingmanager.core.ServicePlanSalle();
-        HBox entete = Ui.ligne(10, Ui.iconeTuile(Icones.SALLE, false),
-                Ui.titreCarte(PresentationPlanSalle.TITRE_CARTE));
-        entete.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        Label phrase = Ui.gras(PresentationPlanSalle.phraseCarte(tournoi, service));
-        phrase.setWrapText(true);
-        VBox carte = Ui.carte(entete, phrase);
-        if (tournoi.aUnPlanDeSalle()) {
-            for (String alerte : PresentationPlanSalle.alertes(service.verifier(tournoi))) {
-                Label l = Ui.discret(alerte);
-                l.setWrapText(true);
-                carte.getChildren().add(l);
-            }
-        } else {
-            Label aide = Ui.discret("Placez les tables, les allées et les repères (table d'arbitrage, entrée, WC…), "
-                    + "sur une ou plusieurs salles, et réservez des tables à un tableau.");
-            aide.setWrapText(true);
-            carte.getChildren().add(aide);
-        }
-        Button ouvrir = Ui.boutonSecondaire(tournoi.aUnPlanDeSalle() ? "Modifier le plan" : "Préparer le plan");
-        ouvrir.setOnAction(e -> racine.setCenter(
-                new EcranPlanSalle(contexte, fichier, this::afficherApercu).build()));
-        carte.getChildren().add(Ui.actions(ouvrir));
-        return carte;
     }
 
     /**
@@ -354,9 +326,6 @@ final class EcranCompletion {
 
     /** Icône de chaque carte à venir, d'après sa tâche (chaîne de if, pas de switch). */
     private static String iconeAVenir(String tache) {
-        if ("B024".equals(tache)) {
-            return Icones.SALLE;
-        }
         if ("B025".equals(tache)) {
             return Icones.STRATEGIE;
         }

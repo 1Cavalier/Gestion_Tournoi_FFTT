@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 862 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 822 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -269,7 +269,7 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   un seul tour d'exempts, le 2e tour est toujours complet, les exempts vont
   d'abord aux 1ers de poule (décision du 11 novembre 2026).
 - Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
-  chronomètre et explication, « Lancer un match », plan de salle, stratégies
+  chronomètre et explication, « Lancer un match », stratégies
   d'ordonnancement. « Tableaux commencés tôt » : chaque tableau avance seul,
   tours avancés d'abord, et joue sa finale à son heure. « Petit à petit » :
   tour par tour dans chaque tableau, et toutes les finales gardées pour la fin

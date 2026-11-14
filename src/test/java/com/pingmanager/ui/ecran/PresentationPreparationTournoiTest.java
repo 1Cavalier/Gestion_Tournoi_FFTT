@@ -225,7 +225,7 @@ class PresentationPreparationTournoiTest {
     // --- Deuxième version ---------------------------------------------------------
 
     @Test
-    void deuxieme_version_apres_acceptation_avec_trois_cartes_bientot() {
+    void deuxieme_version_apres_acceptation_avec_deux_parties_sans_plan_de_salle() {
         Tournoi t = enDemande();
         assertFalse(p(t).deuxiemeVersion());
         assertTrue(p(t).cartesAVenir().isEmpty());
@@ -233,9 +233,9 @@ class PresentationPreparationTournoiTest {
         assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
         PresentationPreparationTournoi pr = p(t);
         assertTrue(pr.deuxiemeVersion());
-        assertEquals(List.of("Salle", "Stratégie d'ordonnancement", "Remplissage et finances"),
+        assertEquals(List.of("Stratégie d'ordonnancement", "Remplissage et finances"),
                 pr.cartesAVenir().stream().map(PresentationPreparationTournoi.CarteAVenir::titre).toList());
-        assertEquals(List.of("B024", "B025", "B036"),
+        assertEquals(List.of("B025", "B036"),
                 pr.cartesAVenir().stream().map(PresentationPreparationTournoi.CarteAVenir::tache).toList());
         assertEquals("Dossier du tournoi et règlement", pr.titreDossier());
     }
@@ -248,7 +248,7 @@ class PresentationPreparationTournoiTest {
         assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
         PresentationPreparationTournoi pr = p(t);
         assertTrue(pr.afficheRemplissageEtFinances());
-        // B025 et B024 livrés : leurs vraies cartes remplacent aussi leurs cartes « bientôt ».
+        // B025 livré : sa vraie carte remplace aussi sa carte « bientôt ».
         assertEquals(List.of(),
                 pr.cartesBientot().stream().map(PresentationPreparationTournoi.CarteAVenir::tache).toList());
     }
@@ -263,16 +263,5 @@ class PresentationPreparationTournoiTest {
         assertTrue(pr.cartesBientot().stream().noneMatch(c -> c.tache().equals("B025")));
         assertTrue(pr.cartesAVenir().stream().anyMatch(c -> c.tache().equals("B025")),
                 "la liste des parties de la deuxième version reste complète");
-    }
-
-    @Test
-    void plan_de_la_salle_remplace_sa_carte_bientot_apres_acceptation() {
-        Tournoi t = enDemande();
-        assertFalse(p(t).afficheSalle());
-        assertTrue(cycle.homologuer(t, "H-2026-001").estEffectuee());
-        PresentationPreparationTournoi pr = p(t);
-        assertTrue(pr.afficheSalle());
-        assertTrue(pr.cartesBientot().stream().noneMatch(c -> c.tache().equals("B024")));
-        assertTrue(pr.cartesAVenir().stream().anyMatch(c -> c.tache().equals("B024")));
     }
 }

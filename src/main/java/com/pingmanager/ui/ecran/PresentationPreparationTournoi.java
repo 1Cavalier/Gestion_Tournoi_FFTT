@@ -112,9 +112,6 @@ final class PresentationPreparationTournoi {
             return List.of();
         }
         return List.of(
-                new CarteAVenir("Salle",
-                        "Préparez le plan de la salle : tables, allées et repères (table d'arbitrage, "
-                                + "entrée, sortie…), sur une ou plusieurs salles.", "B024"),
                 new CarteAVenir("Stratégie d'ordonnancement",
                         "Choisissez comment faire avancer la journée : finir vite les tableaux "
                                 + "commencés tôt, tout faire avancer petit à petit, ou faire attendre "
@@ -125,15 +122,10 @@ final class PresentationPreparationTournoi {
     }
 
     /** Tâches de la deuxième version déjà livrées : leur vraie carte remplace la carte « bientôt ». */
-    static final List<String> PARTIES_LIVREES = List.of("B024", "B025", "B036");
+    static final List<String> PARTIES_LIVREES = List.of("B025", "B036");
 
     /** @return vrai si la carte « Remplissage et finances » (B036) s'affiche. */
     boolean afficheRemplissageEtFinances() {
-        return deuxiemeVersion();
-    }
-
-    /** @return vrai si la carte « Plan de la salle » (B024) s'affiche. */
-    boolean afficheSalle() {
         return deuxiemeVersion();
     }
 
