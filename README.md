@@ -187,6 +187,10 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   (PDF), importer le classeur, vérifier l'import (dates, horaire de chaque
   tableau), puis bandeau d'accès au jour J.
 - Toutes les pages occupent la largeur de la fenêtre (`Ui.page`).
+- Tournoi **homologué** : la partie Inscriptions est en **consultation** (liste
+  des inscrits, pas d'ajout, pas d'import, pas d'inscription manuelle). Plus
+  de plan de salle (B049) ; les anciens fichiers qui en contiennent un restent
+  lisibles, le plan est ignoré.
 - Remplissage et finances : taux de remplissage, recettes attendues,
   encaissé, dotation promise, solde.
 
@@ -366,18 +370,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   relecture** : des attendus de tests existants ont changé (nombre de
   tournois de démo : 2 devient 5, 3 devient 6), voulu par la tâche. À retirer
   de cette liste à la fusion.
-- **B049 (P1) — Tournoi homologué : inscriptions en consultation, plus de plan
-  de salle.** (1) Sur l'écran d'un tournoi **homologué**, la partie
-  Inscriptions permet seulement de **voir** les inscrits : retirer « ajouter
-  un joueur », l'import et toute inscription manuelle à ce statut ; le reste
-  de la partie Inscriptions ne change pas. (2) **Supprimer tout ce qui
-  concerne le plan de la salle** (jugé mauvaise idée) : écran
-  `EcranPlanSalle`, `PresentationPlanSalle`, entrées, boutons, étapes et
-  textes qui y mènent (préparation et jour J), services et tests devenus
-  inutiles. Les anciens fichiers JSON qui contiennent un plan restent
-  **lisibles** (le plan est ignoré à la lecture, test de rétrocompatibilité).
-  L'écran Salle du jour J garde ses matchs proposés, ses tables et ses
-  stratégies.
 - **B050 (P1) — Stratégie d'ordonnancement et prévisions refaites.**
   (1) En haut, une **micro-description** puis **trois cartes côte à côte**,
   une par stratégie : nom, trois lignes d'information (comment elle lance
@@ -493,6 +485,12 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     n'ouvre un règlement PDF déposé. Tout bouton ajouté dans ces écrans doit
     être marqué `Ui.consultation` pour rester visible pendant la demande.
 
+- **B049** : `ReservationsTables`, `Ordonnanceur.setReservations` et
+  `ServiceSalle.pretsBloquesParReservation` n'ont plus de producteur depuis
+  la suppression du plan de salle : code mort à supprimer si Quentin
+  confirme (section 6). `FEATURE_INVENTORY.md` cite encore le plan : à
+    régénérer.
+
 ### Joueur
 - ~~B045 — Agenda~~ — **fait** (section 3) ; à vérifier à l'écran. Reste :
   compléter le calendrier fédéral 2026-2027 avec les dates confirmées par
@@ -534,6 +532,14 @@ parenthèses.
   forfait dans les statistiques (comptées et signalées à part).
 - Lancer un tableau avec des repêchés qui n'ont pas pointé ; inscriptions sur
   un tableau déjà en pointage.
+
+**Tournoi homologué sans plan de salle (B049)**
+- Un tournoi « importé » garde son bouton d'import même homologué : le
+  retirer ? (non, inchangé)
+- Supprimer aussi les réservations de tables, devenues sans producteur ?
+  (non, code conservé)
+- La saisie du portable (SMS) reste possible sur l'écran Inscriptions au
+  statut homologué : voulu ? (oui)
 
 **Sécurité des comptes (B004a, points 11, 12, 15)**
 - **Réécrire l'historique du dépôt public ?** Les anciens commits contiennent
