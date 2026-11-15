@@ -58,6 +58,8 @@ final class EcranPreparationJourJ {
 
     private Tournoi tournoi;
     private Onglet onglet = Onglet.GENERAL;
+    /** Vrai pendant le calcul de la prévision : survit au changement d'onglet (le bouton est recréé). */
+    private boolean calculEnCours;
     private final VBox zoneOnglet = new VBox(16);
     /** Dernière prévision calculée (gardée en changeant d'onglet), ou {@code null}. */
     private PrevisionTournoi prevision;
@@ -215,6 +217,7 @@ final class EcranPreparationJourJ {
         resume.getStyleClass().add("preparation-prevision");
         Label message = Ui.message();
         Button calculer = Ui.boutonSecondaire(PresentationPreparationJourJ.BOUTON_PREVISION);
+        calculer.setDisable(calculEnCours);
         if (prevision != null) {
             remplirResume(resume);
         } else {
@@ -239,6 +242,10 @@ final class EcranPreparationJourJ {
 
     /** Chaque journée rejouée de nombreuses fois : calcul hors du fil de l'interface, sur une copie relue. */
     private void calculerPrevision(Button calculer, Label message, VBox resume) {
+        if (calculEnCours) {
+            return;
+        }
+        calculEnCours = true;
         calculer.setDisable(true);
         Ui.succes(message, PresentationPreparationJourJ.PREVISION_EN_COURS);
         // Copie relue du fichier : le tournoi affiché n'est pas partagé avec le fil de calcul.
@@ -255,11 +262,13 @@ final class EcranPreparationJourJ {
         calcul.setOnSucceeded(e -> {
             prevision = calcul.getValue();
             strategiePrevue = strategie;
+            calculEnCours = false;
             calculer.setDisable(false);
             message.setText("");
             remplirResume(resume);
         });
         calcul.setOnFailed(e -> {
+            calculEnCours = false;
             calculer.setDisable(false);
             Ui.erreur(message, "La prévision a échoué : " + calcul.getException().getMessage());
         });
