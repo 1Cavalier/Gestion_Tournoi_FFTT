@@ -82,4 +82,23 @@ class TempsAnnexesMatchTest {
         assertEquals(0, TempsAnnexesMatch.AUCUN.groupes(5).stream()
                 .mapToDouble(TempsAnnexesMatch.Groupe::moyenneSecondes).sum());
     }
+
+    @Test
+    void une_variable_se_regle_par_sa_cle_sans_toucher_aux_autres() {
+        TempsAnnexesMatch t = TempsAnnexesMatch.PAR_DEFAUT.avec("appel", 45).avec("probabiliteTempsMort", 0.5);
+        assertEquals(45, t.getAppel());
+        assertEquals(0.5, t.getProbabiliteTempsMort(), 1e-9);
+        assertEquals(TempsAnnexesMatch.PAR_DEFAUT.getFeuille(), t.getFeuille());
+        assertEquals(60, TempsAnnexesMatch.PAR_DEFAUT.getAppel(), "l'original est inchangé");
+        // Toute variable présentée dans les groupes est réglable par sa clé.
+        for (TempsAnnexesMatch.Groupe g : TempsAnnexesMatch.PAR_DEFAUT.groupes(5)) {
+            for (TempsAnnexesMatch.Variable v : g.variables()) {
+                assertEquals(TempsAnnexesMatch.PAR_DEFAUT.moyenne(5),
+                        TempsAnnexesMatch.PAR_DEFAUT.avec(v.cle(), v.valeur()).moyenne(5), 1e-9, v.cle());
+            }
+        }
+        assertThrows(IllegalArgumentException.class, () -> TempsAnnexesMatch.PAR_DEFAUT.avec("inconnue", 1));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> TempsAnnexesMatch.PAR_DEFAUT.avec("pauseEntreManches", 90)).getMessage().contains("3.4.4.1.1"));
+    }
 }

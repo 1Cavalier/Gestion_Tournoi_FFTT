@@ -25,11 +25,7 @@ class PresentationPrevisionsStatistiqueTest {
     }
 
     @Test
-    void reglages_tirages_et_durees_lus_avec_erreurs_claires() {
-        assertEquals(100, PresentationPrevisions.lireTirages(""));
-        assertEquals(250, PresentationPrevisions.lireTirages(" 250 "));
-        assertNull(PresentationPrevisions.lireTirages("0"));
-        assertNull(PresentationPrevisions.lireTirages("beaucoup"));
+    void reglages_des_durees_lus_avec_erreurs_claires() {
         PresentationPrevisions.ReglageDurees ok = PresentationPrevisions.lireDurees("", "", "");
         assertNull(ok.erreur());
         assertEquals(20, ok.loi().getMoyenne().toMinutes());
@@ -94,14 +90,14 @@ class PresentationPrevisionsStatistiqueTest {
 
     @Test
     void temps_autour_du_match_lus_et_annonces_dans_la_synthese() {
-        PresentationPrevisions.ReglageAnnexes ok = PresentationPrevisions.lireTempsAnnexes("", "", "", "", "", "", "");
+        PresentationPrevisions.ReglageAnnexes ok = PresentationPrevisions.lireTempsAnnexes(java.util.Map.of());
         assertNull(ok.erreur());
         assertEquals(120, ok.temps().getEchauffement());
         assertEquals(90, ok.temps().getFeuille(), "1,5 min");
         assertEquals(0.15, ok.temps().getProbabiliteRappel(), 1e-9);
         assertEquals(PresentationPrevisions.ERREUR_ANNEXES,
-                PresentationPrevisions.lireTempsAnnexes("un", "", "", "", "", "", "").erreur());
-        assertTrue(PresentationPrevisions.lireTempsAnnexes("", "", "", "", "90", "", "").erreur()
+                PresentationPrevisions.lireTempsAnnexes(java.util.Map.of("appel", "un")).erreur());
+        assertTrue(PresentationPrevisions.lireTempsAnnexes(java.util.Map.of("pauseEntreManches", "90")).erreur()
                 .contains("3.4.4.1.1"));
         String synthese = PresentationPrevisions.syntheseStatistique(
                 List.of(stat(StrategieOrdonnancement.PAR_DEFAUT, 10, 12, 0)), null);

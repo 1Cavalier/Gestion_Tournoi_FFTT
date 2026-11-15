@@ -166,6 +166,40 @@ public final class TempsAnnexesMatch {
                         new Variable("feuille", "Retour de la feuille", UNITE_SECONDES, feuille)), feuille));
     }
 
+    /**
+     * Copie où la variable {@code cle} (celle d'une {@link Variable} de
+     * {@link #groupes}) prend la valeur donnée : secondes pour un temps, 0 à 1
+     * pour une probabilité. Permet à l'appelant de régler toutes les variables
+     * en parcourant les groupes, sans les connaître une à une.
+     *
+     * @throws IllegalArgumentException si la clé est inconnue ou la valeur refusée
+     */
+    public TempsAnnexesMatch avec(String cle, double valeur) {
+        Objects.requireNonNull(cle, "cle");
+        Builder b = builder().appel(appel).probabiliteRappel(probabiliteRappel).rappel(rappel)
+                .echauffement(echauffement).pauseEntreManches(pauseEntreManches)
+                .probabiliteTempsMort(probabiliteTempsMort).feuille(feuille);
+        int secondes = (int) Math.round(valeur);
+        if (cle.equals("appel")) {
+            b.appel(secondes);
+        } else if (cle.equals("probabiliteRappel")) {
+            b.probabiliteRappel(valeur);
+        } else if (cle.equals("rappel")) {
+            b.rappel(secondes);
+        } else if (cle.equals("echauffement")) {
+            b.echauffement(secondes);
+        } else if (cle.equals("pauseEntreManches")) {
+            b.pauseEntreManches(secondes);
+        } else if (cle.equals("probabiliteTempsMort")) {
+            b.probabiliteTempsMort(valeur);
+        } else if (cle.equals("feuille")) {
+            b.feuille(secondes);
+        } else {
+            throw new IllegalArgumentException("Variable de temps autour du match inconnue : " + cle);
+        }
+        return b.build();
+    }
+
     /** Total moyen par match de {@code manches} manches, en secondes (somme des groupes). */
     public double totalParMatch(int manches) {
         return moyenne(manches);

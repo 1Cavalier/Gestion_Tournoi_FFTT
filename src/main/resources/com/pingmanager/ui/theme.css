@@ -3435,30 +3435,6 @@
 
 /* === Prévisions et stratégie d'ordonnancement (B025) === */
 
-.choix-strategie {
-    -fx-padding: 12 14 12 14;
-    -fx-background-color: -surface;
-    -fx-background-radius: 10;
-    -fx-border-color: -bordure;
-    -fx-border-radius: 10;
-    -fx-border-width: 1;
-    -fx-cursor: hand;
-}
-
-.choix-strategie:hover {
-    -fx-background-color: -surface-2;
-}
-
-.choix-strategie.choix-strategie-active {
-    -fx-background-color: -primaire-doux;
-    -fx-border-color: -primaire;
-}
-
-.choix-strategie-titre {
-    -fx-font-weight: bold;
-    -fx-font-size: 14px;
-}
-
 .prevision-grille {
     -fx-padding: 8 0 0 0;
 }
@@ -4282,4 +4258,97 @@
 /* Cases, boutons radio, segments et compteurs figés : désactivés mais lisibles. */
 .choix-fige:disabled {
     -fx-opacity: 0.8;
+}
+
+/* === B050 : stratégie en trois cartes et prévisions refaites === */
+
+/* Micro-description sous le titre de l'écran. */
+.prevision-micro {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Une carte par stratégie ; le bouton « Choisir cette stratégie » est dessous. */
+.carte-strategie {
+    -fx-padding: 16 16 16 16;
+    -fx-background-color: -surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+}
+
+.carte-strategie.carte-strategie-choisie {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+    -fx-border-width: 2;
+    -fx-padding: 15 15 15 15;
+}
+
+.carte-strategie-nom {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.carte-strategie-rubrique {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Bloc « Comment sont calculées ces prévisions » : filet bleu à gauche. */
+.carte.prevision-explication {
+    -fx-border-color: -bordure -bordure -bordure -primaire;
+    -fx-border-width: 1 1 1 3;
+}
+
+/* Groupe de réglages (Tables, Durée, Fin visée, Temps autour du match, Remplissage). */
+.prevision-groupe {
+    -fx-padding: 14 16 14 16;
+    -fx-background-color: -surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+
+.prevision-groupe-titre {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+/* Total des temps autour du match. */
+.prevision-total {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+/* Comparaison des trois stratégies : cases jointives, colonne choisie teintée. */
+.prevision-comparaison {
+    -fx-padding: 8 0 0 0;
+}
+
+.prevision-cellule {
+    -fx-padding: 6 12 6 12;
+    -fx-border-color: transparent transparent -bordure transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.prevision-cellule.prevision-cellule-choisie {
+    -fx-background-color: -primaire-doux;
+}
+
+.prevision-theme-bloc {
+    -fx-padding: 18 12 6 12;
+    -fx-border-color: transparent transparent -bordure-forte transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.prevision-theme {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
 }
