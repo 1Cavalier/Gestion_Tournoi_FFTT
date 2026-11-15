@@ -504,6 +504,31 @@ public final class ContexteApplication {
         return fichierCopieDemo("jour-J");
     }
 
+    /** @return vrai si le fichier est un des tournois de démonstration créés par l'application. */
+    public boolean estTournoiDeDemo(Path fichier) {
+        if (fichier == null) {
+            return false;
+        }
+        Path f = fichier.toAbsolutePath().normalize();
+        for (Path demo : List.of(fichierTournoiDemo(), fichierTournoiDemandeDemo(), fichierTournoiHomologueDemo(),
+                fichierTournoiPublieDemo(), fichierTournoiJourJDemo())) {
+            if (demo.toAbsolutePath().normalize().equals(f)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * B051 : accès à l'étape « J-7 : préparer le jour J » d'un tournoi (règle du cœur :
+     * à partir de J-7), toujours ouverte pour un tournoi de démonstration.
+     */
+    public com.pingmanager.core.ServicePreparationJourJ.Acces accesPreparationJourJ(Tournoi tournoi, Path fichier) {
+        return new com.pingmanager.core.ServicePreparationJourJ(
+                new com.pingmanager.core.ServiceTournoiEnCours(Horloge.systeme(), java.time.ZoneId.systemDefault()))
+                .acces(tournoi, estTournoiDeDemo(fichier));
+    }
+
     private Path fichierCopieDemo(String etat) {
         return dossierDonnees.resolve("tournois")
                 .resolve("Tournoi_National_B_Brunoy_2027-" + etat + "-demo" + DepotTournoi.EXTENSION);

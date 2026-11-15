@@ -117,6 +117,14 @@ final class EcranCompletion {
             if (presentation.afficheRemplissageEtFinances()) {
                 contenu.getChildren().add(carteRemplissageFinances());
             }
+            // B051 : étape « J-7 : préparer le jour J » (ouverte à partir de J-7, toujours en démo).
+            com.pingmanager.core.ServicePreparationJourJ.Acces accesPreparation = contexte.accesPreparationJourJ(
+                    tournoi, fichier);
+            Node cartePreparation = EcranPreparationJourJ.carteAcces(accesPreparation, () -> racine.setCenter(
+                    new EcranPreparationJourJ(contexte, fichier, accesPreparation, this::afficherApercu).build()));
+            if (cartePreparation != null) {
+                contenu.getChildren().add(cartePreparation);
+            }
             if (!presentation.cartesBientot().isEmpty()) {
                 contenu.getChildren().add(cartesAVenir());
             }
