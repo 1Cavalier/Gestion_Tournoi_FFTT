@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 822 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 878 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -95,7 +95,7 @@ tout se règle à l'écran et s'enregistre dans le fichier du tournoi.
 | Horaires calculés | écarts de 1 h 30 puis 2 h, en alternance | `EcranTableaux`, `OrdonnancementTableaux` |
 | Codes de vérification | valables 30 min | `ServiceComptesOrganisateurs`, `ServiceLiaisonClub` |
 | Matchs proposés | orange après 10 min d'attente, rouge après 20 min | `ReglePrioriteSalle` |
-| Prévisions | 100 tirages, 16 tables, fin visée 20 h, partie de 20 min, environ 7 min autour du jeu | `ScenarioSimulation`, `TempsAnnexesMatch` |
+| Prévisions | 100 tirages (fixes, graine interne), 16 tables, fin visée 20 h le jour même, partie de 20 min (10 à 50), environ 7 min autour du jeu, remplissage des tableaux 100 % | `ReglagesPrevision`, `ScenarioSimulation`, `TempsAnnexesMatch`, `RemplissageSimulation` |
 | Annonces vocales | 2 diffusions (3 au plus), débit de −10 à 10 | `ReglagesAnnoncesVocales` |
 | Import | 20 000 lignes, 200 colonnes ; fichiers d'échange : 10 Mo | `LecteurTableur`, `CsvFederal` |
 | Voix (Windows) | variables `PINGMANAGER_SSML`, `PINGMANAGER_VOIX`, `PINGMANAGER_DEBIT` passées à PowerShell | `SyntheseVocaleWindows` |
@@ -279,26 +279,28 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   tour par tour dans chaque tableau, et toutes les finales gardées pour la fin
   de la journée (aucune finale tant qu'un autre match ou un tableau du jour
   reste à jouer). Réglages conservés par la sauvegarde de session.
-- Prévisions : chaque journée est simulée séparément, avec sa propre heure de
-  fin visée (réglable) ; le tournoi est rejoué de nombreuses fois (100 tirages par
-  défaut, en parallèle) avec chacune des trois stratégies, sur les mêmes
-  tirages ; durée d'un match tirée selon une loi exponentielle entre un
-  minimum et un maximum, de moyenne réglable (20 min, de 10 à 50 par défaut).
-  Indicateurs : début des tableaux à l'heure / léger retard / gros retard
-  (+30 min ; début réel = dernière poule lancée), fin moyenne (jour et heure),
-  première finale, fin moyenne d'un tableau, cas rares de fin tôt et tard
-  (1 fois sur 20), attente d'un joueur sur
-  1 tableau et sur 2 tableaux ou plus, plus longue attente, occupation des
-  tables, risque de finir après l'heure visée ; puis chaque tableau avec les
-  trois stratégies côte à côte, un indicateur à la fois (fin moyenne, fin au
-  plus tard, retard au début, attente, après l'heure visée), une valeur par
-  case, tableaux dans l'ordre de leur début. Avec assez de tables, l'écran dit que le choix de stratégie ne
-  change rien. Temps autour du jeu, ajoutés à chaque match (table et joueurs
-  occupés) : appel et rappel d'un joueur qui n'a pas entendu, échauffement
-  2 min (3.4.3.1), pauses entre manches (3.4.4.1.1), temps morts (3.4.4.2),
-  retour de la feuille ; environ 7 min par match avec les réglages par
-  défaut, tous modifiables à l'écran. Les joueurs fictifs ajoutés par « Compléter » ne sont inscrits
-  que sur un tableau.
+- Prévisions (B050) : l'écran s'ouvre sur trois cartes de stratégie (comment
+  elle lance les matchs, pour quel tournoi, son point faible) avec « Choisir
+  cette stratégie », puis une explication du calcul : le tournoi est rejoué 100
+  fois (nombre et graine fixes, internes), sur les mêmes tirages pour les trois
+  stratégies, la durée d'un match suivant une loi exponentielle entre un
+  minimum et un maximum de moyenne réglable (20 min, de 10 à 50 par défaut).
+  Réglages groupés : tables, durées, fin visée par journée en **jour et heure**
+  (une fin peut tomber le lendemain : samedi fini à 1 h = dimanche 1 h), temps
+  autour du match en lignes par groupe avec le total par match (appel et
+  rappel, échauffement 2 min (3.4.3.1), pauses entre manches (3.4.4.1.1),
+  temps morts (3.4.4.2), retour de la feuille ; environ 7 min), et
+  **remplissage des tableaux** (taux global et taux par tableau : la simulation
+  complète par des joueurs fictifs ou réduit les tableaux ; ces joueurs ne
+  sont inscrits que sur un tableau). Chaque journée est simulée séparément.
+  Statistiques par thème et par stratégie : fin (moyenne, médiane, au plus tôt
+  et au plus tard, dispersion, cas rares 1 fois sur 20), risque de finir après
+  l'heure visée, début des tableaux à l'heure / léger retard / gros retard
+  (+30 min), première finale, fin moyenne d'un tableau, attente d'un joueur
+  (moyenne, maximale, sur 1 tableau et sur 2 ou plus), occupation des tables,
+  matchs par heure ; puis chaque tableau avec les trois stratégies côte à côte,
+  un indicateur à la fois. Avec assez de tables, l'écran dit que le choix de
+  stratégie ne change rien.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
 - Feuilles de match et de poule imprimables (format provisoire 3 × 5).
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
@@ -370,30 +372,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   relecture** : des attendus de tests existants ont changé (nombre de
   tournois de démo : 2 devient 5, 3 devient 6), voulu par la tâche. À retirer
   de cette liste à la fusion.
-- **B050 (P1) — Stratégie d'ordonnancement et prévisions refaites.**
-  (1) En haut, une **micro-description** puis **trois cartes côte à côte**,
-  une par stratégie : nom, trois lignes d'information (comment elle lance
-  les matchs, pour quel tournoi, son point faible) et un bouton **« Choisir
-  cette stratégie »** sous chaque carte (la stratégie choisie est marquée et
-  enregistrée dans le tournoi). (2) **Sous les trois cartes, les
-  Prévisions**, avec **beaucoup plus de statistiques** pour comparer de façon
-  crédible (par stratégie : fin moyenne, médiane, au plus tôt et au plus tard,
-  dispersion, risque de dépasser l'heure visée, retards au début des
-  tableaux, attente moyenne et maximale d'un joueur, plus longue pause,
-  occupation des tables et pic, heure des finales, nombre de matchs par
-  heure, tableaux les plus à risque…). (3) Réglages : on **garde Tables** ;
-  on **supprime Tirages et Graine** (100 tirages fixes, graine interne) et on
-  les remplace par une **vraie explication** au-dessus : le tournoi est
-  rejoué 100 fois, comment les durées sont tirées, comment chaque chiffre est
-  calculé. (4) **Heure de fin visée** mieux écrite : jour **et** heure, une
-  fin peut tomber le lendemain (samedi fini à 1 h du matin = dimanche 1 h),
-  par journée. (5) Durée moyenne, minimum, maximum : inchangés. (6) **Temps
-  autour du match** : mêmes valeurs, meilleure présentation (groupes,
-  libellés, total par match), prête à recevoir d'autres variables.
-  (7) Nouveau : **remplissage des tableaux** — un taux global (100 %, 95 %
-  ou autre valeur) et un taux **par tableau** pour affiner ; la simulation
-  complète ou réduit les tableaux selon ces taux. (8) « Remplissage et
-  finances » : inchangé. Cœur (`ScenarioSimulation`, simulateur) testé.
 - **B051 (P1) — Point 5 « J-7 : préparer le jour J ».** Sur l'écran du tournoi
   homologué ou publié, après Remplissage et finances, une cinquième étape
   **J-7** qui ouvre une nouvelle interface de préparation de la mise en place
@@ -484,6 +462,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
     (non atteignable en demande d'homologation par l'interface). Aucun bouton
     n'ouvre un règlement PDF déposé. Tout bouton ajouté dans ces écrans doit
     être marqué `Ui.consultation` pour rester visible pendant la demande.
+- **B050** : code mort de `PresentationPrevisions` appelé seulement par les
+  tests (`choix` / `ChoixStrategie`, `chiffres`, `synthese`, `comparaison`,
+  `verdict`, `lignesStrategies`, `finViseeProposee`, `lignesTableaux`) ;
+  branche inutile `SimulateurTournoi.java:260` (date nulle) ; revoir à
+  l'écran **Buvette** (B046) et le **dossier figé** (B048), dont les styles
+  n'étaient pas appliqués avant la correction d'une accolade manquante dans
+  `theme.css` (section B045).
 - **B049** : `ReservationsTables`, `Ordonnanceur.setReservations` et
   `ServiceSalle.pretsBloquesParReservation` n'ont plus de producteur depuis
   la suppression du plan de salle : code mort à supprimer si Quentin
@@ -578,6 +563,14 @@ parenthèses.
   rappels de 3 min, échauffement 2 min, 30 s de pause entre manches, 20 % de
   temps mort par joueur, feuille 1 min 30) à confirmer sur un vrai tournoi ;
   la durée moyenne du jeu (20 min) est désormais le jeu seul.
+- Prévisions (B050), cinq questions : (1) textes « Pour quel tournoi » des
+  trois cartes de stratégie à valider ; (2) la démo de Brunoy (20 tables)
+  finit le samedi vers 2 h avec 100 % de risque : démo irréaliste, ou durées
+  par défaut (20 / 10 / 50 min) à revoir ? (3) enregistrer les réglages de
+  prévision dans le tournoi (provisoire : non, ils sont remis à zéro) ?
+  (4) réduction d'un tableau : garder les premiers inscrits (provisoire) ou
+  tirer au hasard ? (5) autoriser un taux de remplissage supérieur à 100 %
+  (provisoire : non).
 - Tarif et dotation dans les finances (tarif en ligne, dotation sur les
   recettes attendues).
 - Téléphone dans le compte utilisateur (absent : « Non renseigné »).
