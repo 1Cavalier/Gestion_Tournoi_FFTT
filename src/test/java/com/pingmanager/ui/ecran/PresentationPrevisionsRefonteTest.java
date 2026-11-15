@@ -341,6 +341,7 @@ class PresentationPrevisionsRefonteTest {
     void ponctualite_attente_tables_et_finales() {
         List<PresentationPrevisions.GroupeStatistiques> g = PresentationPrevisions.groupesStatistiques(journee());
         assertEquals("60 %", ligne(g.get(1), "Début à l'heure").valeurs().get(0));
+        assertEquals(-1, ligne(g.get(1), "Début en léger retard").meilleure(), "ni bon ni mauvais en soi");
         assertEquals("8 min", ligne(g.get(1), "Retard moyen au début").valeurs().get(0));
         assertEquals("52 min", ligne(g.get(1), "Plus grand retard").valeurs().get(0));
         assertEquals(-1, ligne(g.get(1), "Plus grand retard").meilleure(), "égalité");

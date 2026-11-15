@@ -1231,9 +1231,9 @@ final class PresentationPrevisions {
         List<LigneStrategies> ponctualite = new ArrayList<>();
         ponctualite.add(ligne("Début à l'heure (" + StatistiquesSimulation.RETARD_A_L_HEURE + " min de retard au plus)",
                 stats, s -> -Math.round(s.debutALHeure() * 100), s -> pourcent(s.debutALHeure())));
-        ponctualite.add(ligne("Début en léger retard (" + StatistiquesSimulation.RETARD_A_L_HEURE + " à "
-                        + StatistiquesSimulation.GROS_RETARD + " min)", stats,
-                s -> Math.round(s.debutLegerRetard() * 100), s -> pourcent(s.debutLegerRetard())));
+        // Pas de « meilleure » valeur : peu de légers retards peut cacher beaucoup de gros retards.
+        ponctualite.add(ligneNeutre("Début en léger retard (" + StatistiquesSimulation.RETARD_A_L_HEURE + " à "
+                + StatistiquesSimulation.GROS_RETARD + " min)", stats, s -> pourcent(s.debutLegerRetard())));
         ponctualite.add(ligne("Début en gros retard (plus de " + StatistiquesSimulation.GROS_RETARD + " min)", stats,
                 s -> Math.round(s.debutGrosRetard() * 100), s -> pourcent(s.debutGrosRetard())));
         ponctualite.add(ligne("Retard moyen au début d'un tableau", stats,

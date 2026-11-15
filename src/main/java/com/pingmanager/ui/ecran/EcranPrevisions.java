@@ -193,6 +193,7 @@ final class EcranPrevisions {
 
     private Node carteReglages() {
         TextField tables = champCourt(String.valueOf(PresentationPrevisions.tablesProposees(tournoi)));
+        tables.setMaxWidth(120);
         TextField moyenne = champCourt(String.valueOf(PresentationPrevisions.DUREE_MOYENNE));
         TextField minimum = champCourt(String.valueOf(PresentationPrevisions.DUREE_MINIMUM));
         TextField maximum = champCourt(String.valueOf(PresentationPrevisions.DUREE_MAXIMUM));
@@ -284,7 +285,9 @@ final class EcranPrevisions {
             blocs.add(new VBox(6, Ui.gras(g.nom()), ligne, moyenne));
         }
         maj.run();
-        return groupe("Temps autour du match", Ui.grilleAdaptative(groupes.size(), 300, blocs), total,
+        VBox pile = new VBox(14);
+        pile.getChildren().addAll(blocs);
+        return groupe("Temps autour du match", pile, total,
                 aide(PresentationPrevisions.AIDE_ANNEXES));
     }
 
@@ -343,6 +346,7 @@ final class EcranPrevisions {
             grille.add(Ui.texte(l.capacite()), 2, rang);
             if (l.reglable()) {
                 TextField taux = champCourt("");
+                taux.setPrefColumnCount(8);
                 taux.setPromptText(PresentationPrevisions.INVITE_TAUX_TABLEAU);
                 taux.textProperty().addListener((obs, a, b) -> maj.run());
                 tauxParTableau.put(l.nom(), taux);
