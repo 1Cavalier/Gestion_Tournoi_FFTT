@@ -64,13 +64,26 @@ public final class ServiceTournoiEnCours {
         LocalDate jour = aujourdhui();
         boolean homologueOuPublie = t.getStatut() == StatutTournoi.HOMOLOGUE
                 || t.getStatut() == StatutTournoi.PUBLIE;
-        LocalDate debut = t.getJours().first().minusDays(JOURS_AVANT);
+        LocalDate debut = debutPreparation(t);
         LocalDate fin = t.getJours().last();
         if (homologueOuPublie && !jour.isBefore(debut) && !jour.isAfter(fin)) {
             return true;
         }
         boolean dansLaPeriode = !jour.isBefore(debut) && !jour.isAfter(fin.plusDays(1));
         return dansLaPeriode && aUnTableauCommenceNonTermine(t);
+    }
+
+    /** @return J-7 : le jour où la préparation du jour J s'ouvre ({@link #JOURS_AVANT} jours avant le premier jour). */
+    public static LocalDate debutPreparation(Tournoi t) {
+        return t.getJours().first().minusDays(JOURS_AVANT);
+    }
+
+    /**
+     * @return le nombre de jours d'ici le premier jour du tournoi : 7 à J-7, 0 le
+     *         premier jour, négatif ensuite
+     */
+    public long joursAvantPremierJour(Tournoi t) {
+        return ChronoUnit.DAYS.between(aujourdhui(), t.getJours().first());
     }
 
     /** @return vrai si un tableau a quitté la phase d'inscription sans être terminé. */

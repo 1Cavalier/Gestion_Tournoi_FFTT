@@ -4353,3 +4353,40 @@
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
+
+/* === B051 : étape « J-7 : préparer le jour J » (EcranPreparationJourJ) === */
+/* L'écran reprend les classes du jour J (.salle-*, .jourj-*, .encours-*, .pointage-*) :
+   seules les règles qui manquent sont ici. */
+.preparation-jourj {
+    -fx-background-color: -fond-app;
+}
+
+.preparation-bandeau {
+    -fx-font-weight: bold;
+}
+
+.preparation-onglets {
+    -fx-padding: 4 0 0 0;
+}
+
+.preparation-prevision {
+    -fx-padding: 10 12 10 12;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+}
+
+.preparation-compteur {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 13px;
+    -fx-min-width: 120px;
+}
+
+/* Aperçu du pointage dans une carte : pas de marge de page autour de la liste. */
+.pointage-liste.preparation-apercu {
+    -fx-padding: 0;
+}
+
+/* Cases de l'aperçu : inactives mais lisibles. */
+.preparation-apercu .pointage-case:disabled {
+    -fx-opacity: 0.75;
+}

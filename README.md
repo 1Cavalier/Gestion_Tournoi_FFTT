@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 878 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 907 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -301,6 +301,14 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   matchs par heure ; puis chaque tableau avec les trois stratégies côte à côte,
   un indicateur à la fois. Avec assez de tables, l'écran dit que le choix de
   stratégie ne change rien.
+- Étape **J-7 : préparer le jour J** (B051, reprend B006) : une carte sur
+  l'écran du tournoi homologué ou publié, après Remplissage et finances, à
+  partir de J-7 (toujours ouverte en démo). Elle ouvre une préparation **en
+  lecture seule** (rien ne se lance, aucun pointage ni score) en cinq onglets :
+  Général (alertes : tableau sans horaire, sous le seuil, juge-arbitre non
+  désigné, joueur sans club ou sans points ; chiffres ; stratégie choisie et
+  prévision résumée, calculée à la demande), Tableaux (par jour), Pointage,
+  Salle et À imprimer. Règle d'accès et alertes : `core/ServicePreparationJourJ`.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
 - Feuilles de match et de poule imprimables (format provisoire 3 × 5).
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
@@ -367,23 +375,6 @@ impression directe, pare-feu pour le suivi sur téléphone.
 
 Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
-### Retours de Quentin du 14 novembre 2026 (P1, dans cet ordre)
-- **B047 (P1) — Démo : une copie par statut** : fait, **en attente de
-  relecture** : des attendus de tests existants ont changé (nombre de
-  tournois de démo : 2 devient 5, 3 devient 6), voulu par la tâche. À retirer
-  de cette liste à la fusion.
-- **B051 (P1) — Point 5 « J-7 : préparer le jour J ».** Sur l'écran du tournoi
-  homologué ou publié, après Remplissage et finances, une cinquième étape
-  **J-7** qui ouvre une nouvelle interface de préparation de la mise en place
-  du jour J, **très proche de l'écran du jour J** (mêmes onglets et même
-  disposition, en mode préparation : rien n'est lancé, pas de pointage ni de
-  score) : tableaux par jour avec inscrits, attente et horaires, tables,
-  stratégie choisie (B050) et prévision résumée, alertes (tableau sans
-  horaire, sous le seuil, juge-arbitre non désigné, joueur sans club ou sans
-  points), impressions à préparer. Reprend B006 (tableau de bord de la
-  veille), qui est retiré une fois B051 fait. Accessible à partir de J-7
-  (toujours en démo).
-
 ### Jour J
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
@@ -418,10 +409,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   à être échangé et rejoué.
 
 ### Veille du tournoi (J-1)
-5. **B006 — Tableau de bord de la veille** : par tableau, inscrits, attente,
-   payés, horaires et pointage, et des alertes (tableau sans horaire, sous le
-   seuil de maintien, juge-arbitre principal non désigné, joueur sans club ou
-   sans points).
 6. **B007 — Listes de pointage en PDF** : une par tableau, triée par nom (nom,
    prénom, licence, club, points, cases « pointé » et « payé », montant), bouton
    dans la vue Inscriptions.
@@ -469,6 +456,12 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   l'écran **Buvette** (B046) et le **dossier figé** (B048), dont les styles
   n'étaient pas appliqués avant la correction d'une accolade manquante dans
   `theme.css` (section B045).
+- **B051** : classes CSS marqueurs sans règle (`carte-preparation-jourj`,
+  `preparation-alertes`, `preparation-alerte`, `preparation-impressions`,
+  `preparation-impression`) ; l'onglet Salle numérote les tables de 1 à N sans
+  les lots ; `chargerTournoi` peut écrire à l'ouverture (migration du
+  règlement), la lecture seule n'est donc pas stricte ; clic sur « Calculer la
+  prévision » et ouverture des PDF non essayés à l'écran.
 - **B049** : `ReservationsTables`, `Ordonnanceur.setReservations` et
   `ServiceSalle.pretsBloquesParReservation` n'ont plus de producteur depuis
   la suppression du plan de salle : code mort à supprimer si Quentin
@@ -571,6 +564,11 @@ parenthèses.
   (4) réduction d'un tableau : garder les premiers inscrits (provisoire) ou
   tirer au hasard ? (5) autoriser un taux de remplissage supérieur à 100 %
   (provisoire : non).
+- Étape J-7 (B051), trois questions : (1) doit-elle se fermer après le
+  tournoi ? (provisoire : non, elle reste ouverte, « J+n ») ; (2) la prévision
+  résumée utilise les réglages par défaut car ceux de l'écran Stratégie ne sont
+  pas enregistrés : les enregistrer dans le tournoi ? (provisoire : non) ;
+  (3) « sans points » = 0 point, d'accord ? (provisoire : oui).
 - Tarif et dotation dans les finances (tarif en ligne, dotation sur les
   recettes attendues).
 - Téléphone dans le compte utilisateur (absent : « Non renseigné »).
