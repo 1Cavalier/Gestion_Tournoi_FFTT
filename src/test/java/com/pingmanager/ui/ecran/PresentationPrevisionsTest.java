@@ -49,7 +49,7 @@ class PresentationPrevisionsTest {
     }
 
     @Test
-    void reglages_tables_et_graine_lus_avec_erreurs_claires() {
+    void reglage_des_tables_lu_avec_erreurs_claires() {
         Tournoi t = new Tournoi("Open", "Club", LocalDate.of(2027, 4, 10));
         assertEquals(16, PresentationPrevisions.tablesProposees(t));
         t.setNombreDeTables(24);
@@ -59,9 +59,6 @@ class PresentationPrevisionsTest {
         assertNull(PresentationPrevisions.lireTables("201"));
         assertNull(PresentationPrevisions.lireTables("douze"));
         assertNull(PresentationPrevisions.lireTables(null));
-        assertEquals(2027L, PresentationPrevisions.lireGraine("2027"));
-        assertEquals(1L, PresentationPrevisions.lireGraine("  "));
-        assertNull(PresentationPrevisions.lireGraine("abc"));
     }
 
     @Test

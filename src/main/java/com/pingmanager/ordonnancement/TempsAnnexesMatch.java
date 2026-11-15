@@ -1,5 +1,6 @@
 package com.pingmanager.ordonnancement;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
@@ -104,6 +105,104 @@ public final class TempsAnnexesMatch {
         double pauses = Math.max(0, manches - 1) * Math.min(60, pauseEntreManches);
         double tm = 2 * probabiliteTempsMort * DUREE_TEMPS_MORT * 0.75;
         return appel + rappels + echauffement + pauses + tm + feuille;
+    }
+
+    // ------------------------------------------------------------------
+    // Présentation par groupes (B050)
+    // ------------------------------------------------------------------
+
+    /** Unité d'une variable de temps annexe. */
+    public static final String UNITE_SECONDES = "s";
+    /** Unité d'une probabilité (valeur de 0 à 1). */
+    public static final String UNITE_PROBABILITE = "%";
+
+    /**
+     * Une variable réglable.
+     *
+     * @param cle     identifiant stable (« appel », « probabiliteRappel »…)
+     * @param libelle libellé en clair
+     * @param unite   {@link #UNITE_SECONDES} ou {@link #UNITE_PROBABILITE} (valeur de 0 à 1)
+     * @param valeur  valeur réglée
+     */
+    public record Variable(String cle, String libelle, String unite, double valeur) {
+    }
+
+    /**
+     * Un groupe nommé de variables, avec ce qu'il coûte en moyenne par match.
+     *
+     * @param nom             nom du groupe (« Avant le match »…)
+     * @param variables       ses variables, dans l'ordre de présentation
+     * @param moyenneSecondes temps moyen du groupe par match, en secondes
+     */
+    public record Groupe(String nom, List<Variable> variables, double moyenneSecondes) {
+        public Groupe {
+            variables = List.copyOf(variables);
+        }
+    }
+
+    /**
+     * Les temps autour du match, par groupes nommés (avant, pendant, après),
+     * pour un match de {@code manches} manches. La somme des moyennes des
+     * groupes vaut {@link #moyenne(int)}. Ajouter une variable : un champ, son
+     * réglage dans le builder et une ligne dans le groupe concerné (ou un
+     * nouveau groupe) ; l'appelant parcourt la liste sans la connaître.
+     */
+    public List<Groupe> groupes(int manches) {
+        double avant = appel + 2 * probabiliteRappel * rappel + echauffement;
+        double pendant = Math.max(0, manches - 1) * Math.min(60, pauseEntreManches)
+                + 2 * probabiliteTempsMort * DUREE_TEMPS_MORT * 0.75;
+        return List.of(
+                new Groupe("Avant le match", List.of(
+                        new Variable("appel", "Appel des joueurs", UNITE_SECONDES, appel),
+                        new Variable("probabiliteRappel", "Joueur à rappeler", UNITE_PROBABILITE, probabiliteRappel),
+                        new Variable("rappel", "Retard d'un rappel", UNITE_SECONDES, rappel),
+                        new Variable("echauffement", "Échauffement", UNITE_SECONDES, echauffement)), avant),
+                new Groupe("Pendant le match", List.of(
+                        new Variable("pauseEntreManches", "Pause entre deux manches", UNITE_SECONDES,
+                                pauseEntreManches),
+                        new Variable("probabiliteTempsMort", "Temps mort pris, par joueur", UNITE_PROBABILITE,
+                                probabiliteTempsMort)), pendant),
+                new Groupe("Après le match", List.of(
+                        new Variable("feuille", "Retour de la feuille", UNITE_SECONDES, feuille)), feuille));
+    }
+
+    /**
+     * Copie où la variable {@code cle} (celle d'une {@link Variable} de
+     * {@link #groupes}) prend la valeur donnée : secondes pour un temps, 0 à 1
+     * pour une probabilité. Permet à l'appelant de régler toutes les variables
+     * en parcourant les groupes, sans les connaître une à une.
+     *
+     * @throws IllegalArgumentException si la clé est inconnue ou la valeur refusée
+     */
+    public TempsAnnexesMatch avec(String cle, double valeur) {
+        Objects.requireNonNull(cle, "cle");
+        Builder b = builder().appel(appel).probabiliteRappel(probabiliteRappel).rappel(rappel)
+                .echauffement(echauffement).pauseEntreManches(pauseEntreManches)
+                .probabiliteTempsMort(probabiliteTempsMort).feuille(feuille);
+        int secondes = (int) Math.round(valeur);
+        if (cle.equals("appel")) {
+            b.appel(secondes);
+        } else if (cle.equals("probabiliteRappel")) {
+            b.probabiliteRappel(valeur);
+        } else if (cle.equals("rappel")) {
+            b.rappel(secondes);
+        } else if (cle.equals("echauffement")) {
+            b.echauffement(secondes);
+        } else if (cle.equals("pauseEntreManches")) {
+            b.pauseEntreManches(secondes);
+        } else if (cle.equals("probabiliteTempsMort")) {
+            b.probabiliteTempsMort(valeur);
+        } else if (cle.equals("feuille")) {
+            b.feuille(secondes);
+        } else {
+            throw new IllegalArgumentException("Variable de temps autour du match inconnue : " + cle);
+        }
+        return b.build();
+    }
+
+    /** Total moyen par match de {@code manches} manches, en secondes (somme des groupes). */
+    public double totalParMatch(int manches) {
+        return moyenne(manches);
     }
 
     public int getAppel() {

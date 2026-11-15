@@ -1,8 +1,13 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.ComparaisonStrategies;
+import com.pingmanager.core.PrevisionTournoi.EffectifTableau;
+import com.pingmanager.core.PrevisionTournoi.PrevisionJournee;
+import com.pingmanager.core.RemplissageSimulation;
 import com.pingmanager.core.ResultatSimulation;
 import com.pingmanager.core.ResultatSimulation.BilanTableau;
+import com.pingmanager.core.SimulateurTournoi;
+import com.pingmanager.core.StatistiquesDetaillees;
 import com.pingmanager.core.StatistiquesSimulation;
 import com.pingmanager.core.StatistiquesSimulation.StatTableau;
 import com.pingmanager.model.StrategieOrdonnancement;
@@ -13,14 +18,18 @@ import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
- * Présentation (sans JavaFX) de l'écran « Prévisions » (B025) : choix de la
- * stratégie du club, lecture des réglages de simulation, résumé chiffré d'une
- * simulation, une ligne par tableau et comparaison de deux stratégies.
+ * Présentation (sans JavaFX) de l'écran « Prévisions et stratégie » (B025,
+ * refait en B050) : les trois cartes de stratégie, l'explication du calcul, la
+ * lecture des réglages (tables, durées, fin visée jour et heure, temps autour
+ * du match par groupes, remplissage des tableaux) et les statistiques des trois
+ * stratégies regroupées par thème.
  */
 final class PresentationPrevisions {
 
@@ -28,7 +37,6 @@ final class PresentationPrevisions {
     static final String TITRE_CARTE = "Stratégie d'ordonnancement";
     static final int TABLES_PAR_DEFAUT = 16;
     static final String ERREUR_TABLES = "Indiquez un nombre de tables entre 1 et 200.";
-    static final String ERREUR_GRAINE = "La graine doit être un nombre entier (par exemple 2027).";
     static final String AVERTISSEMENT = "Prévision indicative : les parties sont simulées avec la durée estimée "
             + "et un vainqueur tiré selon les points. Le juge-arbitre reste maître de l'ordre des parties.";
 
@@ -83,19 +91,6 @@ final class PresentationPrevisions {
         try {
             int n = Integer.parseInt(saisie == null ? "" : saisie.trim());
             return n >= 1 && n <= 200 ? n : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    /** @return la graine saisie (vide : 1), ou {@code null} si elle est invalide (voir {@link #ERREUR_GRAINE}). */
-    static Long lireGraine(String saisie) {
-        String s = saisie == null ? "" : saisie.trim();
-        if (s.isEmpty()) {
-            return 1L;
-        }
-        try {
-            return Long.parseLong(s);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -236,8 +231,6 @@ final class PresentationPrevisions {
     // Simulation statistique : réglages
     // ------------------------------------------------------------------
 
-    static final int TIRAGES_PAR_DEFAUT = 100;
-    static final String ERREUR_TIRAGES = "Indiquez un nombre de tirages entre 1 et 1000.";
     static final String ERREUR_DUREES = "Indiquez les durées d'un match en minutes (nombres entiers).";
     /** Durées par défaut d'un match en trois manches gagnantes : moyenne, minimum, maximum (minutes). */
     static final int DUREE_MOYENNE = 20;
@@ -248,20 +241,6 @@ final class PresentationPrevisions {
             + "tirées entre le minimum et le maximum (les matchs longs sont rares). Les trois stratégies "
             + "jouent exactement les mêmes tirages : les écarts viennent de la stratégie seule. "
             + "Le juge-arbitre reste maître de l'ordre des parties.";
-
-    /** @return le nombre de tirages saisi (vide : {@value #TIRAGES_PAR_DEFAUT}), ou {@code null} s'il est invalide. */
-    static Integer lireTirages(String saisie) {
-        String s = saisie == null ? "" : saisie.trim();
-        if (s.isEmpty()) {
-            return TIRAGES_PAR_DEFAUT;
-        }
-        try {
-            int n = Integer.parseInt(s);
-            return n >= 1 && n <= 1000 ? n : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 
     /** Loi des durées lue à l'écran, ou le message d'erreur à afficher. */
     record ReglageDurees(LoiDureeMatch loi, String erreur) {
@@ -302,47 +281,11 @@ final class PresentationPrevisions {
     static final String ERREUR_ANNEXES = "Indiquez les temps autour du match en nombres (minutes, secondes "
             + "ou pourcentages, par exemple 1,5).";
 
-    /** Valeurs proposées à l'écran (celles de {@link TempsAnnexesMatch#PAR_DEFAUT}). */
-    static final String APPEL = "1";
-    static final String RAPPEL_POURCENT = "15";
-    static final String RAPPEL_MINUTES = "3";
-    static final String ECHAUFFEMENT = "2";
-    static final String PAUSE_SECONDES = "30";
-    static final String TEMPS_MORT_POURCENT = "20";
-    static final String FEUILLE = "1,5";
-
-    /**
-     * @return les temps autour du jeu : appel (min), joueur à rappeler (%), retard
-     *         d'un rappel (min), échauffement (min), pause entre manches (s),
-     *         temps mort pris par un joueur (%), retour de la feuille (min).
-     */
-    static ReglageAnnexes lireTempsAnnexes(String appel, String rappelPourcent, String rappelMinutes,
-                                           String echauffement, String pauseSecondes, String tempsMortPourcent,
-                                           String feuille) {
-        Double a = nombre(appel, APPEL);
-        Double rp = nombre(rappelPourcent, RAPPEL_POURCENT);
-        Double rm = nombre(rappelMinutes, RAPPEL_MINUTES);
-        Double e = nombre(echauffement, ECHAUFFEMENT);
-        Double p = nombre(pauseSecondes, PAUSE_SECONDES);
-        Double tm = nombre(tempsMortPourcent, TEMPS_MORT_POURCENT);
-        Double f = nombre(feuille, FEUILLE);
-        if (a == null || rp == null || rm == null || e == null || p == null || tm == null || f == null) {
-            return new ReglageAnnexes(null, ERREUR_ANNEXES);
-        }
-        try {
-            return new ReglageAnnexes(TempsAnnexesMatch.builder()
-                    .appel((int) Math.round(a * 60)).probabiliteRappel(rp / 100).rappel((int) Math.round(rm * 60))
-                    .echauffement((int) Math.round(e * 60)).pauseEntreManches((int) Math.round(p))
-                    .probabiliteTempsMort(tm / 100).feuille((int) Math.round(f * 60)).build(), null);
-        } catch (IllegalArgumentException ex) {
-            return new ReglageAnnexes(null, ex.getMessage());
-        }
-    }
-
     private static Double nombre(String saisie, String defaut) {
         String s = saisie == null || saisie.isBlank() ? defaut : saisie.trim();
         try {
-            return Double.parseDouble(s.replace(',', '.'));
+            double v = Double.parseDouble(s.replace(',', '.'));
+            return Double.isFinite(v) ? Double.valueOf(v) : null;
         } catch (NumberFormatException e) {
             return null;
         }
@@ -777,6 +720,660 @@ final class PresentationPrevisions {
             }
         }
         return false;
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : les trois cartes de stratégie
+    // ------------------------------------------------------------------
+
+    /** Deux lignes sous le titre de l'écran. */
+    static final String MICRO_DESCRIPTION = "La stratégie décide de l'ordre des matchs proposés en salle le jour J.\n"
+            + "Choisissez celle du club, puis comparez les trois avec les prévisions : vous pouvez en changer "
+            + "à tout moment.";
+    static final String BOUTON_CHOISIR = "Choisir cette stratégie";
+    static final String MARQUE_CHOISIE = "Stratégie choisie";
+    static final String MARQUE_PAR_DEFAUT = "Appliquée par défaut";
+    static final String RUBRIQUE_LANCEMENT = "Comment elle lance les matchs";
+    static final String RUBRIQUE_TOURNOI = "Pour quel tournoi";
+    static final String RUBRIQUE_POINT_FAIBLE = "Son point faible";
+
+    /**
+     * Une carte de stratégie : nom, trois lignes d'information, et son état.
+     *
+     * @param choisie vrai si le club a choisi cette stratégie (bouton inactif, carte marquée)
+     * @param marque  « Stratégie choisie », « Appliquée par défaut » tant que rien n'est choisi, sinon {@code null}
+     */
+    record CarteStrategie(StrategieOrdonnancement strategie, String nom, String lancement, String pourQuelTournoi,
+                          String pointFaible, boolean choisie, String marque) {
+    }
+
+    /** @return les trois cartes, dans l'ordre de l'énumération. */
+    static List<CarteStrategie> cartes(Tournoi tournoi) {
+        StrategieOrdonnancement actuelle = tournoi.getStrategieOrdonnancement();
+        boolean choisie = tournoi.strategieOrdonnancementChoisie();
+        List<CarteStrategie> cartes = new ArrayList<>();
+        for (StrategieOrdonnancement s : StrategieOrdonnancement.values()) {
+            boolean laSienne = s == actuelle;
+            cartes.add(new CarteStrategie(s, s.getLibelle(), lancement(s), pourQuelTournoi(s), s.getContrepartie(),
+                    laSienne && choisie, laSienne ? (choisie ? MARQUE_CHOISIE : MARQUE_PAR_DEFAUT) : null));
+        }
+        return cartes;
+    }
+
+    private static String lancement(StrategieOrdonnancement s) {
+        if (s == StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES) {
+            return "Les tableaux commencés le plus tôt passent en premier, tours les plus avancés d'abord ; "
+                    + "chaque tableau joue sa finale dès qu'elle est prête.";
+        }
+        if (s == StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT) {
+            return "Tous les tableaux avancent ensemble, par vagues : les poules, puis chaque tour une fois le "
+                    + "précédent entièrement fini. Les finales sont gardées pour la fin.";
+        }
+        if (s == StrategieOrdonnancement.MINIMISER_ATTENTE) {
+            return "Les matchs qui attendent depuis le plus longtemps partent d'abord, ainsi que ceux des "
+                    + "joueurs attendus dans un autre tableau.";
+        }
+        return s.getExplication();
+    }
+
+    private static String pourQuelTournoi(StrategieOrdonnancement s) {
+        if (s == StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES) {
+            return "Beaucoup de tableaux qui se succèdent dans la journée : les premiers finissent vite, leurs "
+                    + "joueurs repartent tôt et la salle se libère pour les suivants.";
+        }
+        if (s == StrategieOrdonnancement.FAIRE_AVANCER_PETIT_A_PETIT) {
+            return "Un tournoi qui veut toutes ses finales ensemble en fin de journée, avec assez de tables "
+                    + "pour ne pas être pressé par l'heure.";
+        }
+        if (s == StrategieOrdonnancement.MINIMISER_ATTENTE) {
+            return "Beaucoup de joueurs inscrits dans plusieurs tableaux, ou un club qui fait passer le "
+                    + "confort des joueurs avant tout.";
+        }
+        return "Tout tournoi.";
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : explication du calcul
+    // ------------------------------------------------------------------
+
+    static final String TITRE_PREVISIONS = "Prévisions";
+    static final String TITRE_EXPLICATION = "Comment sont calculées ces prévisions";
+
+    /** Un paragraphe de l'explication : un titre court et son texte. */
+    record Explication(String titre, String texte) {
+    }
+
+    /** @return l'explication du calcul, dans l'ordre de lecture. */
+    static List<Explication> explications() {
+        int n = SimulateurTournoi.NOMBRE_DE_TIRAGES;
+        return List.of(
+                new Explication("Le tournoi est rejoué " + n + " fois",
+                        "Chaque journée est jouée " + n + " fois avec chacune des trois stratégies. À chaque "
+                                + "tirage : d'autres poules, d'autres vainqueurs (tirés selon les points des "
+                                + "joueurs) et d'autres durées de match. Les trois stratégies jouent exactement "
+                                + "les mêmes " + n + " tirages : les écarts entre elles viennent de la stratégie "
+                                + "seule, pas du hasard."),
+                new Explication("La durée d'un match",
+                        "Elle est tirée au hasard entre le minimum et le maximum que vous réglez. La plupart "
+                                + "des matchs durent un peu plus que le minimum ; les matchs longs sont de plus "
+                                + "en plus rares à l'approche du maximum. Sur l'ensemble des matchs, la moyenne "
+                                + "retombe sur la durée moyenne réglée. Ces durées valent pour un match en cinq "
+                                + "manches ; en trois manches : deux tiers, en sept manches : quatre tiers."),
+                new Explication("Le temps autour du match",
+                        "À la durée du jeu s'ajoutent, pour chaque match, l'appel des joueurs (et parfois un "
+                                + "rappel), l'échauffement, les pauses entre les manches, les temps morts et le "
+                                + "retour de la feuille : pendant ce temps, la table et les joueurs restent "
+                                + "occupés."),
+                new Explication("Lire les chiffres",
+                        "Moyenne : la moyenne des " + n + " tirages. Médiane : une fois sur deux, c'est fini "
+                                + "avant. Au plus tôt et au plus tard : le tirage le plus rapide et le plus lent "
+                                + "des " + n + ". Cas rare : 1 tirage sur 20 fait mieux (ou pire). Risque : la "
+                                + "part des tirages qui dépassent la fin visée (12 % = 12 tirages sur " + n
+                                + ")."),
+                new Explication("Une aide, pas une promesse",
+                        "Ces prévisions comparent les stratégies à réglages égaux. Le jour J, le juge-arbitre "
+                                + "reste maître de l'ordre des parties."));
+    }
+
+    /** @return le message affiché pendant le calcul. */
+    static String messageSimulationEnCours() {
+        return "Simulation en cours : chaque journée est rejouée " + SimulateurTournoi.NOMBRE_DE_TIRAGES
+                + " fois avec les trois stratégies…";
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : fin visée d'une journée, jour et heure
+    // ------------------------------------------------------------------
+
+    static final String AIDE_FIN_VISEE = "Chaque journée est simulée seule. Sa fin visée peut tomber le lendemain "
+            + "(un samedi fini à 1 h du matin vise dimanche 1 h). Le risque de dépassement se mesure sur cet "
+            + "instant.";
+
+    /** Fin visée proposée à l'écran pour une journée : l'heure (« 20:00 ») et vrai si elle tombe le lendemain. */
+    record FinProposee(LocalDate journee, String heure, boolean lendemain) {
+    }
+
+    /** @return une proposition par journée, à partir des fins visées proposées par le simulateur. */
+    static List<FinProposee> finsProposees(Map<LocalDate, LocalDateTime> proposees) {
+        List<FinProposee> liste = new ArrayList<>();
+        for (Map.Entry<LocalDate, LocalDateTime> e : new java.util.TreeMap<>(proposees).entrySet()) {
+            LocalDateTime t = e.getValue();
+            if (t == null) {
+                liste.add(new FinProposee(e.getKey(), FIN_VISEE_PAR_DEFAUT, false));
+            } else {
+                liste.add(new FinProposee(e.getKey(), String.format("%02d:%02d", t.getHour(), t.getMinute()),
+                        t.toLocalDate().isAfter(e.getKey())));
+            }
+        }
+        return liste;
+    }
+
+    /** « Le jour même (samedi 10 avril) » ou « Le lendemain (dimanche 11 avril) ». */
+    static String libelleChoixJour(LocalDate journee, boolean lendemain) {
+        return lendemain ? "Le lendemain (" + jourEnClair(journee.plusDays(1)) + ")"
+                : "Le jour même (" + jourEnClair(journee) + ")";
+    }
+
+    /** Fin visée lue à l'écran (jour et heure), ou le message d'erreur à afficher. */
+    record ReglageFinVisee(LocalDateTime instant, String erreur) {
+    }
+
+    /**
+     * @param journee   journée de compétition
+     * @param heure     heure saisie (« 20:00 », « 1 h », « 1h30 »)
+     * @param lendemain vrai si l'heure tombe le lendemain de la journée
+     * @return l'instant visé, ou l'erreur (heure vide ou illisible)
+     */
+    static ReglageFinVisee lireFinVisee(LocalDate journee, String heure, boolean lendemain) {
+        LocalTime h = heure == null || heure.isBlank() ? null : lireFinVisee(heure);
+        if (h == null) {
+            return new ReglageFinVisee(null, libelleJour(journee) + " : " + ERREUR_FIN_VISEE);
+        }
+        return new ReglageFinVisee(com.pingmanager.core.ReglagesPrevision.instantFinVisee(journee, h, lendemain),
+                null);
+    }
+
+    /** « Samedi 10 avril, fin visée dimanche 11 avril à 1 h ». */
+    static String phraseFinVisee(LocalDate journee, LocalDateTime instant) {
+        if (instant == null) {
+            return libelleJour(journee);
+        }
+        return libelleJour(journee) + ", fin visée " + jourEnClair(instant.toLocalDate()) + " à "
+                + heureCourte(instant.toLocalTime());
+    }
+
+    /** Aperçu sous les champs : la phrase de fin visée, ou l'erreur de saisie. */
+    static String apercuFinVisee(LocalDate journee, String heure, boolean lendemain) {
+        ReglageFinVisee r = lireFinVisee(journee, heure, lendemain);
+        return r.erreur() != null ? r.erreur() : phraseFinVisee(journee, r.instant());
+    }
+
+    /** « samedi 10 avril ». */
+    static String jourEnClair(LocalDate jour) {
+        String j = jour.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRENCH);
+        String m = jour.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRENCH);
+        return j + " " + jour.getDayOfMonth() + " " + m;
+    }
+
+    /** « 1 h », « 20 h 30 ». */
+    static String heureCourte(LocalTime h) {
+        return h.getMinute() == 0 ? h.getHour() + " h"
+                : h.getHour() + " h " + (h.getMinute() < 10 ? "0" : "") + h.getMinute();
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : temps autour du match, par groupes
+    // ------------------------------------------------------------------
+
+    /** Nombre de manches du match de référence pour les moyennes affichées. */
+    static final int MANCHES_REFERENCE = 5;
+    static final String UNITE_MINUTES = "min";
+    static final String AIDE_ANNEXES = "Ajoutés à la durée du jeu : la table et les joueurs restent occupés. "
+            + "Échauffement de 2 min avant la partie (3.4.3.1), pause d'une minute au plus entre deux manches "
+            + "(3.4.4.1.1), un temps mort d'une minute au plus par joueur (3.4.4.2).";
+
+    /**
+     * Un champ de temps autour du match.
+     *
+     * @param cle     clé de la variable du cœur ({@link TempsAnnexesMatch.Variable#cle()})
+     * @param libelle libellé avec l'unité (« Appel des joueurs (min) »)
+     * @param unite   « min », « s » ou « % »
+     * @param valeur  valeur proposée, dans cette unité (« 1,5 »)
+     */
+    record ChampAnnexe(String cle, String libelle, String unite, String valeur) {
+    }
+
+    /** Un groupe de champs (« Avant le match »…) et ce qu'il coûte en moyenne par match. */
+    record GroupeAnnexes(String nom, List<ChampAnnexe> champs, String moyenne) {
+        GroupeAnnexes {
+            champs = List.copyOf(champs);
+        }
+    }
+
+    /**
+     * @return les groupes de champs à afficher, lus dans le cœur
+     *         ({@link TempsAnnexesMatch#groupes}) : une variable ajoutée au cœur
+     *         apparaît ici sans toucher à l'écran.
+     */
+    static List<GroupeAnnexes> groupesAnnexes() {
+        List<GroupeAnnexes> groupes = new ArrayList<>();
+        for (TempsAnnexesMatch.Groupe g : TempsAnnexesMatch.PAR_DEFAUT.groupes(MANCHES_REFERENCE)) {
+            List<ChampAnnexe> champs = new ArrayList<>();
+            for (TempsAnnexesMatch.Variable v : g.variables()) {
+                String unite = uniteAffichee(v);
+                champs.add(new ChampAnnexe(v.cle(), v.libelle() + " (" + unite + ")", unite,
+                        nombre(v.valeur() / diviseur(unite))));
+            }
+            groupes.add(new GroupeAnnexes(g.nom(), champs, moyenneGroupe(g.moyenneSecondes())));
+        }
+        return groupes;
+    }
+
+    /** Unité d'affichage, fixée par la valeur de départ : minutes dès une minute, sinon secondes. */
+    private static String uniteAffichee(TempsAnnexesMatch.Variable v) {
+        if (TempsAnnexesMatch.UNITE_PROBABILITE.equals(v.unite())) {
+            return TempsAnnexesMatch.UNITE_PROBABILITE;
+        }
+        return v.valeur() >= 60 ? UNITE_MINUTES : TempsAnnexesMatch.UNITE_SECONDES;
+    }
+
+    /** Par combien diviser la valeur du cœur (secondes, ou 0 à 1) pour l'afficher dans l'unité. */
+    private static double diviseur(String unite) {
+        if (UNITE_MINUTES.equals(unite)) {
+            return 60;
+        }
+        return TempsAnnexesMatch.UNITE_PROBABILITE.equals(unite) ? 0.01 : 1;
+    }
+
+    /**
+     * @param saisies valeur saisie par clé de variable, dans l'unité affichée ;
+     *                une clé absente ou vide garde la valeur de départ
+     * @return les temps autour du match, ou l'erreur à afficher
+     */
+    static ReglageAnnexes lireTempsAnnexes(Map<String, String> saisies) {
+        TempsAnnexesMatch temps = TempsAnnexesMatch.PAR_DEFAUT;
+        try {
+            for (TempsAnnexesMatch.Groupe g : TempsAnnexesMatch.PAR_DEFAUT.groupes(MANCHES_REFERENCE)) {
+                for (TempsAnnexesMatch.Variable v : g.variables()) {
+                    String saisie = saisies.get(v.cle());
+                    if (saisie == null || saisie.isBlank()) {
+                        continue;
+                    }
+                    Double valeur = nombre(saisie, "");
+                    if (valeur == null) {
+                        return new ReglageAnnexes(null, ERREUR_ANNEXES);
+                    }
+                    temps = temps.avec(v.cle(), valeur * diviseur(uniteAffichee(v)));
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            return new ReglageAnnexes(null, e.getMessage());
+        }
+        return new ReglageAnnexes(temps, null);
+    }
+
+    /** Ce que coûtent les temps saisis : une moyenne par groupe (dans l'ordre des groupes) et le total. */
+    record ResumeAnnexes(List<String> moyennes, String total) {
+        ResumeAnnexes {
+            moyennes = List.copyOf(moyennes);
+        }
+    }
+
+    /** @return le résumé des temps saisis ; sur une saisie invalide, le total porte l'erreur. */
+    static ResumeAnnexes resumeAnnexes(Map<String, String> saisies) {
+        ReglageAnnexes r = lireTempsAnnexes(saisies);
+        if (r.erreur() != null) {
+            return new ResumeAnnexes(List.of(), r.erreur());
+        }
+        List<String> moyennes = new ArrayList<>();
+        for (TempsAnnexesMatch.Groupe g : r.temps().groupes(MANCHES_REFERENCE)) {
+            moyennes.add(moyenneGroupe(g.moyenneSecondes()));
+        }
+        return new ResumeAnnexes(moyennes, "Total autour d'un match joué en " + MANCHES_REFERENCE + " manches : "
+                + minutesDecimales(r.temps().totalParMatch(MANCHES_REFERENCE) / 60.0)
+                + " en moyenne, en plus de la durée du jeu.");
+    }
+
+    private static String moyenneGroupe(double secondes) {
+        return minutesDecimales(secondes / 60.0) + " en moyenne par match";
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : remplissage des tableaux
+    // ------------------------------------------------------------------
+
+    static final String AIDE_REMPLISSAGE = "Hypothèse de prévision, rien n'est modifié dans le tournoi. Avec un "
+            + "taux, la simulation joue « places × taux » joueurs dans chaque tableau limité en places : elle "
+            + "complète avec des joueurs fictifs s'il y a moins d'inscrits, elle écarte les derniers inscrits "
+            + "s'il y en a plus. Le taux d'un tableau prime sur le taux global.";
+    static final String ERREUR_TAUX = "Indiquez un taux de remplissage entre 0 et 100 % (par exemple 80).";
+    static final String INVITE_TAUX_TABLEAU = "Taux global";
+
+    /** Choix global de remplissage. Le taux est porté par la constante (pas de {@code switch}). */
+    enum ChoixRemplissage {
+        INSCRITS_REELS("Inscrits réels", null),
+        PLEIN("100 %", RemplissageSimulation.TAUX_PLEIN),
+        QUATRE_VINGT_QUINZE("95 %", RemplissageSimulation.TAUX_95),
+        AUTRE("Autre valeur", null);
+
+        private final String libelle;
+        private final Double taux;
+
+        ChoixRemplissage(String libelle, Double taux) {
+            this.libelle = libelle;
+            this.taux = taux;
+        }
+
+        String libelle() {
+            return libelle;
+        }
+    }
+
+    /** Remplissage lu à l'écran, ou le message d'erreur à afficher. */
+    record ReglageRemplissage(RemplissageSimulation remplissage, String erreur) {
+    }
+
+    /** @return le taux saisi (« 80 », « 80 % », « 87,5 ») entre 0 et 1, ou {@code null} s'il est invalide. */
+    static Double lireTaux(String saisie) {
+        if (saisie == null || saisie.isBlank()) {
+            return null;
+        }
+        Double v = nombre(saisie.replace("%", "").trim(), "");
+        return v == null || v.isNaN() || v < 0 || v > 100 ? null : Double.valueOf(v / 100);
+    }
+
+    /**
+     * @param choix      choix global
+     * @param autre      taux saisi quand le choix est {@link ChoixRemplissage#AUTRE}
+     * @param parTableau taux propre saisi par nom de tableau (vide : le taux global s'applique)
+     */
+    static ReglageRemplissage lireRemplissage(ChoixRemplissage choix, String autre, Map<String, String> parTableau) {
+        RemplissageSimulation r = RemplissageSimulation.INSCRITS_REELS;
+        if (choix == ChoixRemplissage.AUTRE) {
+            Double taux = lireTaux(autre);
+            if (taux == null) {
+                return new ReglageRemplissage(null, "Taux global : " + ERREUR_TAUX);
+            }
+            r = RemplissageSimulation.global(taux);
+        } else if (choix != null && choix.taux != null) {
+            r = RemplissageSimulation.global(choix.taux);
+        }
+        for (Map.Entry<String, String> e : parTableau.entrySet()) {
+            if (e.getValue() == null || e.getValue().isBlank()) {
+                continue;
+            }
+            Double taux = lireTaux(e.getValue());
+            if (taux == null) {
+                return new ReglageRemplissage(null, "Tableau « " + e.getKey() + " » : " + ERREUR_TAUX);
+            }
+            r = r.avecTableau(e.getKey(), taux);
+        }
+        return new ReglageRemplissage(r, null);
+    }
+
+    /**
+     * Aperçu d'un tableau : ce que la simulation jouera.
+     *
+     * @param reglable faux pour un tableau sans limite de places (un taux n'y change rien)
+     * @param effet    « + 4 fictifs », « 3 inscrits écartés » ou « Inscrits réels »
+     */
+    record LigneRemplissage(String nom, String inscrits, String capacite, String taux, String simules, String effet,
+                            StatutPastille statut, boolean reglable) {
+    }
+
+    /** @return une ligne d'aperçu par tableau, dans l'ordre reçu (celui du tournoi). */
+    static List<LigneRemplissage> lignesRemplissage(List<EffectifTableau> effectifs) {
+        List<LigneRemplissage> lignes = new ArrayList<>();
+        for (EffectifTableau e : effectifs) {
+            String effet;
+            StatutPastille statut;
+            if (e.fictifs() > 0) {
+                effet = "+ " + e.fictifs() + (e.fictifs() > 1 ? " fictifs" : " fictif");
+                statut = StatutPastille.INFO;
+            } else if (e.ecartes() > 0) {
+                effet = e.ecartes() + (e.ecartes() > 1 ? " inscrits écartés" : " inscrit écarté");
+                statut = StatutPastille.ATTENTION;
+            } else {
+                effet = "Inscrits réels";
+                statut = StatutPastille.NEUTRE;
+            }
+            boolean limite = e.capacite() > 0;
+            lignes.add(new LigneRemplissage(e.nom(), String.valueOf(e.inscrits()),
+                    limite ? String.valueOf(e.capacite()) : "Sans limite",
+                    !limite || e.taux() < 0 ? "—" : pourcent(e.taux()), String.valueOf(e.simules()), effet, statut,
+                    limite));
+        }
+        return lignes;
+    }
+
+    /** « 184 inscriptions simulées pour 152 réelles : 36 fictifs ajoutés, 4 inscrits écartés. » (tableaux cumulés). */
+    static String resumeRemplissage(List<EffectifTableau> effectifs) {
+        int inscrits = 0;
+        int simules = 0;
+        int fictifs = 0;
+        int ecartes = 0;
+        for (EffectifTableau e : effectifs) {
+            inscrits += e.inscrits();
+            simules += e.simules();
+            fictifs += e.fictifs();
+            ecartes += e.ecartes();
+        }
+        if (effectifs.isEmpty()) {
+            return "Aucun tableau à simuler.";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(simules).append(" inscriptions simulées pour ").append(inscrits).append(" réelles");
+        if (fictifs == 0 && ecartes == 0) {
+            return sb.append(" : les tableaux sont joués avec leurs inscrits.").toString();
+        }
+        sb.append(" : ");
+        if (fictifs > 0) {
+            sb.append(fictifs).append(fictifs > 1 ? " fictifs ajoutés" : " fictif ajouté");
+        }
+        if (ecartes > 0) {
+            sb.append(fictifs > 0 ? ", " : "").append(ecartes)
+                    .append(ecartes > 1 ? " inscrits écartés" : " inscrit écarté");
+        }
+        return sb.append('.').toString();
+    }
+
+    // ------------------------------------------------------------------
+    // B050 : statistiques des trois stratégies, par thème
+    // ------------------------------------------------------------------
+
+    /** Nombre de tableaux à risque listés par stratégie. */
+    static final int TABLEAUX_A_RISQUE_AFFICHES = 3;
+    static final String MARQUE_COLONNE_CHOISIE = "Votre stratégie";
+
+    /** Un thème de statistiques : son titre, une phrase d'aide et ses lignes (une valeur par stratégie). */
+    record GroupeStatistiques(String titre, String aide, List<LigneStrategies> lignes) {
+        GroupeStatistiques {
+            lignes = List.copyOf(lignes);
+        }
+    }
+
+    /**
+     * @return les statistiques d'une journée regroupées par thème, dans l'ordre
+     *         de l'écran ; les heures sont dites dans la journée (« 1 h 10
+     *         (lendemain) » après minuit).
+     */
+    static List<GroupeStatistiques> groupesStatistiques(PrevisionJournee journee) {
+        List<StatistiquesSimulation> stats = journee.strategies();
+        LocalDate jour = journee.jour();
+        List<GroupeStatistiques> groupes = new ArrayList<>();
+
+        List<LigneStrategies> fin = new ArrayList<>();
+        fin.add(ligne("Fin moyenne", stats, s -> secondes(s.finMoyenne()), s -> heureDuJour(s.finMoyenne(), jour)));
+        fin.add(ligne("Fin médiane (une fois sur deux, c'est fini avant)", stats, s -> secondes(s.finMediane()),
+                s -> heureDuJour(s.finMediane(), jour)));
+        fin.add(ligne("Fin au plus tôt (le tirage le plus rapide)", stats, s -> secondes(s.detail().finAuPlusTot()),
+                s -> heureDuJour(s.detail().finAuPlusTot(), jour)));
+        fin.add(ligne("Fin au plus tard (le tirage le plus lent)", stats, s -> secondes(s.detail().finAuPlusTard()),
+                s -> heureDuJour(s.detail().finAuPlusTard(), jour)));
+        fin.add(ligne("Cas rare : fin tôt (1 fois sur 20)", stats, s -> secondes(s.finTot()),
+                s -> heureDuJour(s.finTot(), jour)));
+        fin.add(ligne("Cas rare : fin tard (1 fois sur 20)", stats, s -> secondes(s.finTard()),
+                s -> heureDuJour(s.finTard(), jour)));
+        fin.add(ligne("Dispersion de l'heure de fin (écart-type)", stats, s -> Math.round(s.detail().ecartTypeFin()),
+                s -> "± " + minutes(Math.round(s.detail().ecartTypeFin()))));
+        fin.add(ligne("Risque de dépasser la fin visée", stats,
+                s -> Math.round(s.detail().probabiliteDepassement() * 100),
+                s -> pourcent(s.detail().probabiliteDepassement())));
+        fin.add(ligne("Dépassement moyen de la fin visée", stats, s -> Math.round(s.detail().depassementMoyen()),
+                s -> minutes(Math.round(s.detail().depassementMoyen()))));
+        fin.add(ligne("Plus grand dépassement observé", stats, s -> s.detail().depassementMax(),
+                s -> minutes(s.detail().depassementMax())));
+        fin.add(ligne("Durée de la journée (du premier début à la dernière partie)", stats,
+                s -> s.detail().dureeJourneeMoyenne() < 0 ? Long.MAX_VALUE : Math.round(s.detail().dureeJourneeMoyenne()),
+                s -> s.detail().dureeJourneeMoyenne() < 0 ? "—" : minutes(Math.round(s.detail().dureeJourneeMoyenne()))));
+        groupes.add(new GroupeStatistiques("Fin de journée", phraseFinVisee(jour, journee.finVisee()) + ".", fin));
+
+        List<LigneStrategies> ponctualite = new ArrayList<>();
+        ponctualite.add(ligne("Début à l'heure (" + StatistiquesSimulation.RETARD_A_L_HEURE + " min de retard au plus)",
+                stats, s -> -Math.round(s.debutALHeure() * 100), s -> pourcent(s.debutALHeure())));
+        // Pas de « meilleure » valeur : peu de légers retards peut cacher beaucoup de gros retards.
+        ponctualite.add(ligneNeutre("Début en léger retard (" + StatistiquesSimulation.RETARD_A_L_HEURE + " à "
+                + StatistiquesSimulation.GROS_RETARD + " min)", stats, s -> pourcent(s.debutLegerRetard())));
+        ponctualite.add(ligne("Début en gros retard (plus de " + StatistiquesSimulation.GROS_RETARD + " min)", stats,
+                s -> Math.round(s.debutGrosRetard() * 100), s -> pourcent(s.debutGrosRetard())));
+        ponctualite.add(ligne("Retard moyen au début d'un tableau", stats,
+                s -> Math.round(s.detail().retardDebutMoyen()), s -> minutes(Math.round(s.detail().retardDebutMoyen()))));
+        ponctualite.add(ligne("Plus grand retard de début observé", stats, s -> s.detail().retardDebutMax(),
+                s -> minutes(s.detail().retardDebutMax())));
+        ponctualite.add(ligne("Fin moyenne d'un tableau", stats, s -> secondes(s.finMoyenneTableau()),
+                s -> heureDuJour(s.finMoyenneTableau(), jour)));
+        groupes.add(new GroupeStatistiques("Ponctualité des tableaux",
+                "Un tableau a vraiment commencé quand sa dernière poule a commencé.", ponctualite));
+
+        List<LigneStrategies> attente = new ArrayList<>();
+        attente.add(ligne("Attente moyenne avant un match", stats, s -> Math.round(s.attenteMoyenne()),
+                s -> minutes(Math.round(s.attenteMoyenne()))));
+        attente.add(ligne("Attente médiane avant un match", stats, s -> Math.round(s.detail().attenteMediane()),
+                s -> minutes(Math.round(s.detail().attenteMediane()))));
+        attente.add(ligne("Attente moyenne d'un joueur inscrit sur 1 tableau", stats,
+                s -> attenteCle(s.attenteUnTableau()), s -> attente(s.attenteUnTableau())));
+        attente.add(ligne("Attente moyenne d'un joueur inscrit sur 2 tableaux ou plus", stats,
+                s -> attenteCle(s.attentePlusieursTableaux()), s -> attente(s.attentePlusieursTableaux())));
+        attente.add(ligne("Plus longue attente d'une journée (moyenne des tirages)", stats,
+                s -> Math.round(s.plusLongueAttente()), s -> minutes(Math.round(s.plusLongueAttente()))));
+        attente.add(ligne("Plus longue attente observée", stats, s -> s.detail().attenteMaximale(),
+                s -> minutes(s.detail().attenteMaximale())));
+        attente.add(ligne("Plus longue pause d'un joueur entre deux matchs (moyenne des tirages)", stats,
+                s -> Math.round(s.detail().plusLonguePause()), s -> minutes(Math.round(s.detail().plusLonguePause()))));
+        attente.add(ligne("Plus longue pause observée", stats, s -> s.detail().plusLonguePauseMax(),
+                s -> minutes(s.detail().plusLonguePauseMax())));
+        groupes.add(new GroupeStatistiques("Attente des joueurs",
+                "L'attente se compte avant chaque match, à partir du moment où il pouvait être lancé.", attente));
+
+        int nbTables = journee.nombreDeTables();
+        List<LigneStrategies> tables = new ArrayList<>();
+        tables.add(ligne("Occupation des tables", stats, s -> -Math.round(s.occupationMoyenne() * 100),
+                s -> Math.round(s.occupationMoyenne() * 100) + " %"));
+        tables.add(ligneNeutre("Pic de tables occupées en même temps (moyenne des tirages)", stats,
+                s -> nombre(s.detail().picTablesMoyen()) + " sur " + nbTables));
+        tables.add(ligneNeutre("Pic le plus haut observé", stats,
+                s -> s.detail().picTablesMax() + " sur " + nbTables));
+        groupes.add(new GroupeStatistiques("Tables",
+                "Un pic égal au nombre de tables : la salle est saturée à ce moment-là.", tables));
+
+        List<LigneStrategies> finales = new ArrayList<>();
+        finales.add(ligneNeutre("Première finale lancée (en moyenne)", stats,
+                s -> heureDuJour(s.detail().debutPremiereFinale(), jour)));
+        finales.add(ligneNeutre("Dernière finale lancée (en moyenne)", stats,
+                s -> heureDuJour(s.detail().debutDerniereFinale(), jour)));
+        finales.add(ligneNeutre("Premier tableau terminé (en moyenne)", stats,
+                s -> heureDuJour(s.premiereFinale(), jour)));
+        groupes.add(new GroupeStatistiques("Finales",
+                "Finales étalées dans la journée ou regroupées à la fin : c'est un choix, pas un défaut.", finales));
+
+        groupes.add(new GroupeStatistiques("Tableaux à risque",
+                "Les tableaux qui finissent le plus souvent après la fin visée, avec leur dépassement moyen.",
+                lignesTableauxARisque(stats)));
+        groupes.add(new GroupeStatistiques("Matchs par heure",
+                "Matchs lancés dans chaque heure, en moyenne sur les tirages.", lignesMatchsParHeure(stats, jour)));
+        return groupes;
+    }
+
+    private static List<LigneStrategies> lignesTableauxARisque(List<StatistiquesSimulation> stats) {
+        List<LigneStrategies> lignes = new ArrayList<>();
+        for (int rang = 0; rang < TABLEAUX_A_RISQUE_AFFICHES; rang++) {
+            List<String> valeurs = new ArrayList<>();
+            boolean unRisque = false;
+            for (StatistiquesSimulation s : stats) {
+                List<StatistiquesDetaillees.RisqueTableau> risques = s.detail().tableauxARisque();
+                StatistiquesDetaillees.RisqueTableau r = rang < risques.size() ? risques.get(rang) : null;
+                if (r == null || r.probabiliteDebordement() <= 0) {
+                    valeurs.add(rang == 0 ? "Aucun" : "—");
+                    continue;
+                }
+                unRisque = true;
+                long depassement = Math.round(r.depassementMoyen());
+                valeurs.add(r.nom() + " : " + pourcent(r.probabiliteDebordement())
+                        + (depassement > 0 ? ", + " + minutes(depassement) : ""));
+            }
+            if (rang > 0 && !unRisque) {
+                break;
+            }
+            lignes.add(new LigneStrategies(rang == 0 ? "Le plus à risque" : (rang + 1) + "e plus à risque", valeurs, -1));
+        }
+        return lignes;
+    }
+
+    private static List<LigneStrategies> lignesMatchsParHeure(List<StatistiquesSimulation> stats, LocalDate jour) {
+        List<LigneStrategies> lignes = new ArrayList<>();
+        lignes.add(ligneNeutre("Heure la plus chargée", stats, s -> {
+            StatistiquesDetaillees.PointHoraire p = s.detail().heureLaPlusChargee();
+            return p == null ? "—" : trancheHoraire(p.heure(), jour) + " : " + nombre(p.matchs()) + " matchs";
+        }));
+        java.util.SortedSet<LocalDateTime> heures = new java.util.TreeSet<>();
+        for (StatistiquesSimulation s : stats) {
+            s.detail().matchsParHeure().forEach(p -> heures.add(p.heure()));
+        }
+        for (LocalDateTime h : heures) {
+            lignes.add(ligneNeutre(trancheHoraire(h, jour), stats, s -> {
+                for (StatistiquesDetaillees.PointHoraire p : s.detail().matchsParHeure()) {
+                    if (p.heure().equals(h)) {
+                        return nombre(p.matchs());
+                    }
+                }
+                return "0";
+            }));
+        }
+        return lignes;
+    }
+
+    /** « 14 h – 15 h », « 0 h – 1 h (lendemain) ». */
+    static String trancheHoraire(LocalDateTime debut, LocalDate jour) {
+        String t = debut.getHour() + " h – " + debut.plusHours(1).getHour() + " h";
+        return jour != null && debut.toLocalDate().isAfter(jour) ? t + " (lendemain)" : t;
+    }
+
+    private static LigneStrategies ligneNeutre(String indicateur, List<StatistiquesSimulation> stats,
+                                               java.util.function.Function<StatistiquesSimulation, String> texte) {
+        List<String> valeurs = new ArrayList<>();
+        for (StatistiquesSimulation s : stats) {
+            valeurs.add(texte.apply(s));
+        }
+        return new LigneStrategies(indicateur, valeurs, -1);
+    }
+
+    /** @return l'index de la colonne de la stratégie choisie dans la journée, ou -1. */
+    static int colonneChoisie(List<StatistiquesSimulation> stats, StrategieOrdonnancement choisie) {
+        for (int i = 0; i < stats.size(); i++) {
+            if (stats.get(i).strategie() == choisie) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** « 12,4 », « 13 » : un nombre à une décimale au plus, à la française. */
+    static String nombre(double v) {
+        double arrondi = Math.round(v * 10) / 10.0;
+        if (arrondi == Math.rint(arrondi)) {
+            return String.valueOf((long) arrondi);
+        }
+        return String.valueOf(arrondi).replace('.', ',');
     }
 
     // ------------------------------------------------------------------

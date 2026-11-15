@@ -49,4 +49,56 @@ class TempsAnnexesMatchTest {
         assertThrows(IllegalArgumentException.class, () -> TempsAnnexesMatch.builder().echauffement(-1));
         assertEquals(0, TempsAnnexesMatch.AUCUN.tirer(new Random(3), 5).total());
     }
+
+    @Test
+    void groupes_nommes_dont_la_somme_fait_le_total_par_match() {
+        TempsAnnexesMatch t = TempsAnnexesMatch.PAR_DEFAUT;
+        java.util.List<TempsAnnexesMatch.Groupe> groupes = t.groupes(5);
+        assertEquals(java.util.List.of("Avant le match", "Pendant le match", "Après le match"),
+                groupes.stream().map(TempsAnnexesMatch.Groupe::nom).toList());
+        assertEquals(7, groupes.stream().mapToInt(g -> g.variables().size()).sum(), "les sept valeurs actuelles");
+        double somme = groupes.stream().mapToDouble(TempsAnnexesMatch.Groupe::moyenneSecondes).sum();
+        assertEquals(t.moyenne(5), somme, 1e-9);
+        assertEquals(t.totalParMatch(5), somme, 1e-9);
+        // Avant : appel 60 + 2 × 15 % × 180 + échauffement 120 ; après : feuille 90.
+        assertEquals(234, groupes.get(0).moyenneSecondes(), 1e-9);
+        assertEquals(90, groupes.get(2).moyenneSecondes(), 1e-9);
+        // Les pauses dépendent du nombre de manches, pas le reste.
+        assertTrue(t.groupes(7).get(1).moyenneSecondes() > t.groupes(3).get(1).moyenneSecondes());
+        assertEquals(groupes.get(0).moyenneSecondes(), t.groupes(3).get(0).moyenneSecondes(), 1e-9);
+    }
+
+    @Test
+    void variables_des_groupes_valeurs_reglees_et_unites() {
+        TempsAnnexesMatch t = TempsAnnexesMatch.builder().appel(45).probabiliteRappel(0.3).feuille(200).build();
+        java.util.Map<String, TempsAnnexesMatch.Variable> parCle = new java.util.HashMap<>();
+        t.groupes(5).forEach(g -> g.variables().forEach(v -> parCle.put(v.cle(), v)));
+        assertEquals(45, parCle.get("appel").valeur());
+        assertEquals(TempsAnnexesMatch.UNITE_SECONDES, parCle.get("appel").unite());
+        assertEquals(0.3, parCle.get("probabiliteRappel").valeur());
+        assertEquals(TempsAnnexesMatch.UNITE_PROBABILITE, parCle.get("probabiliteRappel").unite());
+        assertEquals(200, parCle.get("feuille").valeur());
+        assertTrue(parCle.values().stream().noneMatch(v -> v.libelle().isBlank()));
+        assertEquals(0, TempsAnnexesMatch.AUCUN.groupes(5).stream()
+                .mapToDouble(TempsAnnexesMatch.Groupe::moyenneSecondes).sum());
+    }
+
+    @Test
+    void une_variable_se_regle_par_sa_cle_sans_toucher_aux_autres() {
+        TempsAnnexesMatch t = TempsAnnexesMatch.PAR_DEFAUT.avec("appel", 45).avec("probabiliteTempsMort", 0.5);
+        assertEquals(45, t.getAppel());
+        assertEquals(0.5, t.getProbabiliteTempsMort(), 1e-9);
+        assertEquals(TempsAnnexesMatch.PAR_DEFAUT.getFeuille(), t.getFeuille());
+        assertEquals(60, TempsAnnexesMatch.PAR_DEFAUT.getAppel(), "l'original est inchangé");
+        // Toute variable présentée dans les groupes est réglable par sa clé.
+        for (TempsAnnexesMatch.Groupe g : TempsAnnexesMatch.PAR_DEFAUT.groupes(5)) {
+            for (TempsAnnexesMatch.Variable v : g.variables()) {
+                assertEquals(TempsAnnexesMatch.PAR_DEFAUT.moyenne(5),
+                        TempsAnnexesMatch.PAR_DEFAUT.avec(v.cle(), v.valeur()).moyenne(5), 1e-9, v.cle());
+            }
+        }
+        assertThrows(IllegalArgumentException.class, () -> TempsAnnexesMatch.PAR_DEFAUT.avec("inconnue", 1));
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> TempsAnnexesMatch.PAR_DEFAUT.avec("pauseEntreManches", 90)).getMessage().contains("3.4.4.1.1"));
+    }
 }
