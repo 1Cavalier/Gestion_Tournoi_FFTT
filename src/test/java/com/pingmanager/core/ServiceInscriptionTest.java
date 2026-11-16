@@ -39,6 +39,7 @@ class ServiceInscriptionTest {
         for (Tableau tb : tableaux) {
             t.ajouterTableau(tb);
         }
+        publier(t);
         return t;
     }
 
@@ -198,5 +199,11 @@ class ServiceInscriptionTest {
 
         assertEquals(Motif.INSCRIT, service.inscrire(t, j, a).getMotif());
         assertEquals(Motif.INSCRIT, service.inscrire(t, j, b).getMotif());
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

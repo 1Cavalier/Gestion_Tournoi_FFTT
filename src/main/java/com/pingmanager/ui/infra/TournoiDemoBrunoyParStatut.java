@@ -16,7 +16,7 @@ import java.util.List;
  * <ul>
  *   <li><b>demande d'homologation</b> : dossier complet, pas encore de numéro ;</li>
  *   <li><b>homologation validée</b> : numéro (fictif) enregistré, pas encore publié,
- *       tableaux remplis de joueurs fictifs ;</li>
+ *       donc <b>aucun inscrit</b> (les inscriptions n'ouvrent qu'à la publication) ;</li>
  *   <li><b>publié</b> : règlement figé, inscriptions ouvertes, tableaux remplis de joueurs
  *       fictifs (avec listes d'attente).</li>
  * </ul>
@@ -33,7 +33,7 @@ public final class TournoiDemoBrunoyParStatut {
     public static final String NOM_HOMOLOGUE = TournoiDemoBrunoy.NOM + " — homologation validée";
     public static final String NOM_PUBLIE = TournoiDemoBrunoy.NOM + " — publié";
 
-    /** Graine du remplissage : la même pour les deux copies remplies (mêmes inscrits). */
+    /** Graine du remplissage de la copie publiée (mêmes inscrits que la copie au jour J). */
     private static final long GRAINE = 1011L;
 
     private TournoiDemoBrunoyParStatut() {
@@ -47,16 +47,14 @@ public final class TournoiDemoBrunoyParStatut {
     }
 
     /**
-     * Copie homologuée (numéro fictif), pas encore publiée, remplie de joueurs fictifs.
-     *
-     * @param joueurs licenciés fictifs (la réserve de la démo)
+     * Copie homologuée (numéro fictif), pas encore publiée : aucun inscrit, les
+     * inscriptions n'ouvrent qu'à la publication ({@code PolitiqueOuverture.INSCRIPTIONS}).
      */
-    public static Tournoi homologue(List<FicheLicence> joueurs) {
+    public static Tournoi homologue() {
         Tournoi t = base(NOM_HOMOLOGUE);
         ServiceCycleTournoi cycle = new ServiceCycleTournoi();
         exiger(cycle.demanderHomologation(t), "demande d'homologation");
         exiger(cycle.homologuer(t, TournoisDemo.HOMOLOGATION_BRUNOY_DEMO), "homologation");
-        TournoisDemo.remplir(t, joueurs, TournoiDemoBrunoyJourJ.cibles(t), GRAINE, null);
         return t;
     }
 

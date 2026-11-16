@@ -289,7 +289,7 @@ public final class ContexteApplication {
      * (inchangé), demande d'homologation, homologation validée, publié
      * ({@link TournoiDemoBrunoyParStatut}) et jour J (renommé « … — jour J »).
      */
-    private static final String VERSION_DEMO = ".demo-brunoy-v21";
+    private static final String VERSION_DEMO = ".demo-brunoy-v22";
 
     /** Fichiers des anciennes démos (avant v16), supprimés au changement de version. */
     private static final List<String> ANCIENNES_DEMOS = List.of("Demo_Jour_J_Brunoy_2026",
@@ -516,8 +516,7 @@ public final class ContexteApplication {
      */
     private void amorcerCopiesParStatutDemo() {
         amorcerCopieDemo(fichierTournoiDemandeDemo(), TournoiDemoBrunoyParStatut::demandeHomologation);
-        amorcerCopieDemo(fichierTournoiHomologueDemo(),
-                () -> TournoiDemoBrunoyParStatut.homologue(DonneesDemo.JOUEURS_FICTIFS));
+        amorcerCopieDemo(fichierTournoiHomologueDemo(), TournoiDemoBrunoyParStatut::homologue);
         amorcerCopieDemo(fichierTournoiPublieDemo(),
                 () -> TournoiDemoBrunoyParStatut.publie(DonneesDemo.JOUEURS_FICTIFS));
     }

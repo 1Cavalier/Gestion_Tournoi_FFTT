@@ -38,6 +38,12 @@ class SimulationInscriptionTest {
 
     /** Samedi : A 8h (≤ 600), B 9h (≤ 1500), C 10h (≤ 900), D 11h (≤ 1800), G 16h (dames). */
     private static Tournoi tournoi() {
+        Tournoi t = tournoiBrouillon();
+        publier(t);
+        return t;
+    }
+
+    private static Tournoi tournoiBrouillon() {
         Tournoi t = new Tournoi("Test", "Club", SAMEDI);
         t.ajouterTableau(tab("A", 8, ConfigurationTableau.builder().placesMax(2).tailleMaxListeAttente(1).pointMax(600)));
         t.ajouterTableau(tab("B", 9, ConfigurationTableau.builder().placesMax(10).pointMax(1500)));
@@ -192,7 +198,7 @@ class SimulationInscriptionTest {
 
     @Test
     void calendrier_et_periode_d_inscription() {
-        Tournoi to = tournoi();
+        Tournoi to = tournoiBrouillon();
         to.setPeriode(SAMEDI, SAMEDI.plusDays(1));
         assertEquals(CalendrierTournoi.Moment.A_VENIR, CalendrierTournoi.moment(to, SAMEDI.minusDays(1)));
         assertEquals(CalendrierTournoi.Moment.EN_COURS, CalendrierTournoi.moment(to, SAMEDI.plusDays(1)));
@@ -205,5 +211,11 @@ class SimulationInscriptionTest {
                 CalendrierTournoi.etatInscriptions(to, LocalDateTime.of(2027, 1, 1, 0, 0)));
         assertEquals(CalendrierTournoi.EtatInscriptions.CLOSES,
                 CalendrierTournoi.etatInscriptions(to, SAMEDI.atStartOfDay()));
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

@@ -43,6 +43,9 @@ public final class MotifsInscription {
         if (m == ResultatInscriptionTournoi.Motif.LISTE_ATTENTE_PLEINE) {
             return "Complet, liste d'attente pleine";
         }
+        if (m == ResultatInscriptionTournoi.Motif.INSCRIPTIONS_NON_OUVERTES) {
+            return PolitiqueOuverture.MOTIF_AVANT_PUBLICATION;
+        }
         if (m == ResultatInscriptionTournoi.Motif.TOURNOI_FERME) {
             return "Les inscriptions à ce tournoi sont fermées";
         }

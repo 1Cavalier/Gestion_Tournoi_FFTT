@@ -555,6 +555,23 @@ public final class ImportJoueurs {
     // 3. Application
     // ==================================================================
 
+    /**
+     * Le tournoi accepte-t-il un import de joueurs ? Tant qu'il n'est pas publié, les
+     * inscriptions ne sont pas ouvertes ({@link PolitiqueOuverture#INSCRIPTIONS}) :
+     * aucun import. Exception laissée en l'état (décision de Quentin attendue, README
+     * section 6) : un tournoi <b>importé</b> ({@code ModePreparation.IMPORT}, préparé
+     * hors de PingManager) reçoit son classeur dès le brouillon
+     * ({@link PolitiqueOuverture#autorise(Tournoi)}).
+     *
+     * @return le motif du refus, ou {@code null} si l'import est permis
+     */
+    public static String motifRefus(Tournoi tournoi) {
+        if (tournoi.getStatut() == StatutTournoi.ANNULE) {
+            return "Tournoi annulé : import impossible.";
+        }
+        return PolitiqueOuverture.accepteJoueurs(tournoi) ? null : PolitiqueOuverture.MOTIF_AVANT_PUBLICATION;
+    }
+
     /** Bilan de l'import appliqué. */
     public record Bilan(int tableauxCrees, int inscrits, int enAttente, int refus) {
     }
@@ -566,8 +583,9 @@ public final class ImportJoueurs {
      * @param horaires horaires des tableaux créés, par nom (peut être vide)
      */
     public static Bilan appliquer(Tournoi tournoi, Plan plan, Map<String, HoraireNouveau> horaires) {
-        if (tournoi.getStatut() == StatutTournoi.ANNULE) {
-            throw new IllegalStateException("Tournoi annulé : import impossible.");
+        String refus = motifRefus(tournoi);
+        if (refus != null) {
+            throw new IllegalStateException(refus);
         }
         int crees = 0;
         int inscrits = 0;

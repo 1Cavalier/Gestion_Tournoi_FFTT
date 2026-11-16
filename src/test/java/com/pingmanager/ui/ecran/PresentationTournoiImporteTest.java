@@ -21,6 +21,7 @@ class PresentationTournoiImporteTest {
     private static Tournoi tournoi() {
         Tournoi t = new Tournoi("Open importé", "Club", JOUR);
         t.setPeriode(JOUR, JOUR);
+        t.setModePreparation(com.pingmanager.model.ModePreparation.IMPORT);
         return t;
     }
 

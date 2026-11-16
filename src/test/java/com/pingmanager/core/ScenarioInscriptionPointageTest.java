@@ -43,6 +43,7 @@ class ScenarioInscriptionPointageTest {
         Tournoi tournoi = new Tournoi("Open", "Club", LocalDate.now());
         tournoi.ajouterTableau(tableauA);
         tournoi.ajouterTableau(tableauB);
+        publier(tournoi);
 
         Joueur a = joueur("A", Sexe.HOMME);
         Joueur b = joueur("B", Sexe.HOMME);
@@ -174,5 +175,11 @@ class ScenarioInscriptionPointageTest {
         Joueur repeche = pointage.desister(a, j1);
         assertNull(repeche);
         assertFalse(a.getInscrits().contains(j1));
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

@@ -40,6 +40,9 @@ class ImportJoueursVerrousHomologationTest {
         assertEquals(1, p.sansTableau().size());
         assertTrue(p.sansTableau().get(0).message().contains("homologation"), p.sansTableau().get(0).message());
 
+        // Demande d'homologation : inscriptions pas encore ouvertes, aucun import.
+        assertThrows(IllegalStateException.class, () -> ImportJoueurs.appliquer(t, p, Map.of()));
+        publier(t); // une fois publié, la liste des tableaux reste verrouillée
         ImportJoueurs.Bilan b = ImportJoueurs.appliquer(t, p, Map.of());
         assertEquals(0, b.tableauxCrees());
         assertEquals(1, t.getTableaux().size(), "la liste des tableaux est verrouillée dès la demande");
@@ -52,6 +55,7 @@ class ImportJoueursVerrousHomologationTest {
                 List.of("Nom", "Prénom", "Points", "Club", "Tableau", "Sexe"),
                 List.of("DEUX", "Deux", "900", "C1", "Dames", "F")));
         ImportJoueurs.Plan p = ImportJoueurs.planifier(t, a, new ImportJoueurs.Options(null, true));
+        publier(t);
         ImportJoueurs.Bilan b = ImportJoueurs.appliquer(t, p, Map.of());
 
         assertEquals(1, b.inscrits());
@@ -68,9 +72,16 @@ class ImportJoueursVerrousHomologationTest {
         ImportJoueurs.Plan p = ImportJoueurs.planifier(t, a, new ImportJoueurs.Options(null, true));
         assertEquals(1, p.tableaux().size());
         assertTrue(new ServiceCycleTournoi().demanderHomologation(t).estEffectuee());
+        publier(t);
 
         ImportJoueurs.Bilan b = ImportJoueurs.appliquer(t, p, Map.of());
         assertEquals(0, b.tableauxCrees());
         assertEquals(1, t.getTableaux().size());
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

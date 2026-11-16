@@ -58,6 +58,7 @@ class QuotasJoueusesInscriptionTest {
             t.ajouterTableau(x);
         }
         t.setQuotasTableaux(QuotasTableaux.identiques(2, 3).avecTableauBonusJoueuses(bonus));
+        publier(t);
         return t;
     }
 
@@ -138,5 +139,11 @@ class QuotasJoueusesInscriptionTest {
         assertEquals(a, r.getTableauEnConflit());
         assertEquals(Motif.INSCRIT, service.inscrire(t, h, c).getMotif());      // 12 h : ne suit pas A
         assertEquals(Motif.INSCRIT, service.inscrire(t, h, samedi).getMotif()); // autre jour
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

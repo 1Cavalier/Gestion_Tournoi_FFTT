@@ -112,6 +112,10 @@ public final class ServiceInscriptionSurPlace {
         Objects.requireNonNull(tournoi, "tournoi");
         Objects.requireNonNull(joueur, "joueur");
         Objects.requireNonNull(tableau, "tableau");
+        if (!PolitiqueOuverture.accepteJoueurs(tournoi)) {
+            return tournoi.getStatut() == com.pingmanager.model.StatutTournoi.ANNULE
+                    ? "Tournoi annulé : plus aucune inscription." : PolitiqueOuverture.MOTIF_AVANT_PUBLICATION;
+        }
         if (!EliminationTableau.nAPasCommence(tableau)) {
             return "Ce tableau a déjà commencé : le tirage est fait.";
         }

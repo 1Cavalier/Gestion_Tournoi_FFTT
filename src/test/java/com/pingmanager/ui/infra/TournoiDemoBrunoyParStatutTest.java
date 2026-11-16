@@ -40,12 +40,12 @@ class TournoiDemoBrunoyParStatutTest {
     }
 
     @Test
-    void copie_homologuee_numero_fictif_et_joueurs_fictifs() {
-        Tournoi t = TournoiDemoBrunoyParStatut.homologue(DonneesDemo.JOUEURS_FICTIFS);
+    void copie_homologuee_numero_fictif_sans_inscrit_avant_publication() {
+        Tournoi t = TournoiDemoBrunoyParStatut.homologue();
         assertEquals(StatutTournoi.HOMOLOGUE, t.getStatut());
         assertEquals("Tournoi National B de Brunoy 2027 — homologation validée", t.getNom());
         assertEquals(TournoisDemo.HOMOLOGATION_BRUNOY_DEMO, t.getNumeroHomologation());
-        assertTrue(RemplissageTableaux.nombreDeParticipants(t) > 200, "la partie Inscriptions a du contenu");
+        assertEquals(0, RemplissageTableaux.nombreDeParticipants(t), "inscriptions ouvertes à la publication seulement");
     }
 
     @Test
@@ -66,7 +66,7 @@ class TournoiDemoBrunoyParStatutTest {
     void les_copies_sont_le_meme_tournoi_que_le_brouillon_sans_personne_reelle() {
         Tournoi original = TournoiDemoBrunoy.construire();
         List<Tournoi> copies = List.of(TournoiDemoBrunoyParStatut.demandeHomologation(),
-                TournoiDemoBrunoyParStatut.homologue(DonneesDemo.JOUEURS_FICTIFS),
+                TournoiDemoBrunoyParStatut.homologue(),
                 TournoiDemoBrunoyParStatut.publie(DonneesDemo.JOUEURS_FICTIFS));
         List<String> tableaux = original.getTableaux().stream().map(Tableau::getNom).toList();
         for (Tournoi c : copies) {
@@ -123,7 +123,7 @@ class TournoiDemoBrunoyParStatutTest {
         assertEquals(TournoisDemo.HOMOLOGATION_BRUNOY_DEMO, homologue.getNumeroHomologation());
         assertEquals(0, RemplissageTableaux.nombreDeParticipants(brouillon));
         assertEquals(0, RemplissageTableaux.nombreDeParticipants(demande));
-        assertTrue(RemplissageTableaux.nombreDeParticipants(homologue) > 200);
+        assertEquals(0, RemplissageTableaux.nombreDeParticipants(homologue));
         assertTrue(RemplissageTableaux.nombreDeParticipants(publie) > 200);
     }
 

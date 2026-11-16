@@ -460,6 +460,11 @@ final class EcranSalle {
                 ouvrirInscriptionSurPlace.run();
             });
             actions.getChildren().add(0, surPlace);
+            // B052 : pas d'inscription avant la publication (ancien fichier), raison affichée.
+            if (PresentationInscriptionsClub.avantPublication(tournoi)) {
+                surPlace.setDisable(true);
+                actions.getChildren().add(0, VueInscriptionsClub.raisonAvantPublication());
+            }
         }
         HBox haut = Ui.ligne(16, gauche, actions);
         haut.setAlignment(javafx.geometry.Pos.TOP_LEFT);

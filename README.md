@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 885 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 897 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -42,8 +42,8 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
   - trois copies nommées par leur état, avec des **personnes fictives**
     (juges-arbitres, correspondant, lien de paiement) : « … — **demande
     d'homologation** » (dossier complet, pas de numéro, aucun inscrit),
-    « … — **homologation validée** » (faux numéro, pas encore publié) et
-    « … — **publié** » (règlement figé) ; ces deux dernières sont remplies de
+    « … — **homologation validée** » (faux numéro, pas encore publié, donc
+    **aucun inscrit**) et « … — **publié** » (règlement figé), remplie de
     joueurs fictifs (même remplissage que la copie au jour J, listes
     d'attente comprises) ;
   - sa **copie au jour J** (« … — jour J »), publiée avec un
@@ -189,6 +189,15 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   (PDF), importer le classeur, vérifier l'import (dates, horaire de chaque
   tableau), puis bandeau d'accès au jour J.
 - Toutes les pages occupent la largeur de la fenêtre (`Ui.page`).
+- **Inscriptions ouvertes à la publication seulement** (B052) : en brouillon,
+  en demande d'homologation et homologué, aucune inscription (en ligne,
+  manuelle, sur place) ni aucun import de joueurs n'est accepté, motif
+  « Les inscriptions ne sont pas encore ouvertes… » (`PolitiqueOuverture.INSCRIPTIONS`).
+  À l'écran, « Importer des joueurs », « Voir les inscriptions » et « Inscrire
+  sur place » sont désactivés avec « Disponible après la publication », sans
+  jauge ni compteur. Un ancien fichier non publié qui contient des joueurs
+  reste lisible : ses joueurs sont conservés et un bandeau le signale à
+  l'ouverture.
 - Tournoi **homologué** : la partie Inscriptions est en **consultation** (liste
   des inscrits, pas d'ajout, pas d'import, pas d'inscription manuelle). Plus
   de plan de salle (B049) ; les anciens fichiers qui en contiennent un restent
@@ -723,6 +732,18 @@ parenthèses.
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
+- Inscriptions à la publication (B052), trois questions : (1) **tournoi
+  importé** (préparé hors de PingManager) : il reste en brouillon et reçoit
+  son classeur de joueurs dès le brouillon ; son inscription sur place au
+  jour J reste aussi permise. Faut-il l'obliger à être « publié » (ou créer
+  un statut propre) ? (provisoire : exception conservée, comportement
+  inchangé). (2) En préparation complète, la liste des tableaux est
+  verrouillée dès la demande d'homologation et l'import n'est permis qu'après
+  publication : l'option « créer les tableaux manquants » de l'import ne sert
+  donc plus qu'au tournoi importé. La masquer ailleurs ? (provisoire : elle
+  reste, sans effet). (3) Ancien fichier homologué contenant des joueurs :
+  proposer un bouton « retirer ces joueurs » ? (provisoire : conservés,
+  bandeau d'alerte, consultation seule).
 
 ---
 

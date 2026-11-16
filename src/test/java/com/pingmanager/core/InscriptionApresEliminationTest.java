@@ -61,6 +61,7 @@ class InscriptionApresEliminationTest {
         t.setQuotasTableaux(QuotasTableaux.identiques(2, 2)
                 .avecTableauxConsecutifsInterdits(consecutifsInterdits)
                 .avecTableauxApresElimination(apresElimination));
+        publier(t);
         assertTrue(service.inscrire(t, p, a).estInscrit());
         assertTrue(service.inscrire(t, p, d).estInscrit());
         for (int i = 1; i <= 5; i++) {
@@ -201,5 +202,11 @@ class InscriptionApresEliminationTest {
         assertTrue(r.accepte(), r.motif());
         assertFalse(e.aPointe(p));
         assertFalse(e.aPaye(p));
+    }
+
+    /** Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS). */
+    private static void publier(Tournoi t) {
+        t.changerStatut(com.pingmanager.model.StatutTournoi.HOMOLOGUE);
+        t.changerStatut(com.pingmanager.model.StatutTournoi.PUBLIE);
     }
 }

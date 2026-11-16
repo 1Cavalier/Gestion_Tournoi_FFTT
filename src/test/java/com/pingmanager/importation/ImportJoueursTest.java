@@ -107,6 +107,7 @@ class ImportJoueursTest {
     @Test
     void classeur_tableaux_et_joueurs_applique() {
         Tournoi t = new Tournoi("Externe", "Club", JOUR);
+        t.setModePreparation(com.pingmanager.model.ModePreparation.IMPORT); // tournoi préparé hors de PingManager : import dès le brouillon
         t.setPeriode(JOUR, JOUR);
         ImportTableaux.Analyse defs = ImportTableaux.analyser(List.of(
                 List.of("Tableaux du tournoi"),
@@ -244,6 +245,7 @@ class ImportJoueursTest {
     @Test
     void plan_puis_application_tableau_existant_et_nouveau() {
         Tournoi t = tournoi();
+        t.setModePreparation(com.pingmanager.model.ModePreparation.IMPORT); // création de tableaux à l'import : parcours « tournoi importé »
         ImportJoueurs.Analyse a = ImportJoueurs.analyser(List.of(
                 List.of("Nom", "Prénom", "Points", "Club", "Tableau", "Date de naissance"),
                 List.of("UN", "Un", "900", "C1", "A", ""),

@@ -40,6 +40,10 @@ public final class TournoisDemo {
      */
     static void remplir(Tournoi t, List<FicheLicence> joueurs, Map<String, Integer> cibles, long graine,
                         java.util.function.Predicate<FicheLicence> admis) {
+        if (!com.pingmanager.core.PolitiqueOuverture.inscriptionsOuvertes(t.getStatut())) {
+            throw new IllegalStateException("Démo « " + t.getNom() + " » : "
+                    + com.pingmanager.core.PolitiqueOuverture.MOTIF_AVANT_PUBLICATION);
+        }
         ServiceInscription service = ServiceInscription.sansContrainteSuccession();
         List<Joueur> candidats = new ArrayList<>();
         for (FicheLicence f : joueurs) {
