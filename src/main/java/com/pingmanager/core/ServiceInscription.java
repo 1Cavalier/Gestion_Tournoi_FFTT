@@ -45,12 +45,15 @@ public final class ServiceInscription {
     private final PolitiqueOuverture politiqueOuverture;
 
     /**
+     * Service avec la politique des inscriptions ({@link PolitiqueOuverture#INSCRIPTIONS}) :
+     * tout refus tant que le tournoi n'est pas publié.
+     *
      * @param validationTableauxSuccessifs règle configurable de succession des
      *        tableaux ; utiliser {@link ValidationInscription#desactivee()} pour
      *        ne pas l'appliquer
      */
     public ServiceInscription(ValidationInscription validationTableauxSuccessifs) {
-        this(validationTableauxSuccessifs, PolitiqueOuverture.REFUSER_SI_ANNULE);
+        this(validationTableauxSuccessifs, PolitiqueOuverture.INSCRIPTIONS);
     }
 
     /**
@@ -169,8 +172,11 @@ public final class ServiceInscription {
     private ResultatInscriptionTournoi verifierRegles(Tournoi tournoi, Joueur joueur, Tableau tableauCible,
                                                       List<Tableau> enPlus) {
         // 0) Le tournoi accepte-t-il les inscriptions dans son statut actuel ?
-        if (!politiqueOuverture.autorise(tournoi.getStatut())) {
-            return ResultatInscriptionTournoi.tournoiFerme();
+        // Les inscriptions n'ouvrent qu'à la publication (PolitiqueOuverture.INSCRIPTIONS).
+        if (!politiqueOuverture.autorise(tournoi)) {
+            return PolitiqueOuverture.avantPublication(tournoi.getStatut())
+                    ? ResultatInscriptionTournoi.inscriptionsNonOuvertes()
+                    : ResultatInscriptionTournoi.tournoiFerme();
         }
 
         // Le joueur est-il déjà présent (inscrit ou en attente) sur le tableau visé ?

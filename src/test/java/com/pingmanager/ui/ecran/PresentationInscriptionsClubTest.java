@@ -64,4 +64,41 @@ class PresentationInscriptionsClubTest {
         assertFalse(PresentationInscriptionsClub.basculeImportProposee(homologue(), 0));
         assertFalse(PresentationInscriptionsClub.basculeImportProposee(publie(), 0));
     }
+
+    // --- B052 : inscriptions ouvertes à la publication seulement -------------------
+
+    @Test
+    void entrees_desactivees_avec_raison_dans_les_trois_statuts_avant_publication() {
+        for (Tournoi t : java.util.List.of(auStatut(), auStatut(StatutTournoi.DEMANDE_HOMOLOGATION), homologue())) {
+            assertTrue(PresentationInscriptionsClub.avantPublication(t), t.getStatut().name());
+            assertFalse(PresentationInscriptionsClub.importPropose(t), t.getStatut().name());
+            assertFalse(PresentationInscriptionsClub.voirInscriptionsActif(t, 0), t.getStatut().name());
+            assertFalse(PresentationInscriptionsClub.jaugeAffichee(t), "aucun compteur : " + t.getStatut());
+            assertEquals(PresentationInscriptionsClub.PHRASE_AVANT_PUBLICATION,
+                    PresentationInscriptionsClub.phraseCarte(t, 0, 0, 96, 0));
+        }
+        assertEquals("Disponible après la publication", PresentationInscriptionsClub.RAISON_AVANT_PUBLICATION);
+    }
+
+    @Test
+    void apres_publication_entrees_actives_et_compteur() {
+        Tournoi t = publie();
+        assertFalse(PresentationInscriptionsClub.avantPublication(t));
+        assertTrue(PresentationInscriptionsClub.voirInscriptionsActif(t, 0));
+        assertTrue(PresentationInscriptionsClub.jaugeAffichee(t));
+        assertEquals("3 joueurs · 4 / 96 places occupées · 1 en liste d'attente",
+                PresentationInscriptionsClub.phraseCarte(t, 3, 4, 96, 1));
+    }
+
+    @Test
+    void ancien_fichier_homologue_avec_joueurs_consultable_et_signale() {
+        Tournoi t = homologue();
+        t.ajouterTableau(new com.pingmanager.model.Tableau("A",
+                com.pingmanager.model.ConfigurationTableau.builder().placesMax(8).build()));
+        t.getTableaux().get(0).inscrire(new com.pingmanager.model.Joueur("1", "Un", "Un",
+                com.pingmanager.model.Sexe.HOMME, "C", 800));
+        assertTrue(PresentationInscriptionsClub.voirInscriptionsActif(t, 1), "consultation de l'existant");
+        assertTrue(PresentationInscriptionsClub.rappelEcran(t).orElseThrow().contains("1 joueur enregistré"));
+        assertTrue(PresentationInscriptionsClub.phraseCarte(t, 1, 1, 8, 0).contains("conservé"));
+    }
 }

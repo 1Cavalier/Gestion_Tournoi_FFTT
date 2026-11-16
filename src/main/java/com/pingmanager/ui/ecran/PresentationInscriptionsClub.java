@@ -1,5 +1,6 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.PolitiqueOuverture;
 import com.pingmanager.core.ServiceVerrousHomologation;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tournoi;
@@ -22,6 +23,12 @@ final class PresentationInscriptionsClub {
     static final String RAPPEL_CONSULTATION = "Tournoi homologué : les inscriptions sont en consultation. "
             + "Elles ouvriront à la publication du tournoi.";
 
+    /** Raison posée à côté d'une entrée désactivée avant la publication. */
+    static final String RAISON_AVANT_PUBLICATION = PolitiqueOuverture.RAISON_AVANT_PUBLICATION;
+
+    /** Phrase de la carte « Inscriptions » d'un tournoi pas encore publié (aucun compteur). */
+    static final String PHRASE_AVANT_PUBLICATION = "Les inscriptions ouvriront à la publication du tournoi.";
+
     /** Aide de la carte quand l'import est proposé. */
     static final String AIDE_IMPORT = "Tournoi préparé hors de PingManager ? « Importer des joueurs » crée les "
             + "tableaux et les inscrits à partir d'un fichier Excel, LibreOffice, CSV ou JSON.";
@@ -36,9 +43,51 @@ final class PresentationInscriptionsClub {
         return VERROUS.inscriptionsEnConsultation(tournoi);
     }
 
-    /** @return vrai si le bouton « Importer des joueurs… » est proposé. */
+    /**
+     * @return vrai si le bouton « Importer des joueurs… » est actif : seulement quand le
+     *         tournoi accepte des joueurs (publié, ou tournoi importé), et hors consultation
+     */
     static boolean importPropose(Tournoi tournoi) {
-        return !enConsultation(tournoi);
+        return !enConsultation(tournoi) && PolitiqueOuverture.accepteJoueurs(tournoi);
+    }
+
+    /**
+     * @return vrai si les entrées d'inscription (« Voir les inscriptions », « Importer
+     *         des joueurs », « Inscrire sur place ») sont <b>désactivées</b> avec la raison
+     *         {@link #RAISON_AVANT_PUBLICATION} : tournoi pas encore publié (hors tournoi importé)
+     */
+    static boolean avantPublication(Tournoi tournoi) {
+        return PolitiqueOuverture.avantPublication(tournoi.getStatut()) && !PolitiqueOuverture.accepteJoueurs(tournoi);
+    }
+
+    /**
+     * « Voir les inscriptions » est actif une fois publié ; avant, seulement si un ancien
+     * fichier contient déjà des joueurs (consultation, rien n'est supprimé).
+     */
+    static boolean voirInscriptionsActif(Tournoi tournoi, int participants) {
+        return !avantPublication(tournoi) || participants > 0;
+    }
+
+    /**
+     * @return la phrase sous le titre de la carte : avant la publication, jamais de
+     *         compteur (« … ouvriront à la publication »), sinon le remplissage
+     */
+    static String phraseCarte(Tournoi tournoi, int participants, int inscrits, int places, int attente) {
+        if (avantPublication(tournoi)) {
+            return participants == 0 ? PHRASE_AVANT_PUBLICATION
+                    : PolitiqueOuverture.constatJoueursAvantPublication(tournoi).orElse(PHRASE_AVANT_PUBLICATION);
+        }
+        if (participants == 0) {
+            return tournoi.getStatut() == StatutTournoi.PUBLIE ? "Aucune inscription pour l'instant."
+                    : PHRASE_AVANT_PUBLICATION;
+        }
+        return participants + (participants > 1 ? " joueurs" : " joueur") + " · " + inscrits + " / " + places
+                + " places occupées" + (attente > 0 ? " · " + attente + " en liste d'attente" : "");
+    }
+
+    /** @return vrai si la jauge de remplissage est affichée (pas avant la publication). */
+    static boolean jaugeAffichee(Tournoi tournoi) {
+        return !avantPublication(tournoi);
     }
 
     /**
@@ -58,6 +107,10 @@ final class PresentationInscriptionsClub {
 
     /** @return le rappel à afficher en tête de l'écran « Inscriptions », s'il y en a un. */
     static Optional<String> rappelEcran(Tournoi tournoi) {
+        Optional<String> ancienFichier = PolitiqueOuverture.constatJoueursAvantPublication(tournoi);
+        if (ancienFichier.isPresent()) {
+            return ancienFichier; // B052 : joueurs d'un ancien fichier, conservés et signalés
+        }
         return enConsultation(tournoi) ? Optional.of(RAPPEL_CONSULTATION) : Optional.empty();
     }
 }

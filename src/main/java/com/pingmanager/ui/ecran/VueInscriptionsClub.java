@@ -92,10 +92,16 @@ final class VueInscriptionsClub {
         actualiser.setOnAction(e -> recharger());
         HBox barre = Ui.ligne(10, segment, Ui.espace());
         // B049 : au statut homologué, consultation seule (pas d'import de joueurs).
-        if (PresentationInscriptionsClub.importPropose(tournoi)) {
+        // B052 : avant la publication, « Importer » est désactivé, raison affichée.
+        boolean avantPublication = PresentationInscriptionsClub.avantPublication(tournoi);
+        if (PresentationInscriptionsClub.importPropose(tournoi) || avantPublication) {
             Button importer = Ui.boutonSecondaire(PresentationInscriptionsClub.LIBELLE_IMPORT);
             importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::recharger,
                     this::recharger).build()));
+            importer.setDisable(!PresentationInscriptionsClub.importPropose(tournoi));
+            if (avantPublication) {
+                barre.getChildren().add(raisonAvantPublication());
+            }
             barre.getChildren().add(importer);
         }
         barre.getChildren().add(actualiser);
@@ -126,6 +132,12 @@ final class VueInscriptionsClub {
                 tuile(Formats.montant(recettes), "d'engagements (tarif en ligne)"));
         h.getChildren().forEach(n -> HBox.setHgrow(n, Priority.ALWAYS));
         return h;
+    }
+
+    /** B052 : raison posée à côté des entrées désactivées avant la publication. */
+    static Label raisonAvantPublication() {
+        Label l = Ui.discret(PresentationInscriptionsClub.RAISON_AVANT_PUBLICATION);
+        return l;
     }
 
     static VBox tuile(String chiffre, String libelle) {

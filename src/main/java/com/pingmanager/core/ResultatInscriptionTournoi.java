@@ -40,6 +40,11 @@ public final class ResultatInscriptionTournoi {
         LISTE_ATTENTE_PLEINE,
         /** Refus : le tournoi n'accepte pas (ou plus) les inscriptions dans son statut actuel. */
         TOURNOI_FERME,
+        /**
+         * Refus : le tournoi n'est pas encore publié (brouillon, demande d'homologation,
+         * homologué) ; les inscriptions ouvrent à la publication.
+         */
+        INSCRIPTIONS_NON_OUVERTES,
         /** Refus : catégorie d'âge non admise dans le tournoi (choix du club, {@code Tournoi.getCategoriesExclues()}). */
         CATEGORIE_NON_ADMISE,
         /** Refus : catégorie d'âge non prévue par le tableau ({@code ConfigurationTableau.categorieAutorisee}). */
@@ -96,6 +101,10 @@ public final class ResultatInscriptionTournoi {
 
     public static ResultatInscriptionTournoi tournoiFerme() {
         return new ResultatInscriptionTournoi(Motif.TOURNOI_FERME, null);
+    }
+
+    public static ResultatInscriptionTournoi inscriptionsNonOuvertes() {
+        return new ResultatInscriptionTournoi(Motif.INSCRIPTIONS_NON_OUVERTES, null);
     }
 
     public Motif getMotif() {

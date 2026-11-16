@@ -516,8 +516,7 @@ public final class ContexteApplication {
      */
     private void amorcerCopiesParStatutDemo() {
         amorcerCopieDemo(fichierTournoiDemandeDemo(), TournoiDemoBrunoyParStatut::demandeHomologation);
-        amorcerCopieDemo(fichierTournoiHomologueDemo(),
-                () -> TournoiDemoBrunoyParStatut.homologue(DonneesDemo.JOUEURS_FICTIFS));
+        amorcerCopieDemo(fichierTournoiHomologueDemo(), TournoiDemoBrunoyParStatut::homologue);
         amorcerCopieDemo(fichierTournoiPublieDemo(),
                 () -> TournoiDemoBrunoyParStatut.publie(DonneesDemo.JOUEURS_FICTIFS));
     }

@@ -101,6 +101,13 @@ final class EcranCompletion {
             sup.getStyleClass().addAll("rappel-attention", "rappel-doux");
             contenu.getChildren().add(sup);
         }
+        // B052 : ancien fichier non publié contenant des joueurs : signalé, rien n'est supprimé.
+        com.pingmanager.core.PolitiqueOuverture.constatJoueursAvantPublication(tournoi).ifPresent(constat -> {
+            Label alerte = new Label(constat);
+            alerte.setWrapText(true);
+            alerte.getStyleClass().add("rappel-attention");
+            contenu.getChildren().add(alerte);
+        });
         presentation.titreRefus().ifPresent(titreRefus -> contenu.getChildren().add(carteRefus(titreRefus)));
         if (EcranJourJ.estPropose(tournoi)) {
             contenu.getChildren().add(EcranJourJ.carteAcces(tournoi,
@@ -160,26 +167,37 @@ final class EcranCompletion {
         voir.setOnAction(e -> racine.setCenter(new VueInscriptionsClub(contexte, fichier,
                 this::afficherApercu).build()));
         // B049 : au statut homologué, on ne fait que voir les inscrits (pas d'import).
+        // B052 : avant la publication, les entrées sont désactivées, raison affichée.
+        boolean avantPublication = PresentationInscriptionsClub.avantPublication(tournoi);
         List<Node> actions = new java.util.ArrayList<>();
-        if (PresentationInscriptionsClub.importPropose(tournoi)) {
+        if (avantPublication) {
+            actions.add(VueInscriptionsClub.raisonAvantPublication());
+        }
+        if (PresentationInscriptionsClub.importPropose(tournoi) || avantPublication) {
             Button importer = Ui.boutonSecondaire(PresentationInscriptionsClub.LIBELLE_IMPORT);
             importer.setOnAction(e -> racine.setCenter(new EcranImportJoueurs(contexte, fichier, this::afficherApercu,
                     () -> racine.setCenter(new VueInscriptionsClub(contexte, fichier, this::afficherApercu).build()))
                     .build()));
+            importer.setDisable(!PresentationInscriptionsClub.importPropose(tournoi));
             actions.add(importer);
         }
+        voir.setDisable(!PresentationInscriptionsClub.voirInscriptionsActif(tournoi, participants));
         actions.add(voir);
-        String phrase = participants == 0
-                ? (tournoi.getStatut() == StatutTournoi.PUBLIE ? "Aucune inscription pour l'instant."
-                : "Les inscriptions ouvriront à la publication du tournoi.")
-                : participants + (participants > 1 ? " joueurs" : " joueur") + " · " + inscrits + " / " + places
-                + " places occupées" + (attente > 0 ? " · " + attente + " en liste d'attente" : "");
-        javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(
-                places == 0 ? 0 : Math.min(1, inscrits / (double) places));
-        barre.getStyleClass().add("jauge");
-        barre.setMaxWidth(Double.MAX_VALUE);
-        return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Inscriptions"), actions.toArray(new Node[0])), barre,
-                Ui.discret(phrase), Ui.aide(PresentationInscriptionsClub.aideCarte(tournoi)));
+        String phrase = PresentationInscriptionsClub.phraseCarte(tournoi, participants, inscrits, places, attente);
+        Label ligne = Ui.discret(phrase);
+        ligne.setWrapText(true);
+        List<Node> corps = new java.util.ArrayList<>();
+        if (PresentationInscriptionsClub.jaugeAffichee(tournoi)) {
+            javafx.scene.control.ProgressBar barre = new javafx.scene.control.ProgressBar(
+                    places == 0 ? 0 : Math.min(1, inscrits / (double) places));
+            barre.getStyleClass().add("jauge");
+            barre.setMaxWidth(Double.MAX_VALUE);
+            corps.add(barre);
+        }
+        corps.add(ligne);
+        corps.add(Ui.aide(PresentationInscriptionsClub.aideCarte(tournoi)));
+        return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Inscriptions"), actions.toArray(new Node[0])),
+                corps.toArray(new Node[0]));
     }
 
     /** Rappel du dernier refus d'homologation, en tête du brouillon. */

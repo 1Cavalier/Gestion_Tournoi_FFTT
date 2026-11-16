@@ -156,8 +156,13 @@ class CablagePreTournoiTest {
         Tableau cible = t.getTableaux().get(0);
         Joueur j = new Joueur("L1", "Nom", "Prenom", Sexe.HOMME, "Club", 800);
 
-        // En brouillon : accepté (rétrocompatible).
+        // En brouillon : refusé, les inscriptions n'ouvrent qu'à la publication.
         ServiceInscription service = ServiceInscription.sansContrainteSuccession();
+        assertEquals(ResultatInscriptionTournoi.Motif.INSCRIPTIONS_NON_OUVERTES,
+                service.inscrire(t, j, cible).getMotif());
+        // Publié : accepté.
+        tournois.homologuer(acces, t, "NUM");
+        tournois.publier(acces, t);
         assertEquals(ResultatInscriptionTournoi.Motif.INSCRIT,
                 service.inscrire(t, j, cible).getMotif());
 
@@ -181,8 +186,8 @@ class CablagePreTournoiTest {
                 com.pingmanager.ordonnancement.ValidationInscription.desactivee(),
                 PolitiqueOuverture.EXIGER_PUBLIE);
 
-        // Brouillon : refusé en mode strict.
-        assertEquals(ResultatInscriptionTournoi.Motif.TOURNOI_FERME,
+        // Brouillon : refusé en mode strict, motif « pas encore ouvertes ».
+        assertEquals(ResultatInscriptionTournoi.Motif.INSCRIPTIONS_NON_OUVERTES,
                 strict.inscrire(t, j, cible).getMotif());
 
         // Une fois publié : accepté.
