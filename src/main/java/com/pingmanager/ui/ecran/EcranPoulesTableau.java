@@ -28,7 +28,7 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 /**
- * Phase de poules d'un tableau lancé : tirage (graine et composition), puis, poule
+ * Phase de poules d'un tableau lancé : tirage (date, juge-arbitre et composition), puis, poule
  * par poule, les parties dans l'ordre officiel (I.301), la saisie des scores
  * manche par manche ou d'une issue non normale (I.303 a), et le classement en
  * direct (I.303) avec les places qualificatives.
@@ -115,7 +115,7 @@ final class EcranPoulesTableau {
 
         if (apresTirage) {
             Label ok = Ui.message();
-            Ui.succes(ok, "Tirage effectué. Annoncez la graine et affichez la composition des poules.");
+            Ui.succes(ok, "Tirage au sort effectué. Affichez la composition des poules.");
             contenu.getChildren().add(ok);
             apresTirage = false;
         }
@@ -153,25 +153,21 @@ final class EcranPoulesTableau {
     }
 
     // ------------------------------------------------------------------
-    // Tirage : graine et composition
+    // Tirage : date, juge-arbitre et composition
     // ------------------------------------------------------------------
 
     private Node carteTirage() {
-        Long graine = tableau.getGrainePoules();
-        Label valeur = new Label(graine == null ? "non conservée" : String.valueOf(graine));
-        valeur.getStyleClass().add(graine == null ? "discret" : "graine-tirage");
-        HBox ligneGraine = Ui.ligne(12, Ui.gras("Graine du tirage"), valeur);
+        Label ligneTirage = Ui.texte(PresentationTirage.texteTirageEffectue(tableau.getTraceTiragePoules()));
 
         Button deplier = Ui.boutonLien(compositionDepliee ? "Masquer la composition" : "Voir la composition des poules");
         deplier.setOnAction(e -> {
             compositionDepliee = !compositionDepliee;
             afficher();
         });
-        VBox carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Tirage au sort"), deplier), ligneGraine,
-                Ui.aide(graine == null
-                        ? "Ce tableau a été lancé avec une version qui ne conservait pas la graine du tirage."
-                        : "IX.109 : le juge-arbitre est responsable du tirage au sort. Avec la même graine et les mêmes "
-                                + "présents, PingManager refait exactement le même tirage : chacun peut le vérifier."));
+        VBox carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Tirage au sort"), deplier), ligneTirage,
+                Ui.aide("Un joueur placé par tirage au sort ne peut plus être déplacé (manuel JA, I-6.4)."),
+                DetailSupportTirage.creer(
+                        Ui.aide(PresentationTirage.texteReferenceTechnique(tableau.getGrainePoules()))));
         if (compositionDepliee) {
             FlowPane poules = new FlowPane(12, 12);
             for (Poule p : tableau.getPoules()) {

@@ -6,6 +6,7 @@ import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tournoi;
+import com.pingmanager.model.TraceTirage;
 import com.pingmanager.model.format.FormatTournoi;
 
 import java.util.List;
@@ -28,8 +29,10 @@ import java.util.Objects;
  *   <li>prendre les inscrits (= présents pointés, les absents ayant été libérés à
  *       la clôture) ;</li>
  *   <li>constituer les poules selon le {@link FormatTournoi} du tableau, avec le
- *       tirage au sort reproductible (article IX.109 : tirage public), la graine
- *       étant fournie et conservée pour rejouer/vérifier le tirage ;</li>
+ *       tirage au sort sous la responsabilité du juge-arbitre (IX.109) ; la
+ *       date, l'heure et le juge-arbitre du tirage sont conservés
+ *       ({@link TraceTirage}), ainsi que la graine, mécanisme technique interne
+ *       qui permet de refaire le même tirage après un incident ;</li>
  *   <li>ranger les poules dans le tableau et passer son statut à
  *       {@link StatutTableau#LANCE}.</li>
  * </ol>
@@ -42,6 +45,7 @@ public final class ServiceLancementTableau {
     private final MoteurTournoi moteur;
     private final Tournoi tournoi;
     private final PolitiqueOuverture politiqueOuverture;
+    private final Horloge horloge;
 
     public ServiceLancementTableau() {
         this(new MoteurTournoi(), null, PolitiqueOuverture.REFUSER_SI_ANNULE);
@@ -62,9 +66,32 @@ public final class ServiceLancementTableau {
 
     public ServiceLancementTableau(MoteurTournoi moteur, Tournoi tournoi,
                                    PolitiqueOuverture politiqueOuverture) {
+        this(moteur, tournoi, politiqueOuverture, Horloge.systeme());
+    }
+
+    /**
+     * @param horloge horloge qui date les tirages (une horloge fixe dans les tests)
+     */
+    public ServiceLancementTableau(MoteurTournoi moteur, Tournoi tournoi,
+                                   PolitiqueOuverture politiqueOuverture, Horloge horloge) {
         this.moteur = Objects.requireNonNull(moteur, "moteur");
         this.tournoi = tournoi;
         this.politiqueOuverture = Objects.requireNonNull(politiqueOuverture, "politiqueOuverture");
+        this.horloge = Objects.requireNonNull(horloge, "horloge");
+    }
+
+    /**
+     * Trace du tirage fait maintenant : instant de l'horloge et juge-arbitre
+     * principal du tournoi (IX.109 : responsable direct du tirage au sort).
+     */
+    private TraceTirage traceMaintenant() {
+        String ja = null;
+        if (tournoi != null) {
+            ja = tournoi.getJugeArbitrePrincipal()
+                    .map(a -> (a.getPrenom() + " " + a.getNom()).strip())
+                    .orElse(null);
+        }
+        return new TraceTirage(horloge.maintenant(), ja);
     }
 
     /**
@@ -72,7 +99,7 @@ public final class ServiceLancementTableau {
      * en phase {@link StatutTableau#LANCE}.
      *
      * @param tableau le tableau à lancer
-     * @param graine  graine du tirage au sort (reproductible, tirage public)
+     * @param graine  graine technique du tirage (la même graine refait le même tirage)
      * @return le compte rendu du lancement (poules générées, graine)
      * @throws IllegalStateException    si le tableau n'est pas prêt (pas en pointage
      *                                  ou pointage non clôturé)
@@ -117,9 +144,11 @@ public final class ServiceLancementTableau {
         List<Poule> poules = moteur.preparerPoules(presents, format, graine);
 
         tableau.definirPoules(poules);
-        // IX.109 : le juge-arbitre est responsable du tirage au sort ; la graine est
-        // conservée avec le tableau pour pouvoir rejouer et vérifier ce tirage.
+        // IX.109 : le juge-arbitre est le responsable direct du tirage au sort ;
+        // date, heure et juge-arbitre sont conservés (IX.111 : tirage public annoncé).
+        // La graine est un mécanisme technique interne (reprise, vérification).
         tableau.definirGrainePoules(graine);
+        tableau.definirTraceTiragePoules(traceMaintenant());
         tableau.marquerLance();
 
         return new ResultatLancement(poules, graine, presents.size());
@@ -175,10 +204,10 @@ public final class ServiceLancementTableau {
      * les poules sont terminées, et le fait passer au statut
      * {@link StatutTableau#PHASE_FINALE}.
      *
-     * <p>Second tirage au sort du tableau (placement des qualifiés I.304/I.305),
-     * distinct du tirage des poules et effectué à un autre moment (une fois les
-     * qualifiés connus). Sa graine, propre à ce tirage, est fournie et conservée
-     * pour rejouer/vérifier le tirage public.</p>
+     * <p>Second tirage au sort du tableau (placement des qualifiés, I.302 à
+     * I.305), distinct du tirage des poules et effectué à un autre moment (une
+     * fois les qualifiés connus). Sa graine technique, propre à ce tirage, est
+     * conservée, ainsi que sa date, son heure et le juge-arbitre (IX.109).</p>
      *
      * <p>Réutilise le moteur : extraction des qualifiés, placement, best-of et
      * petite finale (selon l'option du tableau) sont appliqués par
@@ -215,8 +244,10 @@ public final class ServiceLancementTableau {
         TableauElimination elimination = moteur.construireTableau(tableau.getPoules(), format, graine,
                 tableau.getConfiguration().avecPetiteFinale());
         tableau.definirPhaseFinale(elimination);
-        // IX.109 : graine du second tirage conservée avec le tableau, comme celle des poules.
+        // Second tirage (I.302 à I.305) sous la responsabilité du juge-arbitre (IX.109) :
+        // graine technique et trace (date, heure, juge-arbitre), comme pour les poules.
         tableau.definirGraineTableauFinal(graine);
+        tableau.definirTraceTirageTableauFinal(traceMaintenant());
         return elimination;
     }
 }

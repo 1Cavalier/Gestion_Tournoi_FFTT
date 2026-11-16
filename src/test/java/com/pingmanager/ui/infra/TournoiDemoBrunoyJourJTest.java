@@ -99,6 +99,10 @@ class TournoiDemoBrunoyJourJTest {
         Tableau finale = sa.get(0);
         assertEquals(StatutTableau.PHASE_FINALE, finale.getStatut());
         assertEquals(Long.valueOf(TournoiDemoBrunoyJourJ.GRAINE_TABLEAU_FINAL), finale.getGraineTableauFinal());
+        // Tirage du tableau final daté à l'heure fixe de la démo (IX.109, IX.111).
+        assertEquals(java.time.Instant.parse("2027-04-10T11:00:00Z"),
+                finale.getTraceTirageTableauFinal().effectueLe());
+        assertNotNull(finale.getTraceTiragePoules());
         List<Tour> tours = ServicePhaseFinale.toursPrincipaux(finale.getPhaseFinale());
         assertTrue(tours.get(0).getMatchs().stream().noneMatch(m -> m.getStatut() == StatutMatch.A_JOUER
                 && !m.getJoueurA().estADeterminer() && !m.getJoueurB().estADeterminer()), "premier tour joué");

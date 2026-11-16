@@ -25,7 +25,9 @@ question dans la section 6 du README.
 | IX.101 / IX.102 | Accès selon la catégorie du tournoi, licence loisir | `core.EligibiliteTournoi`, `core.Territoires` |
 | IX.103 / IX.105 | Échelon d'homologation | `model.EchelonHomologation` |
 | IX.104 | Dossier d'homologation, tableau dames, grade du JA | `core.ServiceCycleTournoi`, `core.ServiceCompletudeTournoi` |
-| IX.109 | JA ne joue pas, tirage public | `ServiceLancementTableau` (graine), écrans JA |
+| IX.109 | JA responsable direct du tirage au sort | `ServiceLancementTableau` (`model.TraceTirage` : date, heure, JA), écrans JA |
+| IX.111 (tirage) | Date, heure et lieu du tirage public dans le règlement | `model.InfosReglement`, `core.reglement.GenerateurFeuilleEngagement` |
+| Manuel JA I-6.4 | Joueur placé par tirage : ne peut plus être déplacé | statuts du `Tableau` (pas de second tirage) |
 | IX.111 | Contenu du règlement du tournoi | `model.InfosReglement`, `core.reglement.GenerateurReglement` |
 | II.302 / II.303 | Catégorie d'âge (âge au 1er janvier de la saison) | `model.CategorieAge`, `core.ServiceInscription` |
 | 3.5.2 | Cartons, pénalités, 2 disqualifications = exclusion | `core.GestionCartonsMatch`, `core.RegistreDisciplinaire` |

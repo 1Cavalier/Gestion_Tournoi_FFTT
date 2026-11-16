@@ -14,7 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Vérification préalable au lancement (écran du jour J) et graine conservée (IX.109). */
+/** Vérification préalable au lancement (écran du jour J) et graine technique conservée (mécanisme interne, aucun article). */
 class LancementJourJTest {
 
     private static Joueur j(String licence) {
