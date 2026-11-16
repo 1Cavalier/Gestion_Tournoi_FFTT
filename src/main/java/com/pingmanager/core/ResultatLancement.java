@@ -9,8 +9,8 @@ import java.util.List;
  * Compte rendu du lancement d'un tableau, produit par
  * {@link ServiceLancementTableau#lancer}.
  *
- * <p>Porte les poules générées, la graine de tirage utilisée (pour rejouer ou
- * vérifier le tirage au sort public) et le nombre de joueurs présents au moment
+ * <p>Porte les poules générées, la graine technique du tirage (la même graine
+ * refait le même tirage, utile après un incident) et le nombre de joueurs présents au moment
  * du lancement. Objet valeur immuable.</p>
  */
 public final class ResultatLancement {

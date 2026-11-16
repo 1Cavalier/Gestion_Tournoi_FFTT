@@ -323,6 +323,67 @@ class RoundTripTournoiTest {
                 "le tour de petite finale est relu");
     }
 
+    /** Date, heure et juge-arbitre des deux tirages (IX.109, IX.111) : écrits puis relus à l'identique. */
+    @Test
+    void traces_des_tirages_des_poules_et_du_tableau_final_relues() throws Exception {
+        Tournoi t = new Tournoi("Open trace", "PingClub", LocalDate.of(2026, 3, 14));
+        t.ajouterJugeArbitre(new com.pingmanager.model.AffectationJugeArbitre("Durand", "Claire", null,
+                "9412345", com.pingmanager.model.GradeJugeArbitre.JA2, null));
+        Tableau tab = new Tableau("Tableau T", ConfigurationTableau.depuisFormat(format).placesMax(20).build());
+        t.ajouterTableau(tab);
+        tab.ouvrirPointage();
+        for (int i = 1; i <= 12; i++) {
+            Joueur joueur = j("T" + i, 700 + i * 15);
+            tab.inscrire(joueur);
+            tab.pointer(joueur);
+        }
+        new ServicePointage(t).cloturerPointage(tab);
+        java.time.Instant[] maintenant = {java.time.Instant.parse("2026-03-14T08:30:00Z")};
+        ServiceLancementTableau service = new ServiceLancementTableau(new com.pingmanager.core.MoteurTournoi(), t,
+                com.pingmanager.core.PolitiqueOuverture.REFUSER_SI_ANNULE, () -> maintenant[0]);
+        service.lancer(tab, 11L);
+        for (Poule p : tab.getPoules()) {
+            for (Match m : p.getMatchs()) {
+                m.definirScore(List.of(new Manche(11, 5), new Manche(11, 7), new Manche(11, 9)));
+            }
+        }
+        maintenant[0] = java.time.Instant.parse("2026-03-14T14:15:00Z");
+        service.construirePhaseFinale(tab, 912345678901L);
+
+        Path fichier = Files.createTempFile("traces_tirages", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(t, fichier);
+        Tableau relu = DepotTournoi.charger(fichier).getTournoi().getTableaux().get(0);
+
+        assertEquals(new com.pingmanager.model.TraceTirage(java.time.Instant.parse("2026-03-14T08:30:00Z"),
+                "Claire Durand"), relu.getTraceTiragePoules());
+        assertEquals(new com.pingmanager.model.TraceTirage(java.time.Instant.parse("2026-03-14T14:15:00Z"),
+                "Claire Durand"), relu.getTraceTirageTableauFinal());
+        assertEquals(Long.valueOf(11L), relu.getGrainePoules());
+        assertEquals(Long.valueOf(912345678901L), relu.getGraineTableauFinal());
+    }
+
+    /** Un fichier écrit avant la trace des tirages se relit sans elle, graines comprises. */
+    @Test
+    void ancien_fichier_sans_trace_des_tirages_relu() throws Exception {
+        Tournoi original = construireTournoiComplet(null);
+        Path fichier = Files.createTempFile("ancien_sans_trace", DepotTournoi.EXTENSION);
+        DepotTournoi.sauvegarder(original, fichier);
+        String json = Files.readString(fichier);
+        assertTrue(json.contains("\"tiragePoules\""), "la trace du tirage des poules est écrite");
+        assertTrue(json.contains("\"tirageTableauFinal\""), "la trace du tirage du tableau final est écrite");
+        String ancien = json.replaceAll("\"tirage(Poules|TableauFinal)\"\\s*:\\s*\\{[^}]*\\}\\s*,?", "");
+        assertFalse(ancien.contains("\"tiragePoules\""));
+        assertFalse(ancien.contains("\"tirageTableauFinal\""));
+        Files.writeString(fichier, ancien);
+
+        Tableau relu = DepotTournoi.charger(fichier).getTournoi().getTableaux().get(0);
+        assertNull(relu.getTraceTiragePoules());
+        assertNull(relu.getTraceTirageTableauFinal());
+        assertEquals(Long.valueOf(1L), relu.getGrainePoules());
+        assertEquals(Long.valueOf(2L), relu.getGraineTableauFinal());
+        assertEquals(StatutTableau.PHASE_FINALE, relu.getStatut());
+    }
+
     /** Un fichier écrit avant la graine du tableau final et la petite finale se relit sans elles. */
     @Test
     void ancien_fichier_sans_graine_du_tableau_final_ni_petite_finale_relu() throws Exception {

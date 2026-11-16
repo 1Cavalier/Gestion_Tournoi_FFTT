@@ -572,7 +572,7 @@ public final class SimulateurTournoi {
             }
         }
 
-        /** Poules toutes jouées : tirage du tableau final (IX.109), graine propre au tableau. */
+        /** Poules toutes jouées : tirage du tableau final (placement I.302 à I.305), graine technique propre au tableau. */
         private void verifierFinPoules(EtatTableau e) {
             if (e.phaseFinale != null || e.def.format().formatPhaseFinale() != FormatPhaseFinale.ELIMINATION_DIRECTE) {
                 return;

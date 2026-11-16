@@ -1,6 +1,12 @@
 package com.pingmanager.core;
 
+import com.pingmanager.model.AffectationJugeArbitre;
 import com.pingmanager.model.ConfigurationTableau;
+import com.pingmanager.model.GradeJugeArbitre;
+import com.pingmanager.model.Manche;
+import com.pingmanager.model.Match;
+import com.pingmanager.model.Poule;
+import com.pingmanager.model.TraceTirage;
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Sexe;
 import com.pingmanager.model.StatutTableau;
@@ -10,6 +16,7 @@ import com.pingmanager.model.format.FormatTournoi;
 import com.pingmanager.model.format.RegistreFormats;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -138,5 +145,84 @@ class ServiceLancementTableauTest {
         ServiceLancementTableau service = new ServiceLancementTableau();
         service.lancer(tableau, 1L);
         assertThrows(IllegalStateException.class, () -> service.lancer(tableau, 1L));
+    }
+
+    // ------------------------------------------------------------------
+    // Trace des tirages : date, heure, juge-arbitre (IX.109, IX.111)
+    // ------------------------------------------------------------------
+
+    private static void jouerToutesLesPoules(Tableau tableau) {
+        for (Poule p : tableau.getPoules()) {
+            for (Match m : p.getMatchs()) {
+                m.definirScore(List.of(new Manche(11, 5), new Manche(11, 7), new Manche(11, 9)));
+            }
+        }
+    }
+
+    @Test
+    void tirages_des_poules_et_du_tableau_final_dates_avec_le_juge_arbitre_et_graines_conservees() {
+        Tableau tableau = tableauAvecFormat("A");
+        Tournoi t = prepareTableauPret(tableau, 6);
+        // IX.109 : le juge-arbitre est le responsable direct du tirage au sort.
+        t.ajouterJugeArbitre(new AffectationJugeArbitre("Durand", "Claire", null, "9412345",
+                GradeJugeArbitre.JA2, null));
+        Instant[] maintenant = {Instant.parse("2026-11-16T13:05:00Z")};
+        ServiceLancementTableau service = new ServiceLancementTableau(new MoteurTournoi(), t,
+                PolitiqueOuverture.REFUSER_SI_ANNULE, () -> maintenant[0]);
+
+        service.lancer(tableau, 42L);
+        assertEquals(new TraceTirage(Instant.parse("2026-11-16T13:05:00Z"), "Claire Durand"),
+                tableau.getTraceTiragePoules());
+        assertEquals(Long.valueOf(42L), tableau.getGrainePoules());
+        assertNull(tableau.getTraceTirageTableauFinal(), "tableau final pas encore tiré");
+
+        jouerToutesLesPoules(tableau);
+        maintenant[0] = Instant.parse("2026-11-16T16:40:00Z");
+        service.construirePhaseFinale(tableau, 777L);
+        assertEquals(new TraceTirage(Instant.parse("2026-11-16T16:40:00Z"), "Claire Durand"),
+                tableau.getTraceTirageTableauFinal());
+        assertEquals(Long.valueOf(777L), tableau.getGraineTableauFinal());
+    }
+
+    @Test
+    void tirage_sans_juge_arbitre_designe_reste_date() {
+        Tableau tableau = tableauAvecFormat("A");
+        Tournoi t = prepareTableauPret(tableau, 6);
+        new ServiceLancementTableau(new MoteurTournoi(), t, PolitiqueOuverture.REFUSER_SI_ANNULE,
+                () -> Instant.parse("2026-11-16T09:00:00Z")).lancer(tableau, 3L);
+        assertEquals(Instant.parse("2026-11-16T09:00:00Z"), tableau.getTraceTiragePoules().effectueLe());
+        assertNull(tableau.getTraceTiragePoules().jugeArbitre());
+    }
+
+    @Test
+    void un_tirage_fait_ne_peut_pas_etre_refait_et_sa_trace_ne_change_pas() {
+        Tableau tableau = tableauAvecFormat("A");
+        Tournoi t = prepareTableauPret(tableau, 6);
+        Instant[] maintenant = {Instant.parse("2026-11-16T10:00:00Z")};
+        ServiceLancementTableau service = new ServiceLancementTableau(new MoteurTournoi(), t,
+                PolitiqueOuverture.REFUSER_SI_ANNULE, () -> maintenant[0]);
+        service.lancer(tableau, 5L);
+        List<Poule> poules = List.copyOf(tableau.getPoules());
+        TraceTirage tracePoules = tableau.getTraceTiragePoules();
+
+        // Manuel JA, I-6.4 : un joueur placé par tirage au sort ne peut plus être déplacé.
+        maintenant[0] = Instant.parse("2026-11-16T11:00:00Z");
+        assertThrows(IllegalStateException.class, () -> service.lancer(tableau, 6L));
+        assertEquals(poules, tableau.getPoules());
+        assertEquals(Long.valueOf(5L), tableau.getGrainePoules());
+        assertEquals(tracePoules, tableau.getTraceTiragePoules());
+
+        jouerToutesLesPoules(tableau);
+        service.construirePhaseFinale(tableau, 8L);
+        TraceTirage traceFinal = tableau.getTraceTirageTableauFinal();
+        maintenant[0] = Instant.parse("2026-11-16T12:00:00Z");
+        assertThrows(IllegalStateException.class, () -> service.construirePhaseFinale(tableau, 9L));
+        assertEquals(Long.valueOf(8L), tableau.getGraineTableauFinal());
+        assertEquals(traceFinal, tableau.getTraceTirageTableauFinal());
+        // Par le service de phase finale (écran) : refus motivé, rien de changé.
+        ResultatConstructionPhaseFinale r = new ServicePhaseFinale(t).construire(tableau, 10L);
+        assertFalse(r.estConstruit());
+        assertEquals(Long.valueOf(8L), tableau.getGraineTableauFinal());
+        assertEquals(traceFinal, tableau.getTraceTirageTableauFinal());
     }
 }

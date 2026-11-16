@@ -1,6 +1,10 @@
 package com.pingmanager.ui.infra;
 
 import com.pingmanager.core.JoueurDepuisLicence;
+import com.pingmanager.core.MoteurTournoi;
+import com.pingmanager.core.PolitiqueOuverture;
+import com.pingmanager.core.ProgressionTableau;
+import com.pingmanager.core.ValidationScoreMatch;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.ServiceInscription;
 import com.pingmanager.core.ServiceLancementTableau;
@@ -199,7 +203,7 @@ public final class TournoiDemoBrunoyJourJ {
      */
     private static void poulesEnCours(Tournoi t, Tableau tab, ServicePointage pointage, Instant maintenant) {
         pointageCloture(tab, pointage);
-        new ServiceLancementTableau(t).lancer(tab, GRAINE_POULES);
+        lancement(t, Instant.parse("2027-04-10T07:30:00Z")).lancer(tab, GRAINE_POULES);
         SaisieResultatMatch saisie = new SaisieResultatMatch(() -> Instant.parse("2027-04-10T09:20:00Z"));
         List<Poule> poules = tab.getPoules();
         int terminees = poules.size() / 3;
@@ -238,7 +242,8 @@ public final class TournoiDemoBrunoyJourJ {
      */
     private static void tableauFinalEnCours(Tournoi t, Tableau tab, ServicePointage pointage, Instant maintenant) {
         lancerEtJouerPoules(t, tab, pointage, GRAINE_POULES - 1, Instant.parse("2027-04-10T07:00:00Z"));
-        ServicePhaseFinale phaseFinale = new ServicePhaseFinale();
+        ServicePhaseFinale phaseFinale = new ServicePhaseFinale(
+                lancement(t, Instant.parse("2027-04-10T11:00:00Z")), new ProgressionTableau(), new ValidationScoreMatch());
         phaseFinale.construire(tab, GRAINE_TABLEAU_FINAL);
         List<Tour> tours = ServicePhaseFinale.toursPrincipaux(tab.getPhaseFinale());
         int n = 0;
@@ -273,11 +278,17 @@ public final class TournoiDemoBrunoyJourJ {
         return res;
     }
 
+    /** Service de lancement dont les tirages sont datés de l'heure fixe de la démo (juge-arbitre du tournoi). */
+    private static ServiceLancementTableau lancement(Tournoi t, Instant heureDuTirage) {
+        return new ServiceLancementTableau(new MoteurTournoi(), t, PolitiqueOuverture.REFUSER_SI_ANNULE,
+                () -> heureDuTirage);
+    }
+
     /** Tout le monde présent, pointage clôturé, tirage des poules, puis toutes les poules jouées. */
     private static void lancerEtJouerPoules(Tournoi t, Tableau tab, ServicePointage pointage, long graine,
                                             Instant heure) {
         pointageCloture(tab, pointage);
-        new ServiceLancementTableau(t).lancer(tab, graine);
+        lancement(t, heure.minusSeconds(3600)).lancer(tab, graine);
         SaisieResultatMatch saisie = new SaisieResultatMatch(() -> heure);
         int n = 0;
         for (Poule p : tab.getPoules()) {

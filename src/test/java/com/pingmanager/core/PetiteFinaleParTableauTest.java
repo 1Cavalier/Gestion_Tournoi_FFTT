@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Petite finale réglée <b>par tableau</b> (option de la configuration du
  * tableau, décision de Quentin du 5 novembre 2026, QUESTIONS.md) : construction
- * du tableau final, podium, graine du second tirage (IX.109).
+ * du tableau final, podium, graine technique du second tirage (mécanisme interne).
  *
  * <p>Le chapitre IX des règlements sportifs ne dit rien de la 3e place d'un
  * tournoi : c'est une clause d'organisateur. Sans petite finale, les deux
@@ -244,7 +244,7 @@ class PetiteFinaleParTableauTest {
     }
 
     // ------------------------------------------------------------------
-    // Graine du second tirage (IX.109)
+    // Graine technique du second tirage (mécanisme interne, aucun article)
     // ------------------------------------------------------------------
 
     @Test

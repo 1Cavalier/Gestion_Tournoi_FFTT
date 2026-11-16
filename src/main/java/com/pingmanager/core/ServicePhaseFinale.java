@@ -9,6 +9,7 @@ import com.pingmanager.model.Poule;
 import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
+import com.pingmanager.model.Tournoi;
 import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 import com.pingmanager.model.format.FormatTournoi;
@@ -49,6 +50,14 @@ public final class ServicePhaseFinale {
 
     public ServicePhaseFinale() {
         this(new ServiceLancementTableau(), new ProgressionTableau(), new ValidationScoreMatch());
+    }
+
+    /**
+     * @param tournoi le tournoi du tableau : son juge-arbitre principal est noté
+     *                dans la trace du tirage du tableau final (IX.109)
+     */
+    public ServicePhaseFinale(Tournoi tournoi) {
+        this(new ServiceLancementTableau(tournoi), new ProgressionTableau(), new ValidationScoreMatch());
     }
 
     public ServicePhaseFinale(ServiceLancementTableau lancement, ProgressionTableau progression,
@@ -119,7 +128,7 @@ public final class ServicePhaseFinale {
      * I.305) si le diagnostic le permet ; sinon renvoie le diagnostic sans rien
      * modifier.
      *
-     * @param graine graine du tirage, à conserver pour rejouer/vérifier le tirage
+     * @param graine graine technique du tirage (la même graine refait le même tableau)
      */
     public ResultatConstructionPhaseFinale construire(Tableau tableau, long graine) {
         DiagnosticPhaseFinale avant = diagnostiquer(tableau);

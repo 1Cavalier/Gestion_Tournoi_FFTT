@@ -40,8 +40,10 @@ import java.util.function.Consumer;
  *   <li>clôture du pointage ({@link ServicePointage#cloturerPointage}) : les non
  *       pointés libèrent leur place, la liste d'attente est repêchée ; les
  *       repêchés « à pointer » sont confirmés ou retirés un par un ;</li>
- *   <li>tirage au sort (IX.109) : graine proposée, modifiable, affichée, puis
- *       {@link ServiceLancementTableau#lancer(Tableau, long)}.</li>
+ *   <li>tirage au sort, sous la responsabilité du juge-arbitre (IX.109) :
+ *       {@link ServiceLancementTableau#lancer(Tableau, long)}, puis date, heure
+ *       et juge-arbitre affichés ; la référence technique (graine) reste dans un
+ *       détail discret pour le support.</li>
  * </ul>
  *
  * <p>Toute la logique est dans le cœur et dans {@link PresentationJourJ} ; cet
@@ -428,10 +430,10 @@ final class EcranPointageTableau {
         if (tableau.getStatut() != StatutTableau.POINTAGE) {
             Button voir = Ui.boutonPrimaire("Voir les poules");
             voir.setOnAction(e -> versPoules.accept(tableau));
-            Long graine = tableau.getGrainePoules();
             return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Tirage au sort des poules"), voir),
-                    Ui.discret(graine == null ? "Tirage effectué (graine non conservée dans ce fichier)."
-                            : "Tirage effectué avec la graine " + graine + "."));
+                    Ui.discret(PresentationTirage.texteTirageEffectue(tableau.getTraceTiragePoules())),
+                    DetailSupportTirage.creer(
+                            Ui.aide(PresentationTirage.texteReferenceTechnique(tableau.getGrainePoules()))));
         }
         ResultatVerificationLancement verif = lancement.verifierLancement(tableau);
         VBox corps = new VBox(10);
@@ -441,7 +443,7 @@ final class EcranPointageTableau {
             return Ui.carte("Tirage au sort des poules", corps);
         }
 
-        TextField graine = Ui.champ("Graine du tirage");
+        TextField graine = Ui.champ(PresentationTirage.LIBELLE_REFERENCE);
         graine.setText(graineProposee);
         graine.getStyleClass().add("champ-graine");
         graine.setMaxWidth(180);
@@ -452,7 +454,8 @@ final class EcranPointageTableau {
             Optional<Long> g = PresentationJourJ.lireGraine(graine.getText());
             if (g.isEmpty()) {
                 Ui.marquerErreur(graine);
-                Ui.erreur(erreur, "La graine doit être un nombre entier positif (par exemple " + graineProposee + ").");
+                Ui.erreur(erreur, "La référence technique du tirage doit être un nombre entier positif (par exemple "
+                        + graineProposee + "). Ouvrez le détail technique pour la corriger.");
                 return;
             }
             Ui.cacher(erreur);
@@ -462,8 +465,8 @@ final class EcranPointageTableau {
             Button confirmer = Ui.boutonPrimaire("Faire le tirage");
             Button renoncer = Ui.boutonSecondaire("Annuler");
             VBox encart = Ui.encartConfirmation("Le tirage au sort des poules du tableau « " + tableau.getNom()
-                    + " » sera fait avec la graine " + g.get() + ", sur " + verif.getPresents()
-                    + " présents. Il ne pourra pas être refait.", confirmer, renoncer);
+                    + " » sera fait maintenant, sur " + verif.getPresents()
+                    + " présents. Il sera daté et ne pourra pas être refait.", confirmer, renoncer);
             confirmer.setOnAction(ev -> {
                 try {
                     lancement.lancer(tableau, g.get());
@@ -476,13 +479,11 @@ final class EcranPointageTableau {
             renoncer.setOnAction(ev -> corps.getChildren().remove(encart));
             corps.getChildren().add(encart);
         });
-        VBox blocGraine = Ui.champEtiquete("Graine du tirage", graine);
+        VBox blocGraine = Ui.champEtiquete(PresentationTirage.LIBELLE_REFERENCE, graine);
         corps.getChildren().addAll(
-                Ui.aide("IX.109 : le juge-arbitre est responsable du tirage au sort. Annoncez cette graine avant de "
-                        + "lancer : avec la même graine et les mêmes présents, PingManager refait exactement le même "
-                        + "tirage, ce qui permet à chacun de le vérifier. Vous pouvez en saisir une autre "
-                        + "(par exemple tirée au sort devant les joueurs)."),
-                blocGraine, Ui.actions(lancer), erreur);
+                Ui.aide(PresentationTirage.rappelAvantTirage(tournoi)),
+                Ui.actions(lancer), erreur,
+                DetailSupportTirage.creer(blocGraine, Ui.aide(PresentationTirage.aideReferenceTechnique())));
         return Ui.carte("Tirage au sort des poules", corps);
     }
 

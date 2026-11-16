@@ -69,7 +69,7 @@ public final class InfosReglement {
     /** Horaire prévisionnel de début des finales (optionnel). */
     private final LocalTime horairePrevuFinales;
 
-    // --- Tirage au sort public IX.109 (optionnel) ---
+    // --- Date, heure et lieu du tirage au sort public : IX.111 (optionnel) ---
     private final LocalDateTime tiragePublicDateHeure;
     private final String tiragePublicLieu;
 

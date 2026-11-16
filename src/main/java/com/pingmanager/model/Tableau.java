@@ -72,19 +72,29 @@ public final class Tableau {
     private boolean pointageCloture = false;
 
     /**
-     * Graine du tirage au sort des poules, conservée au lancement pour pouvoir
-     * rejouer et vérifier le tirage (IX.109 : le juge-arbitre est responsable du
-     * tirage au sort). {@code null} tant que le tableau n'est pas lancé.
+     * Graine du tirage au sort des poules : mécanisme technique interne
+     * (reprise après incident, tests, vérification), qu'aucun texte fédéral
+     * n'impose. {@code null} tant que le tableau n'est pas lancé.
      */
     private Long grainePoules;
 
     /**
      * Graine du second tirage au sort (placement des qualifiés dans le tableau
-     * final, I.304 / I.305), conservée à la construction de la phase finale pour
-     * pouvoir rejouer et vérifier ce tirage (IX.109). {@code null} tant que le
-     * tableau final n'est pas tiré, ou pour un fichier plus ancien.
+     * final, I.302 à I.305) : même rôle technique que {@link #grainePoules}.
+     * {@code null} tant que le tableau final n'est pas tiré, ou pour un fichier
+     * plus ancien.
      */
     private Long graineTableauFinal;
+
+    /**
+     * Date, heure et juge-arbitre du tirage des poules (IX.109, IX.111).
+     * {@code null} tant que le tableau n'est pas lancé, ou pour un fichier plus
+     * ancien.
+     */
+    private TraceTirage traceTiragePoules;
+
+    /** Date, heure et juge-arbitre du tirage du tableau final (IX.109, IX.111). */
+    private TraceTirage traceTirageTableauFinal;
 
     public Tableau(String nom, ConfigurationTableau configuration) {
         this.nom = Objects.requireNonNull(nom, "nom");
@@ -226,8 +236,8 @@ public final class Tableau {
     }
 
     /**
-     * Conserve la graine du tirage au sort des poules. Réservé au service de
-     * lancement, qui l'enregistre au moment du tirage.
+     * Conserve la graine (technique) du tirage au sort des poules. Réservé au
+     * service de lancement, qui l'enregistre au moment du tirage.
      */
     public void definirGrainePoules(long graine) {
         this.grainePoules = graine;
@@ -248,6 +258,32 @@ public final class Tableau {
      */
     public void definirGraineTableauFinal(long graine) {
         this.graineTableauFinal = graine;
+    }
+
+    /**
+     * @return date, heure et juge-arbitre du tirage des poules, ou {@code null}
+     *         si le tableau n'est pas lancé (ou provient d'un fichier plus ancien)
+     */
+    public TraceTirage getTraceTiragePoules() {
+        return traceTiragePoules;
+    }
+
+    /** Conserve la trace du tirage des poules. Réservé au service de lancement. */
+    public void definirTraceTiragePoules(TraceTirage trace) {
+        this.traceTiragePoules = Objects.requireNonNull(trace, "trace");
+    }
+
+    /**
+     * @return date, heure et juge-arbitre du tirage du tableau final, ou
+     *         {@code null} si ce tirage n'est pas fait (ou fichier plus ancien)
+     */
+    public TraceTirage getTraceTirageTableauFinal() {
+        return traceTirageTableauFinal;
+    }
+
+    /** Conserve la trace du tirage du tableau final. Réservé au service de lancement. */
+    public void definirTraceTirageTableauFinal(TraceTirage trace) {
+        this.traceTirageTableauFinal = Objects.requireNonNull(trace, "trace");
     }
 
     /** @return true si le tableau a été lancé (tirage fait, poules générées). */
@@ -527,6 +563,8 @@ public final class Tableau {
         this.pointageCloture = e.pointageCloture;
         this.grainePoules = e.grainePoules;
         this.graineTableauFinal = e.graineTableauFinal;
+        this.traceTiragePoules = e.traceTiragePoules;
+        this.traceTirageTableauFinal = e.traceTirageTableauFinal;
     }
 
     /**
@@ -554,6 +592,10 @@ public final class Tableau {
         public Long grainePoules;
         /** Graine du tirage du tableau final ; {@code null} pour un fichier ancien ou un tableau final non tiré. */
         public Long graineTableauFinal;
+        /** Trace du tirage des poules ; {@code null} pour un fichier ancien ou un tableau non lancé. */
+        public TraceTirage traceTiragePoules;
+        /** Trace du tirage du tableau final ; {@code null} pour un fichier ancien ou un tableau final non tiré. */
+        public TraceTirage traceTirageTableauFinal;
     }
 
     @Override

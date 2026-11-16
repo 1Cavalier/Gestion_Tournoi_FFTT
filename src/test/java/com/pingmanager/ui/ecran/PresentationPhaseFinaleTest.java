@@ -307,8 +307,10 @@ class PresentationPhaseFinaleTest {
 
     @Test
     void texte_de_la_graine_connue_ou_non_conservee() {
-        assertTrue(PresentationPhaseFinale.texteGraine(987L).startsWith("Graine du tirage : 987."));
-        assertTrue(PresentationPhaseFinale.texteGraine(null).contains("non conservée"));
+        // La graine n'est plus nommée ainsi pour l'utilisateur : détail technique (support).
+        assertEquals("Référence technique du tirage (support) : 987.", PresentationPhaseFinale.texteGraine(987L));
+        assertTrue(PresentationPhaseFinale.texteGraine(null).contains("non enregistrée"));
+        assertFalse(PresentationPhaseFinale.texteGraine(987L).toLowerCase().contains("graine"));
     }
 
     @Test

@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 903 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 912 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -279,8 +279,14 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   Le fichier est relu avant chaque action et enregistré juste après ; chaque
   action entre au **journal du pointage** avec l'heure et le nom de
   l'ordinateur, pour préparer la synchronisation entre postes.
-- Pointage et repêchage de la liste d'attente, tirage reproductible des
-  poules et du tableau final (conforme I.302 à I.305). Tableau incomplet :
+- Pointage et repêchage de la liste d'attente, tirage au sort des poules et
+  du tableau final (placement conforme I.302 à I.305). Chaque tirage est
+  daté et signé du juge-arbitre : « Tirage au sort effectué le … à … —
+  juge-arbitre : … » (IX.109 : le JA est le responsable direct du tirage).
+  Un tirage fait ne peut plus être refait (manuel JA, I-6.4). La graine du
+  générateur, mécanisme technique interne (reprise après incident, tests),
+  est enregistrée pour les deux tirages et n'apparaît que dans le « Détail
+  technique (support) » ; aucun texte fédéral ne l'impose. Tableau incomplet :
   un seul tour d'exempts, le 2e tour est toujours complet, les exempts vont
   d'abord aux 1ers de poule (décision du 11 novembre 2026).
 - Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
@@ -533,7 +539,10 @@ parenthèses.
 - Ordre des rencontres de poule I.301 à confirmer sur un vrai tournoi.
 - Remplacement du juge-arbitre après la demande d'homologation (verrouillé ;
   recommandé : autoriser si le grade reste conforme, à vérifier avec IX.104).
-- Tirage public et graine (IX.109) : enregistrer la graine du tableau final.
+- Retirer un tirage déjà fait : aucun bouton, mais rouvrir une sauvegarde
+  antérieure (copie `.bak`, reprise après incident, ancien fichier) permet de
+  le refaire sans trace. Le tirage du tableau final n'a pas d'étape de
+  confirmation, contrairement à celui des poules. (Inchangé.)
 - Manches d'un match perdu par forfait ou abandon ; victoires et défaites par
   forfait dans les statistiques (comptées et signalées à part).
 - Lancer un tableau avec des repêchés qui n'ont pas pointé ; inscriptions sur
@@ -778,6 +787,9 @@ cité dans le code et les tests.
 | II.302, II.303 | Catégories d'âge | ✅ |
 | IX.101, IX.102 | Accès selon la catégorie du tournoi | ✅ |
 | IX.104, IX.111 | Inscription, classement, capacité, tarifs, récompenses | ✅ |
+| IX.109 | Juge-arbitre responsable direct du tirage au sort (nom noté sur chaque tirage) | ✅ |
+| IX.111 | Date, heure et lieu du tirage au sort public dans le règlement du tournoi | ✅ |
+| Manuel JA, I-6.4 | Joueur placé par tirage au sort : ne peut plus être déplacé (pas de second tirage) | ✅ |
 | 3.5.2 | Cartons, points de pénalité, exclusion après 2 disqualifications | ✅ |
 
 Réserves : désistement, motifs de retrait, non-présentation au pointage et

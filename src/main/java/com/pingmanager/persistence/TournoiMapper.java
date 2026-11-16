@@ -14,6 +14,7 @@ import com.pingmanager.model.RegleTableauxParJour;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.StatutTournoi;
 import com.pingmanager.model.Tableau;
+import com.pingmanager.model.TraceTirage;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.model.TypeTournoi;
 import com.pingmanager.persistence.json.Json;
@@ -408,12 +409,19 @@ public final class TournoiMapper {
         o.set("statut", ecrireEnum(tab.getStatut()));
         o.set("pointageCloture", tab.pointageEstCloture());
         if (tab.getGrainePoules() != null) {
-            // Graine du tirage des poules (IX.109) ; absente des fichiers plus anciens.
+            // Graine technique du tirage des poules (reprise, vérification) ; absente des fichiers plus anciens.
             o.set("grainePoules", String.valueOf(tab.getGrainePoules()));
         }
         if (tab.getGraineTableauFinal() != null) {
-            // Graine du tirage du tableau final (IX.109) ; absente des fichiers plus anciens.
+            // Graine technique du tirage du tableau final ; absente des fichiers plus anciens.
             o.set("graineTableauFinal", String.valueOf(tab.getGraineTableauFinal()));
+        }
+        // Date, heure et juge-arbitre de chaque tirage (IX.109, IX.111) ; absents des fichiers plus anciens.
+        if (tab.getTraceTiragePoules() != null) {
+            o.set("tiragePoules", ecrireTraceTirage(tab.getTraceTiragePoules()));
+        }
+        if (tab.getTraceTirageTableauFinal() != null) {
+            o.set("tirageTableauFinal", ecrireTraceTirage(tab.getTraceTirageTableauFinal()));
         }
         o.set("horaires", ConfigMapper.ecrireHoraires(tab.getHoraires()));
 
@@ -791,6 +799,8 @@ public final class TournoiMapper {
         e.pointageCloture = o.getBoolean("pointageCloture", false);
         e.grainePoules = lireGraine(o.getString("grainePoules", null));
         e.graineTableauFinal = lireGraine(o.getString("graineTableauFinal", null));
+        e.traceTiragePoules = lireTraceTirage(o.has("tiragePoules") ? o.get("tiragePoules") : null);
+        e.traceTirageTableauFinal = lireTraceTirage(o.has("tirageTableauFinal") ? o.get("tirageTableauFinal") : null);
         e.horaires = ConfigMapper.lireHoraires(o.get("horaires"));
 
         for (Json ref : o.get("inscrits").elements()) {
@@ -842,6 +852,26 @@ public final class TournoiMapper {
 
         tab.restaurerEtat(e);
         return tab;
+    }
+
+    private static Json ecrireTraceTirage(TraceTirage t) {
+        Json o = Json.objet();
+        o.set("effectueLe", t.effectueLe().toString());
+        o.set("jugeArbitre", t.jugeArbitre());
+        return o;
+    }
+
+    /** Trace d'un tirage ; {@code null} si absente (ancien fichier) ou illisible. */
+    private static TraceTirage lireTraceTirage(Json o) {
+        if (o == null || !o.has("effectueLe")) {
+            return null;
+        }
+        try {
+            return new TraceTirage(java.time.Instant.parse(o.getString("effectueLe", "")),
+                    o.getString("jugeArbitre", null));
+        } catch (java.time.format.DateTimeParseException illisible) {
+            return null;
+        }
     }
 
     /** Graine écrite en texte (un long ne tient pas toujours dans un nombre JSON exact). */

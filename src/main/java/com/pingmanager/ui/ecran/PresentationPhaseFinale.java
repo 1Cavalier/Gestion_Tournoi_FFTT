@@ -21,7 +21,7 @@ import java.util.Objects;
 /**
  * Présentation de la vue « Phase finale », <b>sans JavaFX</b> : tout ce qui se
  * calcule ou se formule (libellés des tours, colonnes du tableau avec les
- * exempts, textes des scores, podium, messages d'état, graine du tirage) est
+ * exempts, textes des scores, podium, messages d'état, référence technique du tirage) est
  * ici et testé ; {@link VuePhaseFinale} ne fait que poser les composants.
  */
 final class PresentationPhaseFinale {
@@ -351,21 +351,21 @@ final class PresentationPhaseFinale {
         try {
             long v = Long.parseLong(s);
             if (v < 0) {
-                return new LectureGraine(null, "La graine est un nombre entier positif.");
+                return new LectureGraine(null, "La référence technique du tirage est un nombre entier positif.");
             }
             return new LectureGraine(v, null);
         } catch (NumberFormatException e) {
-            return new LectureGraine(null, "La graine est un nombre entier positif (ou laissez le champ vide).");
+            return new LectureGraine(null, "La référence technique du tirage est un nombre entier positif (ou laissez le champ vide).");
         }
     }
 
-    /** Texte affiché sous le tableau construit (graine conservée avec le tableau, IX.109). */
+    /**
+     * Texte du détail technique (support) sous le tableau construit : la graine,
+     * mécanisme interne qu'aucun texte fédéral n'impose, n'est pas montrée à
+     * l'utilisateur courant sous ce nom.
+     */
     static String texteGraine(Long graine) {
-        if (graine == null) {
-            return "Graine du tirage : non conservée (tableau tiré avec une version qui ne l'enregistrait pas).";
-        }
-        return "Graine du tirage : " + graine
-                + ". Notez-la : la même graine refait exactement le même tirage (vérification du tirage public).";
+        return PresentationTirage.texteReferenceTechnique(graine);
     }
 
     // ------------------------------------------------------------------

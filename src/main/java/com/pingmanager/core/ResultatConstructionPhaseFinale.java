@@ -8,8 +8,9 @@ import java.util.Objects;
  * Résultat de la construction du tableau final d'un tableau
  * ({@link ServicePhaseFinale#construire}).
  *
- * <p>En cas de succès, porte le tableau à élimination et la <b>graine</b> du
- * tirage (pour rejouer ou vérifier le tirage public, I.304 / I.305). En cas de
+ * <p>En cas de succès, porte le tableau à élimination et la graine technique
+ * du tirage (placement I.302 à I.305 ; la même graine refait le même tableau,
+ * utile après un incident). En cas de
  * refus, porte le {@link DiagnosticPhaseFinale} qui explique pourquoi.</p>
  */
 public final class ResultatConstructionPhaseFinale {

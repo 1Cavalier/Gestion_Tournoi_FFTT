@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 
 /**
  * Vue « Phase finale » d'un tableau, ouverte depuis la page Jour J : second
- * tirage (construction du tableau final, graine affichée et modifiable) une fois
+ * tirage (construction du tableau final, daté, avec le juge-arbitre) une fois
  * les poules terminées, puis <b>arbre des rencontres</b> — une colonne par tour,
  * cartes de match reliées par des traits au tour suivant, vainqueur en gras,
  * exempts visibles, match en cours mis en évidence, petite finale sous la
@@ -70,7 +70,7 @@ public final class VuePhaseFinale {
     private final Tableau tableau;
     private final Path fichier;
     private final Runnable onRetour;
-    private final ServicePhaseFinale service = new ServicePhaseFinale();
+    private final ServicePhaseFinale service;
 
     private final BorderPane racine = new BorderPane();
     private Match selectionne;
@@ -90,6 +90,7 @@ public final class VuePhaseFinale {
                            Runnable onRetour) {
         this.contexte = contexte;
         this.tournoi = tournoi;
+        this.service = new ServicePhaseFinale(tournoi);
         this.tableau = Objects.requireNonNull(tableau, "tableau");
         this.fichier = fichier;
         this.onRetour = onRetour;
@@ -222,7 +223,7 @@ public final class VuePhaseFinale {
             TextField graine = Ui.champ("ex. 141126");
             graine.setText(String.valueOf(graineProposee));
             graine.getStyleClass().add("graine-tirage");
-            VBox champGraine = Ui.champEtiquete("Graine du tirage", graine);
+            VBox champGraine = Ui.champEtiquete(PresentationTirage.LIBELLE_REFERENCE, graine);
             champGraine.setMaxWidth(360);
             Label erreur = Ui.message();
             Button tirer = Ui.boutonPrimaire("Tirer le tableau final");
@@ -231,12 +232,10 @@ public final class VuePhaseFinale {
             corps.getChildren().addAll(
                     rappel(PresentationPhaseFinale.textePetiteFinaleAvantTirage(
                             tableau.getConfiguration().avecPetiteFinale())),
-                    champGraine,
-                    Ui.aide("IX.109 : le juge-arbitre est responsable du tirage au sort. Annoncez la graine : avec "
-                            + "la même graine et les mêmes qualifiés, PingManager refait exactement le même tableau. "
-                            + "Pour refaire un tirage déjà publié, saisissez sa graine."),
+                    Ui.aide(PresentationTirage.rappelAvantTirage(tournoi)),
                     erreur,
-                    Ui.actions(tirer));
+                    Ui.actions(tirer),
+                    DetailSupportTirage.creer(champGraine, Ui.aide(PresentationTirage.aideReferenceTechnique())));
             Platform.runLater(tirer::requestFocus);
         }
         return Ui.carte("Construire le tableau final", corps);
@@ -255,8 +254,8 @@ public final class VuePhaseFinale {
             Ui.erreur(erreur, PresentationPhaseFinale.messageEtat(r.getDiagnostic()));
             return;
         }
-        messageSucces = "Tableau final tiré avec la graine " + r.getGraine()
-                + ". Annoncez-la et affichez le tableau.";
+        messageSucces = PresentationTirage.texteTirageEffectue(tableau.getTraceTirageTableauFinal())
+                + " Affichez le tableau final.";
         enregistrerPuisRafraichir();
     }
 
@@ -267,8 +266,10 @@ public final class VuePhaseFinale {
     private Node carteResume(DiagnosticPhaseFinale diagnostic, TableauElimination elim) {
         VBox corps = new VBox(8,
                 Ui.gras(PresentationPhaseFinale.resume(elim)),
-                Ui.aide(PresentationPhaseFinale.texteGraine(tableau.getGraineTableauFinal())),
-                Ui.texte(PresentationPhaseFinale.messageEtat(diagnostic)));
+                Ui.texte(PresentationTirage.texteTirageEffectue(tableau.getTraceTirageTableauFinal())),
+                Ui.texte(PresentationPhaseFinale.messageEtat(diagnostic)),
+                DetailSupportTirage.creer(
+                        Ui.aide(PresentationPhaseFinale.texteGraine(tableau.getGraineTableauFinal()))));
         String notePf = PresentationPhaseFinale.notePetiteFinale(tableau.getConfiguration().avecPetiteFinale(), elim);
         if (!notePf.isEmpty()) {
             corps.getChildren().add(Ui.aide(notePf));
