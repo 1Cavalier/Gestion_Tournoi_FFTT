@@ -10,7 +10,6 @@ import com.pingmanager.ui.diffusion.DiffusionSuivi;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Label;
 import javafx.print.PrinterJob;
 import javafx.scene.control.ProgressBar;
@@ -27,17 +26,17 @@ import java.util.List;
 /**
  * Page « Jour J » d'un tournoi (Gestion des tournois → tournoi → « Jour J »).
  *
- * <p>Écran principal unique du juge-arbitre (B011, {@link EcranSalle} avec le
- * bandeau « Où en sont les tableaux ») : matchs proposés tous tableaux
- * confondus, tables, saisie du score sur place. Le bandeau donne l'étape de
- * chaque tableau, jour par jour et dans l'ordre des horaires, et ouvre les vues
- * secondaires :</p>
+ * <p>Écran principal unique du juge-arbitre ({@link EcranSalle}) : bandeau,
+ * trois cartes, liste des tableaux, salle. Chaque tableau a sa ligne avec la
+ * frise des six étapes (étape calculée par
+ * {@link com.pingmanager.core.CalculEtapeTableau}) et les actions de l'étape
+ * courante, qui ouvrent les vues secondaires :</p>
  * <ul>
- *   <li>ouvrir le pointage (tableau par tableau) ;</li>
+ *   <li>ouvrir le pointage (confirmation sous la ligne) ;</li>
  *   <li>pointer, clôturer, puis lancer le tirage au sort
  *       ({@link EcranPointageTableau}) ;</li>
  *   <li>suivre les poules et saisir les scores ({@link EcranPoulesTableau}) ;</li>
- *   <li>construire le tableau final et suivre l'arbre ({@link VuePhaseFinale}).</li>
+ *   <li>tirer le tableau final et suivre l'arbre ({@link VuePhaseFinale}).</li>
  * </ul>
  *
  * <p>Le tournoi est relu depuis son fichier à chaque retour sur l'écran principal ; chaque
@@ -54,6 +53,8 @@ final class EcranJourJ {
     private Integer jourAffiche;
 
     private final BorderPane racine = new BorderPane();
+    /** Rouvrir l'interface des annonces au prochain affichage (après un geste du suivi sur téléphone). */
+    private boolean rouvrirAnnonces;
     /** B021 : message du dernier démarrage du suivi sur téléphone (refus), vide sinon. */
     private String messageTelephone = "";
 
@@ -147,7 +148,11 @@ final class EcranJourJ {
                 .avecSms(contexte.convocationsSms(), this::afficherSms)
                 .avecAnnoncesVocales(contexte.annoncesVocales())
                 .avecPrononciations(this::afficherPrononciations)
-                .avecInscriptionSurPlace(this::afficherInscriptionSurPlace);
+                .avecSuiviTelephone(this::carteTelephone);
+        if (rouvrirAnnonces) {
+            principal.ouvrirAnnonces();
+            rouvrirAnnonces = false;
+        }
         racine.setCenter(principal.build());
     }
 
@@ -185,9 +190,11 @@ final class EcranJourJ {
     }
 
     /**
-     * Bandeau « Où en sont les tableaux » : une ligne par tableau (étape, avancement,
-     * jauge, parties en jeu) ; un clic ouvre le détail. Reconstruit par l'écran
-     * principal après chaque action, donc toujours à jour.
+     * Liste des tableaux : une ligne par tableau avec sa frise en six étapes
+     * (étape calculée dans le cœur, {@link com.pingmanager.core.CalculEtapeTableau})
+     * et les actions de l'étape courante ; un clic sur la ligne ouvre l'action
+     * principale. Reconstruite par l'écran principal après chaque action, donc
+     * toujours à jour.
      */
     private Node bandeauTableaux() {
         VBox lignes = new VBox(0);
@@ -208,11 +215,12 @@ final class EcranJourJ {
                 continue;
             }
             for (PresentationAvancement.Ligne l : journees.get(i).lignes()) {
-                lignes.getChildren().add(ligneAvancement(l, premiere));
+                lignes.getChildren().add(ligneTableau(PresentationTableauDeBordJourJ.ligne(l.tableau()), premiere));
                 premiere = false;
             }
         }
-        Node entete = Ui.titreCarte("Où en sont les tableaux");
+        javafx.scene.layout.FlowPane actions = new javafx.scene.layout.FlowPane(8, 8);
+        actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
         if (jours) {
             Label jour = Ui.discret(PresentationAvancement.titreJour(journees.get(index), aujourdhui));
             jour.getStyleClass().add("avancement-jour");
@@ -224,16 +232,32 @@ final class EcranJourJ {
             suivant.setOnAction(e -> changerJour(index + 1));
             precedent.getStyleClass().add("avancement-action");
             suivant.getStyleClass().add("avancement-action");
-            entete = Ui.ligne(10, Ui.titreCarte("Où en sont les tableaux"), jour, Ui.espace(), precedent, suivant);
+            actions.getChildren().addAll(jour, precedent, suivant);
         }
+        Button surPlace = Ui.boutonSecondaire("Inscrire sur place…");
+        surPlace.getStyleClass().add("avancement-action");
+        surPlace.setTooltip(new Tooltip("Inscrire un joueur, par exemple éliminé d'un tableau, à un tableau "
+                + "qui n'a pas encore commencé."));
+        surPlace.setOnAction(e -> afficherInscriptionSurPlace());
+        actions.getChildren().add(surPlace);
+        // B052 : pas d'inscription avant la publication (ancien fichier), raison affichée.
+        if (PresentationInscriptionsClub.avantPublication(tournoi)) {
+            surPlace.setDisable(true);
+            actions.getChildren().add(0, VueInscriptionsClub.raisonAvantPublication());
+        }
+        Label titreTableaux = Ui.titreCarte(PresentationTableauDeBordJourJ.TITRE_TABLEAUX);
+        titreTableaux.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        HBox gaucheEntete = Ui.ligne(10, titreTableaux);
+        actions.setAlignment(jours ? javafx.geometry.Pos.CENTER_LEFT : javafx.geometry.Pos.CENTER_RIGHT);
+        Node entete = TableauDeBordJourJ.ligneAdaptative(gaucheEntete, actions, 640);
         VBox carte = Ui.carte(entete, lignes);
-        carte.getStyleClass().add("avancement");
+        carte.getStyleClass().addAll("avancement", "jourj-tableaux");
         if (tournoi.getStatut() == StatutTournoi.ANNULE) {
             carte.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : le pointage et les tirages sont fermés."));
         }
         // Reconstruit à chaque rafraîchissement de l'écran principal : la photographie suit.
         publierSuivi();
-        return new VBox(16, carte, carteTelephone());
+        return carte;
     }
 
     // ------------------------------------------------------------------
@@ -252,6 +276,7 @@ final class EcranJourJ {
             arreter.setOnAction(e -> {
                 d.arreter();
                 messageTelephone = "";
+                rouvrirAnnonces = true;
                 afficherListe();
             });
             carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Suivi sur téléphone"), grand, arreter),
@@ -269,6 +294,7 @@ final class EcranJourJ {
                 int p = DiffusionSuivi.lirePort(port.getText());
                 DiffusionSuivi.ResultatDemarrage r = d.demarrer(p, tournoi);
                 messageTelephone = r.estDemarre() ? "" : r.message();
+                rouvrirAnnonces = true;
                 afficherListe();
             };
             ouvrir.setOnAction(e -> demarrer.run());
@@ -353,74 +379,78 @@ final class EcranJourJ {
         afficherListe();
     }
 
-    /** Une ligne du bandeau : nom, étape, avancement, jauge, bouton de détail. */
-    private Node ligneAvancement(PresentationAvancement.Ligne l, boolean premiere) {
+    /**
+     * Une ligne de tableau : nom, pastille d'étape, parties en jeu et actions de
+     * l'étape ; la frise des six étapes ; l'avancement de l'étape et sa jauge.
+     */
+    private Node ligneTableau(PresentationTableauDeBordJourJ.LigneTableau l, boolean premiere) {
         Tableau t = l.tableau();
+        PresentationAvancement.Ligne av = l.avancement();
         Button nom = Ui.boutonLien(t.getNom());
         nom.getStyleClass().add("avancement-nom");
         nom.setTooltip(new Tooltip(PresentationJourJ.horaires(t)));
-        Label etape = Ui.pastille(l.libelleEtape(), l.classeEtape());
+        Label etape = Ui.pastille(l.libelleEtape(), StatutPastille.INFO);
         etape.getStyleClass().add("avancement-etape");
-        HBox haut = Ui.ligne(10, nom, etape);
-        String enJeu = PresentationAvancement.libelleEnJeu(l.enJeu());
+        javafx.scene.layout.FlowPane titre = new javafx.scene.layout.FlowPane(10, 6, nom, etape);
+        titre.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        String enJeu = PresentationAvancement.libelleEnJeu(av.enJeu());
         if (!enJeu.isEmpty()) {
-            haut.getChildren().add(Ui.pastille(enJeu, StatutPastille.INFO));
+            titre.getChildren().add(Ui.pastille(enJeu, StatutPastille.NEUTRE));
         }
-        Label detail = new Label(l.detail());
-        detail.getStyleClass().add("avancement-detail");
-        VBox gauche = new VBox(2, haut, detail);
-        HBox.setHgrow(gauche, Priority.ALWAYS);
-        gauche.setMaxWidth(Double.MAX_VALUE);
+        titre.setPrefWrapLength(420);
 
-        ProgressBar jauge = new ProgressBar(Math.max(0, l.jauge()));
+        boolean ferme = tournoi.getStatut() == StatutTournoi.ANNULE;
+        VBox bloc = new VBox(10);
+        HBox boutons = Ui.ligne(8);
+        boutons.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        for (PresentationTableauDeBordJourJ.Action a : l.actions()) {
+            Button b = a.principale() ? Ui.boutonPrimaire(a.libelle()) : Ui.boutonSecondaire(a.libelle());
+            b.getStyleClass().add("avancement-action");
+            b.setDisable(ferme && (a.vue() == PresentationAvancement.Detail.OUVRIR_POINTAGE
+                    || l.etape().etape() == com.pingmanager.core.EtapeTableau.POINTAGE_FERME
+                    || "Tirer le tableau final".equals(a.libelle())));
+            b.setOnAction(e -> ouvrirDetail(t, a.vue(), bloc));
+            boutons.getChildren().add(b);
+        }
+        Node haut = TableauDeBordJourJ.ligneAdaptative(titre, boutons, 560);
+
+        Label detail = new Label(av.detail());
+        detail.getStyleClass().add("avancement-detail");
+        detail.setWrapText(true);
+        detail.setMinWidth(0);
+        HBox.setHgrow(detail, Priority.ALWAYS);
+        detail.setMaxWidth(Double.MAX_VALUE);
+        ProgressBar jauge = new ProgressBar(Math.max(0, av.jauge()));
         jauge.getStyleClass().addAll("jauge", "avancement-jauge");
         jauge.setPrefWidth(120);
-        jauge.setMinWidth(120);
+        jauge.setMinWidth(60);
         jauge.setPrefHeight(8);
-        jauge.setVisible(l.aJauge());
-        if (l.aJauge()) {
-            Tooltip.install(jauge, new Tooltip(l.pourcentage()));
+        jauge.setVisible(av.aJauge());
+        jauge.setManaged(av.aJauge());
+        if (av.aJauge()) {
+            Tooltip.install(jauge, new Tooltip(av.pourcentage()));
         }
-        boolean ferme = tournoi.getStatut() == StatutTournoi.ANNULE;
-        Button action = l.vue() == PresentationAvancement.Detail.OUVRIR_POINTAGE
-                ? Ui.boutonPrimaire(l.libelleBouton()) : Ui.boutonSecondaire(l.libelleBouton());
-        action.getStyleClass().add("avancement-action");
-        action.setDisable(ferme && (l.vue() == PresentationAvancement.Detail.OUVRIR_POINTAGE
-                || l.etape() == PresentationJourJ.Etape.POULES_TERMINEES));
-        HBox ligne = Ui.ligne(14, gauche, jauge, action);
+        HBox bas = Ui.ligne(12, detail, jauge);
 
-        VBox bloc = new VBox(8, ligne);
-        bloc.getStyleClass().add("avancement-ligne");
+        bloc.getChildren().addAll(haut, TableauDeBordJourJ.frise(l.frise()), bas);
+        bloc.getStyleClass().addAll("avancement-ligne", "jourj-ligne-tableau");
         if (premiere) {
             bloc.getStyleClass().add("avancement-ligne-premiere");
         }
-        Runnable ouvrir = () -> ouvrirDetail(l, bloc);
-        nom.setOnAction(e -> ouvrir.run());
-        action.setOnAction(e -> ouvrir.run());
+        PresentationAvancement.Detail principale = l.vue();
+        nom.setOnAction(e -> ouvrirDetail(t, principale, bloc));
         // Toute la ligne est cliquable (hors boutons, qui ont leur propre action).
         bloc.setCursor(Cursor.HAND);
         bloc.setOnMouseClicked(e -> {
-            if (!dansUnBouton(e.getTarget(), bloc) && !(ferme && action.isDisabled())) {
-                ouvrir.run();
+            if (!TableauDeBordJourJ.dansUnBouton(e.getTarget(), bloc)
+                    && !(ferme && principale == PresentationAvancement.Detail.OUVRIR_POINTAGE)) {
+                ouvrirDetail(t, principale, bloc);
             }
         });
         return bloc;
     }
 
-    private static boolean dansUnBouton(Object cible, Node limite) {
-        Node n = cible instanceof Node noeud ? noeud : null;
-        while (n != null && n != limite) {
-            if (n instanceof ButtonBase) {
-                return true;
-            }
-            n = n.getParent();
-        }
-        return false;
-    }
-
-    private void ouvrirDetail(PresentationAvancement.Ligne l, VBox bloc) {
-        Tableau t = l.tableau();
-        PresentationAvancement.Detail d = l.vue();
+    private void ouvrirDetail(Tableau t, PresentationAvancement.Detail d, VBox bloc) {
         if (d == PresentationAvancement.Detail.OUVRIR_POINTAGE) {
             if (tournoi.getStatut() != StatutTournoi.ANNULE) {
                 confirmerOuverture(t, bloc);
