@@ -3,7 +3,6 @@ package com.pingmanager.ui.ecran;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.persistence.ProjetTournoi;
 import com.pingmanager.ui.ContexteApplication;
-import com.pingmanager.ui.ecran.PresentationGestionTournois.Actuel;
 import com.pingmanager.ui.ecran.PresentationGestionTournois.Etape;
 import com.pingmanager.ui.ecran.PresentationGestionTournois.Fiche;
 import javafx.scene.Node;
@@ -18,13 +17,12 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Vue de l'accueil « Gestion des tournois » (B033) : tournoi actuel, gros
- * bouton de création, frise verticale des étapes et historique des tournois
- * passés. Vue mince : tout ce qui est décidé (répartition, ordre, libellés)
+ * Vue de l'accueil « Gestion des tournois » (B033) : gros bouton de création,
+ * frise verticale des étapes (jusqu'à l'étape 5 « Tournoi commencé », qui
+ * ouvre le jour J) et historique des tournois passés. Vue mince : tout ce qui est décidé (répartition, ordre, libellés)
  * vient de {@link PresentationGestionTournois}.
  */
 final class AccueilGestionTournois {
@@ -53,7 +51,7 @@ final class AccueilGestionTournois {
         this.jourJ = jourJ;
     }
 
-    /** Pose l'accueil (tournoi actuel + frise). */
+    /** Pose l'accueil (création + frise). */
     void afficher() {
         PresentationGestionTournois p = presentation();
 
@@ -70,7 +68,7 @@ final class AccueilGestionTournois {
         VBox titres = new VBox(4, Ui.titre(PresentationGestionTournois.TITRE), clubs, historique);
         HBox entete = Ui.enteteAvecActions(titres, blocCreer);
 
-        poser.accept(Ui.page(1040, entete, sectionActuel(p), frise(p)));
+        poser.accept(Ui.page(1040, entete, frise(p)));
     }
 
     private PresentationGestionTournois presentation() {
@@ -86,39 +84,6 @@ final class AccueilGestionTournois {
             }
         }
         return new PresentationGestionTournois(fiches, LocalDate.now());
-    }
-
-    // ------------------------------------------------------------------
-    // Tournoi actuel
-    // ------------------------------------------------------------------
-
-    private Node sectionActuel(PresentationGestionTournois p) {
-        Optional<Actuel> actuel = p.actuel();
-        if (actuel.isEmpty()) {
-            VBox carte = Ui.carte(PresentationGestionTournois.TITRE_ACTUEL,
-                    Ui.etatVide(PresentationGestionTournois.ACTUEL_VIDE, null));
-            carte.getStyleClass().add("carte-actuel-vide");
-            return carte;
-        }
-        Actuel a = actuel.get();
-        Fiche f = a.fiche();
-        Label nom = Ui.label(f.nom(), "en-cours-nom");
-        Label etat = f.jourJEntame()
-                ? Ui.pastille(PresentationGestionTournois.PASTILLE_JOUR_J, StatutPastille.INFO)
-                : Ui.pastille(StatutPastille.libelleTournoi(f.statut()), StatutPastille.pourTournoi(f.statut()));
-        VBox infos = new VBox(6, Ui.ligne(10, nom, etat), Ui.discret(PresentationGestionTournois.detailActuel(f)));
-        HBox.setHgrow(infos, Priority.ALWAYS);
-
-        Button suivre = Ui.boutonPrimaire(PresentationGestionTournois.BOUTON_JOUR_J);
-        suivre.setOnAction(e -> jourJ.accept(f.fichier()));
-        Button details = Ui.boutonSecondaire(PresentationGestionTournois.libelleAction(f));
-        details.setOnAction(e -> ouvrir.accept(f.fichier()));
-
-        VBox entete = new VBox(2, Ui.titreCarte(PresentationGestionTournois.TITRE_ACTUEL),
-                Ui.label(a.surtitre(), "surtitre"));
-        VBox carte = Ui.carte(entete, Ui.ligne(16, Ui.blocDate(f.debut()), infos, details, suivre));
-        carte.getStyleClass().add("carte-en-cours");
-        return carte;
     }
 
     // ------------------------------------------------------------------
@@ -161,7 +126,7 @@ final class AccueilGestionTournois {
             liste.getChildren().add(Ui.label(PresentationGestionTournois.ETAPE_VIDE, "frise-vide"));
         } else {
             for (int i = 0; i < etape.tournois().size(); i++) {
-                HBox l = ligneTournoi(p, etape.tournois().get(i));
+                HBox l = ligneTournoi(etape, etape.tournois().get(i));
                 if (i == 0) {
                     l.getStyleClass().add("ligne-element-premiere");
                 }
@@ -179,11 +144,8 @@ final class AccueilGestionTournois {
         return ligne;
     }
 
-    private HBox ligneTournoi(PresentationGestionTournois p, Fiche f) {
+    private HBox ligneTournoi(Etape etape, Fiche f) {
         List<Node> droite = new ArrayList<>();
-        if (p.estActuel(f)) {
-            droite.add(Ui.pastille(PresentationGestionTournois.PASTILLE_ACTUEL, StatutPastille.SUCCES));
-        }
         String mode = PresentationGestionTournois.pastilleMode(f);
         if (mode != null) {
             droite.add(Ui.pastille(mode, PresentationGestionTournois.PASTILLE_MODE.equals(mode)
@@ -195,13 +157,25 @@ final class AccueilGestionTournois {
         Button action = Ui.boutonSecondaire(PresentationGestionTournois.libelleAction(f));
         action.setOnAction(e -> ouvrir.accept(f.fichier()));
         droite.add(action);
+        if (etape.jourJ()) {
+            // Tournoi commencé : l'action principale (bouton et clic sur la ligne) ouvre le jour J.
+            Button suivre = Ui.boutonPrimaire(PresentationGestionTournois.BOUTON_JOUR_J);
+            suivre.setOnAction(e -> jourJ.accept(f.fichier()));
+            droite.add(suivre);
+            return cliquable(Ui.ligneElement(Ui.blocDate(f.debut()), f.nom(),
+                    PresentationGestionTournois.detailJourJ(f), droite.toArray(new Node[0])), f, jourJ);
+        }
         return cliquable(Ui.ligneElement(Ui.blocDate(f.debut()), f.nom(),
                 PresentationGestionTournois.detailCourt(f), droite.toArray(new Node[0])), f);
     }
 
     private HBox cliquable(HBox ligne, Fiche f) {
+        return cliquable(ligne, f, ouvrir);
+    }
+
+    private HBox cliquable(HBox ligne, Fiche f, Consumer<Path> action) {
         ligne.getStyleClass().add("ligne-tournoi-cliquable");
-        ligne.setOnMouseClicked(e -> ouvrir.accept(f.fichier()));
+        ligne.setOnMouseClicked(e -> action.accept(f.fichier()));
         // Un clic sur un bouton de la ligne ne doit pas ouvrir le tournoi une seconde fois.
         for (Node n : ligne.getChildren()) {
             if (n instanceof Button) {
