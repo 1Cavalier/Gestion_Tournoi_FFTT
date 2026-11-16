@@ -65,8 +65,14 @@ public final class DepotApplication implements RegistreClubs {
     /** B018 : prononciations phonétiques des joueurs et des clubs (appels au micro). */
     private final RegistrePrononciations prononciations = new RegistrePrononciations();
 
-    /** B046 : catalogue de la buvette de chaque club, réutilisé d'un tournoi à l'autre. */
-    private final Map<String, com.pingmanager.model.buvette.CatalogueBuvette> buvettes = new LinkedHashMap<>();
+    /** B026 : stock de la buvette de chaque club, qui le suit d'un tournoi à l'autre. */
+    private final Map<String, com.pingmanager.model.buvette.StockBuvette> stocksBuvette = new LinkedHashMap<>();
+    /**
+     * Ancienne section {@code buvettes} (catalogue B046, remplacé par le stock B026) :
+     * plus lue, mais recopiée telle quelle à l'écriture pour ne rien perdre
+     * ({@code null} si le fichier n'en avait pas).
+     */
+    private Json ancienneBuvette;
 
     /** Tournois récemment ouverts, du plus récent au plus ancien. */
     private final List<ProjetTournoi> recents = new ArrayList<>();
@@ -264,18 +270,18 @@ public final class DepotApplication implements RegistreClubs {
     }
 
     // ==================================================================
-    // Buvette (B046)
+    // Buvette (B026)
     // ==================================================================
 
     /**
-     * Catalogue de la buvette d'un club ; créé vide (et retenu) au premier appel.
-     * Les modifications faites sur le catalogue renvoyé sont sauvegardées avec le dépôt.
+     * Stock de la buvette d'un club ; créé vide (et retenu) au premier appel.
+     * Les modifications faites sur le stock renvoyé sont sauvegardées avec le dépôt.
      */
-    public com.pingmanager.model.buvette.CatalogueBuvette catalogueBuvette(String numeroClub) {
+    public com.pingmanager.model.buvette.StockBuvette stockBuvette(String numeroClub) {
         if (numeroClub == null || numeroClub.isBlank()) {
             throw new IllegalArgumentException("numéro de club obligatoire");
         }
-        return buvettes.computeIfAbsent(cleClub(numeroClub), com.pingmanager.model.buvette.CatalogueBuvette::new);
+        return stocksBuvette.computeIfAbsent(cleClub(numeroClub), com.pingmanager.model.buvette.StockBuvette::new);
     }
 
     // ==================================================================
@@ -385,15 +391,18 @@ public final class DepotApplication implements RegistreClubs {
         pron.set("clubs", pc);
         doc.set("prononciations", pron);
 
-        // B046 : écrit seulement si un club a une buvette (un ancien fichier reste identique).
+        // B026 : écrit seulement si un club a un stock (un ancien fichier reste identique).
         Json buv = Json.tableau();
-        for (com.pingmanager.model.buvette.CatalogueBuvette c : buvettes.values()) {
-            if (!c.estVide()) {
-                buv.add(BuvetteMapper.ecrireCatalogue(c));
+        for (com.pingmanager.model.buvette.StockBuvette s : stocksBuvette.values()) {
+            if (!s.estVide()) {
+                buv.add(BuvetteMapper.ecrireStock(s));
             }
         }
         if (buv.taille() > 0) {
-            doc.set("buvettes", buv);
+            doc.set("stocksBuvette", buv);
+        }
+        if (ancienneBuvette != null) {
+            doc.set("buvettes", ancienneBuvette); // catalogue B046 recopié tel quel
         }
 
         Json rec = Json.tableau();
@@ -444,13 +453,16 @@ public final class DepotApplication implements RegistreClubs {
         if (doc.has("prononciations")) { // absent des fichiers antérieurs à B018
             lirePrononciations(doc.get("prononciations"), depot.prononciations);
         }
-        if (doc.has("buvettes")) { // absent des fichiers antérieurs à B046
-            for (Json o : entreesObjets(doc.get("buvettes"))) {
+        if (doc.has("buvettes")) { // catalogue B046 : plus lu, gardé tel quel
+            depot.ancienneBuvette = doc.get("buvettes");
+        }
+        if (doc.has("stocksBuvette")) { // absent des fichiers antérieurs à B026
+            for (Json o : entreesObjets(doc.get("stocksBuvette"))) {
                 try {
-                    com.pingmanager.model.buvette.CatalogueBuvette c = BuvetteMapper.lireCatalogue(o);
-                    depot.buvettes.put(cleClub(c.getNumeroClub()), c);
+                    com.pingmanager.model.buvette.StockBuvette s = BuvetteMapper.lireStock(o);
+                    depot.stocksBuvette.put(cleClub(s.getNumeroClub()), s);
                 } catch (RuntimeException illisible) {
-                    // catalogue abîmé : ignoré, le reste du fichier est relu
+                    // stock abîmé : ignoré, le reste du fichier est relu
                 }
             }
         }

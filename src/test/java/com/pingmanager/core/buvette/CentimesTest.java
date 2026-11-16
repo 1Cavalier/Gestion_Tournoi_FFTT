@@ -41,4 +41,16 @@ class CentimesTest {
         assertEquals(37, Centimes.arrondir(new BigDecimal("36.5")));
         assertEquals(36, Centimes.arrondir(new BigDecimal("36.49")));
     }
+
+    @Test
+    void euros_precis_au_dixieme_de_centime() {
+        assertEquals("0,045 €", Centimes.eurosPrecis(new BigDecimal("4.5")));
+        assertEquals("0,003 €", Centimes.eurosPrecis(new BigDecimal("0.3")));
+        assertEquals("0,112 €", Centimes.eurosPrecis(new BigDecimal("11.2")));
+        assertEquals("1,12 €", Centimes.eurosPrecis(new BigDecimal("112")));
+        assertEquals("0,033 €", Centimes.eurosPrecis(new BigDecimal("3.333333")));
+        assertEquals("0,034 €", Centimes.eurosPrecis(new BigDecimal("3.35")));
+        assertEquals("0,00 €", Centimes.eurosPrecis(BigDecimal.ZERO));
+        assertEquals("-0,005 €", Centimes.eurosPrecis(new BigDecimal("-0.5")));
+    }
 }

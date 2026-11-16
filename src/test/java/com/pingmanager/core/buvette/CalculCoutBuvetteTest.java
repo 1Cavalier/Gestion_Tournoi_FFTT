@@ -1,112 +1,86 @@
 package com.pingmanager.core.buvette;
 
-import com.pingmanager.model.buvette.CatalogueBuvette;
-import com.pingmanager.model.buvette.CategorieProduit;
-import com.pingmanager.model.buvette.Ingredient;
-import com.pingmanager.model.buvette.LigneRecette;
-import com.pingmanager.model.buvette.Produit;
-import com.pingmanager.model.buvette.UniteVente;
+import com.pingmanager.model.buvette.ArticleBuvette;
+import com.pingmanager.model.buvette.FamilleArticle;
+import com.pingmanager.model.buvette.LienContenant;
+import com.pingmanager.model.buvette.StockBuvette;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CalculCoutBuvetteTest {
 
-    private final CalculCoutBuvette calcul = new CalculCoutBuvette();
-
-    private static Ingredient ing(String id, String nom, String portion, long prix, int min, int max, int perte) {
-        return Ingredient.builder().id(id).nom(nom).unitePortion(portion).prixAchatCentimes(prix)
-                .rendement(min, max).pertePourcent(perte).build();
-    }
-
-    private static Produit sandwich(long prix, LigneRecette... recette) {
-        return Produit.builder().id("sandwich").nom("Sandwich").categorie(CategorieProduit.SANDWICHS)
-                .unite(UniteVente.PIECE).prixVenteCentimes(prix).recette(List.of(recette)).build();
+    private static void egal(String attendu, BigDecimal obtenu) {
+        assertEquals(0, new BigDecimal(attendu).compareTo(obtenu), "attendu " + attendu + ", obtenu " + obtenu);
     }
 
     @Test
-    void baguette_a_1_10_pour_3_sandwichs_coute_37_centimes_le_sandwich() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(ing("baguette", "Baguette", "sandwichs", 110, 3, 3, 0));
-        CoutProduit cout = calcul.cout(sandwich(300, new LigneRecette("baguette", 1)), c);
-        assertEquals(37, cout.coutCentimes());
-        assertEquals(263, cout.margeCentimes());
-        assertEquals(OptionalLong.of(711), cout.tauxDeMargePourcent(), "263 / 37");
-        assertEquals(OptionalLong.of(88), cout.tauxDeMarquePourcent(), "263 / 300");
-        assertEquals("Baguette : 1,10 € ÷ 3 sandwichs = 0,37 €", cout.lignes().get(0).explication());
+    void cout_unitaire_prix_du_lot_divise_par_les_unites() {
+        StockBuvette s = StockExemple.cafe();
+        egal("6.4", CalculCoutBuvette.coutUnitaire(s.article("cafe").orElseThrow()));
+        egal("4.5", CalculCoutBuvette.coutUnitaire(s.article("gobelet").orElseThrow()));
+        egal("0.3", CalculCoutBuvette.coutUnitaire(s.article("touillette").orElseThrow()));
     }
 
     @Test
-    void jambon_beurre_somme_exacte_arrondie_une_seule_fois() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(ing("baguette", "Baguette", "sandwichs", 110, 3, 3, 0));   // 36,667
-        c.enregistrerIngredient(ing("jambon", "Jambon", "tranches", 260, 4, 4, 0));        // 65
-        c.enregistrerIngredient(ing("beurre", "Beurre", "noisettes", 240, 25, 25, 0));     // 9,6
-        CoutProduit cout = calcul.cout(sandwich(300, new LigneRecette("baguette", 1),
-                new LigneRecette("jambon", 1), new LigneRecette("beurre", 1)), c);
-        assertEquals(111, cout.coutCentimes(), "36,667 + 65 + 9,6 = 111,267");
-        assertEquals(189, cout.margeCentimes());
-        assertEquals(OptionalLong.of(170), cout.tauxDeMargePourcent());
-        assertEquals(OptionalLong.of(63), cout.tauxDeMarquePourcent());
+    void cafe_cout_brut_emballage_et_complet_separes() {
+        StockBuvette s = StockExemple.cafe();
+        CoutPortion c = CalculCoutBuvette.portion(s, s.article("cafe").orElseThrow()).orElseThrow();
+        egal("6.4", c.brut());       // la dose de café
+        egal("4.8", c.emballage());  // gobelet 4,5 c + touillette 0,3 c
+        egal("11.2", c.complet());   // 0,112 € la portion
+        assertEquals("0,064 €", Centimes.eurosPrecis(c.brut()));
+        assertEquals("0,048 €", Centimes.eurosPrecis(c.emballage()));
+        assertEquals("0,112 €", Centimes.eurosPrecis(c.complet()));
     }
 
     @Test
-    void fourchette_de_rendement_cout_prudent_et_optimiste() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(ing("baguette", "Baguette", "sandwichs", 110, 2, 3, 0));
-        CoutProduit cout = calcul.cout(sandwich(300, new LigneRecette("baguette", 1)), c);
-        assertEquals(55, cout.coutCentimes(), "prudent : 2 sandwichs par baguette");
-        assertEquals(37, cout.coutOptimisteCentimes(), "optimiste : 3 sandwichs");
+    void quantite_par_portion_multiplie_le_cout_du_contenant() {
+        StockBuvette s = StockExemple.cafe();
+        s.enregistrer(ArticleBuvette.builder().id("serviette").nom("Serviette").famille(FamilleArticle.CONTENANT)
+                .lot(200, 100).build());
+        s.enregistrer(ArticleBuvette.builder().id("sandwich").nom("Sandwich").lot(250, 1)
+                .contenants(List.of(new LienContenant("serviette", 2))).build());
+        CoutPortion c = CalculCoutBuvette.portion(s, s.article("sandwich").orElseThrow()).orElseThrow();
+        egal("250", c.brut());
+        egal("4", c.emballage());
+        egal("254", c.complet());
+        assertEquals("2,54 €", Centimes.eurosPrecis(c.complet()));
     }
 
     @Test
-    void la_perte_augmente_le_cout_de_la_portion() {
-        Ingredient baguette = ing("baguette", "Baguette", "sandwichs", 110, 3, 3, 5);
-        assertEquals(0, new BigDecimal("38.596").compareTo(
-                CalculCoutBuvette.coutPortion(baguette, true).setScale(3, java.math.RoundingMode.HALF_UP)),
-                "110 ÷ (3 × 0,95)");
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(baguette);
-        CoutProduit cout = calcul.cout(sandwich(300, new LigneRecette("baguette", 1)), c);
-        assertEquals(39, cout.coutCentimes());
-        assertEquals("Baguette : 1,10 € ÷ 3 sandwichs, perte 5 % = 0,39 €", cout.lignes().get(0).explication());
+    void produit_sans_contenant_emballage_nul() {
+        StockBuvette s = new StockBuvette("1");
+        s.enregistrer(ArticleBuvette.builder().id("canette").nom("Canette").lot(1200, 24).build());
+        CoutPortion c = CalculCoutBuvette.portion(s, s.article("canette").orElseThrow()).orElseThrow();
+        egal("50", c.brut());
+        egal("0", c.emballage());
+        egal("50", c.complet());
     }
 
     @Test
-    void quantite_multiplie_la_portion_et_s_explique() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(ing("emmental", "Emmental", "tranches", 250, 10, 10, 0));
-        CoutProduit cout = calcul.cout(sandwich(250, new LigneRecette("emmental", 2)), c);
-        assertEquals(50, cout.coutCentimes());
-        assertEquals("Emmental : 2 × (2,50 € ÷ 10 tranches) = 0,50 €", cout.lignes().get(0).explication());
+    void lot_non_divisible_sans_arrondi_intermediaire() {
+        StockBuvette s = new StockBuvette("1");
+        s.enregistrer(ArticleBuvette.builder().id("g").nom("Gobelet").famille(FamilleArticle.CONTENANT)
+                .lot(100, 3).build());
+        s.enregistrer(ArticleBuvette.builder().id("p").nom("Thé").lot(0, 1)
+                .contenants(List.of(new LienContenant("g", 3))).build());
+        // 3 × (100 / 3) = 100 c à un millionième de centime près
+        BigDecimal e = CalculCoutBuvette.portion(s, s.article("p").orElseThrow()).orElseThrow().emballage();
+        assertTrue(e.subtract(BigDecimal.valueOf(100)).abs().compareTo(new BigDecimal("0.00001")) < 0);
+        assertEquals("1,00 €", Centimes.eurosPrecis(e));
     }
 
     @Test
-    void sans_recette_ou_avec_ingredient_disparu_le_cout_est_inconnu() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        CoutProduit sans = calcul.cout(sandwich(300), c);
-        assertFalse(sans.recetteRenseignee());
-        assertFalse(sans.connu());
-        assertEquals(OptionalLong.empty(), sans.tauxDeMargePourcent());
-        CoutProduit incomplet = calcul.cout(sandwich(300, new LigneRecette("disparu", 1)), c);
-        assertTrue(incomplet.recetteRenseignee());
-        assertFalse(incomplet.connu());
-        assertEquals(List.of("disparu"), incomplet.ingredientsManquants());
-    }
-
-    @Test
-    void produit_vendu_a_perte_a_une_marge_negative() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(ing("soda", "Soda", "canettes", 1200, 24, 24, 0));
-        CoutProduit cout = calcul.cout(sandwich(40, new LigneRecette("soda", 1)), c);
-        assertEquals(50, cout.coutCentimes());
-        assertEquals(-10, cout.margeCentimes());
-        assertEquals(OptionalLong.of(-20), cout.tauxDeMargePourcent());
+    void lien_vers_un_contenant_disparu_ignore_et_contenant_sans_cout_de_portion() {
+        StockBuvette s = StockExemple.cafe();
+        s.retirer("touillette");
+        CoutPortion c = CalculCoutBuvette.portion(s, s.article("cafe").orElseThrow()).orElseThrow();
+        egal("4.5", c.emballage());
+        assertTrue(CalculCoutBuvette.portion(s, s.article("gobelet").orElseThrow()).isEmpty());
     }
 }

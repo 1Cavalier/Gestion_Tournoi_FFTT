@@ -25,6 +25,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
 mvn -B test              # lancer les 1 912 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 847 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -336,30 +337,30 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   `~/.pingmanager/documents/` (anciens tournois : copie à la première
   ouverture, sinon « fichier introuvable »). La carte n'affiche que sa page :
   un lien d'attribution s'ouvre dans le navigateur du système.
-**Buvette (B046)** — menu Gestion → **Buvette** (organisateurs), onglets :
-- **Catalogue** (par club) : produits par catégorie, prix en centimes,
-  désactivation (un produit déjà vendu n'est jamais supprimé) ; ingrédients
-  (unité d'achat, prix, rendement min-max « 1 baguette = 2 à 3 sandwichs »,
-  perte en %) et recette de chaque produit, avec coût de revient, marge,
-  taux de marge et de marque. Produits, ingrédients et recettes de départ
-  en **suggestions** (pastille, « prix indicatifs à valider par le club »),
-  ajoutées seulement au clic (« Ajouter », « Tout ajouter » confirmé).
-  Boissons alcoolisées : jamais suggérées, catégorie activable à la main
-  après un avertissement.
-- **Stock** (par tournoi) : stock de départ, achats (date, prix payé),
-  pertes et dons, inventaire de fin, seuil d'alerte, report du stock d'un
-  autre tournoi ; journal daté et signé, correction par mouvement inverse.
-- **Budget** : joueurs par jour (estimés des inscriptions ou saisis),
-  hypothèses de consommation « à ajuster », scénarios bas / moyen / haut,
-  recette, achats, marge, seuil de rentabilité, liste de courses en CSV et
-  PDF ; chaque nombre expliqué par une phrase.
-- **Ventes** : caisse à gros boutons (une seule caisse, « Caisse 1 »), « − »
-  et « Annuler la dernière vente », total du jour ; le stock suit les recettes.
-- **Historique** : bilan prévu / réel par tournoi, filtre par saison, export
-  CSV, « Reprendre les quantités de ce tournoi » pour le budget d'un autre.
-- Données : catalogue dans le fichier d'application (section `buvettes`) ;
-  stock, budget et ventes dans `X.buvette.json`, à côté du fichier du tournoi
-  (jamais modifié). Suggestions : `src/main/resources/com/pingmanager/buvette/suggestions-buvette.json`.
+**Buvette (B026, simplifiée)** — menu Gestion → **Buvette** (organisateurs),
+un seul écran, sans vente ni caisse : le club suit son stock.
+- **À racheter** en tête : les articles au seuil d'alerte ou en dessous, les
+  plus vides d'abord.
+- Deux familles : **produits** (café, boissons, sandwichs… ; une unité de
+  stock = une portion servie) et **contenants et consommables** (gobelets,
+  touillettes, serviettes…). Un produit est lié aux contenants qu'il utilise
+  à chaque portion (un café = 1 gobelet + 1 touillette).
+- Coûts saisis comme on achète (« 4,50 € les 100 gobelets ») ; par produit :
+  coût **brut**, coût de l'**emballage** et coût **complet** d'une portion
+  (au dixième de centime : « 0,064 € + 0,048 € = 0,112 € »).
+- Chaque article : stock, seuil d'alerte, **jauge** verte (suffisant), orange
+  (bas : jusqu'à 2 × le seuil), rouge (à racheter : au seuil ou en dessous) ;
+  boutons **− Sortir**, **+ Entrer** et **Recompter** (case quantité, vide
+  = 1). Sortir une portion d'un produit sort aussi ses contenants ; s'il en
+  manque, le stock est ramené à 0 et l'écran demande de recompter.
+- Journal des 500 derniers mouvements (qui, quand, origine) ; les 8 derniers
+  sont affichés. Toute sortie passe par `ServiceStockBuvette.sortir`, avec
+  une origine (aujourd'hui « saisie à la main ») et une référence : une
+  future commande de joueur s'y branchera sans changer le stock.
+- Données : section `stocksBuvette` du fichier d'application (le stock suit
+  le club d'un tournoi à l'autre). L'ancienne section `buvettes` (catalogue
+  B046) n'est plus lue mais est recopiée telle quelle ; les anciens fichiers
+  `X.buvette.json` ne sont plus lus (laissés sur le disque).
 
 **Moteur sportif (testé)**
 - Ordre des parties I.301, placement I.302, classement I.303, placement du
@@ -494,7 +495,7 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   tests (`choix` / `ChoixStrategie`, `chiffres`, `synthese`, `comparaison`,
   `verdict`, `lignesStrategies`, `finViseeProposee`, `lignesTableaux`) ;
   branche inutile `SimulateurTournoi.java:260` (date nulle) ; revoir à
-  l'écran **Buvette** (B046) et le **dossier figé** (B048), dont les styles
+  l'écran **Buvette** (B026) et le **dossier figé** (B048), dont les styles
   n'étaient pas appliqués avant la correction d'une accolade manquante dans
   `theme.css` (section B045).
 - **B049** : `ReservationsTables`, `Ordonnanceur.setReservations` et
@@ -513,13 +514,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
     Statistiques du joueur (rencontres, victoires, adversaires, par
     saison).
-27. ~~B026 — Buvette (cahier des charges à écrire)~~ — remplacée par **B046**.
-27 bis. ~~B046 — Buvette~~ — **fait** (section 3) ; à vérifier à l'écran.
-    Suites : **B046a** plusieurs caisses synchronisées (avec la synchronisation
-    entre ordinateurs, voir B041 suite) ; **B046b** résultat net de la buvette
-    affiché dans « Remplissage et finances » (si Quentin le veut, section 6) ;
-    **B046c** effacer le fichier `X.buvette.json` quand la purge RGPD supprime
-    le tournoi ; **B046d** allergènes par produit, si Quentin le décide.
+27. ~~B026 — Buvette~~ — **fait, version simplifiée** (section 3 ; B046
+    remplacée) ; à vérifier à l'écran. Suites possibles : **B026a** commande
+    d'un joueur depuis l'application, paiement (liquide ou en ligne) et
+    retrait au comptoir, qui appellera `ServiceStockBuvette.sortir` avec une
+    origine « commande » ; **B026b** stock partagé entre plusieurs
+    ordinateurs (avec la synchronisation, voir B041 suite) ; **B026c**
+    reprendre l'ancien catalogue B046 si un club l'avait rempli (section 6).
 28. Tableaux réservés aux licences loisir (IX.101), inscription d'un licencié
     par son club, export de la liste des inscrits (attention à l'injection de
     formules dans les cellules).
@@ -719,29 +720,26 @@ parenthèses.
   faire valider par Quentin ou un juriste, et le contact « administrateur de
   PingManager sur cet ordinateur » à préciser ; (9) verrou : expiré après
   30 s, 3 s d'essais avant le message « tournoi occupé ».
-- **Buvette (B046)** — choix provisoires, réversibles :
-  (1) **prix, recettes, rendements et consommations suggérés** (ressource
-  `suggestions-buvette.json`) : ordres de grandeur inventés, **pas des prix de
-  marché** — à relire par Quentin ou un club (ex. café 1 €, sandwich
-  jambon-beurre 3 €, baguette 1,10 € pour 2 à 3 sandwichs, 30 accompagnants
-  pour 100 joueurs, 1,5 demi-journée de présence, 0,35 café par personne et
-  par demi-journée, scénarios 75 % et 125 %) ; (2) coût retenu **prudent**
-  (rendement minimal) et achats au rendement minimal, perte comprise ;
-  (3) stock et budget dans un **fichier voisin** du tournoi pour que la caisse
-  n'écrase jamais les saisies du juge-arbitre (et inversement) : à garder ou
-  à fondre dans le fichier du tournoi ? ; (4) **une seule caisse** ; plusieurs
-  postes = synchronisation entre ordinateurs (B046a) ; (5) faut-il afficher le
-  résultat net de la buvette dans « Remplissage et finances » ? (non, rien
-  n'y est touché) ; (6) joueurs estimés = joueurs distincts inscrits aux
-  tableaux de chaque jour (tableau sans jour : premier jour).
-  **Questions légales, non tranchées, rien n'est affirmé à l'écran** :
-  autorisation de buvette temporaire (mairie) et licence ou catégorie de
-  boissons autorisées, en particulier l'**alcool** (l'avertissement dit
-  seulement « peut nécessiter une autorisation ») ; **TVA et fiscalité** des
-  recettes d'une association (le logiciel ne calcule aucune taxe) ; **hygiène
-  alimentaire** (chaîne du froid, préparations maison comme les gâteaux) ;
-  **allergènes** à afficher ou non ; tenue de caisse exigée par la
-  comptabilité du club.
+- **Buvette (B026, simplifiée)** — choix provisoires, réversibles :
+  (1) **seuils des couleurs** : rouge au seuil d'alerte ou en dessous (et
+  toujours à 0), orange jusqu'à **2 × le seuil**, vert au-delà ; la jauge est
+  pleine à 3 × le seuil. Un seul seuil saisi par article : faut-il plutôt
+  deux seuils (bas, urgent) ? (2) **stock insuffisant** à la sortie : la
+  sortie est acceptée, le stock est ramené à 0 et l'écran demande de
+  recompter (refuser bloquerait le bénévole au comptoir) — ou faut-il
+  refuser ? (3) **une unité de produit = une portion** (pas de « 2 doses par
+  café ») ; (4) **ancien catalogue B046** (produits, ingrédients, recettes,
+  prix de vente) : plus lu, gardé tel quel dans le fichier ; pas de
+  conversion automatique, car les ingrédients mélangeaient produits et
+  contenants (on ne devine pas lesquels sont des gobelets) — faut-il le
+  convertir (B026c) ? Les fichiers `X.buvette.json` (stock, budget et ventes
+  d'un tournoi) ne sont plus lus ; (5) stock dans le **fichier
+  d'application**, par club, sur cet ordinateur (pas de partage entre
+  postes) ; (6) le journal garde les **500** derniers mouvements.
+  **Questions légales (pour la future vente, B026a), non tranchées** :
+  autorisation de buvette temporaire (mairie), boissons autorisées, en
+  particulier l'**alcool** ; **TVA et fiscalité** des recettes d'une
+  association ; **hygiène alimentaire** ; **allergènes** ; tenue de caisse.
 - **Étape 5 « Tournoi commencé » (Gestion des tournois)** — questions :
   (1) la frise se lit de haut en bas de l'étape la plus avancée à la plus
   ancienne : l'étape 5 est donc **au-dessus** de l'étape 4 « Publié ». À
