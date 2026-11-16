@@ -24,8 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 912 tests (doit finir à 0 échec)
-mvn -B test              # lancer les 1 847 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 902 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -97,6 +96,7 @@ tout se règle à l'écran et s'enregistre dans le fichier du tournoi.
 | Codes de vérification | valables 30 min | `ServiceComptesOrganisateurs`, `ServiceLiaisonClub` |
 | Matchs proposés | orange après 10 min d'attente, rouge après 20 min | `ReglePrioriteSalle` |
 | Prévisions | 100 tirages (fixes, graine interne), 16 tables, fin visée 20 h le jour même, partie de 20 min (10 à 50), environ 7 min autour du jeu, remplissage des tableaux 100 % | `ReglagesPrevision`, `ScenarioSimulation`, `TempsAnnexesMatch`, `RemplissageSimulation` |
+| Tables de renfort (B054) | 0 table (anciens fichiers aussi) ; ouverture proposée au-delà de **15 min** de retard prévu, retour à l'échauffement à **0 min** (retard résorbé) | `ReglageRenfort`, `Tournoi.tablesRenfort` |
 | Annonces vocales | 2 diffusions (3 au plus), débit de −10 à 10 | `ReglagesAnnoncesVocales` |
 | Import | 20 000 lignes, 200 colonnes ; fichiers d'échange : 10 Mo | `LecteurTableur`, `CsvFederal` |
 | Voix (Windows) | variables `PINGMANAGER_SSML`, `PINGMANAGER_VOIX`, `PINGMANAGER_DEBIT` passées à PowerShell | `SyntheseVocaleWindows` |
@@ -176,7 +176,32 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
 - Règlement généré (aperçu et PDF), figé après publication ; feuille
   d'engagement en PDF. Avec une salle d'échauffement, l'article « Matériel »
   précise que le juge-arbitre peut en utiliser les tables comme tables de
-  match en cas de nécessité (3.3.1.2.2).
+  match en cas de nécessité (3.3.1.2.2) ; quand le nombre de tables
+  utilisables en renfort est saisi, il l'annonce (« jusqu'à 4 tables »,
+  « les 8 tables »).
+- Tables d'échauffement en renfort (B054) : dans « Informations sportives et
+  techniques », un champ « Tables d'échauffement utilisables en renfort »
+  (0 au nombre de tables d'échauffement, jamais plus) apparaît dès qu'une
+  salle d'échauffement est déclarée. Ces tables forment une **réserve**
+  distincte, numérotée après les tables de compétition (20 tables + 4 de
+  renfort : tables 21 à 24), jamais utilisée tant qu'elle n'est pas ouverte.
+  **Règle de déclenchement** : le *retard prévu* est le plus grand de (a) le
+  retard d'un tableau dont l'heure est passée et dont toutes les poules n'ont
+  pas commencé, (b) la fin projetée avec les seules tables de compétition
+  (maintenant + travail restant ÷ tables) moins la fin visée de la journée.
+  Au-delà de 15 min, l'application propose d'ouvrir juste le nombre de tables
+  nécessaire pour finir à l'heure (toutes si un tableau attend de commencer),
+  sans dépasser le maximum ; à 0 min ou moins, de les rendre (un match
+  commencé va à son terme). Les deux seuils se règlent. Le juge-arbitre
+  accepte, refuse (la même proposition ne revient que si la situation
+  change) ou force un nombre de tables (propositions suspendues) :
+  `PiloteRenfort`. Prévisions : réglage du renfort et des seuils, puis par
+  journée une carte « Tables de renfort » pour la stratégie choisie : verdict,
+  fin prévue sans et avec renfort, temps gagné, part des simulations où le
+  renfort est ouvert, première mise en service (médiane et au plus tôt),
+  plages habituelles (quarts d'heure ouverts dans au moins la moitié des
+  simulations), tables ouvertes en même temps, utilisation des tables de
+  renfort. Les mêmes tirages sont joués avec et sans renfort.
 - Gestion des tournois du club : frise en 5 étapes (5 « Tournoi commencé » = publié
   et date du jour dans sa période, règle `CalendrierTournoi.estEnCours`, avec
   « Ouvrir le jour J »), historique. Plus de bloc « Tournoi actuel » isolé.
@@ -380,6 +405,7 @@ un seul écran, sans vente ni caisse : le club suit son stock.
 | Paiement en ligne | lien HelloAsso saisi par le club | paiement par tableau et retour qui marque l'inscrit « payé » |
 | Phase finale | accès par un bouton « Phase finale (provisoire) » | l'intégrer à la page du jour J (tâche B039) |
 | Pointage et lancement | `ServicePointage`, `ServiceLancementTableau` complets | écrans de la veille (B006, B007, B008) |
+| Tables de renfort le jour J (B054) | `Ordonnanceur` à réserve de renfort, `PiloteRenfort` (proposer, accepter, refuser, forcer), `EvaluationRetard`, motif `TABLE_RENFORT_HORS_SERVICE` (testés) | brancher sur l'écran Salle : bandeau de proposition, cartes des tables d'échauffement, mesure du retard en direct dans `ServiceSalle`, état (tables ouvertes, forçage) enregistré avec le tournoi |
 | Changement de mot de passe | `ServiceAuthentification.changerMotDePasse`, `ContexteApplication.changerMotDePasse` (ancien exigé, 10 caractères, limite d'essais) | un formulaire dans « Mon compte » |
 
 À valider chez l'utilisateur, jamais vu en session cloud : tuiles IGN et
@@ -445,6 +471,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   fichier : même ordinateur ou dossier partagé). Le journal horodaté
   `journalPointage` (licence, tableau, type, valeur, heure, poste) est prêt
   à être échangé et rejoué.
+
+- **B054 suite — Tables de renfort sur l'écran Salle.** Le moteur est prêt
+  (section 4) : afficher la proposition « Retard prévu de 25 min : ouvrir
+  2 tables d'échauffement » avec Accepter / Refuser / Forcer, montrer les
+  tables 21 à 24 comme tables d'échauffement, mesurer le retard dans
+  `ServiceSalle` (durées estimées), enregistrer les tables ouvertes et le
+  forçage avec le tournoi (anciens fichiers : aucune ouverte).
 
 ### Veille du tournoi (J-1)
 5. **B006 — Tableau de bord de la veille** : par tableau, inscrits, attente,
@@ -532,6 +565,19 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 En attendant, le code applique l'option la plus prudente, indiquée entre
 parenthèses.
+
+**Tables d'échauffement en renfort (B054)**
+- Seuils par défaut : ouverture au-delà de 15 min de retard prévu, retour à
+  0 min. Les garder, et faut-il les enregistrer avec le tournoi ? (provisoire :
+  réglables seulement dans les Prévisions, non enregistrés).
+- Règlement, article « Matériel », renfort à 0 alors qu'une salle
+  d'échauffement est déclarée : garder la phrase générale « le juge-arbitre
+  peut décider d'utiliser des tables de la salle d'échauffement » (3.3.1.2.2
+  lui donne ce pouvoir quoi qu'il arrive) ou la retirer ? (provisoire :
+  gardée, comme avant ; c'est aussi la valeur des anciens fichiers).
+- Numérotation : les tables de renfort suivent les tables de compétition
+  (21 à 24). Préférez-vous « E1 à E4 » à l'écran et sur les feuilles ?
+  (provisoire : numéros à la suite).
 
 **Règlement sportif**
 - « Poule 1 » de l'article I.305.2 = poule A ? (oui)
@@ -789,6 +835,7 @@ cité dans le code et les tests.
 | IX.111 | Date, heure et lieu du tirage au sort public dans le règlement du tournoi | ✅ |
 | Manuel JA, I-6.4 | Joueur placé par tirage au sort : ne peut plus être déplacé (pas de second tirage) | ✅ |
 | 3.5.2 | Cartons, points de pénalité, exclusion après 2 disqualifications | ✅ |
+| 3.3.1.2.2 | Juge-arbitre maître de la programmation selon les tables disponibles : tables d'échauffement en renfort proposées, jamais imposées (B054) | ✅ (moteur et prévisions ; écran Salle à brancher) |
 
 Réserves : désistement, motifs de retrait, non-présentation au pointage et
 remboursement (B041, B043) appliqués sans article cité, faute de texte fourni (voir section 6) ;
