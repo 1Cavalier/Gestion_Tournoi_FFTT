@@ -44,8 +44,13 @@ public final class ResultatAffectationTable {
         MATCH_EXEMPT,
         /** Un des deux joueurs n'est pas encore connu (tour précédent non joué). */
         JOUEURS_NON_CONNUS,
-        /** Un des deux joueurs joue déjà sur une autre table. */
+        /**
+         * Un des deux joueurs joue déjà sur une autre table (table inconnue si
+         * son match en cours n'a pas de table valable).
+         */
         JOUEUR_DEJA_EN_JEU,
+        /** Le match pourrait être joué, mais aucune table libre ne peut le recevoir. */
+        AUCUNE_TABLE_LIBRE,
         /** Annulation ou libération demandée pour un match qui n'est pas en cours. */
         MATCH_PAS_EN_COURS,
         /** Libération demandée alors que le résultat du match n'est pas saisi. */
@@ -79,6 +84,15 @@ public final class ResultatAffectationTable {
                 Objects.requireNonNull(joueur, "joueur"), tableDuJoueur, null);
     }
 
+    /**
+     * Refus parce qu'un joueur du match est dans un match en cours sans table
+     * valable (anomalie de reprise) : il joue, mais on ne sait pas où.
+     */
+    public static ResultatAffectationTable joueurEnJeuSansTable(int numeroTable, Joueur joueur) {
+        return new ResultatAffectationTable(Motif.JOUEUR_DEJA_EN_JEU, numeroTable,
+                Objects.requireNonNull(joueur, "joueur"), null, null);
+    }
+
     /** Refus parce que la table est réservée à d'autres tableaux (B024). */
     public static ResultatAffectationTable tableReservee(int numeroTable, Set<String> tableauxAdmis) {
         return new ResultatAffectationTable(Motif.TABLE_RESERVEE, numeroTable, null, null,
@@ -109,7 +123,7 @@ public final class ResultatAffectationTable {
         return joueurBloquant;
     }
 
-    /** @return la table où joue le joueur bloquant, sinon null. */
+    /** @return la table où joue le joueur bloquant, sinon null (inconnue ou sans objet). */
     public Integer getTableDuJoueurBloquant() {
         return tableDuJoueurBloquant;
     }
@@ -118,6 +132,6 @@ public final class ResultatAffectationTable {
     public String toString() {
         return motif + (numeroTable > 0 ? " (table " + numeroTable + ")" : "")
                 + (joueurBloquant == null ? "" : " : " + joueurBloquant.getNomComplet()
-                + " à la table " + tableDuJoueurBloquant);
+                + (tableDuJoueurBloquant == null ? " déjà en jeu" : " à la table " + tableDuJoueurBloquant));
     }
 }

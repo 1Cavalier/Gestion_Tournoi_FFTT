@@ -4457,3 +4457,42 @@
     -fx-font-weight: bold;
     -fx-text-fill: -primaire;
 }
+
+/* =====================================================================
+   Jour J : interface « Lancer un match » (B055, InterfaceLancementMatch)
+   (tokens uniquement : valables en thème clair et sombre)
+   ===================================================================== */
+
+/* Tableau et tour : lien discret qui ouvre les poules ou l'arbre. */
+.button.lancement-contexte {
+    -fx-padding: 0;
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.button.lancement-contexte:hover {
+    -fx-text-fill: -primaire;
+    -fx-underline: true;
+}
+
+/* Depuis combien de temps les joueurs attendent : rouge au-delà du seuil. */
+.lancement-attente {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.lancement-attente.lancement-attente-longue {
+    -fx-text-fill: -erreur;
+    -fx-font-weight: bold;
+}
+
+/* Raison pour laquelle un match ne peut pas partir. */
+.lancement-motif {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -attention-texte;
+}
+
+.combo-box.lancement-table {
+    -fx-pref-width: 120px;
+}

@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 920 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 935 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -273,8 +273,8 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
 - **Écran du jour J du juge-arbitre** (restructuré, B053 inclus), de haut en
   bas : bandeau « Jour J » et nom du tournoi ; trois cartes carrées (en
   colonne sur petite largeur) **Lancer un match** (matchs prêts, tables
-  libres ; ouvre à gauche matchs proposés, joueurs en attente, « Proposer »,
-  choix manuel, feuille à l'envoi), **Annonces** (état en un mot : Voix, SMS,
+  libres ; ouvre à gauche l'interface « Lancer un match », ci-dessous),
+  **Annonces** (état en un mot : Voix, SMS,
   Voix et SMS, Coupées, À chaque match ; ouvre annonce des rencontres, voix,
   SMS, prononciation, suivi sur téléphone) et **Stratégie en place** (ouvre le
   sélecteur à trois choix ; s'applique aux prochains matchs proposés, pas aux
@@ -285,6 +285,23 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   pointage, pointer et clôturer, lancer le tableau, poules, tirer le tableau
   final, arbre), plus « Inscrire sur place… » et les jours ; **Salle**
   inchangée. L'étape se calcule dans le cœur (`CalculEtapeTableau`).
+- **Interface « Lancer un match »** (B055, colonne de gauche, reste ouverte
+  pour enchaîner) : onglet **Matchs proposés**, du plus prioritaire au moins
+  prioritaire selon la stratégie en place, une ligne par match (tableau et
+  poule ou tour, cliquable vers les poules ou l'arbre ; les deux joueurs ;
+  « Attend depuis 12 min », en rouge au-delà de 20 min ; pastille et filet
+  rouge, orange ou vert) avec **Lancer · table N** en un clic et la liste des
+  tables libres pour en changer ; onglet **Choix manuel** : recherche par
+  joueur (sans accents), filtre par tableau, puis la table. Un match qui ne
+  peut pas partir reste visible, grisé, avec la raison en clair (« Lucas
+  MARTIN joue en table 4 », « Aucune table libre », « Tables libres réservées
+  à d'autres tableaux »). **Proposer** (Alt+P) remplit toutes les tables
+  libres ; **Feuille à l'envoi** imprime la feuille de chaque match lancé
+  (aussi par « Proposer »). La règle est dans le cœur (`ServiceSalle` :
+  `listeLancements`, `verifierLancement`, `affecter`) : un joueur n'est
+  jamais sur deux tables, même si son match en cours n'a pas de table
+  valable, et la table doit être libre. Le bloc « Joueurs en attente » et le
+  panneau « pourquoi » sont retirés : l'attente se lit sur les lignes.
 - **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
   « Gestion », visible seulement pour un organisateur dont un tournoi se joue
   ou approche (homologué ou publié, de **J-7** avant le premier jour au dernier
@@ -330,8 +347,8 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   technique (support) » ; aucun texte fédéral ne l'impose. Tableau incomplet :
   un seul tour d'exempts, le 2e tour est toujours complet, les exempts vont
   d'abord aux 1ers de poule (décision du 11 novembre 2026).
-- Salle : matchs proposés en rouge, orange ou vert, joueurs en attente avec
-  chronomètre et explication, « Lancer un match », stratégies
+- Salle : matchs proposés en rouge, orange ou vert avec l'attente des
+  joueurs, « Lancer un match » (ci-dessus), stratégies
   d'ordonnancement. « Tableaux commencés tôt » : chaque tableau avance seul,
   tours avancés d'abord, et joue sa finale à son heure. « Petit à petit » :
   tour par tour dans chaque tableau, et toutes les finales gardées pour la fin
@@ -451,10 +468,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   (toujours en démo).
 
 ### Jour J
-- **B055 — Refaire l'interface « Lancer un match ».** Aujourd'hui, la carte
-  du jour J ouvre l'existant dans une colonne à gauche (matchs proposés,
-  joueurs en attente et « pourquoi », « Proposer », choix manuel, feuille à
-  l'envoi). Alt+P (« Proposer ») ne marche que colonne ouverte.
 - **B056 — Refaire l'interface « Annonces ».** La carte ouvre sous les cartes
   les réglages existants (annonce des rencontres, menu Voix, SMS,
   prononciation, suivi sur téléphone), sans mise en forme dédiée.
@@ -599,6 +612,24 @@ parenthèses.
   masquer l'étape 5 pour ces tableaux ? (provisoire : grise).
 - Poules jouées, tableau final pas encore tiré : reste à l'étape 4 avec
   l'action « Tirer le tableau final ». (provisoire.)
+
+**Interface « Lancer un match » (B055)**
+- Matchs bloqués (joueur en jeu) montrés en bas de « Matchs proposés »,
+  grisés avec la raison, et pas seulement dans le choix manuel. Les garder là,
+  ou les réserver au choix manuel pour une liste plus courte ? (provisoire :
+  en bas des proposés).
+- Table proposée d'un match que « Proposer » n'enverrait pas tout de suite :
+  la première table libre que la stratégie ne prend pas déjà (plusieurs
+  lignes peuvent donc afficher la même table). Convient-il ? (provisoire :
+  oui ; le cœur revérifie au lancement).
+- Le « pourquoi » d'un joueur en attente (adversaire attendu dans une autre
+  poule, bouton « Voir le tableau ») a disparu avec le bloc « Joueurs en
+  attente ». Le cœur le calcule toujours (`TableauDeBordSalle.getJoueursEnAttente`),
+  et la carte affiche encore « 12 joueurs en attente ». Le remettre en
+  info-bulle sur les lignes, ou retirer ce chiffre de la carte ? (provisoire :
+  chiffre gardé, explication retirée).
+- Alt+P ne marche que l'interface ouverte (comme avant). Faut-il un raccourci
+  global sur l'écran du jour J ? (provisoire : non).
 
 **Tables d'échauffement en renfort (B054)**
 - Seuils par défaut : ouverture au-delà de 15 min de retard prévu, retour à

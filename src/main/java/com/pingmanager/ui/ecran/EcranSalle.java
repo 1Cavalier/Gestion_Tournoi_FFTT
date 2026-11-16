@@ -2,14 +2,13 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.AnnonceRencontre;
 import com.pingmanager.core.Horloge;
+import com.pingmanager.core.ListeLancements;
 import com.pingmanager.core.ResultatPropositionSalle;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.ServiceSalle;
 import com.pingmanager.core.TableauDeBordSalle;
 import com.pingmanager.core.TableauDeBordSalle.CarteTable;
-import com.pingmanager.core.TableauDeBordSalle.Engagement;
-import com.pingmanager.core.TableauDeBordSalle.JoueurEnAttente;
 import com.pingmanager.core.TableauDeBordSalle.MatchSalle;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.ModeAnnonce;
@@ -25,7 +24,6 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -33,15 +31,12 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
@@ -64,8 +59,9 @@ import java.util.function.Supplier;
 /**
  * Écran principal du juge-arbitre le jour J, de haut en bas : bandeau « Jour J »
  * et nom du tournoi ; trois cartes carrées ({@link TableauDeBordJourJ}) :
- * « Lancer un match » (ouvre à gauche les matchs proposés, les joueurs en
- * attente, « Proposer » et le choix manuel), « Annonces » (annonce des
+ * « Lancer un match » (ouvre à gauche l'{@link InterfaceLancementMatch} :
+ * matchs proposés avec leur table et l'attente des joueurs, choix manuel),
+ * « Annonces » (annonce des
  * rencontres, voix, SMS, prononciation, suivi sur téléphone) et « Stratégie en
  * place » ({@link SelecteurStrategie}) ; la liste des tableaux avec leur frise
  * (fournie par {@link EcranJourJ}) ; enfin la salle, une carte par table.
@@ -106,8 +102,6 @@ final class EcranSalle {
     private final BorderPane racine = new BorderPane();
     private final ScrollPane defilement;
     private final Map<Label, LocalDateTime> chronos = new IdentityHashMap<>();
-    /** Chronos d'attente des joueurs (texte nu, rouge au-delà du seuil). */
-    private final Map<Label, LocalDateTime> chronosJoueurs = new IdentityHashMap<>();
     private Timeline minuterie;
 
     private TableauDeBordSalle bord;
@@ -116,11 +110,8 @@ final class EcranSalle {
     private String messageErreur;
     /** Table libérée par le dernier score saisi : propose d'y enchaîner le match suivant. */
     private int tableLiberee;
-    /** Licence du joueur en attente dont on montre « pourquoi », ou null. */
-    private String joueurDetail;
-    /** Panneau « Lancer un match » ouvert ? */
-    private boolean lancerManuel;
-    private String rechercheLancer = "";
+    /** Interface « Lancer un match » (B055) : garde l'onglet, la recherche et les tables choisies. */
+    private final InterfaceLancementMatch lancement = new InterfaceLancementMatch(new ActionsLancement());
     /** Tables dont l'annulation attend la confirmation. */
     private final Set<Integer> annulationsAConfirmer = new HashSet<>();
     /** Lancement suspendu le temps de choisir comment annoncer la rencontre. */
@@ -177,7 +168,7 @@ final class EcranSalle {
         racine.getStyleClass().add("salle");
     }
 
-    /** Permet d'ouvrir les poules ou l'arbre d'un tableau depuis « pourquoi ». */
+    /** Permet d'ouvrir les poules ou l'arbre d'un tableau depuis l'interface « Lancer un match ». */
     EcranSalle surOuvrirTableau(Consumer<String> ouvrir) {
         this.ouvrirTableau = ouvrir;
         return this;
@@ -312,7 +303,6 @@ final class EcranSalle {
     private void afficher() {
         double position = lancementEnAttente != null ? 0 : defilement.getVvalue();
         chronos.clear();
-        chronosJoueurs.clear();
         bord = salle.tableauDeBord(tournoi);
 
         Button retour = Ui.boutonLien(libelleRetour);
@@ -375,27 +365,14 @@ final class EcranSalle {
 
     /**
      * Colonne de gauche : saisie du score, ou l'interface « Lancer un match »
-     * (matchs proposés, joueurs en attente, « pourquoi », choix manuel) quand
-     * elle est ouverte ; rien sinon (la page prend toute la largeur).
+     * ({@link InterfaceLancementMatch}) quand elle est ouverte ; rien sinon (la
+     * page prend toute la largeur).
      */
     private Node colonneGauche() {
         if (enSaisie != null) {
             return panneauSaisie(enSaisie);
         }
-        if (!lancementOuvert) {
-            return null;
-        }
-        if (lancerManuel) {
-            return cote(panneauLancer());
-        }
-        if (joueurDetail != null) {
-            JoueurEnAttente j = bord.joueurEnAttente(joueurDetail);
-            if (j != null) {
-                return cote(panneauJoueur(j));
-            }
-            joueurDetail = null; // il joue ou n'a plus rien à jouer
-        }
-        return colonneMatchs();
+        return lancementOuvert ? colonneLancement() : null;
     }
 
     // ==================================================================
@@ -406,8 +383,8 @@ final class EcranSalle {
     private Node cartes() {
         Button lancer = Ui.boutonPrimaire(lancementOuvert ? "Fermer" : "_Lancer un match");
         lancer.setMnemonicParsing(true);
-        lancer.setTooltip(new Tooltip("Alt+L · matchs proposés, joueurs en attente, « Proposer » et choix "
-                + "manuel du match et de la table."));
+        lancer.setTooltip(new Tooltip("Alt+L · matchs proposés avec leur table et l'attente des joueurs, "
+                + "« Proposer » et choix manuel du match et de la table."));
         VBox carteLancer = TableauDeBordJourJ.carte(Ui.icone(Icones.RAQUETTE, "icone"),
                 PresentationTableauDeBordJourJ.CARTE_LANCER, PresentationTableauDeBordJourJ.valeurLancer(bord),
                 PresentationTableauDeBordJourJ.detailLancer(bord), lancer, lancementOuvert, this::basculerLancement);
@@ -436,10 +413,8 @@ final class EcranSalle {
 
     private void basculerLancement() {
         lancementOuvert = !lancementOuvert;
-        if (!lancementOuvert) {
-            lancerManuel = false;
-            joueurDetail = null;
-            rechercheLancer = "";
+        if (lancementOuvert) {
+            lancement.reinitialiser();
         }
         afficher();
     }
@@ -447,51 +422,6 @@ final class EcranSalle {
     private void basculerPanneau(String nom) {
         panneau = nom.equals(panneau) ? "" : nom;
         afficher();
-    }
-
-    /**
-     * En-tête de l'interface « Lancer un match » (colonne de gauche) : fermer,
-     * « Proposer » (Alt+P), choix manuel, feuille de match à l'envoi.
-     */
-    private Node enteteLancement() {
-        Button fermer = Ui.boutonLien("Fermer");
-        fermer.setOnAction(e -> basculerLancement());
-        Button proposer = Ui.boutonPrimaire("_Proposer");
-        proposer.setMnemonicParsing(true);
-        proposer.setDisable(ferme() || bord.getNombreDeTables() == 0);
-        proposer.setTooltip(new Tooltip("Alt+P · remplit toutes les tables libres avec les matchs proposés, du plus "
-                + "prioritaire au moins prioritaire. Un joueur n'est jamais envoyé sur deux tables."));
-        proposer.setOnAction(e -> proposer());
-
-        Button choisir = Ui.boutonSecondaire("Choisir le match");
-        choisir.setDisable(ferme() || bord.getNombreDeTables() == 0 || lancerManuel);
-        choisir.setTooltip(new Tooltip("Choisir soi-même le match et la table, sans passer par les matchs proposés."));
-        choisir.setOnAction(e -> {
-            enSaisie = null;
-            joueurDetail = null;
-            lancerManuel = true;
-            afficher();
-        });
-
-        // B016 : feuille de match imprimée à chaque envoi sur une table (mémorisé pour ce tournoi).
-        CheckBox feuille = new CheckBox("Feuille à l'envoi");
-        feuille.setSelected(tournoi.imprimerFeuilleALEnvoi());
-        feuille.setDisable(ferme());
-        feuille.setTooltip(new Tooltip("Imprime la feuille de match de chaque rencontre envoyée sur une table "
-                + "(imprimante par défaut si le système le permet, sinon le PDF s'ouvre). Sans cette option, "
-                + "« Feuille » sur une table occupée l'imprime à la demande."));
-        feuille.setOnAction(e -> {
-            tournoi.setImprimerFeuilleALEnvoi(feuille.isSelected());
-            apresAction(true, feuille.isSelected()
-                    ? "La feuille de match sera imprimée à chaque envoi sur une table."
-                    : "Les feuilles de match ne s'impriment plus à l'envoi (bouton « Feuille » sur chaque table).");
-        });
-        FlowPane actions = new FlowPane(8, 8, proposer, choisir, feuille);
-        actions.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        VBox entete = new VBox(10, Ui.enteteAvecActions(Ui.titreCarte(PresentationTableauDeBordJourJ.CARTE_LANCER),
-                fermer), actions);
-        entete.getStyleClass().add("jourj-lancement-entete");
-        return entete;
     }
 
     /** Choix d'annonce des rencontres, mémorisé pour ce tournoi. */
@@ -736,8 +666,6 @@ final class EcranSalle {
             terminer.setTooltip(new Tooltip("Saisir le score : la table se libère à l'enregistrement."));
             terminer.setOnAction(e -> {
                 enSaisie = m.match();
-                lancerManuel = false;
-                joueurDetail = null;
                 afficher();
             });
             Button feuilleMatch = Ui.boutonLien("Feuille");
@@ -821,14 +749,6 @@ final class EcranSalle {
         }
     }
 
-    private void majChronoJoueur(Label l, LocalDateTime depuis) {
-        java.time.Duration attente = java.time.Duration.between(depuis, salle.maintenant());
-        l.setText(PresentationSalle.duree(attente));
-        l.getStyleClass().remove("jourj-chrono-long");
-        if (attente.compareTo(com.pingmanager.core.ReglePrioriteSalle.ATTENTE_LONGUE) >= 0) {
-            l.getStyleClass().add("jourj-chrono-long");
-        }
-    }
 
     /** Une table libre accepte un match prêt glissé depuis la colonne de droite. */
     private void accepterDepot(VBox carte, int table) {
@@ -874,295 +794,77 @@ final class EcranSalle {
     }
 
     // ==================================================================
-    // Colonne des matchs prêts et bloqués
+    // Interface « Lancer un match » (B055)
     // ==================================================================
 
-    private Node colonneMatchs() {
-        VBox prets = new VBox(0);
-        List<MatchSalle> liste = bord.getPrets();
-        for (int i = 0; i < liste.size(); i++) {
-            prets.getChildren().add(lignePret(liste.get(i), i));
-        }
-        if (liste.isEmpty()) {
-            prets.getChildren().add(Ui.etatVideCompact("Aucun match à proposer. Les parties des poules lancées et du "
-                    + "tableau final apparaissent ici dès que leurs deux joueurs sont libres."));
-        }
-        VBox colonne = new VBox(16, Ui.carte(Ui.titreAvecCompteur("Matchs proposés", liste.size()),
-                Ui.aide("Tous tableaux confondus, du plus prioritaire au moins prioritaire. Rouge : attend depuis "
-                        + "longtemps ; orange : important ou prochain à envoyer ; vert : peut attendre. « Table N » "
-                        + "envoie le match sur la première table libre ; vous pouvez aussi le glisser sur une table."),
-                prets));
-
-        List<JoueurEnAttente> attente = bord.getJoueursEnAttente();
-        VBox joueurs = new VBox(0);
-        for (JoueurEnAttente j : attente) {
-            joueurs.getChildren().add(ligneJoueur(j));
-        }
-        if (attente.isEmpty()) {
-            joueurs.getChildren().add(Ui.etatVideCompact("Personne n'attend : tous les joueurs qui ont encore un "
-                    + "match sont sur une table."));
-        }
-        colonne.getChildren().add(Ui.carte(Ui.titreAvecCompteur("Joueurs en attente", attente.size()),
-                Ui.aide("Du plus long chrono au plus court. Cliquez sur un joueur pour savoir pourquoi il ne joue pas."),
-                joueurs));
+    /** Interface « Lancer un match », recalculée par le cœur à chaque affichage. */
+    private Node colonneLancement() {
+        ListeLancements liste = salle.listeLancements(tournoi);
+        VBox colonne = lancement.construire(liste, bord.getNombreDeTables(), ferme(),
+                tournoi.imprimerFeuilleALEnvoi(), this::cleGlisser);
         return cote(colonne);
+    }
+
+    /** Donnée glissée d'un match vers une table libre (rang dans les matchs prêts), ou null. */
+    private String cleGlisser(Match m) {
+        List<MatchSalle> prets = bord.getPrets();
+        for (int i = 0; i < prets.size(); i++) {
+            if (prets.get(i).match() == m) {
+                return PresentationSalle.cleGlisser(i);
+            }
+        }
+        return null;
     }
 
     /** Colonne de gauche défilante, largeur fixe. */
     private Node cote(VBox colonne) {
-        colonne.getChildren().add(0, enteteLancement());
         colonne.getStyleClass().add("salle-colonne");
-        colonne.setPrefWidth(360);
-        colonne.setMaxWidth(360);
+        colonne.setPrefWidth(420);
+        colonne.setMaxWidth(420);
         ScrollPane s = Ui.defilant(colonne);
         s.getStyleClass().add("salle-cote");
-        s.setMinWidth(380);
+        s.setMinWidth(440);
         BorderPane.setMargin(s, new Insets(24, 0, 24, 24));
         return s;
     }
 
-    private Node lignePret(MatchSalle m, int rang) {
-        Label joueurs = Ui.gras(PresentationSalle.joueurs(m.match()));
-        joueurs.setWrapText(true);
-        Label niveau = Ui.pastille(m.niveau().getLibelle(), PresentationSalle.pastillePriorite(m.niveau()));
-        niveau.setTooltip(new Tooltip(PresentationSalle.detailPriorite(m)));
-        VBox infos = new VBox(2, Ui.ligne(8, Ui.discret(PresentationSalle.contexte(m)), Ui.espace(), niveau), joueurs);
-        if (!m.motifNiveau().isEmpty()) {
-            infos.getChildren().add(Ui.aide(m.motifNiveau()));
+    /** Gestes de l'interface « Lancer un match », branchés sur la salle. */
+    private final class ActionsLancement implements InterfaceLancementMatch.Actions {
+        @Override
+        public void lancer(Match match, int table) {
+            affecter(match, table);
         }
-        Optional<Integer> libre = PresentationSalle.premiereTableLibre(bord);
-        Button direct = Ui.boutonPrimaire(libre.map(n -> "Table " + n).orElse("Aucune table libre"));
-        direct.getStyleClass().add("jourj-envoi-direct");
-        direct.setDisable(ferme() || libre.isEmpty());
-        libre.ifPresent(n -> {
-            direct.setTooltip(new Tooltip("Envoyer ce match à la table " + n + " (première table libre)"));
-            direct.setOnAction(e -> affecter(m.match(), n));
-        });
-        MenuButton envoyer = new MenuButton("Autre table…");
-        envoyer.getStyleClass().add("salle-envoyer");
-        envoyer.getItems().addAll(itemsEnvoi(m.match()));
-        envoyer.setDisable(ferme() || bord.tablesLibres().isEmpty());
-        VBox ligne = new VBox(6, infos, Ui.ligne(8, direct, envoyer));
-        ligne.getStyleClass().addAll("salle-pret", PresentationSalle.classePriorite(m.niveau()));
-        ligne.setCursor(Cursor.OPEN_HAND);
 
-        ContextMenu menu = new ContextMenu();
-        menu.getItems().addAll(itemsEnvoi(m.match()));
-        ligne.setOnContextMenuRequested(e -> {
-            if (!menu.getItems().isEmpty()) {
-                menu.show(ligne, e.getScreenX(), e.getScreenY());
-            }
-            e.consume();
-        });
-        ligne.setOnDragDetected(e -> {
-            if (ferme()) {
-                return;
-            }
-            Dragboard d = ligne.startDragAndDrop(TransferMode.MOVE);
-            ClipboardContent contenu = new ClipboardContent();
-            contenu.putString(PresentationSalle.cleGlisser(rang));
-            d.setContent(contenu);
-            e.consume();
-        });
-        return ligne;
-    }
+        @Override
+        public void proposer() {
+            EcranSalle.this.proposer();
+        }
 
-    /** « Envoyer à la table N » pour chaque table libre. */
-    private List<MenuItem> itemsEnvoi(Match m) {
-        List<MenuItem> items = new ArrayList<>();
-        if (ferme()) {
-            return items;
+        @Override
+        public void fermer() {
+            basculerLancement();
         }
-        for (Integer table : bord.tablesLibres()) {
-            MenuItem item = new MenuItem("Envoyer à la table " + table);
-            item.setOnAction(e -> affecter(m, table));
-            items.add(item);
-        }
-        return items;
-    }
 
-    /** Un joueur en attente : nom, motif court, chrono ; un clic montre pourquoi. */
-    private Node ligneJoueur(JoueurEnAttente j) {
-        Label nom = Ui.gras(PresentationSalle.nom(j.joueur()));
-        Label motif = Ui.discret(PresentationSalle.motifCourt(j));
-        motif.setWrapText(true);
-        Label chrono = new Label(PresentationSalle.chrono(j));
-        chrono.getStyleClass().add("jourj-chrono");
-        if (PresentationSalle.attenteLongue(j)) {
-            chrono.getStyleClass().add("jourj-chrono-long");
+        @Override
+        public void feuilleALEnvoi(boolean imprimer) {
+            tournoi.setImprimerFeuilleALEnvoi(imprimer);
+            apresAction(true, imprimer
+                    ? "La feuille de match sera imprimée à chaque envoi sur une table."
+                    : "Les feuilles de match ne s'impriment plus à l'envoi (bouton « Feuille » sur chaque table).");
         }
-        if (j.depuis() != null) {
-            chronosJoueurs.put(chrono, j.depuis());
-        }
-        VBox infos = new VBox(2, nom, motif);
-        HBox.setHgrow(infos, javafx.scene.layout.Priority.ALWAYS);
-        HBox ligne = Ui.ligne(10, infos, chrono);
-        ligne.getStyleClass().addAll("salle-pret", "jourj-joueur-attente");
-        ligne.setCursor(Cursor.HAND);
-        Tooltip.install(ligne, new Tooltip("Pourquoi " + PresentationSalle.nom(j.joueur()) + " ne joue pas ?"));
-        ligne.setOnMouseClicked(e -> {
-            joueurDetail = j.joueur().getNumeroLicence();
+
+        @Override
+        public void rafraichir() {
             afficher();
-        });
-        return ligne;
-    }
+        }
 
-    /**
-     * « Pourquoi » un joueur ne joue pas : une phrase par match à jouer, puis sa
-     * poule ou son tour avec son nom surligné.
-     */
-    private VBox panneauJoueur(JoueurEnAttente j) {
-        Button retour = Ui.boutonLien("← Matchs proposés");
-        retour.setOnAction(e -> {
-            joueurDetail = null;
-            afficher();
-        });
-        Label chrono = new Label(j.attente() == null ? "Chrono pas encore commencé"
-                : "En attente depuis " + PresentationSalle.chrono(j));
-        chrono.getStyleClass().add("jourj-chrono");
-        if (PresentationSalle.attenteLongue(j)) {
-            chrono.getStyleClass().add("jourj-chrono-long");
-        }
-        VBox carte = Ui.carte(Ui.titreCarte("Pourquoi " + PresentationSalle.nom(j.joueur()) + " ne joue pas"),
-                chrono);
-        List<String> phrases = PresentationSalle.pourquoi(j, bord);
-        Optional<Integer> libre = PresentationSalle.premiereTableLibre(bord);
-        // Une phrase par match, puis la poule (ou le tour) une seule fois, nom surligné.
-        Map<String, VBox> blocs = new java.util.LinkedHashMap<>();
-        Map<String, Engagement> premiers = new java.util.HashMap<>();
-        for (int i = 0; i < j.engagements().size(); i++) {
-            Engagement e = j.engagements().get(i);
-            String cle = e.match().tableau() + " | " + e.groupe();
-            premiers.putIfAbsent(cle, e);
-            VBox bloc = blocs.computeIfAbsent(cle, k -> {
-                VBox v = new VBox(8);
-                v.getStyleClass().add("jourj-pourquoi");
-                return v;
-            });
-            Label phrase = Ui.texte(phrases.get(i));
-            phrase.setWrapText(true);
-            bloc.getChildren().add(phrase);
-            if (e.raison() == TableauDeBordSalle.RaisonAttente.PRET && libre.isPresent() && !ferme()) {
-                int table = libre.get();
-                Button envoyer = Ui.boutonPrimaire("Envoyer à la table " + table);
-                envoyer.setOnAction(x -> affecter(e.match().match(), table));
-                bloc.getChildren().add(envoyer);
-            }
-        }
-        for (Map.Entry<String, VBox> entree : blocs.entrySet()) {
-            VBox bloc = entree.getValue();
-            Engagement e = premiers.get(entree.getKey());
-            bloc.getChildren().add(groupe(e, j));
-            HBox actions = Ui.ligne(8);
+        @Override
+        public void ouvrirTableau(String nom) {
             if (ouvrirTableau != null) {
-                Button voir = Ui.boutonSecondaire("Voir le tableau");
-                voir.setTooltip(new Tooltip("Ouvrir les poules ou l'arbre de « " + e.match().tableau() + " »"));
-                voir.setOnAction(x -> {
-                    arreterMinuterie();
-                    ouvrirTableau.accept(e.match().tableau());
-                });
-                actions.getChildren().add(voir);
+                arreterMinuterie();
+                ouvrirTableau.accept(nom);
             }
-            if (!actions.getChildren().isEmpty()) {
-                bloc.getChildren().add(actions);
-            }
-            carte.getChildren().add(bloc);
         }
-        return new VBox(12, retour, carte);
-    }
-
-    /** Poule ou tour d'un engagement, le joueur surligné. */
-    private Node groupe(Engagement e, JoueurEnAttente j) {
-        VBox lignes = new VBox(2);
-        Label titre = Ui.discret(e.match().tableau() + " · " + e.groupe());
-        titre.getStyleClass().add("jourj-groupe-titre");
-        lignes.getChildren().add(titre);
-        for (PresentationSalle.LigneGroupe l : PresentationSalle.lignesGroupe(e, j.joueur())) {
-            Label a = nomGroupe(l.joueurA(), l.surligneA());
-            Label b = nomGroupe(l.joueurB(), l.surligneB());
-            Label etat = Ui.discret(l.etat());
-            HBox ligne = Ui.ligne(6, a, Ui.discret("–"), b, Ui.espace(), etat);
-            ligne.getStyleClass().add("jourj-groupe-ligne");
-            if (l.concerne()) {
-                ligne.getStyleClass().add("jourj-groupe-concerne");
-            }
-            lignes.getChildren().add(ligne);
-        }
-        lignes.getStyleClass().add("jourj-groupe");
-        return lignes;
-    }
-
-    private static Label nomGroupe(String nom, boolean surligne) {
-        Label l = new Label(nom);
-        l.getStyleClass().add("texte");
-        if (surligne) {
-            l.getStyleClass().add("jourj-surligne");
-        }
-        return l;
-    }
-
-    /**
-     * « Lancer un match » : tous les matchs à jouer dont les deux joueurs sont
-     * connus, cherchés par nom de joueur ou de tableau ; les matchs bloqués
-     * restent visibles avec leur motif.
-     */
-    private VBox panneauLancer() {
-        Button fermer = Ui.boutonLien("← Matchs proposés");
-        fermer.setOnAction(e -> {
-            lancerManuel = false;
-            rechercheLancer = "";
-            afficher();
-        });
-        TextField recherche = Ui.champ("Nom d'un joueur ou d'un tableau");
-        recherche.setText(rechercheLancer);
-        VBox resultats = new VBox(0);
-        Runnable remplir = () -> {
-            resultats.getChildren().clear();
-            List<PresentationSalle.Lancable> liste = PresentationSalle.lancables(bord, rechercheLancer);
-            for (PresentationSalle.Lancable l : liste) {
-                resultats.getChildren().add(ligneLancable(l));
-            }
-            if (liste.isEmpty()) {
-                resultats.getChildren().add(Ui.etatVideCompact(rechercheLancer.isBlank()
-                        ? "Aucun match à jouer dont les deux joueurs sont connus."
-                        : "Aucun match ne correspond à « " + rechercheLancer.trim() + " »."));
-            }
-        };
-        recherche.textProperty().addListener((o, avant, apres) -> {
-            rechercheLancer = apres == null ? "" : apres;
-            remplir.run();
-        });
-        remplir.run();
-        javafx.application.Platform.runLater(recherche::requestFocus);
-        VBox carte = Ui.carte(Ui.titreCarte("Lancer un match"),
-                Ui.aide("Choisissez le match et la table vous-même. Un joueur déjà sur une table ne peut pas être "
-                        + "envoyé sur une autre : ses matchs restent grisés avec le motif."),
-                recherche, resultats);
-        return new VBox(12, fermer, carte);
-    }
-
-    private Node ligneLancable(PresentationSalle.Lancable l) {
-        MatchSalle m = l.match();
-        Label joueurs = Ui.gras(PresentationSalle.joueurs(m.match()));
-        joueurs.setWrapText(true);
-        VBox ligne = new VBox(6, Ui.discret(PresentationSalle.contexte(m)), joueurs);
-        ligne.getStyleClass().add("salle-pret");
-        if (!l.possible()) {
-            ligne.getStyleClass().add("salle-bloque");
-            ligne.getChildren().add(Ui.pastille(l.refus(), StatutPastille.NEUTRE));
-            return ligne;
-        }
-        Optional<Integer> libre = PresentationSalle.premiereTableLibre(bord);
-        Button direct = Ui.boutonPrimaire(libre.map(n -> "Table " + n).orElse("Aucune table libre"));
-        direct.getStyleClass().add("jourj-envoi-direct");
-        direct.setDisable(ferme() || libre.isEmpty());
-        libre.ifPresent(n -> direct.setOnAction(e -> affecter(m.match(), n)));
-        MenuButton autre = new MenuButton("Autre table…");
-        autre.getStyleClass().add("salle-envoyer");
-        autre.getItems().addAll(itemsEnvoi(m.match()));
-        autre.setDisable(ferme() || bord.tablesLibres().isEmpty());
-        ligne.getChildren().add(Ui.ligne(8, direct, autre));
-        return ligne;
     }
 
     // ==================================================================
@@ -1286,7 +988,7 @@ final class EcranSalle {
             if (tableau == null) {
                 enSaisie = null;
                 messageErreur = "Ce match n'appartient plus à aucun tableau.";
-                return lancementOuvert ? colonneMatchs() : null;
+                return lancementOuvert ? colonneLancement() : null;
             }
             editeur = new VBox(12, titre,
                     EditeurScorePhaseFinale.creer(tableau, m, servicePhaseFinale, fermer, this::apresResultat));
@@ -1351,16 +1053,12 @@ final class EcranSalle {
                     smsEnvoyes.append(voixApresLancement(l.match().match(), l.table(), mode));
                 }
                 annonces = annonceVocaleSeule(mode) ? List.of() : liste;
-                apresAction(true, PresentationSalle.messageProposition(r) + smsEnvoyes);
-                return;
-            }
-            String texte = PresentationSalle.messageProposition(r);
-            if (r.aLance()) {
                 List<Match> lances = new ArrayList<>();
                 r.getLancements().forEach(l -> lances.add(l.match().match()));
-                texte += feuillesALEnvoi(lances);
+                apresAction(true, PresentationSalle.messageProposition(r) + feuillesALEnvoi(lances) + smsEnvoyes);
+                return;
             }
-            apresAction(r.aLance(), texte);
+            apresAction(false, PresentationSalle.messageProposition(r));
         });
     }
 
@@ -1372,9 +1070,6 @@ final class EcranSalle {
             if (r.estReussi()) {
                 annonces = annonceVocaleSeule(mode) ? List.of()
                         : List.of(AnnonceRencontre.preparer(mode, m, table, contexte));
-                lancerManuel = false;
-                rechercheLancer = "";
-                joueurDetail = null;
                 smsEnvoyes = smsApresLancement(m, table, mode) + voixApresLancement(m, table, mode);
             }
             String texte = PresentationSalle.message(r, bord.getNombreDeTables());
@@ -1433,7 +1128,7 @@ final class EcranSalle {
     private void demarrerMinuterie() {
         minuterie = new Timeline(new KeyFrame(FREQUENCE_CHRONO, e -> {
             chronos.forEach(this::majChrono);
-            chronosJoueurs.forEach(this::majChronoJoueur);
+            lancement.rafraichirAttentes(salle.maintenant());
             verifierRappels();
         }));
         minuterie.setCycleCount(Timeline.INDEFINITE);
