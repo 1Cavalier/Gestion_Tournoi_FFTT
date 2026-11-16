@@ -75,7 +75,8 @@ final class PresentationInscriptionsClub {
     static String phraseCarte(Tournoi tournoi, int participants, int inscrits, int places, int attente) {
         if (avantPublication(tournoi)) {
             return participants == 0 ? PHRASE_AVANT_PUBLICATION
-                    : PolitiqueOuverture.constatJoueursAvantPublication(tournoi).orElse(PHRASE_AVANT_PUBLICATION);
+                    : participants + (participants > 1 ? " joueurs conservés" : " joueur conservé")
+                    + " d'un ancien fichier, en consultation seule. " + PHRASE_AVANT_PUBLICATION;
         }
         if (participants == 0) {
             return tournoi.getStatut() == StatutTournoi.PUBLIE ? "Aucune inscription pour l'instant."

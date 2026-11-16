@@ -195,7 +195,9 @@ final class EcranCompletion {
             corps.add(barre);
         }
         corps.add(ligne);
-        corps.add(Ui.aide(PresentationInscriptionsClub.aideCarte(tournoi)));
+        if (!avantPublication || participants > 0) { // sinon l'aide répéterait la phrase
+            corps.add(Ui.aide(PresentationInscriptionsClub.aideCarte(tournoi)));
+        }
         return Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Inscriptions"), actions.toArray(new Node[0])),
                 corps.toArray(new Node[0]));
     }
@@ -281,7 +283,10 @@ final class EcranCompletion {
         javafx.scene.control.ProgressBar jauge = new javafx.scene.control.ProgressBar(p.jaugeGlobale());
         jauge.getStyleClass().add("jauge");
         jauge.setMaxWidth(Double.MAX_VALUE);
-        Label remplissage = Ui.discret(p.phraseRemplissage());
+        // B052 : avant la publication, pas de « aucune inscription pour l'instant » trompeur.
+        Label remplissage = Ui.discret(PresentationInscriptionsClub.avantPublication(tournoi)
+                && com.pingmanager.core.RemplissageTableaux.nombreDeParticipants(tournoi) == 0
+                ? PresentationInscriptionsClub.PHRASE_AVANT_PUBLICATION : p.phraseRemplissage());
         remplissage.setWrapText(true);
         Label solde = Ui.discret(p.phraseSolde());
         solde.setWrapText(true);
