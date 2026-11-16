@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 902 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 920 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -270,6 +270,21 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   tournoi ou un licencié, à un tableau qui n'a pas commencé et qui a une place
   libre ; pointé et payé à la table. Clause du club (Règles d'inscription) :
   un joueur éliminé peut prendre N tableaux de plus le même jour (Brunoy : 1).
+- **Écran du jour J du juge-arbitre** (restructuré, B053 inclus), de haut en
+  bas : bandeau « Jour J » et nom du tournoi ; trois cartes carrées (en
+  colonne sur petite largeur) **Lancer un match** (matchs prêts, tables
+  libres ; ouvre à gauche matchs proposés, joueurs en attente, « Proposer »,
+  choix manuel, feuille à l'envoi), **Annonces** (état en un mot : Voix, SMS,
+  Voix et SMS, Coupées, À chaque match ; ouvre annonce des rencontres, voix,
+  SMS, prononciation, suivi sur téléphone) et **Stratégie en place** (ouvre le
+  sélecteur à trois choix ; s'applique aux prochains matchs proposés, pas aux
+  matchs sur une table) ; **Tableaux** : une ligne par tableau avec une frise
+  en six étapes (avant pointage, pointage ouvert, pointage fermé, poules,
+  élimination directe avec le tour en cours, terminé ; libellés courts ou
+  numéros seuls quand la place manque) et les actions de l'étape (ouvrir le
+  pointage, pointer et clôturer, lancer le tableau, poules, tirer le tableau
+  final, arbre), plus « Inscrire sur place… » et les jours ; **Salle**
+  inchangée. L'étape se calcule dans le cœur (`CalculEtapeTableau`).
 - **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
   « Gestion », visible seulement pour un organisateur dont un tournoi se joue
   ou approche (homologué ou publié, de **J-7** avant le premier jour au dernier
@@ -436,10 +451,13 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   (toujours en démo).
 
 ### Jour J
-- **B053 — Changer de stratégie en cours de tournoi.** Poser sur l'écran du
-  jour J le composant `SelecteurStrategie` (déjà utilisé sur la vue du
-  tournoi), avec l'enregistrement de cet écran ; message adapté (« les
-  prochains matchs proposés suivent ce choix »).
+- **B055 — Refaire l'interface « Lancer un match ».** Aujourd'hui, la carte
+  du jour J ouvre l'existant dans une colonne à gauche (matchs proposés,
+  joueurs en attente et « pourquoi », « Proposer », choix manuel, feuille à
+  l'envoi). Alt+P (« Proposer ») ne marche que colonne ouverte.
+- **B056 — Refaire l'interface « Annonces ».** La carte ouvre sous les cartes
+  les réglages existants (annonce des rencontres, menu Voix, SMS,
+  prononciation, suivi sur téléphone), sans mise en forme dédiée.
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
    dans une cellule ; le même composant pour les poules et le tableau final ;
@@ -565,6 +583,22 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 En attendant, le code applique l'option la plus prudente, indiquée entre
 parenthèses.
+
+**Écran du jour J restructuré**
+- Carte « Annonces » : l'état en un mot suit l'annonce choisie pour les
+  rencontres (« Voix » = appel vocal, même si la voix de l'ordinateur est
+  indisponible ou à la demande ; le détail le précise). Choix « demander à
+  chaque lancement » affiché « À chaque match ». Faut-il plutôt refléter ce
+  qui part réellement (voix automatique, SMS automatiques) ? (provisoire :
+  l'annonce choisie, avec le détail dessous).
+- Cartes carrées : côté borné à 240 px pour ne pas repousser les tableaux
+  sous l'écran en grande largeur ; en colonne (petite largeur), les cartes
+  ne sont plus carrées mais pleine largeur. À confirmer à l'écran.
+- Tableau qui s'arrête aux poules : passe directement de l'étape 4 à
+  l'étape 6 (« Tableau terminé ») ; l'étape 5 reste grise. Le garder, ou
+  masquer l'étape 5 pour ces tableaux ? (provisoire : grise).
+- Poules jouées, tableau final pas encore tiré : reste à l'étape 4 avec
+  l'action « Tirer le tableau final ». (provisoire.)
 
 **Tables d'échauffement en renfort (B054)**
 - Seuils par défaut : ouverture au-delà de 15 min de retard prévu, retour à
