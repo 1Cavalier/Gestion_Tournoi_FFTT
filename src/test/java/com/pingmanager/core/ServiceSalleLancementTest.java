@@ -105,6 +105,7 @@ class ServiceSalleLancementTest {
         // Dans la liste, le match reste visible, désactivé, avec le même motif.
         ListeLancements.Ligne l = ligne(salle.listeLancements(t), memeJoueur);
         assertFalse(l.estLancable());
+        assertFalse(l.estPret());
         assertEquals(ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU, l.refus().getMotif());
         assertEquals(Integer.valueOf(4), l.refus().getTableDuJoueurBloquant());
         assertNull(l.tableProposee());
@@ -146,6 +147,7 @@ class ServiceSalleLancementTest {
 
         assertTrue(liste.getTablesLibres().isEmpty());
         assertEquals(0, liste.nombreLancables());
+        assertEquals(3, liste.nombrePrets(), "l'autre poule est prête, il ne manque qu'une table");
         Match autrePoule = poule(t, 1).getMatchs().get(0);
         ListeLancements.Ligne l = ligne(liste, autrePoule);
         assertFalse(l.estLancable());

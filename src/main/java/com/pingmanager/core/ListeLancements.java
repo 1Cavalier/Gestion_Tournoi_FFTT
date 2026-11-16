@@ -58,6 +58,16 @@ public final class ListeLancements {
             return refus == null && tableProposee != null;
         }
 
+        /**
+         * @return true si les deux joueurs sont disponibles : le match est prêt,
+         *         même s'il manque une table libre pour le recevoir
+         */
+        public boolean estPret() {
+            return refus == null
+                    || refus.getMotif() == ResultatAffectationTable.Motif.AUCUNE_TABLE_LIBRE
+                    || refus.getMotif() == ResultatAffectationTable.Motif.TABLE_RESERVEE;
+        }
+
         /** Attente des joueurs à un instant donné (jamais négative), ou null. */
         public Duration attente(LocalDateTime maintenant) {
             if (attenteDepuis == null || maintenant == null) {
@@ -99,6 +109,11 @@ public final class ListeLancements {
     /** Les mêmes lignes dans l'ordre du tournoi (tableau, poule ou tour), pour le choix manuel. */
     public List<Ligne> getParTableau() {
         return parTableau;
+    }
+
+    /** Nombre de matchs prêts (joueurs disponibles), qu'une table libre les attende ou non. */
+    public int nombrePrets() {
+        return (int) proposes.stream().filter(Ligne::estPret).count();
     }
 
     /** Nombre de matchs qui peuvent partir maintenant. */

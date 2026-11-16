@@ -96,7 +96,8 @@ final class PresentationSalle {
     static String motifBlocage(TableauDeBordSalle.MatchBloque b) {
         ResultatAffectationTable r = b.motif();
         if (r.getMotif() == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {
-            return nom(r.getJoueurBloquant()) + " déjà en jeu à la table " + r.getTableDuJoueurBloquant();
+            return r.getTableDuJoueurBloquant() == null ? nom(r.getJoueurBloquant()) + " déjà en jeu"
+                    : nom(r.getJoueurBloquant()) + " déjà en jeu à la table " + r.getTableDuJoueurBloquant();
         }
         return message(r, 0);
     }
@@ -158,8 +159,13 @@ final class PresentationSalle {
             return "Les deux joueurs ne sont pas encore connus : le tour précédent n'est pas joué.";
         }
         if (motif == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {
-            return nom(r.getJoueurBloquant()) + " joue déjà à la table " + r.getTableDuJoueurBloquant()
+            String ou = r.getTableDuJoueurBloquant() == null ? " joue déjà (match en cours sans table valable)"
+                    : " joue déjà à la table " + r.getTableDuJoueurBloquant();
+            return nom(r.getJoueurBloquant()) + ou
                     + " : un joueur ne peut pas être sur deux tables. Attendez la fin de son match.";
+        }
+        if (motif == ResultatAffectationTable.Motif.AUCUNE_TABLE_LIBRE) {
+            return "Aucune table libre : terminez ou annulez d'abord un match en cours.";
         }
         if (motif == ResultatAffectationTable.Motif.MATCH_PAS_EN_COURS) {
             return "Ce match n'est pas en cours sur une table.";
