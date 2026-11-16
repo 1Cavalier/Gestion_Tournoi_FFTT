@@ -2,216 +2,178 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.buvette.CalculCoutBuvette;
 import com.pingmanager.core.buvette.Centimes;
-import com.pingmanager.core.buvette.EtatStock;
-import com.pingmanager.core.buvette.ResultatMouvementStock;
-import com.pingmanager.core.buvette.ServiceStockBuvette;
-import com.pingmanager.model.buvette.BuvetteTournoi;
-import com.pingmanager.model.buvette.CatalogueBuvette;
-import com.pingmanager.model.buvette.Ingredient;
+import com.pingmanager.core.buvette.CoutPortion;
+import com.pingmanager.core.buvette.JaugeStock;
+import com.pingmanager.core.buvette.NiveauStock;
+import com.pingmanager.model.buvette.ArticleBuvette;
+import com.pingmanager.model.buvette.FamilleArticle;
+import com.pingmanager.model.buvette.LienContenant;
 import com.pingmanager.model.buvette.MouvementStock;
-import com.pingmanager.model.buvette.TypeMouvementStock;
+import com.pingmanager.model.buvette.StockBuvette;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.OptionalLong;
+import java.util.Optional;
 
 /**
- * Présentation (sans JavaFX) de l'onglet « Stock » de la page Buvette (B046) :
- * tuiles, état par ingrédient (avec alerte sous le seuil), journal des
- * mouvements (le plus récent en tête) et saisie d'un mouvement.
+ * Logique d'affichage de la page « Buvette » (B026), testée hors JavaFX :
+ * liste « À racheter », articles par famille avec leur jauge et leurs coûts,
+ * derniers mouvements.
  */
 final class PresentationStockBuvette {
 
-    /** Types proposés à la saisie (les ventes viennent de la caisse, les corrections du journal). */
-    static final TypeMouvementStock[] TYPES_SAISIS = {TypeMouvementStock.ACHAT, TypeMouvementStock.STOCK_DEPART,
-            TypeMouvementStock.PERTE, TypeMouvementStock.DON, TypeMouvementStock.INVENTAIRE};
+    static final String MESSAGE_VIDE = "Aucun article pour l'instant : ajoutez vos produits (café, boissons, "
+            + "sandwichs…) et vos contenants (gobelets, touillettes…) avec le formulaire ci-dessous.";
+    static final String RIEN_A_RACHETER = "Rien à racheter : tous les stocks sont au-dessus de leur seuil d'alerte.";
 
-    private static final DateTimeFormatter HEURE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DateTimeFormatter JOUR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-    record Tuile(String valeur, String libelle) {
-    }
-
-    record LigneStock(String id, String nom, String detail, boolean sousLeSeuil) {
-    }
-
-    record LigneMouvement(int numero, String titre, String detail, boolean corrigeable, boolean corrige) {
-    }
-
-    private final BuvetteTournoi buvette;
-    private final CatalogueBuvette catalogue;
-    private final ZoneId zone;
-
-    PresentationStockBuvette(BuvetteTournoi buvette, CatalogueBuvette catalogue, ZoneId zone) {
-        this.buvette = Objects.requireNonNull(buvette, "buvette");
-        this.catalogue = Objects.requireNonNull(catalogue, "catalogue");
-        this.zone = Objects.requireNonNull(zone, "zone");
-    }
-
-    List<Tuile> tuiles() {
-        List<EtatStock> etat = ServiceStockBuvette.etat(buvette, catalogue);
-        long sous = etat.stream().filter(EtatStock::sousLeSeuil).count();
-        BigDecimal valeur = BigDecimal.ZERO;
-        long paye = 0;
-        for (EtatStock e : etat) {
-            if (e.restant() > 0 && catalogue.ingredient(e.ingredient().getId()).isPresent()) {
-                valeur = valeur.add(CalculCoutBuvette.coutPortion(e.ingredient(), true)
-                        .multiply(BigDecimal.valueOf(e.restant())));
-            }
-            paye += e.achatsPayesCentimes();
+    /** Classe CSS de la jauge selon le niveau. */
+    static String classeJauge(NiveauStock n) {
+        if (n == NiveauStock.URGENT) {
+            return "jauge-stock-rouge";
         }
-        return List.of(
-                new Tuile(String.valueOf(etat.size()), etat.size() > 1 ? "ingrédients suivis" : "ingrédient suivi"),
-                new Tuile(String.valueOf(sous), "sous le seuil d'alerte"),
-                new Tuile(Centimes.euros(Centimes.arrondir(valeur)), "valeur du stock restant (au coût d'achat)"),
-                new Tuile(Centimes.euros(paye), "achats payés pour ce tournoi"));
-    }
-
-    boolean sansIngredient() {
-        return catalogue.getIngredients().isEmpty();
-    }
-
-    String messageSansIngredient() {
-        return "Ajoutez d'abord des ingrédients dans l'onglet Catalogue (ou acceptez les suggestions).";
-    }
-
-    List<LigneStock> lignes() {
-        List<LigneStock> res = new ArrayList<>();
-        for (EtatStock e : ServiceStockBuvette.etat(buvette, catalogue)) {
-            Ingredient i = e.ingredient();
-            StringBuilder d = new StringBuilder("Reste ").append(e.restant()).append(' ').append(i.getUnitePortion());
-            if (e.restant() > 0 && i.getRendementMin() > 1) {
-                d.append(" (≈ ").append(e.unitesAchatEntieres()).append(" × ").append(i.getUniteAchat()).append(')');
-            }
-            d.append(" · départ ").append(e.depart()).append(" · achats ").append(e.achats())
-                    .append(" · ventes ").append(e.ventes());
-            if (e.pertesDons() != 0) {
-                d.append(" · pertes et dons ").append(e.pertesDons());
-            }
-            if (e.ecartsInventaire() != 0) {
-                d.append(" · écarts ").append(e.ecartsInventaire() > 0 ? "+" : "").append(e.ecartsInventaire());
-            }
-            if (e.seuil() >= 0) {
-                d.append(" · seuil ").append(e.seuil());
-            }
-            res.add(new LigneStock(i.getId(), i.getNom(), d.toString(), e.sousLeSeuil()));
+        if (n == NiveauStock.BAS) {
+            return "jauge-stock-orange";
         }
-        return res;
+        return "jauge-stock-vert";
     }
 
-    /** Journal, le plus récent en tête. */
-    List<LigneMouvement> journal() {
-        List<LigneMouvement> res = new ArrayList<>();
-        List<MouvementStock> ms = buvette.getMouvements();
-        for (int k = ms.size() - 1; k >= 0; k--) {
-            MouvementStock m = ms.get(k);
-            String nom = catalogue.ingredient(m.idIngredient()).map(Ingredient::getNom).orElse(m.idIngredient());
-            String unite = catalogue.ingredient(m.idIngredient()).map(Ingredient::getUnitePortion).orElse("portion");
-            String titre = "n° " + m.numero() + " · " + m.type().getLibelle() + " · " + nom + " : "
-                    + (m.quantite() > 0 ? "+" : "") + m.quantite() + " " + unite;
-            StringBuilder d = new StringBuilder(HEURE.format(m.horodatage().atZone(zone))).append(" · ").append(m.auteur());
-            if (m.dateAchat() != null) {
-                d.append(" · acheté le ").append(JOUR.format(m.dateAchat()));
-            }
-            if (m.prixPayeCentimes() != 0) {
-                d.append(" · ").append(Centimes.euros(m.prixPayeCentimes()));
-            }
-            if (!m.commentaire().isEmpty()) {
-                d.append(" · ").append(m.commentaire());
-            }
-            boolean corrige = ServiceStockBuvette.estCorrige(buvette, m.numero());
-            boolean corrigeable = !corrige && m.type() != TypeMouvementStock.CORRECTION
-                    && m.type() != TypeMouvementStock.VENTE;
-            res.add(new LigneMouvement(m.numero(), titre, d.toString(), corrigeable, corrige));
+    /** Pastille du niveau. */
+    static StatutPastille statut(NiveauStock n) {
+        if (n == NiveauStock.URGENT) {
+            return StatutPastille.ERREUR;
         }
-        return res;
+        if (n == NiveauStock.BAS) {
+            return StatutPastille.ATTENTION;
+        }
+        return StatutPastille.SUCCES;
     }
 
-    /** Libellé du champ de quantité selon le type de mouvement. */
-    static String libelleQuantite(TypeMouvementStock type) {
-        if (type == TypeMouvementStock.ACHAT) {
-            return "Unités d'achat";
-        }
-        if (type == TypeMouvementStock.INVENTAIRE) {
-            return "Portions comptées";
-        }
-        return "Portions";
+    /** Ligne de la liste « À racheter ». */
+    record LigneARacheter(String id, String nom, String detail) {
     }
 
     /**
-     * Enregistre la saisie du formulaire (quantité et prix lus ici), via le service.
+     * Ligne d'un article.
      *
-     * @return le résultat, avec un motif précis en cas de refus
+     * @param id          identifiant
+     * @param nom         nom
+     * @param famille     famille
+     * @param stock       « 120 doses »
+     * @param niveau      niveau du stock
+     * @param classeJauge classe CSS de la jauge
+     * @param remplissage remplissage de la jauge (0 à 1)
+     * @param detail      seuil, contenants, coûts
+     * @param retirable   faux pour un contenant qui sert encore à un produit
      */
-    static ResultatMouvementStock saisir(ServiceStockBuvette service, BuvetteTournoi buvette,
-                                         CatalogueBuvette catalogue, TypeMouvementStock type, String idIngredient,
-                                         String quantiteSaisie, String prixSaisi, LocalDate date, String auteur) {
-        OptionalLong q = entier(quantiteSaisie);
-        if (q.isEmpty()) {
-            return new ResultatMouvementStock(ResultatMouvementStock.Motif.QUANTITE_INVALIDE, List.of());
-        }
-        if (idIngredient == null || catalogue.ingredient(idIngredient).isEmpty()) {
-            return new ResultatMouvementStock(ResultatMouvementStock.Motif.INGREDIENT_INCONNU, List.of());
-        }
-        if (type == TypeMouvementStock.ACHAT) {
-            OptionalLong prix = prixSaisi == null || prixSaisi.isBlank() ? OptionalLong.of(0) : lirePrixTotal(prixSaisi);
-            if (prix.isEmpty()) {
-                return new ResultatMouvementStock(ResultatMouvementStock.Motif.PRIX_INVALIDE, List.of());
-            }
-            return service.acheter(buvette, catalogue, idIngredient, q.getAsLong(), prix.getAsLong(), date, auteur);
-        }
-        if (type == TypeMouvementStock.INVENTAIRE) {
-            return service.inventaire(buvette, catalogue, idIngredient, q.getAsLong(), auteur);
-        }
-        if (type == TypeMouvementStock.STOCK_DEPART) {
-            return service.stockDepart(buvette, catalogue, idIngredient, q.getAsLong(), auteur);
-        }
-        return service.sortie(buvette, catalogue, type, idIngredient, q.getAsLong(), auteur, "");
+    record LigneArticle(String id, String nom, FamilleArticle famille, String stock, NiveauStock niveau,
+                        String classeJauge, double remplissage, String detail, boolean retirable) {
     }
 
-    /** Prix total d'un achat : jusqu'à 100 000 € (plusieurs cartons). */
-    private static OptionalLong lirePrixTotal(String s) {
-        String t = s.replace("€", "").replace(" ", "").replace(' ', ' ').replace(" ", "").replace(',', '.').trim();
-        if (!t.matches("\\d{1,7}(\\.\\d{0,2})?")) {
-            return OptionalLong.empty();
-        }
-        return OptionalLong.of(new BigDecimal(t).movePointRight(2).longValueExact());
+    /** Groupe d'articles d'une famille. */
+    record Section(FamilleArticle famille, String titre, List<LigneArticle> lignes) {
     }
 
-    private static OptionalLong entier(String s) {
-        if (s == null || !s.trim().matches("\\d{1,7}")) {
-            return OptionalLong.empty();
-        }
-        return OptionalLong.of(Long.parseLong(s.trim()));
+    private final StockBuvette stock;
+
+    PresentationStockBuvette(StockBuvette stock) {
+        this.stock = stock;
     }
 
-    /**
-     * Index du tournoi proposé par défaut : le prochain à venir (ou en cours), sinon le
-     * plus récent ; -1 si la liste est vide.
-     */
-    static int tournoiParDefaut(List<LocalDate> dates, LocalDate aujourdhui) {
-        int prochain = -1;
-        int recent = -1;
-        for (int i = 0; i < dates.size(); i++) {
-            LocalDate d = dates.get(i);
-            if (d == null) {
-                continue;
+    boolean vide() {
+        return stock.getArticles().isEmpty();
+    }
+
+    List<LigneARacheter> aRacheter() {
+        List<LigneARacheter> res = new ArrayList<>();
+        for (JaugeStock j : JaugeStock.aRacheter(stock)) {
+            ArticleBuvette a = j.article();
+            res.add(new LigneARacheter(a.getId(), a.getNom(), "Il reste " + quantite(a.getStock(), a.getUnite())
+                    + " · seuil d'alerte " + a.getSeuilAlerte()));
+        }
+        return res;
+    }
+
+    /** Les deux familles, produits d'abord (une famille vide reste affichée). */
+    List<Section> sections() {
+        List<Section> res = new ArrayList<>();
+        for (FamilleArticle f : FamilleArticle.values()) {
+            List<LigneArticle> lignes = new ArrayList<>();
+            for (ArticleBuvette a : stock.articles(f)) {
+                lignes.add(ligne(a));
             }
-            if (!d.isBefore(aujourdhui) && (prochain < 0 || d.isBefore(dates.get(prochain)))) {
-                prochain = i;
+            res.add(new Section(f, f.getLibellePluriel(), lignes));
+        }
+        return res;
+    }
+
+    LigneArticle ligne(ArticleBuvette a) {
+        JaugeStock j = JaugeStock.de(a);
+        List<String> parts = new ArrayList<>();
+        parts.add("Seuil d'alerte " + a.getSeuilAlerte());
+        if (a.estProduit()) {
+            String c = texteContenants(a);
+            if (!c.isEmpty()) {
+                parts.add("Par portion : " + c);
             }
-            if (d.isBefore(aujourdhui) && (recent < 0 || d.isAfter(dates.get(recent)))) {
-                recent = i;
+            parts.add(texteCouts(a));
+        } else {
+            parts.add(Centimes.eurosPrecis(CalculCoutBuvette.coutUnitaire(a)) + " l'unité");
+            List<ArticleBuvette> utilisateurs = stock.produitsUtilisant(a.getId());
+            if (!utilisateurs.isEmpty()) {
+                List<String> n = new ArrayList<>();
+                utilisateurs.forEach(p -> n.add(p.getNom()));
+                parts.add("Utilisé par " + String.join(", ", n));
             }
         }
-        if (prochain >= 0) {
-            return prochain;
+        return new LigneArticle(a.getId(), a.getNom(), a.getFamille(), quantite(a.getStock(), a.getUnite()),
+                j.niveau(), classeJauge(j.niveau()), j.remplissage(), String.join(" · ", parts),
+                stock.produitsUtilisant(a.getId()).isEmpty());
+    }
+
+    /** « 1 gobelet, 1 touillette » (vide si aucun contenant). */
+    String texteContenants(ArticleBuvette produit) {
+        List<String> res = new ArrayList<>();
+        for (LienContenant l : produit.getContenants()) {
+            stock.article(l.idContenant()).ifPresent(c -> res.add(l.quantite() + " " + c.getNom().toLowerCase()));
         }
-        return recent >= 0 ? recent : (dates.isEmpty() ? -1 : 0);
+        return String.join(", ", res);
+    }
+
+    /** « Produit 0,064 € + emballage 0,048 € = 0,112 € la portion ». */
+    String texteCouts(ArticleBuvette produit) {
+        Optional<CoutPortion> c = CalculCoutBuvette.portion(stock, produit);
+        if (c.isEmpty()) {
+            return "";
+        }
+        return "Produit " + Centimes.eurosPrecis(c.get().brut()) + " + emballage "
+                + Centimes.eurosPrecis(c.get().emballage()) + " = " + Centimes.eurosPrecis(c.get().complet())
+                + " la portion";
+    }
+
+    /** Contenants proposés dans le formulaire d'un produit. */
+    List<ArticleBuvette> contenantsDisponibles() {
+        return stock.articles(FamilleArticle.CONTENANT);
+    }
+
+    /** Les {@code n} derniers mouvements, du plus récent au plus ancien. */
+    List<String> derniersMouvements(int n, ZoneId zone) {
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM HH:mm").withZone(zone);
+        List<MouvementStock> journal = stock.getJournal();
+        List<String> res = new ArrayList<>();
+        for (int i = journal.size() - 1; i >= 0 && res.size() < n; i--) {
+            MouvementStock m = journal.get(i);
+            String nom = stock.article(m.idArticle()).map(ArticleBuvette::getNom).orElse(m.idArticle());
+            String v = m.variation() > 0 ? "+" + m.variation() : String.valueOf(m.variation());
+            res.add(f.format(m.horodatage()) + " · " + m.nature().getLibelle() + " · " + nom + " " + v
+                    + " (reste " + m.stockApres() + ") · " + m.auteur());
+        }
+        return res;
+    }
+
+    /** « 1 gobelet », « 12 gobelets » : pluriel simple (+ s), sauf mot déjà en -s ou -x. */
+    static String quantite(long n, String unite) {
+        return n + " " + (n > 1 && !unite.endsWith("s") && !unite.endsWith("x") ? unite + "s" : unite);
     }
 }

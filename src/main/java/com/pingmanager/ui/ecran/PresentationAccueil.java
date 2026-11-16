@@ -108,7 +108,7 @@ public final class PresentationAccueil {
                     "Le bilan des tournois passés du club (joueurs, présents, recettes).",
                     "Voir l'historique", HISTORIQUE, true, List.of()));
             club.add(new Carte("Buvette",
-                    "Stocks, prix et prévisionnel de la buvette pendant le tournoi.",
+                    "Stock de la buvette et liste de ce qu'il faut racheter.",
                     "Voir la buvette", BUVETTE, true, List.of()));
         }
         return new PresentationAccueil("Bonjour " + prenom, tous, club, intro);
