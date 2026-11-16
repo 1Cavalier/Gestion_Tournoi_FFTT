@@ -1,6 +1,5 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.DroitRefuseException;
 import com.pingmanager.core.PrevisionTournoi;
 import com.pingmanager.core.PrevisionTournoi.EffectifTableau;
 import com.pingmanager.core.PrevisionTournoi.PrevisionJournee;
@@ -143,14 +142,11 @@ final class EcranPrevisions {
 
     /** Enregistre aussitôt le choix ; un refus d'écriture remet l'état précédent et dit pourquoi. */
     private void choisir(StrategieOrdonnancement s) {
-        StrategieOrdonnancement avant = tournoi.strategieOrdonnancementChoisie()
-                ? tournoi.getStrategieOrdonnancement() : null;
-        tournoi.setStrategieOrdonnancement(s);
-        try {
-            contexte.enregistrerTournoi(tournoi, fichier);
-        } catch (DroitRefuseException refus) {
-            tournoi.setStrategieOrdonnancement(avant);
-            Ui.erreur(messageChoix, refus.getMessage());
+        // Même enregistrement que le sélecteur de la vue du tournoi (SelecteurStrategie).
+        PresentationSelecteurStrategie.ResultatChoixStrategie r = PresentationSelecteurStrategie.choisir(
+                tournoi, s, t -> contexte.enregistrerTournoi(t, fichier));
+        if (!r.enregistre()) {
+            Ui.erreur(messageChoix, r.message());
             return;
         }
         afficherCartes();

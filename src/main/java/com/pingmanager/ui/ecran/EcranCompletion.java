@@ -237,21 +237,24 @@ final class EcranCompletion {
     }
 
     /**
-     * Carte « Stratégie d'ordonnancement » (B025) : stratégie appliquée et son
-     * explication, accès à l'écran « Prévisions et stratégie ».
+     * Carte « Stratégie d'ordonnancement » (B025) : le choix se fait ici, sur les
+     * trois options du {@link SelecteurStrategie} (enregistré aussitôt) ; « En savoir
+     * plus » ouvre l'écran « Prévisions et stratégie » (explication complète et
+     * statistiques de comparaison).
      */
     private Node carteStrategie() {
         HBox entete = Ui.ligne(10, Ui.iconeTuile(Icones.STRATEGIE, false),
-                Ui.titreCarte(PresentationPrevisions.TITRE_CARTE));
+                Ui.titreCarte(PresentationSelecteurStrategie.TITRE));
         entete.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        Label phrase = Ui.gras(PresentationPrevisions.phraseStrategie(tournoi));
-        phrase.setWrapText(true);
-        Label explication = Ui.discret(tournoi.getStrategieOrdonnancement().getExplication());
-        explication.setWrapText(true);
-        Button ouvrir = Ui.boutonSecondaire("Choisir la stratégie et prévoir la journée");
-        ouvrir.setOnAction(e -> racine.setCenter(
-                new EcranPrevisions(contexte, fichier, this::afficherApercu).build()));
-        return Ui.carte(entete, phrase, explication, Ui.actions(ouvrir));
+        Label aide = Ui.discret(PresentationSelecteurStrategie.AIDE);
+        aide.setWrapText(true);
+        Node selecteur = new SelecteurStrategie(tournoi, t -> contexte.enregistrerTournoi(t, fichier))
+                .enSavoirPlus(() -> racine.setCenter(
+                        new EcranPrevisions(contexte, fichier, this::afficherApercu).build()))
+                .build();
+        VBox carte = Ui.carte(entete, aide, selecteur);
+        carte.getStyleClass().add("carte-selecteur-strategie");
+        return carte;
     }
 
     /**

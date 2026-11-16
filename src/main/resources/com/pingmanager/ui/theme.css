@@ -4342,3 +4342,57 @@
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
+
+/* === Sélecteur de stratégie à trois choix (vue du tournoi, puis jour J) === */
+
+/* Une option : carte cliquable (pas un toggle-button : texte à la ligne mal mesuré), bordure fine ; l'option active est teintée et cerclée de bleu. */
+.option-strategie {
+    -fx-cursor: hand;
+    -fx-padding: 14 16 14 16;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+    -fx-text-fill: -texte;
+}
+
+.option-strategie:hover {
+    -fx-background-color: -primaire, -surface-2;
+}
+
+.option-strategie:selected {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.option-strategie:focused {
+    -fx-background-color: -primaire-fort, -surface-2;
+    -fx-background-insets: 0, 2;
+}
+
+.option-strategie:selected:focused {
+    -fx-background-color: -primaire-fort, -primaire-doux;
+}
+
+/* Rond de sélection, rempli de bleu sur l'option active. */
+.option-strategie-rond {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 9, 7;
+}
+
+.option-strategie:selected .option-strategie-rond {
+    -fx-background-color: -primaire, -surface, -primaire;
+    -fx-background-insets: 0, 2, 5;
+    -fx-background-radius: 9, 7, 4;
+}
+
+.option-strategie-nom {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.option-strategie-phrase {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}

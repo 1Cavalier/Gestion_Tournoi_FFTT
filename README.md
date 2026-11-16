@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 897 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 903 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -290,6 +290,13 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   tour par tour dans chaque tableau, et toutes les finales gardées pour la fin
   de la journée (aucune finale tant qu'un autre match ou un tableau du jour
   reste à jouer). Réglages conservés par la sauvegarde de session.
+- Choix de la stratégie sur la vue du tournoi homologué ou publié (carte
+  « Stratégie d'ordonnancement ») : trois options cliquables (nom, une phrase,
+  rond bleu et marque « Stratégie choisie » ou « Appliquée par défaut »),
+  enregistrées aussitôt ; « En savoir plus » ouvre l'écran Prévisions
+  ci-dessous, inchangé. Le sélecteur est un composant réutilisable
+  (`SelecteurStrategie`, mots et enregistrement dans
+  `PresentationSelecteurStrategie`), prévu pour l'écran du jour J.
 - Prévisions (B050) : l'écran s'ouvre sur trois cartes de stratégie (comment
   elle lance les matchs, pour quel tournoi, son point faible) avec « Choisir
   cette stratégie », puis une explication du calcul : le tournoi est rejoué 100
@@ -396,6 +403,10 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   (toujours en démo).
 
 ### Jour J
+- **B053 — Changer de stratégie en cours de tournoi.** Poser sur l'écran du
+  jour J le composant `SelecteurStrategie` (déjà utilisé sur la vue du
+  tournoi), avec l'enregistrement de cet écran ; message adapté (« les
+  prochains matchs proposés suivent ce choix »).
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
    dans une cellule ; le même composant pour les poules et le tableau final ;
@@ -582,6 +593,11 @@ parenthèses.
   (4) réduction d'un tableau : garder les premiers inscrits (provisoire) ou
   tirer au hasard ? (5) autoriser un taux de remplissage supérieur à 100 %
   (provisoire : non).
+- Sélecteur de stratégie (vue du tournoi), deux questions : (1) l'écran
+  « Prévisions et stratégie » garde ses boutons « Choisir cette stratégie »
+  (provisoire : oui, contenu déplacé sans réécriture ; les retirer ferait de
+  la vue du tournoi le seul endroit du choix) ; (2) phrases courtes des trois
+  options à valider (`PresentationSelecteurStrategie.phrase`).
 - Tarif et dotation dans les finances (tarif en ligne, dotation sur les
   recettes attendues).
 - Téléphone dans le compte utilisateur (absent : « Non renseigné »).
