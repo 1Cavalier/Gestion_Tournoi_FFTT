@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 878 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 885 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -176,7 +176,9 @@ format JSON toujours relisible pour les anciens fichiers (voir `CLAUDE.md`).
   d'engagement en PDF. Avec une salle d'échauffement, l'article « Matériel »
   précise que le juge-arbitre peut en utiliser les tables comme tables de
   match en cas de nécessité (3.3.1.2.2).
-- Gestion des tournois du club : tournoi actuel, frise en 4 étapes, historique.
+- Gestion des tournois du club : frise en 5 étapes (5 « Tournoi commencé » = publié
+  et date du jour dans sa période, règle `CalendrierTournoi.estEnCours`, avec
+  « Ouvrir le jour J »), historique. Plus de bloc « Tournoi actuel » isolé.
 - Vue d'ensemble d'un brouillon (refonte du 11 novembre) : pleine largeur,
   « Préparation du dossier » avec légende sur une bande et quatre blocs en
   grille (4, 2 ou 1 colonne selon la fenêtre, éléments manquants en premier),
@@ -706,6 +708,18 @@ parenthèses.
   alimentaire** (chaîne du froid, préparations maison comme les gâteaux) ;
   **allergènes** à afficher ou non ; tenue de caisse exigée par la
   comptabilité du club.
+- **Étape 5 « Tournoi commencé » (Gestion des tournois)** — questions :
+  (1) la frise se lit de haut en bas de l'étape la plus avancée à la plus
+  ancienne : l'étape 5 est donc **au-dessus** de l'étape 4 « Publié ». À
+  garder ? (2) le bloc « Tournoi actuel » supprimé donnait aussi « Ouvrir le
+  jour J » au **prochain tournoi publié** (veille, pointage anticipé) : ce
+  raccourci n'existe plus sur cet écran avant le premier jour. Provisoire :
+  pas de bouton jour J dans l'étape 4 ; en ajouter un ? (3) un tournoi dont un
+  tableau a déjà commencé hors de ses dates reste dans « Publié » (pastille
+  « Jour J commencé ») : le passer aussi en étape 5 ? (4) il n'existe pas
+  d'étape « Terminé » dans la frise : les tournois passés restent dans
+  l'historique. Le poste de pointage propose toujours par défaut : jour J
+  entamé, sinon tournoi commencé, sinon prochain publié.
 - Formulaires de saisie (Général, tableau, nouveau tournoi) désormais en
   pleine largeur comme le reste : garder ou les recentrer sur une colonne plus
   étroite ? (pleine largeur, à juger à l'écran).
