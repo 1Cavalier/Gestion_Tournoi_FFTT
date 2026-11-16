@@ -876,10 +876,12 @@ public final class GenerateurReglement {
                     .append(" est à la disposition des joueurs.");
             // 3.3.1.2.2 : le juge-arbitre programme les parties selon l'horaire et
             // les tables disponibles ; il peut donc y ajouter les tables d'échauffement.
+            // B054 : le nombre saisi de tables utilisables en renfort est annoncé ;
+            // sans nombre saisi (0, anciens fichiers), la clause reste générale.
             sb.append(" En cas de nécessité, pour faire avancer le tournoi plus rapidement et éviter des "
-                    + "attentes trop longues, le juge-arbitre peut décider d'utiliser des tables de la salle "
-                    + "d'échauffement comme tables de match, pourvu qu'elles soient elles aussi conformes "
-                    + "(3.3.1.2.2).");
+                    + "attentes trop longues, le juge-arbitre peut décider d'utiliser ")
+                    .append(tablesDeRenfort(t.getTablesRenfort(), t.getTablesEchauffement()))
+                    .append(" comme tables de match, pourvu qu'elles soient elles aussi conformes (3.3.1.2.2).");
         }
 
         InfosReglement ir = t.getInfosReglement();
@@ -1115,5 +1117,17 @@ public final class GenerateurReglement {
             }
         }
         return false;
+    }
+
+    /** Les tables d'échauffement que le juge-arbitre peut utiliser en renfort (B054), en clair. */
+    static String tablesDeRenfort(int renfort, int echauffement) {
+        if (renfort <= 0) {
+            return "des tables de la salle d'échauffement";
+        }
+        if (renfort >= echauffement) {
+            return echauffement > 1 ? "les " + echauffement + " tables de la salle d'échauffement"
+                    : "la table de la salle d'échauffement";
+        }
+        return "jusqu'à " + renfort + (renfort > 1 ? " tables" : " table") + " de la salle d'échauffement";
     }
 }

@@ -57,6 +57,14 @@ public final class ReglagesPrevision {
         return renfort;
     }
 
+    /** Copie avec un autre réglage du renfort (B054). */
+    public ReglagesPrevision avecRenfort(ReglageRenfort autre) {
+        Builder b = builder().nombreDeTables(nombreDeTables).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes)
+                .remplissage(remplissage).renfort(autre);
+        b.finsVisees.putAll(finsVisees);
+        return b.build();
+    }
+
     public int getNombreDeTables() {
         return nombreDeTables;
     }

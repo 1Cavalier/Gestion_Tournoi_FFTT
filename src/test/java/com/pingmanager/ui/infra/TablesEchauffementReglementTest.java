@@ -43,4 +43,18 @@ class TablesEchauffementReglementTest {
         t.setTablesEchauffement(0);
         assertFalse(texte(materiel(t)).contains("tables de match"));
     }
+
+    /** B054 : l'article annonce le nombre de tables d'échauffement utilisables en renfort. */
+    @Test
+    void renfort_saisi_le_nombre_de_tables_est_annonce() {
+        Tournoi t = TournoiDemoBrunoy.construire();
+        t.setTablesRenfort(4);
+        assertTrue(texte(materiel(t)).contains("le juge-arbitre peut décider d'utiliser jusqu'à 4 tables de la "
+                + "salle d'échauffement comme tables de match, pourvu qu'elles soient elles aussi conformes "
+                + "(3.3.1.2.2)."), texte(materiel(t)));
+        t.setTablesRenfort(1);
+        assertTrue(texte(materiel(t)).contains("d'utiliser jusqu'à 1 table de la salle d'échauffement comme"));
+        t.setTablesRenfort(8);
+        assertTrue(texte(materiel(t)).contains("d'utiliser les 8 tables de la salle d'échauffement comme"));
+    }
 }

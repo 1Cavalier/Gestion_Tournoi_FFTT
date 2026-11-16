@@ -184,4 +184,16 @@ class SimulationRenfortTest {
     void agregation_sans_renfort_vide() {
         assertSame(StatistiquesRenfort.AUCUN, StatistiquesRenfort.depuis(List.of(tirage(RenfortTirage.AUCUN))));
     }
+
+    @Test
+    void reglages_de_prevision_copie_avec_renfort_garde_le_reste() {
+        ReglagesPrevision base = ReglagesPrevision.builder().nombreDeTables(6)
+                .finVisee(JOUR, JOUR.atTime(19, 30)).build();
+        ReglagesPrevision avec = base.avecRenfort(ReglageRenfort.tables(2));
+        assertEquals(2, avec.getRenfort().getTablesMax());
+        assertEquals(6, avec.getNombreDeTables());
+        assertEquals(base.getFinsVisees(), avec.getFinsVisees());
+        assertSame(base.getRemplissage(), avec.getRemplissage());
+        assertFalse(base.getRenfort().estActif());
+    }
 }

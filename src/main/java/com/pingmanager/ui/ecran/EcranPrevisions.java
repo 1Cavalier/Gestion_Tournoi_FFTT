@@ -4,6 +4,7 @@ import com.pingmanager.core.PrevisionTournoi;
 import com.pingmanager.core.PrevisionTournoi.EffectifTableau;
 import com.pingmanager.core.PrevisionTournoi.PrevisionJournee;
 import com.pingmanager.core.ReglagesPrevision;
+import com.pingmanager.ordonnancement.ReglageRenfort;
 import com.pingmanager.core.RemplissageSimulation;
 import com.pingmanager.core.SimulateurTournoi;
 import com.pingmanager.core.StatistiquesSimulation;
@@ -208,21 +209,45 @@ final class EcranPrevisions {
         TextField autreTaux = champCourt("");
         Map<String, TextField> tauxParTableau = new LinkedHashMap<>();
         Node groupeRemplissage = groupeRemplissage(choixRemplissage, autreTaux, tauxParTableau);
+        // B054 : renfort par la salle d'échauffement, seulement si elle est déclarée.
+        TextField renfort = champCourt(String.valueOf(tournoi.getTablesRenfort()));
+        TextField ouverture = champCourt(String.valueOf(ReglageRenfort.SEUIL_DEPLOIEMENT_PAR_DEFAUT));
+        TextField retour = champCourt(String.valueOf(ReglageRenfort.SEUIL_RETRAIT_PAR_DEFAUT));
 
         Button lancer = Ui.boutonPrimaire("Simuler les trois stratégies");
         lancer.setDefaultButton(true);
         lancer.setOnAction(e -> {
             ReglagesPrevision reglages = lireReglages(tables, moyenne, minimum, maximum, fins, annexes,
                     choixRemplissage, autreTaux, tauxParTableau);
+            if (reglages != null && tournoi.getTablesEchauffement() > 0) {
+                PresentationRenfort.ReglageLu lu = PresentationRenfort.lireReglage(renfort.getText(),
+                        ouverture.getText(), retour.getText(), tournoi.getTablesEchauffement());
+                if (lu.erreur() != null) {
+                    Ui.erreur(messageSimulation, lu.erreur());
+                    return;
+                }
+                reglages = reglages.avecRenfort(lu.reglage());
+            }
             if (reglages != null) {
                 simuler(lancer, reglages);
             }
         });
-        return Ui.carte("Réglages de la simulation",
+        VBox carte = Ui.carte("Réglages de la simulation",
                 Ui.grilleAdaptative(2, 420, List.of(
                         groupe("Tables", Ui.champEtiquete("Nombre de tables", tables)),
                         groupe("Durée d'un match", durees, aideDurees))),
-                groupeFins, groupeAnnexes, groupeRemplissage, Ui.actions(lancer), messageSimulation);
+                groupeFins, groupeAnnexes, groupeRemplissage);
+        if (tournoi.getTablesEchauffement() > 0) {
+            HBox seuils = Ui.ligne(16,
+                    Ui.champEtiquete("Tables de renfort (0 à " + tournoi.getTablesEchauffement() + ")", renfort),
+                    Ui.champEtiquete("Ouvrir au-delà de (min de retard)", ouverture),
+                    Ui.champEtiquete("Rendre à (min de retard ou moins)", retour));
+            seuils.setAlignment(Pos.BOTTOM_LEFT);
+            carte.getChildren().add(groupe("Renfort par la salle d'échauffement", seuils,
+                    aide(PresentationRenfort.aideRegle())));
+        }
+        carte.getChildren().addAll(Ui.actions(lancer), messageSimulation);
+        return carte;
     }
 
     private Node groupeFinsVisees(List<ChampsFinVisee> fins) {
@@ -518,6 +543,34 @@ final class EcranPrevisions {
                                  LoiDureeMatch loi) {
         detail.getChildren().setAll(carteStatistiques(journee, choisie, loi),
                 carteParTableau(journee.strategies(), choisie));
+        PresentationRenfort.bilan(journee, choisie).ifPresent(b -> detail.getChildren().add(0, carteRenfort(b)));
+    }
+
+    /** B054 : la journée avec et sans les tables de renfort, pour la stratégie choisie. */
+    private Node carteRenfort(PresentationRenfort.Bilan bilan) {
+        Label verdict = Ui.texte(bilan.verdict());
+        verdict.setWrapText(true);
+        GridPane grille = new GridPane();
+        grille.setHgap(24);
+        grille.setVgap(8);
+        grille.getStyleClass().add("prevision-grille");
+        ColumnConstraints indicateurs = new ColumnConstraints();
+        indicateurs.setMinWidth(260);
+        ColumnConstraints valeurs = new ColumnConstraints();
+        valeurs.setHgrow(Priority.ALWAYS);
+        grille.getColumnConstraints().addAll(indicateurs, valeurs);
+        int rang = 0;
+        for (PresentationRenfort.Ligne l : bilan.lignes()) {
+            Label indicateur = Ui.texte(l.indicateur());
+            Label valeur = Ui.texte(l.valeur());
+            valeur.setWrapText(true);
+            grille.add(indicateur, 0, rang);
+            grille.add(valeur, 1, rang);
+            rang++;
+        }
+        Label legende = aide("Stratégie « " + bilan.avec().strategie().getLibelle() + " ». Les mêmes tirages sont "
+                + "joués avec et sans renfort. " + PresentationRenfort.aideRegle());
+        return Ui.carte(Ui.titreCarte("Tables de renfort (salle d'échauffement)"), verdict, grille, legende);
     }
 
     /** Les trois stratégies côte à côte, thème par thème ; la colonne de la stratégie choisie est mise en avant. */

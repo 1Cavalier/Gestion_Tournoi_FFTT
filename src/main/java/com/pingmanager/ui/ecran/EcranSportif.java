@@ -84,6 +84,8 @@ final class EcranSportif {
     private final VBox boiteTables = new VBox(8);
     private final Label totalTables = Ui.note("");
     private final TextField tablesEchauffement = Ui.champ("0 = pas de salle d'échauffement");
+    /** B054 : tables d'échauffement utilisables en renfort ; visible seulement avec une salle d'échauffement. */
+    private final TextField tablesRenfort = Ui.champ("0 = aucune");
     private final TextField longueur = Ui.champ("ex. 12");
     private final TextField largeur = Ui.champ("ex. 6");
     private final TextField eclairage = Ui.champ("ex. 500");
@@ -464,13 +466,26 @@ final class EcranSportif {
                 ? String.valueOf(tournoi.getTablesEchauffement()) : "");
         tablesEchauffement.setMaxWidth(260);
         tablesEchauffement.textProperty().addListener((o, a, n) -> majTotal());
+        tablesRenfort.setText(tournoi.getTablesRenfort() > 0 ? String.valueOf(tournoi.getTablesRenfort()) : "");
+        tablesRenfort.setMaxWidth(260);
+        Label aideRenfort = Ui.aide(PresentationRenfort.AIDE_CHAMP);
+        aideRenfort.setWrapText(true);
+        VBox champRenfort = Ui.champEtiquete(PresentationRenfort.LIBELLE_CHAMP, tablesRenfort, Niveau.OPTIONNEL);
+        champRenfort.getChildren().add(aideRenfort);
+        Runnable majRenfort = () -> {
+            boolean visible = echauffementSaisi() > 0;
+            champRenfort.setVisible(visible);
+            champRenfort.setManaged(visible);
+        };
+        tablesEchauffement.textProperty().addListener((o, a, n) -> majRenfort.run());
+        majRenfort.run();
         majTotal();
         VBox tables = new VBox(10,
                 titreGroupe("Tables", false),
                 Ui.ligne(6, Ui.puceDependance(P), Ui.libelleChamp("Tables de compétition : nombre, marque et couleur")),
                 boiteTables, ajouterLot,
                 Ui.champEtiquete("Salle d'échauffement : nombre de tables", tablesEchauffement, Niveau.OPTIONNEL),
-                totalTables);
+                champRenfort, totalTables);
 
         return Ui.carte("Salle et matériel", balles, tables);
     }
@@ -598,13 +613,7 @@ final class EcranSportif {
                 // saisie en cours
             }
         }
-        int echauffement = 0;
-        try {
-            Integer e = Saisie.lireEntier(tablesEchauffement.getText(), "");
-            echauffement = e == null ? 0 : e;
-        } catch (IllegalArgumentException ignore) {
-            // saisie en cours
-        }
+        int echauffement = echauffementSaisi();
         if (total == 0) {
             totalTables.setText("Nombre de tables non renseigné.");
         } else if (echauffement > 0) {
@@ -739,7 +748,16 @@ final class EcranSportif {
                     .aireDeJeu(aire);
             tournoi.setInfosReglement(b.build());
             Integer echauffement = lireEntierChamp(tablesEchauffement, "Tables de la salle d'échauffement");
+            int renfort;
+            try {
+                renfort = PresentationRenfort.lireTablesRenfort(tablesRenfort.getText(),
+                        echauffement == null ? 0 : echauffement);
+            } catch (IllegalArgumentException ex) {
+                Ui.marquerErreur(tablesRenfort);
+                throw ex;
+            }
             tournoi.setTablesEchauffement(echauffement == null ? 0 : echauffement);
+            tournoi.setTablesRenfort(renfort);
             tournoi.setLotsTables(lots);
             if (lots.isEmpty()) {
                 tournoi.setNombreDeTables(0);
@@ -757,6 +775,16 @@ final class EcranSportif {
         } catch (IllegalArgumentException e) {
             Ui.marquerErreur(champ);
             throw new IllegalArgumentException(nom + " : nombre attendu, par exemple 12 ou 11,5.");
+        }
+    }
+
+    /** Tables de la salle d'échauffement saisies (0 si vide ou en cours de saisie). */
+    private int echauffementSaisi() {
+        try {
+            Integer e = Saisie.lireEntier(tablesEchauffement.getText(), "");
+            return e == null ? 0 : e;
+        } catch (IllegalArgumentException ignore) {
+            return 0; // saisie en cours
         }
     }
 
