@@ -55,6 +55,12 @@ public final class Ordonnanceur {
     /** Table (1..N) → match en cours dessus, ou null si libre. */
     private final Map<Integer, MatchOrdonnancable> occupationTables = new HashMap<>();
 
+    /**
+     * Matchs en cours sans table valable (table absente, hors limites ou déjà
+     * prise à la reprise) : leurs joueurs jouent quand même, ils restent occupés.
+     */
+    private final List<MatchOrdonnancable> enCoursHorsTable = new ArrayList<>();
+
     /** Tables réservées et préférences des tableaux (B024) ; aucune par défaut. */
     private ReservationsTables reservations = ReservationsTables.AUCUNE;
 
@@ -194,6 +200,11 @@ public final class Ordonnanceur {
                 if (match.getJoueurA() != null) occupes.add(match.getJoueurA().getNumeroLicence());
                 if (match.getJoueurB() != null) occupes.add(match.getJoueurB().getNumeroLicence());
             }
+        }
+        for (MatchOrdonnancable m : enCoursHorsTable) {
+            Match match = m.getMatch();
+            if (match.getJoueurA() != null) occupes.add(match.getJoueurA().getNumeroLicence());
+            if (match.getJoueurB() != null) occupes.add(match.getJoueurB().getNumeroLicence());
         }
         return occupes;
     }
@@ -521,6 +532,7 @@ public final class Ordonnanceur {
                 && mo.equals(occupationTables.get(table))) {
             occupationTables.put(table, null);
         }
+        enCoursHorsTable.remove(mo);
         m.setInstantFin(maintenant);
     }
 
@@ -592,6 +604,15 @@ public final class Ordonnanceur {
                 return ResultatAffectationTable.joueurEnJeu(0, j, table);
             }
         }
+        // Même règle pour un match en cours dont la table n'est pas valable :
+        // ses joueurs jouent, ils ne sont pas disponibles.
+        for (Joueur j : List.of(a, b)) {
+            for (MatchOrdonnancable autre : enCoursHorsTable) {
+                if (autre != mo && joue(autre.getMatch(), j.getNumeroLicence())) {
+                    return ResultatAffectationTable.joueurEnJeuSansTable(0, j);
+                }
+            }
+        }
         return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, 0);
     }
 
@@ -610,7 +631,9 @@ public final class Ordonnanceur {
         }
         ResultatAffectationTable match = verifierMatch(mo);
         if (match.getMotif() == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {
-            return ResultatAffectationTable.joueurEnJeu(table, match.getJoueurBloquant(),
+            return match.getTableDuJoueurBloquant() == null
+                    ? ResultatAffectationTable.joueurEnJeuSansTable(table, match.getJoueurBloquant())
+                    : ResultatAffectationTable.joueurEnJeu(table, match.getJoueurBloquant(),
                     match.getTableDuJoueurBloquant());
         }
         if (!match.estReussi()) {
@@ -655,6 +678,7 @@ public final class Ordonnanceur {
         if (table != null && mo.equals(occupationTables.get(table))) {
             occupationTables.put(table, null);
         }
+        enCoursHorsTable.remove(mo);
         m.setStatut(StatutMatch.A_JOUER);
         m.setNumeroTable(null);
         m.setInstantLancement(null);
@@ -686,6 +710,20 @@ public final class Ordonnanceur {
         }
         gerer(mo);
         occupationTables.put(table, mo);
+    }
+
+    /**
+     * Déclare un match en cours dont la table n'est pas valable (anomalie à la
+     * reprise) : il n'occupe aucune table, mais ses deux joueurs restent occupés
+     * et ne peuvent être envoyés sur aucune table tant qu'il n'est pas terminé
+     * ou annulé.
+     */
+    public void restaurerEnCoursHorsTable(MatchOrdonnancable mo) {
+        Objects.requireNonNull(mo, "mo");
+        gerer(mo);
+        if (!enCoursHorsTable.contains(mo)) {
+            enCoursHorsTable.add(mo);
+        }
     }
 
     // -------------------------------------------------------------------------

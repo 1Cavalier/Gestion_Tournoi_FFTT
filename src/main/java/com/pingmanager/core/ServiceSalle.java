@@ -112,17 +112,32 @@ public final class ServiceSalle {
     public ResultatAffectationTable affecter(Tournoi tournoi, Match match, int table) {
         Objects.requireNonNull(match, "match");
         Salle salle = new Salle(tournoi, maintenant());
-        if (tournoi.getStatut() == StatutTournoi.ANNULE) {
-            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TOURNOI_FERME, table);
+        ResultatAffectationTable r = salle.verifier(match, table);
+        if (!r.estReussi()) {
+            return r;
         }
-        if (table < 1 || table > salle.nombreDeTables) {
-            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
-        }
-        MatchOrdonnancable mo = salle.parMatch.get(match);
-        if (mo == null) {
-            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, table);
-        }
-        return salle.ordonnanceur.affecter(mo, table, salle.maintenant);
+        return salle.ordonnanceur.affecter(salle.parMatch.get(match), table, salle.maintenant);
+    }
+
+    /**
+     * Dit, sans rien modifier, si un match peut être envoyé maintenant sur une
+     * table : tournoi ouvert, table existante et libre (et admise pour ce
+     * tableau), match à jouer, deux joueurs connus et disponibles (aucun des deux
+     * n'est en train de jouer, même sur un match en cours sans table valable).
+     * Mêmes règles que {@link #affecter}, qui les refait toujours au lancement.
+     */
+    public ResultatAffectationTable verifierLancement(Tournoi tournoi, Match match, int table) {
+        Objects.requireNonNull(match, "match");
+        return new Salle(tournoi, maintenant()).verifier(match, table);
+    }
+
+    /**
+     * Interface « Lancer un match » (B055) : tous les matchs à jouer dont les
+     * deux joueurs sont connus, par priorité de la stratégie en place, avec la
+     * table proposée, les tables libres possibles et le motif de refus éventuel.
+     */
+    public ListeLancements listeLancements(Tournoi tournoi) {
+        return new Salle(tournoi, maintenant()).lister();
     }
 
     /**
@@ -323,6 +338,8 @@ public final class ServiceSalle {
                 if (valable) {
                     ordonnanceur.restaurerOccupation(table, mo);
                 } else {
+                    // Ses joueurs jouent quand même : ils restent indisponibles partout.
+                    ordonnanceur.restaurerEnCoursHorsTable(mo);
                     anomalies.add(mo);
                 }
             }
@@ -368,6 +385,78 @@ public final class ServiceSalle {
                 mo.setPretDepuis(pret);
             }
             ordonnanceur.rafraichirDisponibilites(maintenant);
+        }
+
+        /** Vérifications d'un lancement sur une table, sans rien modifier. */
+        ResultatAffectationTable verifier(Match match, int table) {
+            if (tournoi.getStatut() == StatutTournoi.ANNULE) {
+                return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TOURNOI_FERME, table);
+            }
+            if (table < 1 || table > nombreDeTables) {
+                return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
+            }
+            MatchOrdonnancable mo = parMatch.get(match);
+            if (mo == null) {
+                return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, table);
+            }
+            return ordonnanceur.verifierAffectation(mo, table);
+        }
+
+        /** Liste de l'interface « Lancer un match » (voir {@link ListeLancements}). */
+        ListeLancements lister() {
+            boolean ferme = tournoi.getStatut() == StatutTournoi.ANNULE;
+            TableauDeBordSalle bord = photographier();
+            List<Integer> libres = nombreDeTables == 0 ? List.of() : ordonnanceur.tablesLibres();
+            // Tables que la stratégie en place donnerait maintenant (bouton « Proposer »).
+            Map<Match, Integer> tableStrategie = new IdentityHashMap<>();
+            if (!ferme && !libres.isEmpty()) {
+                for (PropositionLancement p : ordonnanceur.proposerLancements(maintenant)) {
+                    tableStrategie.put(p.getMatch().getMatch(), p.getNumeroTable());
+                }
+            }
+            List<ListeLancements.Ligne> proposes = new ArrayList<>();
+            for (TableauDeBordSalle.MatchSalle vu : bord.getPrets()) {
+                MatchOrdonnancable mo = parMatch.get(vu.match());
+                ResultatAffectationTable refus = null;
+                List<Integer> possibles = new ArrayList<>();
+                Integer table = null;
+                if (ferme) {
+                    refus = ResultatAffectationTable.de(ResultatAffectationTable.Motif.TOURNOI_FERME, 0);
+                } else if (nombreDeTables == 0) {
+                    refus = ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, 0);
+                } else {
+                    for (Integer t : libres) {
+                        if (ordonnanceur.verifierAffectation(mo, t).estReussi()) {
+                            possibles.add(t);
+                        }
+                    }
+                    if (possibles.isEmpty()) {
+                        // Aucune table libre, ou seulement des tables réservées à d'autres tableaux.
+                        refus = libres.isEmpty()
+                                ? ResultatAffectationTable.de(ResultatAffectationTable.Motif.AUCUNE_TABLE_LIBRE, 0)
+                                : ordonnanceur.verifierAffectation(mo, libres.get(0));
+                    } else {
+                        table = tableStrategie.get(vu.match());
+                        if (table == null || !possibles.contains(table)) {
+                            // Hors de la vague : de préférence une table que la stratégie ne prend pas.
+                            table = possibles.stream().filter(t -> !tableStrategie.containsValue(t))
+                                    .findFirst().orElse(possibles.get(0));
+                        }
+                    }
+                }
+                proposes.add(new ListeLancements.Ligne(vu, tableStrategie.containsKey(vu.match()), table, possibles,
+                        mo.getPretDepuis(), refus));
+            }
+            for (TableauDeBordSalle.MatchBloque b : bord.getBloques()) {
+                proposes.add(new ListeLancements.Ligne(b.match(), false, null, List.of(), null, b.motif()));
+            }
+            Map<Match, Integer> rang = new IdentityHashMap<>();
+            for (int i = 0; i < ordre.size(); i++) {
+                rang.put(ordre.get(i).getMatch(), i);
+            }
+            List<ListeLancements.Ligne> parTableau = new ArrayList<>(proposes);
+            parTableau.sort(Comparator.comparingInt(l -> rang.getOrDefault(l.match().match(), Integer.MAX_VALUE)));
+            return new ListeLancements(maintenant, libres, proposes, parTableau);
         }
 
         TableauDeBordSalle.MatchSalle vue(MatchOrdonnancable mo, double priorite, String explication) {
