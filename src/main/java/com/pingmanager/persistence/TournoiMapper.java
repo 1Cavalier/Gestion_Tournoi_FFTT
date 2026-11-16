@@ -200,6 +200,7 @@ public final class TournoiMapper {
         t.getLotsTables().forEach(l -> lots.add(ConfigMapper.ecrireLotTables(l)));
         o.set("lotsTables", lots);
         o.set("tablesEchauffement", t.getTablesEchauffement());
+        o.set("tablesRenfort", t.getTablesRenfort());
         // Jour J (B037) : annonce des rencontres mémorisée ; absent des anciens fichiers.
         if (t.getModeAnnonce() != null) {
             o.set("modeAnnonce", ecrireEnum(t.getModeAnnonce()));
@@ -660,6 +661,8 @@ public final class TournoiMapper {
             }
         }
         t.setTablesEchauffement(Math.max(0, o.getInt("tablesEchauffement", 0)));
+        // B054 : absent des anciens fichiers (0) ; borné à la salle d'échauffement.
+        t.setTablesRenfort(Math.max(0, Math.min(t.getTablesEchauffement(), o.getInt("tablesRenfort", 0))));
         t.setModeAnnonce(lireModeAnnonce(o.get("modeAnnonce")));
         t.setImprimerFeuilleALEnvoi(o.getBoolean("feuilleALEnvoi", false));
         t.setStrategieOrdonnancement(lireStrategie(o.get("strategieOrdonnancement")));

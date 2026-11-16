@@ -14,6 +14,9 @@ import com.pingmanager.model.TableauElimination;
 import com.pingmanager.model.Tour;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.ordonnancement.CategorieDuree;
+import com.pingmanager.ordonnancement.EvaluationRetard;
+import com.pingmanager.ordonnancement.PiloteRenfort;
+import com.pingmanager.ordonnancement.PropositionRenfort;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
 import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 import com.pingmanager.ordonnancement.MatchOrdonnancable;
@@ -95,7 +98,8 @@ public final class SimulateurTournoi {
         Objects.requireNonNull(reglages, "reglages");
         Construction c = construire(tournoi, reglages.getNombreDeTables(), GRAINE_INTERNE,
                 reglages.getRemplissage());
-        ScenarioSimulation scenario = c.scenario.avecDurees(reglages.getLoiDuree(), reglages.getTempsAnnexes());
+        ScenarioSimulation scenario = c.scenario.avecDurees(reglages.getLoiDuree(), reglages.getTempsAnnexes())
+                .avecRenfort(reglages.getRenfort());
         java.util.SortedMap<LocalDate, LocalDateTime> proposees = finsProposees(scenario);
         java.util.SortedMap<LocalDate, PrevisionTournoi.PrevisionJournee> journees = new TreeMap<>();
         for (Map.Entry<LocalDate, ScenarioSimulation> j : scenario.parJour().entrySet()) {
@@ -104,8 +108,13 @@ public final class SimulateurTournoi {
             ScenarioSimulation journee = j.getValue().avecFinVisee(finVisee);
             List<PrevisionTournoi.EffectifTableau> effectifs = c.effectifs.stream()
                     .filter(e -> e.debut().toLocalDate().equals(jour)).toList();
+            // B054 : avec renfort, les mêmes tirages sont aussi joués sans lui (fin avec et sans renfort).
+            List<StatistiquesSimulation> sansRenfort = reglages.getRenfort().estActif()
+                    ? comparerToutes(journee.avecRenfort(com.pingmanager.ordonnancement.ReglageRenfort.AUCUN),
+                    NOMBRE_DE_TIRAGES) : List.of();
             journees.put(jour, new PrevisionTournoi.PrevisionJournee(jour, finVisee,
-                    scenario.getNombreDeTables(), effectifs, comparerToutes(journee, NOMBRE_DE_TIRAGES)));
+                    scenario.getNombreDeTables(), effectifs, comparerToutes(journee, NOMBRE_DE_TIRAGES),
+                    reglages.getRenfort().getTablesMax(), sansRenfort));
         }
         return new PrevisionTournoi(NOMBRE_DE_TIRAGES, journees);
     }
@@ -325,6 +334,9 @@ public final class SimulateurTournoi {
         /** La finale du tableau final (pas la petite finale), et l'heure de son lancement. */
         Match finale;
         LocalDateTime debutFinale;
+        /** B054 : minutes de table estimées des parties pas encore créées (poules avant le début, tableau final). */
+        double chargePoulesEstimee;
+        double chargeTableauEstimee;
 
         EtatTableau(ScenarioSimulation.TableauSimule def, int rang, LocalTime heureLimite) {
             this.def = def;
@@ -371,11 +383,26 @@ public final class SimulateurTournoi {
         private long matchsLances;
         private String joueurAttenteMax;
         private long sequence;
+        // B054 : tables de renfort (réserve de la salle d'échauffement).
+        private final PiloteRenfort pilote;
+        /** Durée estimée de chaque partie créée et pas encore lancée, et fin estimée des parties en cours. */
+        private final Map<MatchOrdonnancable, Double> estimation = new IdentityHashMap<>();
+        private final Map<MatchOrdonnancable, LocalDateTime> finEstimee = new IdentityHashMap<>();
+        private double chargeConnue;
+        private long secondesRenfort;
+        private LocalDateTime premiereMiseEnService;
+        private int renfortMax;
+        private LocalDateTime finDernierRenfort;
+        /** Plages de renfort : début, fin (null tant que les tables sont ouvertes), tables au plus. */
+        private final List<Object[]> plages = new ArrayList<>();
 
         Deroule(ScenarioSimulation scenario, StrategieOrdonnancement strategie) {
             this.scenario = scenario;
             this.strategie = strategie;
-            this.ordonnanceur = new Ordonnanceur(scenario.getNombreDeTables(), PoidsOrdonnancement.pour(strategie));
+            this.ordonnanceur = new Ordonnanceur(scenario.getNombreDeTables(), scenario.getRenfort().getTablesMax(),
+                    PoidsOrdonnancement.pour(strategie));
+            this.pilote = scenario.getRenfort().estActif()
+                    ? new PiloteRenfort(scenario.getRenfort(), scenario.getNombreDeTables()) : null;
             int rang = 0;
             for (ScenarioSimulation.TableauSimule t : scenario.getTableaux()) {
                 int minimum = Math.max(2, t.format().taillePouleSouhaitee());
@@ -385,7 +412,11 @@ public final class SimulateurTournoi {
                                     + t.format().taillePouleSouhaitee()));
                     continue;
                 }
-                etats.add(new EtatTableau(t, rang++, scenario.getHeureLimite()));
+                EtatTableau etat = new EtatTableau(t, rang++, scenario.getHeureLimite());
+                if (pilote != null) {
+                    estimerCharge(etat);
+                }
+                etats.add(etat);
                 for (Joueur j : t.joueurs()) {
                     tableauxParJoueur.merge(j.getNumeroLicence(), 1, Integer::sum);
                 }
@@ -403,6 +434,9 @@ public final class SimulateurTournoi {
             while (maintenant != null) {
                 demarrerTableaux(maintenant);
                 poserAttentes();
+                if (pilote != null) {
+                    piloterRenfort(maintenant);
+                }
                 ordonnanceur.setTableauxAttendus(tableauxAttendus(maintenant));
                 for (PropositionLancement p : ordonnanceur.proposerLancements(maintenant)) {
                     lancer(p, maintenant);
@@ -446,6 +480,7 @@ public final class SimulateurTournoi {
                     continue;
                 }
                 e.demarre = true;
+                e.chargePoulesEstimee = 0; // ses poules sont créées : leur charge devient connue
                 // Tirage des poules reproductible (I.302 : départage aléatoire), graine propre au tableau.
                 e.poules = moteur.preparerPoules(e.def.joueurs(), e.def.format(), melanger(e.rang * 2L + 1));
                 for (Poule p : e.poules) {
@@ -467,6 +502,11 @@ public final class SimulateurTournoi {
             aJouer.add(mo);
             e.restants++;
             ordonnanceur.ajouterMatch(mo);
+            if (pilote != null) {
+                double minutes = minutesEstimees(e, phase, m.getNombreManchesGagnantes());
+                estimation.put(mo, minutes);
+                chargeConnue += minutes;
+            }
         }
 
         /**
@@ -545,9 +585,24 @@ public final class SimulateurTournoi {
             Duration duree = duree(mo, e, u).plusSeconds(annexes.total());
             LocalDateTime fin = maintenant.plus(duree);
             enCours.add(new EnCours(mo, fin, manches, sequence++));
-            picTables = Math.max(picTables, enCours.size());
+            boolean surRenfort = ordonnanceur.estTableDeRenfort(p.getNumeroTable());
+            // Pic et occupation : tables de compétition seules ; le renfort est compté à part (B054).
+            picTables = Math.max(picTables, enCours.size() - ordonnanceur.tablesRenfortOccupees());
+            if (pilote != null) {
+                Double minutes = estimation.remove(mo);
+                if (minutes != null) {
+                    chargeConnue -= minutes;
+                    finEstimee.put(mo, maintenant.plusSeconds(Math.round(minutes * 60)));
+                }
+            }
+            if (surRenfort) {
+                secondesRenfort += duree.toSeconds();
+                finDernierRenfort = plusTard(finDernierRenfort, fin);
+            }
             LocalDate jour = maintenant.toLocalDate();
-            occupation.computeIfAbsent(jour, k -> new long[1])[0] += duree.toSeconds();
+            if (!surRenfort) {
+                occupation.computeIfAbsent(jour, k -> new long[1])[0] += duree.toSeconds();
+            }
             LocalDateTime[] b = bornes.computeIfAbsent(jour, k -> new LocalDateTime[2]);
             b[0] = b[0] == null || maintenant.isBefore(b[0]) ? maintenant : b[0];
             b[1] = plusTard(b[1], fin);
@@ -559,6 +614,7 @@ public final class SimulateurTournoi {
             m.definirScore(c.manches());
             ordonnanceur.terminer(mo, c.fin());
             aJouer.remove(mo);
+            finEstimee.remove(mo);
             libreDepuis.put(m.getJoueurA().getNumeroLicence(), c.fin());
             libreDepuis.put(m.getJoueurB().getNumeroLicence(), c.fin());
             EtatTableau e = tableauDe.get(m);
@@ -582,6 +638,7 @@ public final class SimulateurTournoi {
                     return;
                 }
             }
+            e.chargeTableauEstimee = 0; // le tableau final est créé : sa charge devient connue
             e.phaseFinale = moteur.construireTableau(e.poules, e.def.format(), melanger(e.rang * 2L + 2),
                     e.def.petiteFinale());
             progression.propager(e.phaseFinale);
@@ -688,7 +745,120 @@ public final class SimulateurTournoi {
                     bilans, ignores, parties, moyenne(attentes), Math.max(0, attenteMax), joueurAttenteMax,
                     taux, complete, attentesUnTableau.isEmpty() ? -1 : moyenne(attentesUnTableau),
                     attentesPlusieursTableaux.isEmpty() ? -1 : moyenne(attentesPlusieursTableaux),
-                    matchsLances == 0 ? 0 : secondesAnnexes / 60.0 / matchsLances, mesures(debut, fin));
+                    matchsLances == 0 ? 0 : secondesAnnexes / 60.0 / matchsLances, mesures(debut, fin),
+                    renfort(debut, fin));
+        }
+
+        // ------------------------------------------------------------------
+        // B054 : tables de renfort
+        // ------------------------------------------------------------------
+
+        /**
+         * Le juge-arbitre de la simulation suit l'application : chaque
+         * proposition d'ouvrir ou de rendre des tables est acceptée.
+         */
+        private void piloterRenfort(LocalDateTime maintenant) {
+            PropositionRenfort p = pilote.proposer(evaluer(maintenant));
+            if (!p.demandeUnChangement()) {
+                return;
+            }
+            int avant = pilote.getTablesEnService();
+            pilote.accepter(p);
+            int apres = pilote.getTablesEnService();
+            ordonnanceur.setTablesRenfortEnService(apres);
+            renfortMax = Math.max(renfortMax, apres);
+            if (avant == 0 && apres > 0) {
+                if (premiereMiseEnService == null) {
+                    premiereMiseEnService = maintenant;
+                }
+                Object[] derniere = plages.isEmpty() ? null : plages.get(plages.size() - 1);
+                if (derniere != null && derniere[1] != null && !((LocalDateTime) derniere[1]).isBefore(maintenant)) {
+                    derniere[1] = null; // rouvertes avant la fin de la dernière partie : même plage
+                } else {
+                    plages.add(new Object[] {maintenant, null, apres});
+                }
+            }
+            if (!plages.isEmpty()) {
+                Object[] courante = plages.get(plages.size() - 1);
+                courante[2] = Math.max((Integer) courante[2], apres);
+                if (apres == 0) {
+                    courante[1] = plusTard(maintenant, finDernierRenfort);
+                }
+            }
+        }
+
+        /** Retard de la journée en cours, mesuré sans le renfort. */
+        private EvaluationRetard evaluer(LocalDateTime maintenant) {
+            LocalDate jour = maintenant.toLocalDate();
+            long retardDebut = 0;
+            double charge = chargeConnue;
+            LocalDateTime finVisee = null;
+            for (EtatTableau e : etats) {
+                boolean enCoursDeJournee = e.demarre ? e.restants > 0 || e.chargeTableauEstimee > 0
+                        : e.def.debut().toLocalDate().equals(jour);
+                if (!enCoursDeJournee) {
+                    continue;
+                }
+                finVisee = plusTard(finVisee, e.finSouhaitee);
+                charge += e.chargePoulesEstimee + e.chargeTableauEstimee;
+                if (e.demarre && e.poules != null && e.debutPoule.size() < e.poules.size()) {
+                    retardDebut = Math.max(retardDebut, Duration.between(e.def.debut(), maintenant).toMinutes());
+                }
+            }
+            for (LocalDateTime f : finEstimee.values()) {
+                charge += Math.max(0, Duration.between(maintenant, f).toSeconds() / 60.0);
+            }
+            return new EvaluationRetard(maintenant, retardDebut, charge, finVisee);
+        }
+
+        /**
+         * Charge estimée d'un tableau avant son début : ses poules (tirage à
+         * blanc, même répartition que le vrai) et son tableau final (qualifiés
+         * moins un, plus la petite finale).
+         */
+        private void estimerCharge(EtatTableau e) {
+            List<Poule> poules = moteur.preparerPoules(e.def.joueurs(), e.def.format(), 0L);
+            int matchsPoules = 0;
+            int qualifies = 0;
+            for (Poule p : poules) {
+                int k = p.getTaille();
+                matchsPoules += k * (k - 1) / 2;
+                qualifies += Math.min(k, e.def.format().qualifiesParPoule());
+            }
+            int manches = e.def.format().nombreManchesGagnantes();
+            e.chargePoulesEstimee = matchsPoules * minutesEstimees(e, PhaseMatch.POULE, manches);
+            if (e.def.format().formatPhaseFinale() == FormatPhaseFinale.ELIMINATION_DIRECTE && qualifies > 1) {
+                int matchsTableau = qualifies - 1 + (e.def.petiteFinale() && qualifies >= 4 ? 1 : 0);
+                e.chargeTableauEstimee = matchsTableau
+                        * minutesEstimees(e, PhaseMatch.PREMIER_TOUR_TABLEAU, manches);
+            }
+        }
+
+        /** Durée moyenne estimée d'une partie, temps autour du match compris, en minutes. */
+        private double minutesEstimees(EtatTableau e, PhaseMatch phase, int manchesGagnantes) {
+            int n = Math.max(1, manchesGagnantes);
+            Duration estimee = scenario.getEstimateur().estimer(
+                    CategorieDuree.depuisNiveau(phase, e.def.niveauPoints(), PALIER_NIVEAU));
+            double jeu = estimee.toSeconds() * (n / 3.0);
+            // Nombre moyen de manches : entre n (3-0) et 2n - 1 (3-2).
+            double annexes = scenario.getTempsAnnexes().moyenne((int) Math.round((3 * n - 1) / 2.0));
+            return (jeu + annexes) / 60.0;
+        }
+
+        private RenfortTirage renfort(LocalDateTime debut, LocalDateTime fin) {
+            int max = scenario.getRenfort().getTablesMax();
+            if (max == 0) {
+                return RenfortTirage.AUCUN;
+            }
+            List<RenfortTirage.Plage> faites = new ArrayList<>();
+            for (Object[] p : plages) {
+                LocalDateTime f = p[1] != null ? (LocalDateTime) p[1] : plusTard((LocalDateTime) p[0], finDernierRenfort);
+                faites.add(new RenfortTirage.Plage((LocalDateTime) p[0], f, (Integer) p[2]));
+            }
+            long amplitude = debut == null || fin == null ? 0 : Duration.between(debut, fin).toSeconds();
+            double utilisation = amplitude <= 0 ? 0 : Math.min(1.0, secondesRenfort / (double) (amplitude * max));
+            return new RenfortTirage(max, secondesRenfort / 60.0, utilisation, premiereMiseEnService, renfortMax,
+                    faites);
         }
 
         /** Mesures complémentaires du tirage (B050). */
