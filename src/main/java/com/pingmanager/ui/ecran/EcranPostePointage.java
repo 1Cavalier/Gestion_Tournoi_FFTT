@@ -35,7 +35,6 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -607,15 +606,14 @@ public final class EcranPostePointage {
         return res;
     }
 
-    /** Le « tournoi actuel » de l'accueil de la gestion, sinon le plus récent. */
+    /** Le tournoi proposé par l'accueil de la gestion (jour J entamé, commencé, prochain publié), sinon le plus récent. */
     private Path parDefaut(List<ProjetTournoi> tournois) {
         List<PresentationGestionTournois.Fiche> fiches = new ArrayList<>();
         for (ProjetTournoi p : tournois) {
             fiches.add(PresentationGestionTournois.Fiche.depuis(contexte.lireTournoi(p.getFichier()), p.getFichier()));
         }
-        Optional<PresentationGestionTournois.Actuel> actuel =
-                new PresentationGestionTournois(fiches, LocalDate.now()).actuel();
-        return actuel.map(a -> a.fiche().fichier()).orElse(tournois.get(0).getFichier());
+        return new PresentationGestionTournois(fiches, LocalDate.now()).tournoiParDefaut()
+                .map(PresentationGestionTournois.Fiche::fichier).orElse(tournois.get(0).getFichier());
     }
 
     private String nomTournoi(Path f) {

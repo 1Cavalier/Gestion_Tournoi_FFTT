@@ -2044,17 +2044,6 @@
 }
 
 /* Tournoi en cours : carte avec filet bleu et fond bleu très doux. */
-.carte.carte-en-cours {
-    -fx-background-color: -primaire, -bordure, -surface;
-    -fx-background-insets: 0, 0 0 0 4, 1 1 1 5;
-    -fx-background-radius: 12, 0 12 12 0, 0 11 11 0;
-}
-
-.carte-en-cours .en-cours-nom {
-    -fx-font-size: 17px;
-    -fx-font-weight: bold;
-}
-
 /* Raccourcis de l'accueil : boutons pleine largeur alignés à gauche. */
 
 .etat-vide.etat-vide-compact {

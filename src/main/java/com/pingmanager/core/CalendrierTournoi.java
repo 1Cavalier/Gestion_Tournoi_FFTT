@@ -39,17 +39,31 @@ public final class CalendrierTournoi {
     }
 
     public static Moment moment(Tournoi t, LocalDate aujourdhui) {
-        LocalDate d = debut(t);
-        LocalDate f = fin(t);
-        if (d == null || aujourdhui.isBefore(d)) {
+        return moment(debut(t), fin(t), aujourdhui);
+    }
+
+    /**
+     * Même règle que {@link #moment(Tournoi, LocalDate)}, à partir des dates déjà lues
+     * (premier et dernier jour, {@code null} si inconnus).
+     */
+    public static Moment moment(LocalDate debut, LocalDate fin, LocalDate aujourdhui) {
+        if (debut == null || aujourdhui.isBefore(debut)) {
             return Moment.A_VENIR;
         }
-        return f != null && aujourdhui.isAfter(f) ? Moment.PASSE : Moment.EN_COURS;
+        return fin != null && aujourdhui.isAfter(fin) ? Moment.PASSE : Moment.EN_COURS;
     }
 
     /** @return vrai si le tournoi est publié et se déroule à cette date. */
     public static boolean estEnCours(Tournoi t, LocalDate aujourdhui) {
-        return t.getStatut() == StatutTournoi.PUBLIE && moment(t, aujourdhui) == Moment.EN_COURS;
+        return estEnCours(t.getStatut(), debut(t), fin(t), aujourdhui);
+    }
+
+    /**
+     * Même règle que {@link #estEnCours(Tournoi, LocalDate)} pour un résumé de tournoi
+     * (statut et dates déjà lus) : publié et date du jour comprise dans sa période.
+     */
+    public static boolean estEnCours(StatutTournoi statut, LocalDate debut, LocalDate fin, LocalDate aujourdhui) {
+        return statut == StatutTournoi.PUBLIE && moment(debut, fin, aujourdhui) == Moment.EN_COURS;
     }
 
     /**
