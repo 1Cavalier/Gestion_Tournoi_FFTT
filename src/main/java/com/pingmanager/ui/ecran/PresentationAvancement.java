@@ -222,19 +222,7 @@ final class PresentationAvancement {
      * reste.
      */
     static String tourEnCours(TableauElimination elim) {
-        List<Tour> principaux = ServicePhaseFinale.toursPrincipaux(elim);
-        Tour pf = ServicePhaseFinale.petiteFinale(elim);
-        boolean pfAJouer = pf != null && !pf.estTermine();
-        for (int i = 0; i < principaux.size(); i++) {
-            if (!principaux.get(i).estTermine()) {
-                int rang = principaux.size() - 1 - i;
-                if (rang == 0 && pfAJouer) {
-                    return "Finale et petite finale";
-                }
-                return PresentationPhaseFinale.libelleTour(rang);
-            }
-        }
-        return pfAJouer ? ServicePhaseFinale.NOM_TOUR_PETITE_FINALE : "Terminé";
+        return com.pingmanager.core.CalculEtapeTableau.tourEnCours(elim);
     }
 
     /** Parties de ce tableau actuellement sur une table (poules et tableau final). */

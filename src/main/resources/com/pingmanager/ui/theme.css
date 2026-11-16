@@ -4348,3 +4348,112 @@
     -fx-font-size: 13px;
     -fx-text-fill: -texte-doux;
 }
+
+/* === Jour J : tableau de bord du juge-arbitre (bandeau, trois cartes, frise des tableaux) === */
+
+.jourj-bandeau-mention {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+/* Trois cartes carrées : titre, valeur en grand, détail, bouton en bas. */
+.carte.jourj-carte {
+    -fx-padding: 18;
+}
+
+.carte.jourj-carte:hover {
+    -fx-border-color: -bordure-forte;
+}
+
+.carte.jourj-carte.jourj-carte-ouverte {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+}
+
+.jourj-carte-titre {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+.jourj-carte .icone {
+    -fx-fill: -primaire;
+}
+
+.jourj-carte-valeur {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.jourj-carte-detail {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.carte.jourj-panneau {
+    -fx-border-color: -primaire;
+}
+
+.jourj-lancement-entete {
+    -fx-padding: 0 0 4 0;
+}
+
+/* Ligne d'un tableau : un peu plus d'air que l'ancien bandeau. */
+.avancement-ligne.jourj-ligne-tableau {
+    -fx-padding: 12 8 12 8;
+}
+
+/* Frise des six étapes : ronds numérotés reliés par un trait. */
+.jourj-frise-rond {
+    -fx-min-width: 26px;
+    -fx-min-height: 26px;
+    -fx-pref-width: 26px;
+    -fx-pref-height: 26px;
+    -fx-alignment: center;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-border-width: 2;
+    -fx-background-color: -surface;
+    -fx-border-color: -bordure-forte;
+    -fx-text-fill: -texte-doux;
+}
+
+.jourj-frise-trait {
+    -fx-background-color: -bordure;
+}
+
+.jourj-frise-trait.jourj-frise-trait-parcouru {
+    -fx-background-color: -primaire;
+}
+
+.jourj-frise-libelle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -texte-doux;
+    -fx-text-overrun: ellipsis;
+}
+
+.jourj-frise-pas-passe .jourj-frise-rond {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+    -fx-text-fill: -primaire;
+}
+
+.jourj-frise-pas-courant .jourj-frise-rond {
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-font-size: 13px;
+    -fx-background-color: -primaire;
+    -fx-border-color: -primaire;
+    -fx-text-fill: -sur-primaire;
+}
+
+.jourj-frise-pas-courant .jourj-frise-libelle {
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}

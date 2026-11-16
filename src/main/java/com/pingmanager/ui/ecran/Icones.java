@@ -49,4 +49,7 @@ final class Icones {
     /** Document au coin replié (section Complémentaire). */
     static final String DOCUMENT = "M3 1 L10 1 L13.5 4.5 L13.5 15 L3 15 Z M4.5 2.5 L4.5 13.5 L12 13.5 L12 5.5 "
             + "L9 5.5 L9 2.5 Z";
+    /** Haut-parleur et onde (carte « Annonces » du jour J). */
+    static final String ANNONCE = "M1.5 5.5 L4.5 5.5 L8.5 2 L8.5 14 L4.5 10.5 L1.5 10.5 Z "
+            + "M10.5 5 C12 6.3 12 9.7 10.5 11 L11.5 12 C13.6 10.2 13.6 5.8 11.5 4 Z";
 }
