@@ -1,17 +1,15 @@
 package com.pingmanager.ui.ecran;
 
-import com.pingmanager.core.buvette.ResultatMouvementStock;
+import com.pingmanager.core.buvette.NiveauStock;
 import com.pingmanager.core.buvette.ServiceStockBuvette;
-import com.pingmanager.model.buvette.BuvetteTournoi;
-import com.pingmanager.model.buvette.CatalogueBuvette;
-import com.pingmanager.model.buvette.Ingredient;
-import com.pingmanager.model.buvette.TypeMouvementStock;
+import com.pingmanager.model.buvette.ArticleBuvette;
+import com.pingmanager.model.buvette.FamilleArticle;
+import com.pingmanager.model.buvette.LienContenant;
+import com.pingmanager.model.buvette.StockBuvette;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Arrays;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,80 +18,74 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PresentationStockBuvetteTest {
 
-    private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
-    private final ServiceStockBuvette service = new ServiceStockBuvette(() -> Instant.parse("2026-11-14T09:05:00Z"));
-
-    private static CatalogueBuvette catalogue() {
-        CatalogueBuvette c = new CatalogueBuvette("1");
-        c.enregistrerIngredient(Ingredient.builder().id("baguette").nom("Baguette").uniteAchat("baguette")
-                .unitePortion("sandwich").prixAchatCentimes(110).rendement(2, 3).build());
-        return c;
+    private static StockBuvette stock() {
+        StockBuvette s = new StockBuvette("08910012");
+        s.enregistrer(ArticleBuvette.builder().id("gobelet").nom("Gobelet").famille(FamilleArticle.CONTENANT)
+                .unite("gobelet").lot(450, 100).stock(30).seuilAlerte(50).build());
+        s.enregistrer(ArticleBuvette.builder().id("touillette").nom("Touillette").famille(FamilleArticle.CONTENANT)
+                .unite("touillette").lot(300, 1000).stock(150).seuilAlerte(100).build());
+        s.enregistrer(ArticleBuvette.builder().id("cafe").nom("Café").unite("dose").lot(800, 125).stock(200)
+                .seuilAlerte(40).contenants(List.of(new LienContenant("gobelet", 1), new LienContenant("touillette", 1)))
+                .build());
+        return s;
     }
 
     @Test
-    void saisie_d_un_achat_par_le_formulaire_puis_ligne_et_journal() {
-        CatalogueBuvette c = catalogue();
-        BuvetteTournoi b = new BuvetteTournoi();
-        ResultatMouvementStock r = PresentationStockBuvette.saisir(service, b, c, TypeMouvementStock.ACHAT, "baguette",
-                "10", "11,00", LocalDate.of(2026, 11, 13), "Quentin S.");
-        assertTrue(r.accepte());
-        b.definirSeuil("baguette", 25);
-        PresentationStockBuvette p = new PresentationStockBuvette(b, c, PARIS);
-        PresentationStockBuvette.LigneStock l = p.lignes().get(0);
-        assertEquals("Reste 20 sandwich (≈ 10 × baguette) · départ 0 · achats 20 · ventes 0 · seuil 25", l.detail());
-        assertTrue(l.sousLeSeuil());
-        PresentationStockBuvette.LigneMouvement m = p.journal().get(0);
-        assertEquals("n° 1 · Achat · Baguette : +20 sandwich", m.titre());
-        assertEquals("14/11/2026 10:05 · Quentin S. · acheté le 13/11/2026 · 11,00 € · 10 × baguette", m.detail());
-        assertTrue(m.corrigeable());
-        assertEquals("1", p.tuiles().get(1).valeur());
-        assertEquals("11,00 €", p.tuiles().get(2).valeur(), "20 portions × 0,55 €");
-        assertEquals("11,00 €", p.tuiles().get(3).valeur());
+    void jauges_vert_orange_rouge() {
+        PresentationStockBuvette p = new PresentationStockBuvette(stock());
+        List<PresentationStockBuvette.Section> sections = p.sections();
+        assertEquals("Produits", sections.get(0).titre());
+        assertEquals("Contenants et consommables", sections.get(1).titre());
+        PresentationStockBuvette.LigneArticle cafe = sections.get(0).lignes().get(0);
+        assertEquals("jauge-stock-vert", cafe.classeJauge());
+        assertEquals("200 doses", cafe.stock());
+        PresentationStockBuvette.LigneArticle gobelet = sections.get(1).lignes().get(0);
+        assertEquals(NiveauStock.URGENT, gobelet.niveau());
+        assertEquals("jauge-stock-rouge", gobelet.classeJauge());
+        assertEquals("jauge-stock-orange", sections.get(1).lignes().get(1).classeJauge());
+        assertEquals(StatutPastille.ATTENTION, PresentationStockBuvette.statut(NiveauStock.BAS));
     }
 
     @Test
-    void saisies_illisibles_refusees_avant_le_service() {
-        CatalogueBuvette c = catalogue();
-        BuvetteTournoi b = new BuvetteTournoi();
-        assertEquals(ResultatMouvementStock.Motif.QUANTITE_INVALIDE, PresentationStockBuvette.saisir(service, b, c,
-                TypeMouvementStock.PERTE, "baguette", "deux", "", null, "A").motif());
-        assertEquals(ResultatMouvementStock.Motif.INGREDIENT_INCONNU, PresentationStockBuvette.saisir(service, b, c,
-                TypeMouvementStock.PERTE, null, "2", "", null, "A").motif());
-        assertEquals(ResultatMouvementStock.Motif.PRIX_INVALIDE, PresentationStockBuvette.saisir(service, b, c,
-                TypeMouvementStock.ACHAT, "baguette", "2", "cher", null, "A").motif());
-        assertTrue(b.getMouvements().isEmpty());
+    void detail_du_produit_contenants_et_couts_separes() {
+        PresentationStockBuvette p = new PresentationStockBuvette(stock());
+        PresentationStockBuvette.LigneArticle cafe = p.sections().get(0).lignes().get(0);
+        assertEquals("Seuil d'alerte 40 · Par portion : 1 gobelet, 1 touillette · "
+                + "Produit 0,064 € + emballage 0,048 € = 0,112 € la portion", cafe.detail());
+        PresentationStockBuvette.LigneArticle gobelet = p.sections().get(1).lignes().get(0);
+        assertEquals("Seuil d'alerte 50 · 0,045 € l'unité · Utilisé par Café", gobelet.detail());
+        assertFalse(gobelet.retirable());
+        assertTrue(cafe.retirable());
     }
 
     @Test
-    void inventaire_et_correction_dans_le_journal_le_plus_recent_en_tete() {
-        CatalogueBuvette c = catalogue();
-        BuvetteTournoi b = new BuvetteTournoi();
-        PresentationStockBuvette.saisir(service, b, c, TypeMouvementStock.STOCK_DEPART, "baguette", "6", "", null, "A");
-        PresentationStockBuvette.saisir(service, b, c, TypeMouvementStock.INVENTAIRE, "baguette", "4", "", null, "A");
-        service.corriger(b, 1, "A", null);
-        List<PresentationStockBuvette.LigneMouvement> j = new PresentationStockBuvette(b, c, PARIS).journal();
-        assertEquals(List.of(3, 2, 1), j.stream().map(PresentationStockBuvette.LigneMouvement::numero).toList());
-        assertFalse(j.get(0).corrigeable(), "une correction ne se corrige pas");
-        assertTrue(j.get(2).corrige());
-        assertEquals("n° 2 · Écart d'inventaire · Baguette : -2 sandwich", j.get(1).titre());
+    void liste_a_racheter_en_tete() {
+        PresentationStockBuvette p = new PresentationStockBuvette(stock());
+        List<PresentationStockBuvette.LigneARacheter> l = p.aRacheter();
+        assertEquals(1, l.size());
+        assertEquals("Gobelet", l.get(0).nom());
+        assertEquals("Il reste 30 gobelets · seuil d'alerte 50", l.get(0).detail());
     }
 
     @Test
-    void libelle_de_quantite_selon_le_mouvement() {
-        assertEquals("Unités d'achat", PresentationStockBuvette.libelleQuantite(TypeMouvementStock.ACHAT));
-        assertEquals("Portions comptées", PresentationStockBuvette.libelleQuantite(TypeMouvementStock.INVENTAIRE));
-        assertEquals("Portions", PresentationStockBuvette.libelleQuantite(TypeMouvementStock.DON));
-        assertFalse(Arrays.asList(PresentationStockBuvette.TYPES_SAISIS).contains(TypeMouvementStock.VENTE));
+    void derniers_mouvements_du_plus_recent_au_plus_ancien() {
+        StockBuvette s = stock();
+        ServiceStockBuvette srv = new ServiceStockBuvette(() -> Instant.parse("2026-11-14T09:30:00Z"));
+        srv.sortir(s, "cafe", 1, "Claire");
+        srv.entrer(s, "gobelet", 100, "Claire");
+        List<String> m = new PresentationStockBuvette(s).derniersMouvements(2, ZoneOffset.UTC);
+        assertEquals(List.of("14/11 09:30 · Entrée · Gobelet +100 (reste 129) · Claire",
+                "14/11 09:30 · Sortie · Touillette -1 (reste 149) · Claire"), m);
     }
 
     @Test
-    void tournoi_par_defaut_le_prochain_sinon_le_plus_recent() {
-        LocalDate auj = LocalDate.of(2026, 11, 13);
-        assertEquals(1, PresentationStockBuvette.tournoiParDefaut(List.of(LocalDate.of(2027, 3, 1),
-                LocalDate.of(2026, 12, 1), LocalDate.of(2026, 5, 1)), auj));
-        assertEquals(0, PresentationStockBuvette.tournoiParDefaut(List.of(auj), auj), "aujourd'hui : en cours");
-        assertEquals(1, PresentationStockBuvette.tournoiParDefaut(List.of(LocalDate.of(2026, 1, 1),
-                LocalDate.of(2026, 6, 1)), auj));
-        assertEquals(-1, PresentationStockBuvette.tournoiParDefaut(List.of(), auj));
+    void stock_vide_et_pluriel_des_unites() {
+        PresentationStockBuvette p = new PresentationStockBuvette(new StockBuvette("1"));
+        assertTrue(p.vide());
+        assertTrue(p.aRacheter().isEmpty());
+        assertEquals(2, p.sections().size());
+        assertEquals("1 dose", PresentationStockBuvette.quantite(1, "dose"));
+        assertEquals("0 dose", PresentationStockBuvette.quantite(0, "dose"));
+        assertEquals("3 gâteaux", PresentationStockBuvette.quantite(3, "gâteaux"));
     }
 }

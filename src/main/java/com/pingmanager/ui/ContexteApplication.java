@@ -1480,14 +1480,14 @@ public final class ContexteApplication {
     }
 
     /**
-     * B046 : catalogue de la buvette d'un club géré par le compte connecté (créé vide au
+     * B026 : stock de la buvette d'un club géré par le compte connecté (créé vide au
      * premier appel). Les modifications sont enregistrées par {@link #sauvegarder()}.
      *
      * @throws com.pingmanager.core.DroitRefuseException si le compte n'a pas accès au club
      */
-    public com.pingmanager.model.buvette.CatalogueBuvette catalogueBuvette(String numeroClub) {
+    public com.pingmanager.model.buvette.StockBuvette stockBuvette(String numeroClub) {
         exigerDroit(com.pingmanager.core.OperationProtegee.DONNEES_CLUB, numeroClub);
-        return depot.catalogueBuvette(numeroClub);
+        return depot.stockBuvette(numeroClub);
     }
 
     /** Persiste le dépôt applicatif (écriture atomique). */

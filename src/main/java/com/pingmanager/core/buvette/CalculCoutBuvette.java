@@ -1,77 +1,53 @@
 package com.pingmanager.core.buvette;
 
-import com.pingmanager.model.buvette.CatalogueBuvette;
-import com.pingmanager.model.buvette.Ingredient;
-import com.pingmanager.model.buvette.LigneRecette;
-import com.pingmanager.model.buvette.Produit;
+import com.pingmanager.model.buvette.ArticleBuvette;
+import com.pingmanager.model.buvette.LienContenant;
+import com.pingmanager.model.buvette.StockBuvette;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.util.ArrayList;
-import java.util.List;
+import java.math.RoundingMode;
+import java.util.Optional;
 
 /**
- * Calcul du coût de revient, de la marge et du taux de marge d'un produit de la
- * buvette (B046), à partir des ingrédients de sa recette.
+ * Coûts de la buvette (B026) : coût unitaire d'un article (prix du lot divisé
+ * par le nombre d'unités du lot) et coût d'une portion d'un produit, séparé en
+ * coût brut, coût de l'emballage et coût complet.
  *
- * <p>Coût d'une portion d'ingrédient = prix d'achat ÷ (rendement × (1 − perte)).
- * Exemple : une baguette à 1,10 € qui fait 3 sandwichs coûte 0,3667 € par
- * sandwich ; avec 5 % de perte, 0,3860 €. Le calcul se fait en valeurs exactes
- * ({@link BigDecimal}) et n'est arrondi au centime qu'une fois, sur le total.
- * Le coût <b>retenu</b> est prudent : il prend le rendement minimal.</p>
+ * <p>Calculs en centimes exacts ({@link BigDecimal}, 6 décimales) : l'arrondi
+ * n'intervient qu'à l'affichage ({@link Centimes#eurosPrecis(BigDecimal)}).</p>
  */
 public final class CalculCoutBuvette {
 
-    private static final MathContext PRECISION = MathContext.DECIMAL64;
+    /** Décimales gardées sur les centimes (1 millionième de centime). */
+    static final int ECHELLE = 6;
+
+    private CalculCoutBuvette() {
+    }
+
+    /** Coût d'une unité de l'article, en centimes exacts. */
+    public static BigDecimal coutUnitaire(ArticleBuvette a) {
+        return BigDecimal.valueOf(a.getPrixLotCentimes())
+                .divide(BigDecimal.valueOf(a.getUnitesParLot()), ECHELLE, RoundingMode.HALF_UP);
+    }
 
     /**
-     * Coût exact (en centimes, non arrondi) d'une portion d'ingrédient.
+     * Coût d'une portion d'un produit : son coût unitaire (brut) et celui de ses
+     * contenants, multipliés par leur quantité (emballage). Un lien vers un
+     * article absent du stock est ignoré.
      *
-     * @param prudent vrai : rendement minimal ; faux : rendement maximal
+     * @return vide si l'article n'est pas un produit
      */
-    public static BigDecimal coutPortion(Ingredient i, boolean prudent) {
-        int rendement = prudent ? i.getRendementMin() : i.getRendementMax();
-        BigDecimal portionsUtiles = BigDecimal.valueOf((long) rendement * (100 - i.getPertePourcent()))
-                .divide(BigDecimal.valueOf(100), PRECISION);
-        return BigDecimal.valueOf(i.getPrixAchatCentimes()).divide(portionsUtiles, PRECISION);
-    }
-
-    /** Coût de revient d'un produit selon les ingrédients du catalogue. */
-    public CoutProduit cout(Produit produit, CatalogueBuvette catalogue) {
-        BigDecimal prudent = BigDecimal.ZERO;
-        BigDecimal optimiste = BigDecimal.ZERO;
-        List<CoutProduit.LigneCout> lignes = new ArrayList<>();
-        List<String> manquants = new ArrayList<>();
-        for (LigneRecette l : produit.getRecette()) {
-            Ingredient i = catalogue.ingredient(l.idIngredient()).orElse(null);
-            if (i == null) {
-                manquants.add(l.idIngredient());
-                continue;
+    public static Optional<CoutPortion> portion(StockBuvette stock, ArticleBuvette produit) {
+        if (!produit.estProduit()) {
+            return Optional.empty();
+        }
+        BigDecimal emballage = BigDecimal.ZERO.setScale(ECHELLE);
+        for (LienContenant l : produit.getContenants()) {
+            Optional<ArticleBuvette> c = stock.article(l.idContenant());
+            if (c.isPresent()) {
+                emballage = emballage.add(coutUnitaire(c.get()).multiply(BigDecimal.valueOf(l.quantite())));
             }
-            BigDecimal p = coutPortion(i, true).multiply(BigDecimal.valueOf(l.quantite()));
-            prudent = prudent.add(p);
-            optimiste = optimiste.add(coutPortion(i, false).multiply(BigDecimal.valueOf(l.quantite())));
-            lignes.add(new CoutProduit.LigneCout(i.getId(), i.getNom(), l.quantite(), Centimes.arrondir(p),
-                    explication(i, l.quantite(), Centimes.arrondir(p))));
         }
-        return new CoutProduit(produit.getPrixVenteCentimes(), Centimes.arrondir(prudent),
-                Centimes.arrondir(optimiste), lignes, !produit.getRecette().isEmpty(), manquants);
-    }
-
-    /** « Baguette : 1,10 € ÷ 3 sandwichs = 0,37 € » (avec perte et quantité si besoin). */
-    static String explication(Ingredient i, int quantite, long coutCentimes) {
-        StringBuilder sb = new StringBuilder(i.getNom()).append(" : ");
-        if (quantite > 1) {
-            sb.append(quantite).append(" × (");
-        }
-        sb.append(Centimes.euros(i.getPrixAchatCentimes())).append(" ÷ ").append(i.getRendementMin())
-                .append(' ').append(i.getUnitePortion());
-        if (i.getPertePourcent() > 0) {
-            sb.append(", perte ").append(i.getPertePourcent()).append(" %");
-        }
-        if (quantite > 1) {
-            sb.append(')');
-        }
-        return sb.append(" = ").append(Centimes.euros(coutCentimes)).toString();
+        return Optional.of(new CoutPortion(coutUnitaire(produit), emballage));
     }
 }

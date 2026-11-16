@@ -5,7 +5,7 @@ import java.math.RoundingMode;
 import java.util.OptionalLong;
 
 /**
- * Montants de la buvette (B046) : toujours des <b>centimes entiers</b>
+ * Montants de la buvette (B026) : toujours des <b>centimes entiers</b>
  * ({@code long}), jamais des nombres à virgule flottante. Mise en forme
  * française (« 1,10 € ») et lecture d'une saisie (« 1,1 », « 1.10 », « 2 € »).
  */
@@ -62,5 +62,24 @@ public final class Centimes {
     /** Arrondi au centime le plus proche (moitié vers le haut) d'un montant exact. */
     public static long arrondir(BigDecimal centimesExacts) {
         return centimesExacts.setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
+
+    /**
+     * Montant exact en centimes, arrondi au dixième de centime pour l'affichage :
+     * 4,5 → « 0,045 € » ; 112 → « 1,12 € » ; 0,3 → « 0,003 € ». Le troisième
+     * chiffre après la virgule n'apparaît que s'il n'est pas nul.
+     */
+    public static String eurosPrecis(BigDecimal centimesExacts) {
+        BigDecimal dixiemes = centimesExacts.multiply(BigDecimal.TEN).setScale(0, RoundingMode.HALF_UP);
+        long d = dixiemes.longValueExact();
+        long reste = Math.abs(d) % 10;
+        if (reste == 0) {
+            return euros(d / 10);
+        }
+        String base = nombre(d / 10);
+        if (d < 0 && d / 10 == 0) {
+            base = "-" + base;
+        }
+        return base + reste + " €";
     }
 }
