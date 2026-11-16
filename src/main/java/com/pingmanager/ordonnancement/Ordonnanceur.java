@@ -39,6 +39,13 @@ public final class Ordonnanceur {
 
     private final int nombreDeTables;
     private final PoidsOrdonnancement poids;
+    /**
+     * B054 : tables d'échauffement utilisables en renfort, numérotées après les
+     * tables de compétition (N + 1 à N + max). Seules les {@link #tablesRenfortEnService}
+     * premières reçoivent des matchs.
+     */
+    private final int tablesRenfortMax;
+    private int tablesRenfortEnService;
 
     /** Tous les matchs sous gestion de l'ordonnanceur. */
     private final List<MatchOrdonnancable> matchs = new ArrayList<>();
@@ -56,12 +63,26 @@ public final class Ordonnanceur {
     }
 
     public Ordonnanceur(int nombreDeTables, PoidsOrdonnancement poids) {
+        this(nombreDeTables, 0, poids);
+    }
+
+    /**
+     * Ordonnanceur avec une réserve de tables de renfort (B054) : les tables
+     * d'échauffement utilisables comme tables de match portent les numéros
+     * {@code nombreDeTables + 1} à {@code nombreDeTables + tablesRenfortMax} ;
+     * aucune n'est en service au départ.
+     */
+    public Ordonnanceur(int nombreDeTables, int tablesRenfortMax, PoidsOrdonnancement poids) {
         if (nombreDeTables < 1) {
             throw new IllegalArgumentException("Il faut au moins une table.");
         }
+        if (tablesRenfortMax < 0) {
+            throw new IllegalArgumentException("Le nombre de tables de renfort ne peut pas être négatif.");
+        }
         this.nombreDeTables = nombreDeTables;
+        this.tablesRenfortMax = tablesRenfortMax;
         this.poids = Objects.requireNonNull(poids, "poids");
-        for (int t = 1; t <= nombreDeTables; t++) {
+        for (int t = 1; t <= nombreDeTables + tablesRenfortMax; t++) {
             occupationTables.put(t, null);
         }
     }
@@ -85,8 +106,49 @@ public final class Ordonnanceur {
         return java.util.Collections.unmodifiableList(matchs);
     }
 
+    /** @return le nombre de tables de compétition (sans les tables de renfort). */
     public int getNombreDeTables() {
         return nombreDeTables;
+    }
+
+    /** @return le nombre maximal de tables de renfort (B054). */
+    public int getTablesRenfortMax() {
+        return tablesRenfortMax;
+    }
+
+    /** @return les tables de renfort en service (B054), de 0 à {@link #getTablesRenfortMax()}. */
+    public int getTablesRenfortEnService() {
+        return tablesRenfortEnService;
+    }
+
+    /**
+     * Met en service les {@code tables} premières tables de renfort (B054). Une
+     * table retirée du service garde son match en cours jusqu'à sa fin, mais ne
+     * reçoit plus de nouveau match.
+     *
+     * @throws IllegalArgumentException si {@code tables} sort de 0 à {@link #getTablesRenfortMax()}
+     */
+    public void setTablesRenfortEnService(int tables) {
+        if (tables < 0 || tables > tablesRenfortMax) {
+            throw new IllegalArgumentException("Le renfort va de 0 à " + tablesRenfortMax + " table(s).");
+        }
+        this.tablesRenfortEnService = tables;
+    }
+
+    /** @return vrai si la table est une table de renfort (salle d'échauffement), en service ou non. */
+    public boolean estTableDeRenfort(int table) {
+        return table > nombreDeTables && table <= nombreDeTables + tablesRenfortMax;
+    }
+
+    /** @return le nombre de tables de renfort sur lesquelles un match est en cours. */
+    public int tablesRenfortOccupees() {
+        int n = 0;
+        for (int t = nombreDeTables + 1; t <= nombreDeTables + tablesRenfortMax; t++) {
+            if (occupationTables.get(t) != null) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /** @return les poids de scoring utilisés par l'ordonnanceur (pour la persistance/le réglage). */
@@ -108,10 +170,14 @@ public final class Ordonnanceur {
         this.reservations = Objects.requireNonNull(reservations, "reservations");
     }
 
-    /** Tables actuellement libres (numéros croissants). */
+    /**
+     * Tables actuellement libres (numéros croissants) : tables de compétition,
+     * puis tables de renfort en service (B054). Les tables de compétition sont
+     * donc toujours servies d'abord.
+     */
     public List<Integer> tablesLibres() {
         List<Integer> libres = new ArrayList<>();
-        for (int t = 1; t <= nombreDeTables; t++) {
+        for (int t = 1; t <= nombreDeTables + tablesRenfortEnService; t++) {
             if (occupationTables.get(t) == null) {
                 libres.add(t);
             }
@@ -475,7 +541,7 @@ public final class Ordonnanceur {
         if (licence == null) {
             return null;
         }
-        for (int t = 1; t <= nombreDeTables; t++) {
+        for (int t = 1; t <= nombreDeTables + tablesRenfortMax; t++) {
             MatchOrdonnancable mo = occupationTables.get(t);
             if (mo != null && joue(mo.getMatch(), licence)) {
                 return t;
@@ -535,8 +601,12 @@ public final class Ordonnanceur {
      */
     public ResultatAffectationTable verifierAffectation(MatchOrdonnancable mo, int table) {
         Objects.requireNonNull(mo, "mo");
-        if (table < 1 || table > nombreDeTables) {
+        if (table < 1 || table > nombreDeTables + tablesRenfortMax) {
             return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
+        }
+        if (table > nombreDeTables + tablesRenfortEnService) {
+            // B054 : table d'échauffement que le juge-arbitre n'a pas ouverte.
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_RENFORT_HORS_SERVICE, table);
         }
         ResultatAffectationTable match = verifierMatch(mo);
         if (match.getMotif() == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {

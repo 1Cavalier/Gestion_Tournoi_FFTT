@@ -126,6 +126,9 @@ final class PresentationSalle {
                     ? "La table " + table + " n'existe pas : la salle compte les tables 1 à " + nombreDeTables + "."
                     : "Le nombre de tables du tournoi n'est pas renseigné (Informations sportives et techniques).";
         }
+        if (motif == ResultatAffectationTable.Motif.TABLE_RENFORT_HORS_SERVICE) {
+            return "La table " + table + " est une table d'échauffement prévue en renfort : ouvrez-la d'abord.";
+        }
         if (motif == ResultatAffectationTable.Motif.TABLE_RESERVEE) {
             List<String> admis = new ArrayList<>(r.getTableauxAdmis());
             return admis.isEmpty()

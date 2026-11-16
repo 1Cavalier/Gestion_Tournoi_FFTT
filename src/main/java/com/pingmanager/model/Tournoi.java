@@ -31,6 +31,8 @@ public final class Tournoi {
     /** Nombre de tables physiques disponibles dans la salle. */
     private int nombreDeTables;
     private int tablesEchauffement;
+    /** Tables d'échauffement utilisables en renfort (0 à {@link #tablesEchauffement}). */
+    private int tablesRenfort;
 
     /**
      * Façon d'annoncer une rencontre lancée sur une table, mémorisée pour ce
@@ -469,6 +471,33 @@ public final class Tournoi {
             throw new IllegalArgumentException("Le nombre de tables d'échauffement ne peut pas être négatif.");
         }
         this.tablesEchauffement = n;
+        // Le renfort ne dépasse jamais la salle d'échauffement : il suit sa réduction.
+        this.tablesRenfort = Math.min(tablesRenfort, n);
+    }
+
+    /**
+     * @return nombre de tables de la salle d'échauffement que le juge-arbitre peut
+     *         utiliser comme tables de match pour rattraper un retard (3.3.1.2.2),
+     *         de 0 à {@link #getTablesEchauffement()} ; 0 sans salle d'échauffement.
+     */
+    public int getTablesRenfort() {
+        return tablesRenfort;
+    }
+
+    /**
+     * Pose le nombre de tables d'échauffement utilisables en renfort.
+     *
+     * @throws IllegalArgumentException si négatif ou supérieur au nombre de tables d'échauffement
+     */
+    public void setTablesRenfort(int n) {
+        if (n < 0) {
+            throw new IllegalArgumentException("Le nombre de tables de renfort ne peut pas être négatif.");
+        }
+        if (n > tablesEchauffement) {
+            throw new IllegalArgumentException("Le renfort ne peut pas dépasser les " + tablesEchauffement
+                    + " table(s) de la salle d'échauffement.");
+        }
+        this.tablesRenfort = n;
     }
 
     public void setLotsTables(List<LotTables> lots) {

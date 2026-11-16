@@ -1,6 +1,7 @@
 package com.pingmanager.core;
 
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.ReglageRenfort;
 import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 
 import java.time.LocalDate;
@@ -36,6 +37,7 @@ public final class ReglagesPrevision {
     private final TempsAnnexesMatch tempsAnnexes;
     private final RemplissageSimulation remplissage;
     private final SortedMap<LocalDate, LocalDateTime> finsVisees;
+    private final ReglageRenfort renfort;
 
     private ReglagesPrevision(Builder b) {
         this.nombreDeTables = b.nombreDeTables;
@@ -44,6 +46,23 @@ public final class ReglagesPrevision {
         this.tempsAnnexes = b.tempsAnnexes != null ? b.tempsAnnexes : TempsAnnexesMatch.PAR_DEFAUT;
         this.remplissage = b.remplissage;
         this.finsVisees = Collections.unmodifiableSortedMap(new TreeMap<>(b.finsVisees));
+        this.renfort = b.renfort;
+    }
+
+    /**
+     * Tables d'échauffement utilisables en renfort et seuils de déclenchement
+     * (B054) ; {@link ReglageRenfort#AUCUN} par défaut.
+     */
+    public ReglageRenfort getRenfort() {
+        return renfort;
+    }
+
+    /** Copie avec un autre réglage du renfort (B054). */
+    public ReglagesPrevision avecRenfort(ReglageRenfort autre) {
+        Builder b = builder().nombreDeTables(nombreDeTables).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes)
+                .remplissage(remplissage).renfort(autre);
+        b.finsVisees.putAll(finsVisees);
+        return b.build();
     }
 
     public int getNombreDeTables() {
@@ -108,6 +127,13 @@ public final class ReglagesPrevision {
         private TempsAnnexesMatch tempsAnnexes;
         private RemplissageSimulation remplissage = RemplissageSimulation.INSCRITS_REELS;
         private final SortedMap<LocalDate, LocalDateTime> finsVisees = new TreeMap<>();
+        private ReglageRenfort renfort = ReglageRenfort.AUCUN;
+
+        /** Renfort par les tables d'échauffement (B054). */
+        public Builder renfort(ReglageRenfort v) {
+            this.renfort = Objects.requireNonNull(v, "renfort");
+            return this;
+        }
 
         public Builder nombreDeTables(int v) {
             if (v < 1) {

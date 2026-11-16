@@ -26,6 +26,8 @@ public final class ResultatAffectationTable {
         TABLE_LIBEREE,
         /** Le numéro de table n'existe pas dans la salle (1 à N). */
         TABLE_HORS_LIMITES,
+        /** Table d'échauffement prévue en renfort mais pas ouverte par le juge-arbitre (B054). */
+        TABLE_RENFORT_HORS_SERVICE,
         /** Un autre match est déjà en cours sur cette table. */
         TABLE_OCCUPEE,
         /** La table est réservée à d'autres tableaux (réservation de tables). */

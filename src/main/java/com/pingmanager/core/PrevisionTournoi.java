@@ -32,19 +32,42 @@ public record PrevisionTournoi(int tirages, SortedMap<LocalDate, PrevisionJourne
      * @param finVisee       instant à ne pas dépasser (jour et heure, éventuellement le lendemain)
      * @param nombreDeTables tables disponibles
      * @param effectifs      joueurs simulés par tableau (inscrits, capacité, taux appliqué)
-     * @param strategies     statistiques de chaque stratégie, dans l'ordre de l'énumération
+     * @param strategies     statistiques de chaque stratégie, dans l'ordre de l'énumération ; avec
+     *                       renfort, elles en tiennent compte
+     * @param tablesRenfort  tables d'échauffement utilisables en renfort (B054 ; 0 : aucune)
+     * @param sansRenfort    avec renfort, les mêmes tirages rejoués sans lui (pour comparer la fin) ;
+     *                       vide sans renfort
      */
     public record PrevisionJournee(LocalDate jour, LocalDateTime finVisee, int nombreDeTables,
-                                   List<EffectifTableau> effectifs, List<StatistiquesSimulation> strategies) {
+                                   List<EffectifTableau> effectifs, List<StatistiquesSimulation> strategies,
+                                   int tablesRenfort, List<StatistiquesSimulation> sansRenfort) {
         public PrevisionJournee {
             Objects.requireNonNull(jour, "jour");
             effectifs = List.copyOf(effectifs);
             strategies = List.copyOf(strategies);
+            sansRenfort = sansRenfort == null ? List.of() : List.copyOf(sansRenfort);
+            tablesRenfort = Math.max(0, tablesRenfort);
         }
 
-        /** @return les statistiques d'une stratégie. */
+        /** Sans tables de renfort. */
+        public PrevisionJournee(LocalDate jour, LocalDateTime finVisee, int nombreDeTables,
+                                List<EffectifTableau> effectifs, List<StatistiquesSimulation> strategies) {
+            this(jour, finVisee, nombreDeTables, effectifs, strategies, 0, List.of());
+        }
+
+        /** @return les statistiques d'une stratégie (avec le renfort s'il y en a). */
         public Optional<StatistiquesSimulation> pour(StrategieOrdonnancement strategie) {
             return strategies.stream().filter(s -> s.strategie() == strategie).findFirst();
+        }
+
+        /** @return les statistiques d'une stratégie sans le renfort (vide si la journée n'a pas de renfort). */
+        public Optional<StatistiquesSimulation> sansRenfortPour(StrategieOrdonnancement strategie) {
+            return sansRenfort.stream().filter(s -> s.strategie() == strategie).findFirst();
+        }
+
+        /** @return vrai si des tables de renfort étaient permises pour la journée. */
+        public boolean avecRenfort() {
+            return tablesRenfort > 0;
         }
     }
 

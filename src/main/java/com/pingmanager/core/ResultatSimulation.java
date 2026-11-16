@@ -38,19 +38,34 @@ import java.util.Optional;
  * @param mesures           mesures complémentaires du tirage (B050 : médiane des attentes, plus
  *                          longue pause, pic de tables, matchs par heure, finales, durée de la
  *                          journée) ; jamais {@code null} ({@link MesuresTirage#VIDE} si inconnues)
+ * @param renfort           usage des tables de renfort (B054) ; jamais {@code null}
+ *                          ({@link RenfortTirage#AUCUN} sans renfort)
  */
 public record ResultatSimulation(StrategieOrdonnancement strategie, long graine, int nombreDeTables,
                                  LocalDateTime debut, LocalDateTime fin, List<BilanTableau> tableaux,
                                  List<TableauIgnore> ignores, int nombreParties, double attenteMoyenne,
                                  long attenteMaximale, String joueurAttenteMax, double occupationTables,
                                  boolean complete, double attenteUnTableau, double attentePlusieursTableaux,
-                                 double tempsAnnexesMoyen, MesuresTirage mesures) {
+                                 double tempsAnnexesMoyen, MesuresTirage mesures, RenfortTirage renfort) {
 
     public ResultatSimulation {
         Objects.requireNonNull(strategie, "strategie");
         tableaux = List.copyOf(tableaux);
         ignores = List.copyOf(ignores);
         mesures = mesures == null ? MesuresTirage.VIDE : mesures;
+        renfort = renfort == null ? RenfortTirage.AUCUN : renfort;
+    }
+
+    /** Sans tables de renfort (B054 : {@link RenfortTirage#AUCUN}). */
+    public ResultatSimulation(StrategieOrdonnancement strategie, long graine, int nombreDeTables,
+                              LocalDateTime debut, LocalDateTime fin, List<BilanTableau> tableaux,
+                              List<TableauIgnore> ignores, int nombreParties, double attenteMoyenne,
+                              long attenteMaximale, String joueurAttenteMax, double occupationTables,
+                              boolean complete, double attenteUnTableau, double attentePlusieursTableaux,
+                              double tempsAnnexesMoyen, MesuresTirage mesures) {
+        this(strategie, graine, nombreDeTables, debut, fin, tableaux, ignores, nombreParties, attenteMoyenne,
+                attenteMaximale, joueurAttenteMax, occupationTables, complete, attenteUnTableau,
+                attentePlusieursTableaux, tempsAnnexesMoyen, mesures, RenfortTirage.AUCUN);
     }
 
     /** Sans les mesures complémentaires (inconnues : {@link MesuresTirage#VIDE}). */

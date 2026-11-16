@@ -4,6 +4,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.format.FormatTournoi;
 import com.pingmanager.ordonnancement.EstimateurDuree;
 import com.pingmanager.ordonnancement.LoiDureeMatch;
+import com.pingmanager.ordonnancement.ReglageRenfort;
 import com.pingmanager.ordonnancement.TempsAnnexesMatch;
 
 import java.time.Duration;
@@ -58,6 +59,7 @@ public final class ScenarioSimulation {
     private final LoiDureeMatch loiDuree;
     private final TempsAnnexesMatch tempsAnnexes;
     private final LocalTime heureLimite;
+    private final ReglageRenfort renfort;
 
     private ScenarioSimulation(Builder b) {
         this.tableaux = List.copyOf(b.tableaux);
@@ -70,6 +72,19 @@ public final class ScenarioSimulation {
         this.variabilite = b.variabilite;
         this.tempsAnnexes = b.tempsAnnexes != null ? b.tempsAnnexes : TempsAnnexesMatch.PAR_DEFAUT;
         this.heureLimite = b.heureLimite;
+        this.renfort = b.renfort;
+    }
+
+    /** Tables d'échauffement utilisables en renfort et seuils (B054) ; {@link ReglageRenfort#AUCUN} par défaut. */
+    public ReglageRenfort getRenfort() {
+        return renfort;
+    }
+
+    /** Copie avec un autre réglage du renfort (B054). */
+    public ScenarioSimulation avecRenfort(ReglageRenfort autre) {
+        Builder b = copie();
+        b.renfort(autre);
+        return b.build();
     }
 
     public List<TableauSimule> getTableaux() {
@@ -206,7 +221,7 @@ public final class ScenarioSimulation {
 
     private Builder copieSansTableaux() {
         return builder().nombreDeTables(nombreDeTables).graine(graine).estimateur(estimateur)
-                .variabilite(variabilite).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes).heureLimite(heureLimite);
+                .variabilite(variabilite).loiDuree(loiDuree).tempsAnnexes(tempsAnnexes).heureLimite(heureLimite).renfort(renfort);
     }
 
     public static Builder builder() {
@@ -223,6 +238,7 @@ public final class ScenarioSimulation {
         private LoiDureeMatch loiDuree;
         private TempsAnnexesMatch tempsAnnexes;
         private LocalTime heureLimite = HEURE_LIMITE_PAR_DEFAUT;
+        private ReglageRenfort renfort = ReglageRenfort.AUCUN;
 
         public Builder tableau(TableauSimule t) {
             tableaux.add(Objects.requireNonNull(t, "t"));
@@ -269,6 +285,12 @@ public final class ScenarioSimulation {
 
         public Builder heureLimite(LocalTime v) {
             this.heureLimite = Objects.requireNonNull(v, "heureLimite");
+            return this;
+        }
+
+        /** Renfort par les tables d'échauffement (B054). */
+        public Builder renfort(ReglageRenfort v) {
+            this.renfort = Objects.requireNonNull(v, "renfort");
             return this;
         }
 
