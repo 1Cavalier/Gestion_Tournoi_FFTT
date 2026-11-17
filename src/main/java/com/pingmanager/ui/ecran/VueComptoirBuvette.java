@@ -62,6 +62,7 @@ final class VueComptoirBuvette {
         for (PresentationComptoirBuvette.Rayon r : p.rayons()) {
             FlowPane boutons = new FlowPane(10, 10);
             boutons.getStyleClass().add("buvette-comptoir-rayon");
+            boutons.prefWrapLengthProperty().bind(grille.widthProperty());
             for (PresentationComptoirBuvette.BoutonArticle b : r.boutons()) {
                 boutons.getChildren().add(bouton(b));
             }
@@ -107,6 +108,9 @@ final class VueComptoirBuvette {
         prix.getStyleClass().add("buvette-bouton-prix");
         VBox contenu = new VBox(4, nom, prix);
         contenu.setAlignment(Pos.TOP_LEFT);
+        if (b.quantite() > 0) {
+            contenu.getStyleClass().add("buvette-bouton-contenu-compte"); // place pour la pastille du nombre
+        }
         if (!b.alerte().isEmpty()) {
             contenu.getChildren().add(Ui.pastille(b.alerte(), "À recompter".equals(b.alerte())
                     || "Épuisé".equals(b.alerte()) ? StatutPastille.ERREUR : StatutPastille.ATTENTION));
@@ -160,7 +164,9 @@ final class VueComptoirBuvette {
             nom.setWrapText(true);
             HBox.setHgrow(nom, Priority.ALWAYS);
             nom.setMaxWidth(Double.MAX_VALUE);
-            HBox ligne = new HBox(8, moins, q, plus, nom, Ui.gras(l.montant()));
+            Label montant = Ui.gras(l.montant());
+            montant.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            HBox ligne = new HBox(8, moins, q, plus, nom, montant);
             ligne.setAlignment(Pos.CENTER_LEFT);
             ligne.getStyleClass().add("buvette-commande-ligne");
             lignes.getChildren().add(ligne);

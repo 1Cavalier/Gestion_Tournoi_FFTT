@@ -4558,6 +4558,10 @@
     -fx-background-insets: 0, 2;
 }
 
+.buvette-bouton-contenu-compte {
+    -fx-padding: 0 30 0 0;
+}
+
 .label.buvette-bouton-nom {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
