@@ -27,15 +27,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.CheckMenuItem;
-import javafx.scene.control.Menu;
-import javafx.scene.control.RadioMenuItem;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -61,9 +54,9 @@ import java.util.function.Supplier;
  * et nom du tournoi ; trois cartes carrées ({@link TableauDeBordJourJ}) :
  * « Lancer un match » (ouvre à gauche l'{@link InterfaceLancementMatch} :
  * matchs proposés avec leur table et l'attente des joueurs, choix manuel),
- * « Annonces » (annonce des
- * rencontres, voix, SMS, prononciation, suivi sur téléphone) et « Stratégie en
- * place » ({@link SelecteurStrategie}) ; la liste des tableaux avec leur frise
+ * « Annonces » ({@link PanneauAnnonces}) et « Stratégie en place »
+ * ({@link PanneauStrategie}), qui ouvrent chacune leur panneau à la place de
+ * l'écran (B056) ; la liste des tableaux avec leur frise
  * (fournie par {@link EcranJourJ}) ; enfin la salle, une carte par table.
  *
  * <p>Gestes du juge-arbitre, en peu de clics :</p>
@@ -131,10 +124,15 @@ final class EcranSalle {
     private Runnable ouvrirPrononciations;
     /** Interface « Lancer un match » ouverte (colonne de gauche) ? */
     private boolean lancementOuvert;
-    /** Panneau ouvert sous les cartes : {@link #PANNEAU_ANNONCES}, {@link #PANNEAU_STRATEGIE} ou vide. */
+    /** Panneau ouvert à la place de l'écran (B056) : {@link #PANNEAU_ANNONCES}, {@link #PANNEAU_STRATEGIE} ou vide. */
     private String panneau = "";
     private static final String PANNEAU_ANNONCES = "annonces";
     private static final String PANNEAU_STRATEGIE = "strategie";
+    /** Panneaux du jour J (B056), créés à la première ouverture. */
+    private PanneauAnnonces annoncesPanneau;
+    private PanneauStrategie strategiePanneau;
+    /** Ouvre la comparaison chiffrée des stratégies (écran des prévisions), ou null. */
+    private Runnable comparerStrategies;
     /** Carte « Suivi sur téléphone » posée dans les annonces (fournie par le jour J), ou null. */
     private Supplier<Node> suiviTelephone;
     /**
@@ -190,7 +188,13 @@ final class EcranSalle {
         return this;
     }
 
-    /** Branche l'écran « Prononciation des noms » (B018), ouvert depuis le menu « Voix ». */
+    /** Branche la comparaison chiffrée des stratégies, ouverte depuis le panneau « Stratégie ». */
+    EcranSalle avecComparaisonStrategies(Runnable ouvrir) {
+        this.comparerStrategies = ouvrir;
+        return this;
+    }
+
+    /** Branche l'écran « Prononciation des noms » (B018), ouvert depuis le bloc « Voix ». */
     EcranSalle avecPrononciations(Runnable ouvrir) {
         this.ouvrirPrononciations = ouvrir;
         return this;
@@ -335,15 +339,20 @@ final class EcranSalle {
         if (ferme()) {
             contenu.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : la salle est fermée."));
         }
+        // B056 : un panneau ouvert prend la place de l'écran ; « Fermer » ramène au jour J.
+        if (!panneau.isEmpty()) {
+            Button retourJourJ = Ui.boutonLien(TextesPanneauxJourJ.RETOUR);
+            retourJourJ.setOnAction(e -> basculerPanneau(panneau));
+            contenu.getChildren().set(0, retourJourJ);
+            contenu.getChildren().add(PANNEAU_ANNONCES.equals(panneau) ? panneauAnnonces().build()
+                    : panneauStrategie().build());
+            afficherContenu(contenu, position);
+            return;
+        }
         if (!bord.getAnomalies().isEmpty()) {
             contenu.getChildren().add(carteAnomalies());
         }
         contenu.getChildren().add(cartes());
-        if (PANNEAU_ANNONCES.equals(panneau)) {
-            contenu.getChildren().add(panneauAnnonces());
-        } else if (PANNEAU_STRATEGIE.equals(panneau)) {
-            contenu.getChildren().add(panneauStrategie());
-        }
         if (bandeau != null) {
             contenu.getChildren().add(bandeau.get());
         }
@@ -353,6 +362,10 @@ final class EcranSalle {
         chiffres.getStyleClass().add("jourj-chiffres");
         chiffres.setWrapText(true);
         contenu.getChildren().addAll(intertitreTables, chiffres, grilleTables());
+        afficherContenu(contenu, position);
+    }
+
+    private void afficherContenu(VBox contenu, double position) {
         defilement.setContent(contenu);
         javafx.application.Platform.runLater(() -> defilement.setVvalue(position));
         Node gauche = colonneGauche();
@@ -390,25 +403,30 @@ final class EcranSalle {
                 PresentationTableauDeBordJourJ.detailLancer(bord), lancer, lancementOuvert, this::basculerLancement);
 
         boolean voixDispo = voix != null && voix.service().voixDisponible();
-        Button annonces = Ui.boutonSecondaire(PANNEAU_ANNONCES.equals(panneau) ? "Fermer" : "Régler les annonces");
+        Button annonces = Ui.boutonSecondaire("Régler les annonces");
         VBox carteAnnonces = TableauDeBordJourJ.carte(Ui.icone(Icones.ANNONCE, "icone"),
                 PresentationTableauDeBordJourJ.CARTE_ANNONCES,
                 PresentationTableauDeBordJourJ.etatAnnonces(tournoi.getModeAnnonce()),
                 PresentationTableauDeBordJourJ.detailAnnonces(tournoi.getModeAnnonce(), tournoi.getAnnoncesVocales(),
                         voixDispo, tournoi.getConvocationsSms().isEnvoiAutomatique()),
-                annonces, PANNEAU_ANNONCES.equals(panneau), () -> basculerPanneau(PANNEAU_ANNONCES));
+                annonces, false, () -> basculerPanneau(PANNEAU_ANNONCES));
 
-        Button strategie = Ui.boutonSecondaire(PANNEAU_STRATEGIE.equals(panneau) ? "Fermer" : "Changer de stratégie");
+        Button strategie = Ui.boutonSecondaire("Changer de stratégie");
         VBox carteStrategie = TableauDeBordJourJ.carte(Ui.icone(Icones.STRATEGIE, "icone"),
                 PresentationTableauDeBordJourJ.CARTE_STRATEGIE, PresentationTableauDeBordJourJ.valeurStrategie(tournoi),
-                PresentationTableauDeBordJourJ.detailStrategie(tournoi), strategie, PANNEAU_STRATEGIE.equals(panneau),
+                PresentationTableauDeBordJourJ.detailStrategie(tournoi), strategie, false,
                 () -> basculerPanneau(PANNEAU_STRATEGIE));
         return TableauDeBordJourJ.cartes(List.of(carteLancer, carteAnnonces, carteStrategie));
     }
 
-    /** Ouvre l'interface des annonces sous les cartes (avant {@link #build()}). */
+    /** Ouvre le panneau « Annonces » (avant {@link #build()}). */
     void ouvrirAnnonces() {
         panneau = PANNEAU_ANNONCES;
+    }
+
+    /** Ouvre le panneau « Stratégie » (avant {@link #build()}). */
+    void ouvrirStrategie() {
+        panneau = PANNEAU_STRATEGIE;
     }
 
     private void basculerLancement() {
@@ -421,159 +439,79 @@ final class EcranSalle {
 
     private void basculerPanneau(String nom) {
         panneau = nom.equals(panneau) ? "" : nom;
+        defilement.setVvalue(0);
         afficher();
     }
 
-    /** Choix d'annonce des rencontres, mémorisé pour ce tournoi. */
-    private Node menuAnnonce() {
-        MenuButton annonce = new MenuButton(PresentationSalle.libelleAnnonce(tournoi.getModeAnnonce()));
-        annonce.getStyleClass().add("jourj-annonce-choix");
-        annonce.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
-        annonce.setTooltip(new Tooltip("Comment annoncer une rencontre envoyée sur une table. Choix mémorisé pour "
-                + "ce tournoi, modifiable ici à tout moment."));
-        for (ModeAnnonce m : ModeAnnonce.values()) {
-            MenuItem item = new MenuItem(m.getLibelle());
-            item.setOnAction(e -> memoriserAnnonce(m));
-            annonce.getItems().add(item);
-        }
-        MenuItem demander = new MenuItem("Demander à chaque lancement");
-        demander.setOnAction(e -> memoriserAnnonce(null));
-        annonce.getItems().addAll(new SeparatorMenuItem(), demander);
-        return annonce;
-    }
+    /** Panneau « Annonces » (B056), gardé d'un affichage à l'autre (état replié ou déplié). */
+    private PanneauAnnonces panneauAnnonces() {
+        if (annoncesPanneau == null) {
+            annoncesPanneau = new PanneauAnnonces(tournoi, voix, new PanneauAnnonces.Actions() {
+                @Override
+                public void choisirMode(ModeAnnonce mode) {
+                    memoriserAnnonce(mode);
+                }
 
-    /**
-     * Interface des annonces (sous les cartes) : annonce des rencontres, voix,
-     * convocations par SMS, prononciation des noms, suivi sur téléphone.
-     */
-    private Node panneauAnnonces() {
-        Button fermer = Ui.boutonLien("Fermer");
-        fermer.setOnAction(e -> basculerPanneau(PANNEAU_ANNONCES));
-        FlowPane reglages = new FlowPane(10, 8, menuAnnonce());
-        reglages.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        if (voix != null) {
-            reglages.getChildren().add(menuVoix());
-        }
-        if (ouvrirSms != null) {
-            Button boutonSms = Ui.boutonSecondaire("Convocations par SMS…");
-            boutonSms.setTooltip(new Tooltip("Réglages, numéros consentis, journal des envois."));
-            boutonSms.setOnAction(e -> {
-                arreterMinuterie();
-                ouvrirSms.run();
-            });
-            reglages.getChildren().add(boutonSms);
-        }
-        if (ouvrirPrononciations != null) {
-            Button prononciations = Ui.boutonSecondaire("Prononciation des noms…");
-            prononciations.setOnAction(e -> {
-                arreterMinuterie();
-                ouvrirPrononciations.run();
-            });
-            reglages.getChildren().add(prononciations);
-        }
-        VBox carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte(PresentationTableauDeBordJourJ.CARTE_ANNONCES),
-                fermer), Ui.aide("Annonce de chaque rencontre envoyée sur une table : voix de l'ordinateur, SMS aux "
-                        + "joueurs, les deux, ou rien. Réglages mémorisés pour ce tournoi."), reglages);
-        carte.getStyleClass().add("jourj-panneau");
-        VBox panneauEntier = new VBox(16, carte);
-        if (suiviTelephone != null) {
-            panneauEntier.getChildren().add(suiviTelephone.get());
-        }
-        return panneauEntier;
-    }
+                @Override
+                public void regler(Runnable changement, String message) {
+                    reglerVoix(changement, message);
+                }
 
-    /**
-     * Sélecteur de stratégie à trois choix ({@link SelecteurStrategie}, le même
-     * que sur la vue du tournoi) : le changement s'applique aux prochains matchs
-     * proposés, jamais aux matchs déjà sur une table.
-     */
-    private Node panneauStrategie() {
-        Button fermer = Ui.boutonLien("Fermer");
-        fermer.setOnAction(e -> basculerPanneau(PANNEAU_STRATEGIE));
-        Node selecteur = new SelecteurStrategie(tournoi, t -> enregistrer.run())
-                .surChangement(s -> {
-                    messageSucces = PresentationTableauDeBordJourJ.messageChangementStrategie(tournoi);
+                @Override
+                public void reannoncer(Match match, int table) {
+                    annoncerTable(match, table);
+                }
+
+                @Override
+                public void rafraichir() {
                     afficher();
-                })
-                .build();
-        VBox carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte(PresentationTableauDeBordJourJ.CARTE_STRATEGIE),
-                fermer), Ui.aide(PresentationTableauDeBordJourJ.MESSAGE_STRATEGIE), selecteur);
-        carte.getStyleClass().add("jourj-panneau");
-        return carte;
+                }
+
+                @Override
+                public void fermer() {
+                    basculerPanneau(PANNEAU_ANNONCES);
+                }
+            });
+            if (ouvrirSms != null) {
+                annoncesPanneau.avecSms(() -> {
+                    arreterMinuterie();
+                    ouvrirSms.run();
+                });
+            }
+            if (ouvrirPrononciations != null) {
+                annoncesPanneau.avecPrononciations(() -> {
+                    arreterMinuterie();
+                    ouvrirPrononciations.run();
+                });
+            }
+            annoncesPanneau.avecSuiviTelephone(suiviTelephone);
+        }
+        return annoncesPanneau.ferme(ferme());
     }
 
-    /** Réglages des annonces vocales (B017), mémorisés pour ce tournoi. */
-    private Node menuVoix() {
-        ReglagesAnnoncesVocales r = tournoi.getAnnoncesVocales();
-        boolean dispo = voix.service().voixDisponible();
-        MenuButton menu = new MenuButton(PresentationSalle.libelleVoix(r, dispo));
-        menu.getStyleClass().add("jourj-annonce-choix");
-        menu.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
-        menu.setDisable(ferme());
-        menu.setTooltip(new Tooltip(dispo
-                ? "Annonces vocales : l'ordinateur dit « Prénom Nom, club, contre …, table N ». Réglages mémorisés "
-                        + "pour ce tournoi."
-                : "La synthèse vocale n'est disponible que sous Windows : les annonces s'affichent à l'écran pour "
-                        + "être lues au micro."));
-
-        CheckMenuItem auto = new CheckMenuItem("Annonce automatique au lancement");
-        auto.setSelected(r.isAnnonceAutomatique());
-        auto.setOnAction(e -> reglerVoix(() -> r.setAnnonceAutomatique(auto.isSelected()), auto.isSelected()
-                ? "Annonce vocale automatique : chaque match envoyé sur une table est annoncé (si l'annonce "
-                        + "choisie comprend l'appel vocal)."
-                : "Annonce vocale automatique coupée : bouton « Annoncer » sur chaque table."));
-        CheckMenuItem contexte = new CheckMenuItem("Dire le tableau et le tour");
-        contexte.setSelected(r.isAvecTableauEtTour());
-        contexte.setOnAction(e -> reglerVoix(() -> r.setAvecTableauEtTour(contexte.isSelected()),
-                contexte.isSelected() ? "Les annonces commencent par le tableau et le tour."
-                        : "Les annonces ne disent plus le tableau ni le tour."));
-
-        Menu repetitions = new Menu("Répétition");
-        ToggleGroup gRep = new ToggleGroup();
-        for (int n = 1; n <= ReglagesAnnoncesVocales.DIFFUSIONS_MAX; n++) {
-            int valeur = n;
-            String libelle = PresentationSalle.libelleDiffusions(n);
-            repetitions.getItems().add(radio(libelle, gRep, r.getDiffusions() == n,
-                    () -> reglerVoix(() -> r.setDiffusions(valeur), "Annonces : " + libelle.toLowerCase() + ".")));
+    /**
+     * Panneau « Stratégie » (B056) : le changement, confirmé, s'applique aux
+     * prochains matchs proposés, jamais aux matchs déjà sur une table.
+     */
+    private PanneauStrategie panneauStrategie() {
+        if (strategiePanneau == null) {
+            strategiePanneau = new PanneauStrategie(tournoi, t -> enregistrer.run(),
+                    () -> basculerPanneau(PANNEAU_STRATEGIE), this::afficher)
+                    .apresChoix(r -> {
+                        if (!r.enregistre()) {
+                            messageErreur = r.message();
+                        } else if (!r.inchange()) {
+                            messageSucces = PresentationTableauDeBordJourJ.messageChangementStrategie(tournoi);
+                        }
+                    });
+            if (comparerStrategies != null) {
+                strategiePanneau.avecComparaison(() -> {
+                    arreterMinuterie();
+                    comparerStrategies.run();
+                });
+            }
         }
-        Menu rappel = new Menu("Rappel si la table reste vide");
-        ToggleGroup gRap = new ToggleGroup();
-        for (int minutes : new int[] {0, 3, 5, 10}) {
-            String libelle = PresentationSalle.libelleRappel(minutes);
-            rappel.getItems().add(radio(libelle, gRap, r.getRappelMinutes() == minutes,
-                    () -> reglerVoix(() -> r.setRappelMinutes(minutes), "Annonces : " + libelle.toLowerCase()
-                            + (minutes > 0 ? " (« Joueurs à la table » sur la table l'annule)." : "."))));
-        }
-        Menu debit = new Menu("Débit");
-        ToggleGroup gDeb = new ToggleGroup();
-        for (int d : new int[] {-3, 0, 3}) {
-            String libelle = PresentationSalle.libelleDebit(d);
-            debit.getItems().add(radio(libelle, gDeb, Integer.signum(r.getDebit()) == Integer.signum(d),
-                    () -> reglerVoix(() -> r.setDebit(d), "Débit de la voix : " + libelle.toLowerCase() + ".")));
-        }
-        Menu choixVoix = new Menu("Voix");
-        ToggleGroup gVoix = new ToggleGroup();
-        choixVoix.getItems().add(radio("Voix par défaut du système", gVoix, r.getVoix() == null,
-                () -> reglerVoix(() -> r.setVoix(null), "Voix par défaut du système.")));
-        for (String nom : voix.voixConnues()) {
-            choixVoix.getItems().add(radio(nom, gVoix, nom.equals(r.getVoix()),
-                    () -> reglerVoix(() -> r.setVoix(nom), "Voix choisie : " + nom + ".")));
-        }
-        menu.getItems().addAll(auto, contexte, new SeparatorMenuItem(), repetitions, rappel, debit, choixVoix);
-        if (ouvrirPrononciations != null) {
-            MenuItem prononciations = new MenuItem("Prononciation des noms…");
-            prononciations.setOnAction(e -> ouvrirPrononciations.run());
-            menu.getItems().addAll(new SeparatorMenuItem(), prononciations);
-        }
-        return menu;
-    }
-
-    private static RadioMenuItem radio(String libelle, ToggleGroup groupe, boolean choisi, Runnable action) {
-        RadioMenuItem item = new RadioMenuItem(libelle);
-        item.setToggleGroup(groupe);
-        item.setSelected(choisi);
-        item.setOnAction(e -> action.run());
-        return item;
+        return strategiePanneau.ferme(ferme());
     }
 
     private void reglerVoix(Runnable changement, String message) {
@@ -944,9 +882,7 @@ final class EcranSalle {
 
     private void memoriserAnnonce(ModeAnnonce mode) {
         tournoi.setModeAnnonce(mode);
-        apresAction(true, mode == null
-                ? "Annonce des rencontres : demandée à chaque lancement."
-                : "Annonce des rencontres : " + mode.getLibelle() + ". Choix mémorisé pour ce tournoi.");
+        apresAction(true, TextesPanneauxJourJ.modeEnregistre(mode));
     }
 
     /** Tableau et tour d'un match, pour l'annonce (vide s'il n'est plus dans la salle). */

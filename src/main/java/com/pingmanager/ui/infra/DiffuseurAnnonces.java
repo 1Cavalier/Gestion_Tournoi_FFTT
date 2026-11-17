@@ -24,6 +24,8 @@ public final class DiffuseurAnnonces {
     });
     private volatile Consumer<ResultatAnnonceVocale> ecouteur = r -> { };
     private volatile List<String> voixConnues;
+    /** B056 : dernières annonces traitées, pour les réannoncer depuis le panneau « Annonces ». */
+    private final com.pingmanager.core.HistoriqueAnnonces historique = new com.pingmanager.core.HistoriqueAnnonces();
 
     public DiffuseurAnnonces(ServiceAnnoncesVocales service) {
         this.service = service;
@@ -31,6 +33,11 @@ public final class DiffuseurAnnonces {
 
     public ServiceAnnoncesVocales service() {
         return service;
+    }
+
+    /** Dernières annonces traitées (dites ou seulement affichées), la plus récente d'abord. */
+    public com.pingmanager.core.HistoriqueAnnonces historique() {
+        return historique;
     }
 
     /**
@@ -80,6 +87,7 @@ public final class DiffuseurAnnonces {
         fil.execute(() -> {
             Optional<ResultatAnnonceVocale> r;
             while ((r = service.diffuserSuivante()).isPresent()) {
+                historique.noter(r.get(), java.time.Instant.now());
                 try {
                     ecouteur.accept(r.get());
                 } catch (RuntimeException ignore) {
