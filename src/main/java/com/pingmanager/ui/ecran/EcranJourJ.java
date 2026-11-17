@@ -54,7 +54,8 @@ final class EcranJourJ {
 
     private final BorderPane racine = new BorderPane();
     /** Rouvrir l'interface des annonces au prochain affichage (après un geste du suivi sur téléphone). */
-    private boolean rouvrirAnnonces;
+    /** Panneau à rouvrir au prochain affichage : « annonces », « strategie » ou vide. */
+    private String rouvrir = "";
     /** B021 : message du dernier démarrage du suivi sur téléphone (refus), vide sinon. */
     private String messageTelephone = "";
 
@@ -145,15 +146,35 @@ final class EcranJourJ {
         }
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
                 this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
-                .avecSms(contexte.convocationsSms(), this::afficherSms)
+                .avecSms(contexte.convocationsSms(), () -> depuisAnnonces(this::afficherSms))
                 .avecAnnoncesVocales(contexte.annoncesVocales())
-                .avecPrononciations(this::afficherPrononciations)
-                .avecSuiviTelephone(this::carteTelephone);
-        if (rouvrirAnnonces) {
+                .avecPrononciations(() -> depuisAnnonces(this::afficherPrononciations))
+                .avecSuiviTelephone(this::carteTelephone)
+                .avecComparaisonStrategies(this::afficherComparaison);
+        if ("annonces".equals(rouvrir)) {
             principal.ouvrirAnnonces();
-            rouvrirAnnonces = false;
+        } else if ("strategie".equals(rouvrir)) {
+            principal.ouvrirStrategie();
         }
+        rouvrir = "";
         racine.setCenter(principal.build());
+    }
+
+    /** Écran ouvert depuis le panneau « Annonces » : son retour rouvre le panneau. */
+    private void depuisAnnonces(Runnable ouvrir) {
+        rouvrir = "annonces";
+        ouvrir.run();
+    }
+
+    /**
+     * B056 : comparaison chiffrée des stratégies (écran des prévisions, calculs
+     * inchangés) ; le retour rouvre le panneau « Stratégie ».
+     */
+    private void afficherComparaison() {
+        racine.setCenter(new EcranPrevisions(contexte, fichier, () -> {
+            rouvrir = "strategie";
+            afficherListe();
+        }).build());
     }
 
     /** Inscription sur place à un tableau qui n'a pas commencé ; retour à l'écran principal. */
@@ -276,7 +297,7 @@ final class EcranJourJ {
             arreter.setOnAction(e -> {
                 d.arreter();
                 messageTelephone = "";
-                rouvrirAnnonces = true;
+                rouvrir = "annonces";
                 afficherListe();
             });
             carte = Ui.carte(Ui.enteteAvecActions(Ui.titreCarte("Suivi sur téléphone"), grand, arreter),
@@ -294,7 +315,7 @@ final class EcranJourJ {
                 int p = DiffusionSuivi.lirePort(port.getText());
                 DiffusionSuivi.ResultatDemarrage r = d.demarrer(p, tournoi);
                 messageTelephone = r.estDemarre() ? "" : r.message();
-                rouvrirAnnonces = true;
+                rouvrir = "annonces";
                 afficherListe();
             };
             ouvrir.setOnAction(e -> demarrer.run());
