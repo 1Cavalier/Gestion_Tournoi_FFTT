@@ -2,61 +2,104 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.DroitRefuseException;
 import com.pingmanager.core.Horloge;
-import com.pingmanager.core.buvette.Centimes;
+import com.pingmanager.core.buvette.CommandeComptoir;
 import com.pingmanager.core.buvette.ResultatArticleBuvette;
 import com.pingmanager.core.buvette.ResultatMouvementStock;
-import com.pingmanager.core.buvette.SaisieArticle;
 import com.pingmanager.core.buvette.ServiceArticlesBuvette;
 import com.pingmanager.core.buvette.ServiceStockBuvette;
+import com.pingmanager.core.buvette.ServiceVentesBuvette;
 import com.pingmanager.model.AccesClub;
-import com.pingmanager.model.buvette.ArticleBuvette;
+import com.pingmanager.model.buvette.BuvetteTournoi;
 import com.pingmanager.model.buvette.FamilleArticle;
-import com.pingmanager.model.buvette.LienContenant;
+import com.pingmanager.model.buvette.ModeBuvette;
+import com.pingmanager.model.buvette.MoyenPaiement;
 import com.pingmanager.model.buvette.StockBuvette;
+import com.pingmanager.persistence.DepotTournoi;
 import com.pingmanager.ui.ContexteApplication;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Set;
 
 /**
- * Page « Buvette » du groupe Gestion (B026), réservée aux organisateurs : un
- * seul écran. En tête la liste « À racheter », puis les produits et les
- * contenants avec leur jauge et leurs boutons rapides (sortir, entrer,
- * recompter), enfin le formulaire d'article. La logique d'affichage est dans
- * {@link PresentationStockBuvette}, les règles dans {@code core.buvette}.
+ * Page « Buvette » du groupe Gestion (B026), réservée aux organisateurs. En
+ * tête : le club, le tournoi et son réglage (« Stock seulement » ou « Stock
+ * et ventes »). Puis quatre onglets :
+ * <ul>
+ *   <li><b>Stock</b> : liste « À racheter », jauges, sorties et entrées à la main ;</li>
+ *   <li><b>Articles</b> : articles du club, fiche, catalogue de base à cocher
+ *       ({@link VueArticlesBuvette}) ;</li>
+ *   <li><b>Comptoir</b> (mode « Stock et ventes ») : grille de gros boutons et
+ *       commande en cours ({@link VueComptoirBuvette}) ;</li>
+ *   <li><b>Bilan</b> : chiffres, détails, historique et export CSV
+ *       ({@link VueBilanBuvette}).</li>
+ * </ul>
+ * La logique d'affichage est dans les classes {@code Presentation…Buvette},
+ * les règles dans {@code core.buvette}.
  *
- * <p>Le stock appartient au club : il s'enregistre avec les données
- * d'application à chaque action.</p>
+ * <p>Les articles et le stock appartiennent au club ; le réglage et les ventes
+ * sont rangés par tournoi. Tout s'enregistre avec les données d'application à
+ * chaque action. Suivi interne du club, pas une caisse enregistreuse.</p>
  */
 final class PageBuvette {
 
-    private final ContexteApplication contexte;
-    private final ServiceArticlesBuvette serviceArticles = new ServiceArticlesBuvette();
-    private final ServiceStockBuvette serviceStock = new ServiceStockBuvette(Horloge.systeme());
+    static final String ONGLET_STOCK = "stock";
+    static final String ONGLET_ARTICLES = "articles";
+    static final String ONGLET_COMPTOIR = "comptoir";
+    static final String ONGLET_BILAN = "bilan";
 
-    private final VBox racine = new VBox(20);
+    final ContexteApplication contexte;
+    final ServiceArticlesBuvette serviceArticles = new ServiceArticlesBuvette();
+    final ServiceStockBuvette serviceStock = new ServiceStockBuvette(Horloge.systeme());
+    final ServiceVentesBuvette serviceVentes = new ServiceVentesBuvette(Horloge.systeme());
+    final ZoneId zone = ZoneId.systemDefault();
+
+    private final VBox racine = new VBox(16);
+    private final VBox reglage = new VBox(10);
+    private final HBox onglets = new HBox();
     private final VBox contenu = new VBox(20);
-    private final Label message = Ui.message();
+    final Label message = Ui.message();
     private String numeroClub;
-    /** Article ouvert dans le formulaire ({@code null} : nouvel article). */
-    private String articleEdite;
+    private String onglet;
+
+    /** Tournoi choisi ({@code null} : aucun tournoi du club). */
+    private ChoixTournoiBuvette.Option tournoi;
+    private List<ChoixTournoiBuvette.Option> tournois = List.of();
+
+    // État des vues, gardé tant que la page est ouverte.
+    /** Article ouvert dans la fiche ({@code null} : aucun ; {@link #NOUVEL_ARTICLE} : création). */
+    String articleEdite;
+    static final String NOUVEL_ARTICLE = "";
+    boolean vueCatalogue;
+    final Set<String> cochesCatalogue = new HashSet<>();
+    final CommandeComptoir commande = new CommandeComptoir();
+    MoyenPaiement moyen = MoyenPaiement.ESPECES;
+    /** Avertissement de stock de la dernière vente (vide : aucun). */
+    String avertissementComptoir = "";
+    /** Journée du bilan ({@code null} : tout le tournoi). */
+    LocalDate periodeBilan;
+    /** Vente dont l'annulation est en attente de confirmation (0 : aucune). */
+    int annulationAConfirmer;
 
     PageBuvette(ContexteApplication contexte) {
         this.contexte = contexte;
@@ -76,7 +119,8 @@ final class PageBuvette {
             choix.valueProperty().addListener((o, a, n) -> {
                 if (n != null) {
                     numeroClub = n;
-                    articleEdite = null;
+                    reinitialiser();
+                    chargerTournois();
                     afficher();
                 }
             });
@@ -84,13 +128,23 @@ final class PageBuvette {
         } else {
             entete.getChildren().addAll(Ui.espace(), Ui.discret(clubs.values().iterator().next()));
         }
-        racine.getChildren().setAll(entete,
-                Ui.aide("Suivi du stock pendant le tournoi : sortez ce qui part, entrez ce qui arrive, "
-                        + "recomptez quand il le faut. Sortir une portion d'un produit sort aussi ses contenants."),
-                message, contenu);
+        onglets.getStyleClass().add("buvette-onglets");
+        racine.getChildren().setAll(entete, reglage, onglets, message, contenu);
         racine.getStyleClass().add("page-buvette");
+        chargerTournois();
         afficher();
-        return Ui.defilant(Ui.page(1100, racine));
+        return Ui.defilant(Ui.page(1200, racine));
+    }
+
+    private void reinitialiser() {
+        articleEdite = null;
+        vueCatalogue = false;
+        cochesCatalogue.clear();
+        commande.vider();
+        avertissementComptoir = "";
+        periodeBilan = null;
+        annulationAConfirmer = 0;
+        onglet = null;
     }
 
     private Map<String, String> clubsGeres() {
@@ -116,12 +170,76 @@ final class PageBuvette {
         };
     }
 
-    private StockBuvette stock() {
+    /** Tournois du club (fichiers lisibles) et tournoi choisi par défaut. */
+    private void chargerTournois() {
+        List<ChoixTournoiBuvette.Candidat> candidats = new ArrayList<>();
+        Set<String> enCours = new HashSet<>();
+        try {
+            for (ContexteApplication.TournoiFichier tf : contexte.mesTournoisClub(contexte.tousLesTournois())) {
+                String club = tf.tournoi().getNumeroAffiliationClub();
+                if (club != null && club.trim().equals(numeroClub.trim())) {
+                    candidats.add(new ChoixTournoiBuvette.Candidat(reference(tf), tf.tournoi().getNom(),
+                            tf.tournoi().getDateDebut()));
+                }
+            }
+            for (ContexteApplication.TournoiFichier tf : contexte.tournoisEnCours()) {
+                enCours.add(reference(tf));
+            }
+        } catch (RuntimeException illisible) {
+            // dossier des tournois illisible : la page reste utilisable pour le stock
+        }
+        List<BuvetteTournoi> connus;
+        try {
+            connus = stock().getTournois();
+        } catch (DroitRefuseException refus) {
+            connus = List.of();
+        }
+        tournois = ChoixTournoiBuvette.options(candidats, connus);
+        String defaut = ChoixTournoiBuvette.parDefaut(candidats, enCours, LocalDate.now(zone));
+        tournoi = null;
+        for (ChoixTournoiBuvette.Option o : tournois) {
+            if (o.reference().equals(defaut) || (tournoi == null && defaut == null)) {
+                tournoi = o;
+            }
+        }
+        if (tournoi == null && !tournois.isEmpty()) {
+            tournoi = tournois.get(0);
+        }
+    }
+
+    /** Référence d'un tournoi : nom de son fichier, sans dossier ni extension. */
+    static String reference(ContexteApplication.TournoiFichier tf) {
+        String n = tf.fichier().getFileName().toString();
+        return n.endsWith(DepotTournoi.EXTENSION) ? n.substring(0, n.length() - DepotTournoi.EXTENSION.length()) : n;
+    }
+
+    StockBuvette stock() {
         return contexte.stockBuvette(numeroClub);
     }
 
+    /** Référence du tournoi choisi ({@code null} si aucun). */
+    String referenceTournoi() {
+        return tournoi == null ? null : tournoi.reference();
+    }
+
+    String nomTournoi() {
+        return tournoi == null ? "" : tournoi.nom();
+    }
+
+    ModeBuvette mode() {
+        return tournoi == null ? ModeBuvette.STOCK_SEUL : ServiceVentesBuvette.mode(stock(), tournoi.reference());
+    }
+
+    /** Ventes du tournoi choisi (vide si aucune). */
+    List<com.pingmanager.model.buvette.VenteBuvette> ventes() {
+        if (tournoi == null) {
+            return List.of();
+        }
+        return stock().tournoi(tournoi.reference()).map(BuvetteTournoi::getVentes).orElse(List.of());
+    }
+
     /** Qui saisit : le nom du compte connecté. */
-    private String auteur() {
+    String auteur() {
         com.pingmanager.model.CompteUtilisateur c = contexte.compteConnecte();
         if (c == null) {
             return "inconnu";
@@ -130,19 +248,29 @@ final class PageBuvette {
         return nom == null || nom.isBlank() ? c.getEmail() : nom;
     }
 
+    void ouvrir(String nouvelOnglet) {
+        onglet = nouvelOnglet;
+        annulationAConfirmer = 0;
+        afficher();
+    }
+
     /** Reconstruit la page (après chaque action). */
-    private void afficher() {
+    void afficher() {
         Node n;
         try {
-            n = construire();
+            construireReglage();
+            construireOnglets();
+            n = construireOnglet();
         } catch (DroitRefuseException refus) {
+            reglage.getChildren().clear();
+            onglets.getChildren().clear();
             n = Ui.carteNue(Ui.etatVide(refus.getMessage(), null));
         }
         contenu.getChildren().setAll(n);
     }
 
-    /** Enregistre le stock du club, affiche le message, puis reconstruit la page. */
-    private void enregistrer(boolean accepte, String explication) {
+    /** Enregistre les données du club, affiche le message, puis reconstruit la page. */
+    void enregistrer(boolean accepte, String explication) {
         if (!accepte) {
             Ui.erreur(message, explication);
             return;
@@ -157,31 +285,155 @@ final class PageBuvette {
         afficher();
     }
 
-    private void annoncer(ResultatMouvementStock r) {
+    void annoncer(ResultatMouvementStock r) {
         enregistrer(r.accepte(), r.explication());
     }
 
-    private void annoncer(ResultatArticleBuvette r) {
+    void annoncer(ResultatArticleBuvette r) {
         if (r.accepte()) {
             articleEdite = null;
         }
         enregistrer(r.accepte(), r.explication());
     }
 
-    private Node construire() {
+    // ==================================================================
+    // En-tête : tournoi et réglage
+    // ==================================================================
+
+    private void construireReglage() {
+        reglage.getChildren().clear();
+        reglage.getStyleClass().setAll("carte", "buvette-reglage");
+        if (tournoi == null) {
+            reglage.getChildren().add(Ui.discret("Aucun tournoi de ce club pour l'instant : la buvette suit le stock. "
+                    + "Pour enregistrer des ventes, créez d'abord le tournoi."));
+            return;
+        }
+        ComboBox<ChoixTournoiBuvette.Option> choix = new ComboBox<>(FXCollections.observableArrayList(tournois));
+        choix.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(ChoixTournoiBuvette.Option o) {
+                return o == null ? "" : o.libelle();
+            }
+
+            @Override
+            public ChoixTournoiBuvette.Option fromString(String s) {
+                return null;
+            }
+        });
+        choix.getSelectionModel().select(tournoi);
+        choix.valueProperty().addListener((o, a, n) -> {
+            if (n != null && n != tournoi) {
+                tournoi = n;
+                commande.vider();
+                avertissementComptoir = "";
+                periodeBilan = null;
+                onglet = null;
+                message.setText("");
+                afficher();
+            }
+        });
+        choix.getStyleClass().add("buvette-choix-tournoi");
+
+        ToggleGroup groupe = new ToggleGroup();
+        ModeBuvette actuel = mode();
+        List<ToggleButton> boutons = new ArrayList<>();
+        for (ModeBuvette m : ModeBuvette.values()) {
+            ToggleButton b = new ToggleButton(m.getLibelle());
+            b.setSelected(m == actuel);
+            b.setOnAction(e -> {
+                if (m == mode()) {
+                    b.setSelected(true);
+                    return;
+                }
+                serviceVentes.regler(stock(), tournoi.reference(), tournoi.nom(), m);
+                onglet = null;
+                enregistrer(true, "Buvette de « " + tournoi.nom() + " » réglée sur « " + m.getLibelle() + " ».");
+            });
+            boutons.add(b);
+        }
+        HBox ligne = new HBox(16, Ui.champEtiquete("Tournoi", choix),
+                Ui.champEtiquete("Tenir les comptes", Ui.segment(groupe, boutons.toArray(new ToggleButton[0]))));
+        ligne.setAlignment(Pos.BOTTOM_LEFT);
+        FlowPane souple = new FlowPane(16, 10, ligne.getChildren().toArray(new Node[0]));
+        souple.setAlignment(Pos.BOTTOM_LEFT);
+        reglage.getChildren().addAll(souple, Ui.aide(actuel.getExplication()
+                + (actuel == ModeBuvette.STOCK_ET_VENTES ? " Suivi interne du club, pas une caisse enregistreuse." : "")));
+    }
+
+    private boolean ongletVisible(String o) {
+        if (ONGLET_COMPTOIR.equals(o)) {
+            return mode() == ModeBuvette.STOCK_ET_VENTES;
+        }
+        if (ONGLET_BILAN.equals(o)) {
+            return mode() == ModeBuvette.STOCK_ET_VENTES || !ventes().isEmpty();
+        }
+        return true;
+    }
+
+    private void construireOnglets() {
+        if (onglet == null || !ongletVisible(onglet)) {
+            onglet = mode() == ModeBuvette.STOCK_ET_VENTES ? ONGLET_COMPTOIR : ONGLET_STOCK;
+        }
+        ToggleGroup groupe = new ToggleGroup();
+        List<ToggleButton> boutons = new ArrayList<>();
+        String[][] tous = {{ONGLET_COMPTOIR, "Comptoir"}, {ONGLET_STOCK, "Stock"}, {ONGLET_ARTICLES, "Articles"},
+                {ONGLET_BILAN, "Bilan"}};
+        for (String[] o : tous) {
+            if (!ongletVisible(o[0])) {
+                continue;
+            }
+            ToggleButton b = new ToggleButton(o[1]);
+            b.setSelected(o[0].equals(onglet));
+            b.setOnAction(e -> {
+                if (o[0].equals(onglet)) {
+                    b.setSelected(true);
+                    return;
+                }
+                message.setText("");
+                ouvrir(o[0]);
+            });
+            boutons.add(b);
+        }
+        onglets.getChildren().setAll(Ui.segment(groupe, boutons.toArray(new ToggleButton[0])));
+    }
+
+    private Node construireOnglet() {
+        if (ONGLET_ARTICLES.equals(onglet)) {
+            return new VueArticlesBuvette(this).construire();
+        }
+        if (ONGLET_COMPTOIR.equals(onglet)) {
+            return new VueComptoirBuvette(this).construire();
+        }
+        if (ONGLET_BILAN.equals(onglet)) {
+            return new VueBilanBuvette(this).construire();
+        }
+        return construireStock();
+    }
+
+    // ==================================================================
+    // Onglet « Stock »
+    // ==================================================================
+
+    private Node construireStock() {
         StockBuvette stock = stock();
         PresentationStockBuvette p = new PresentationStockBuvette(stock);
         VBox v = new VBox(20);
+        v.getChildren().add(Ui.aide("Suivi du stock : sortez ce qui part, entrez ce qui arrive, recomptez quand il "
+                + "le faut. Sortir une portion d'un produit sort aussi ses contenants."));
         v.getChildren().add(carteARacheter(p));
-        if (p.vide()) {
-            v.getChildren().add(Ui.carteNue(Ui.etatVideCompact(PresentationStockBuvette.MESSAGE_VIDE)));
+        if (!p.aDesArticlesActifs()) {
+            Button ajouter = Ui.boutonPrimaire("Choisir dans le catalogue");
+            ajouter.setOnAction(e -> {
+                vueCatalogue = true;
+                ouvrir(ONGLET_ARTICLES);
+            });
+            v.getChildren().add(Ui.carteNue(Ui.etatVide(PresentationStockBuvette.MESSAGE_VIDE, ajouter)));
         } else {
             for (PresentationStockBuvette.Section s : p.sections()) {
                 v.getChildren().add(carteSection(stock, s));
             }
         }
-        v.getChildren().add(carteFormulaire(stock, p));
-        List<String> mouvements = p.derniersMouvements(8, ZoneId.systemDefault());
+        List<String> mouvements = p.derniersMouvements(8, zone);
         if (!mouvements.isEmpty()) {
             VBox lignes = new VBox(4);
             mouvements.forEach(m -> lignes.getChildren().add(Ui.discret(m)));
@@ -237,6 +489,9 @@ final class PageBuvette {
         Label texteStock = Ui.gras(l.stock());
         HBox enteteJauge = new HBox(8, texteStock, Ui.pastille(l.niveau().getLibelle(),
                 PresentationStockBuvette.statut(l.niveau())));
+        if (l.aRecompter()) {
+            enteteJauge.getChildren().add(Ui.pastille("À recompter", StatutPastille.ATTENTION));
+        }
         enteteJauge.setAlignment(Pos.CENTER_LEFT);
         VBox jauge = new VBox(4, enteteJauge, barre);
         jauge.getStyleClass().add("buvette-jauge");
@@ -258,18 +513,13 @@ final class PageBuvette {
             }
             annoncer(serviceStock.recompter(stock, l.id(), quantite.getText(), auteur()));
         });
-        Button modifier = Ui.boutonLien("Modifier");
-        modifier.setOnAction(e -> {
+        Button fiche = Ui.boutonLien("Fiche");
+        fiche.setOnAction(e -> {
             articleEdite = l.id();
-            afficher();
+            vueCatalogue = false;
+            ouvrir(ONGLET_ARTICLES);
         });
-        HBox actions = new HBox(6, quantite, sortir, entrer, recompter, modifier);
-        if (l.retirable()) {
-            Button retirer = Ui.boutonLien("Retirer");
-            retirer.getStyleClass().add("lien-danger");
-            retirer.setOnAction(e -> annoncer(serviceArticles.retirer(stock, l.id())));
-            actions.getChildren().add(retirer);
-        }
+        HBox actions = new HBox(6, quantite, sortir, entrer, recompter, fiche);
         actions.setAlignment(Pos.CENTER_LEFT);
         HBox ligne = Ui.ligneElement(null, l.nom(), l.detail(), jauge, actions);
         ligne.getStyleClass().add("buvette-article");
@@ -289,99 +539,5 @@ final class PageBuvette {
             return;
         }
         action.accept(Long.parseLong(t));
-    }
-
-    // ==================================================================
-    // Formulaire d'article
-    // ==================================================================
-
-    private Node carteFormulaire(StockBuvette stock, PresentationStockBuvette p) {
-        ArticleBuvette existant = articleEdite == null ? null : stock.article(articleEdite).orElse(null);
-        TextField nom = Ui.champ("ex. Café, Gobelet");
-        ComboBox<FamilleArticle> famille = Ui.combo(FamilleArticle.values(),
-                existant == null ? FamilleArticle.PRODUIT : existant.getFamille());
-        TextField unite = Ui.champ("ex. dose, gobelet, canette");
-        TextField prixLot = Ui.champ("ex. 4,50");
-        TextField unitesParLot = Ui.champ("ex. 100");
-        TextField quantiteStock = Ui.champ("ex. 200");
-        TextField seuil = Ui.champ("ex. 30");
-        if (existant != null) {
-            nom.setText(existant.getNom());
-            unite.setText(existant.getUnite());
-            prixLot.setText(Centimes.nombre(existant.getPrixLotCentimes()));
-            unitesParLot.setText(String.valueOf(existant.getUnitesParLot()));
-            quantiteStock.setText(String.valueOf(existant.getStock()));
-            quantiteStock.setDisable(true);
-            seuil.setText(String.valueOf(existant.getSeuilAlerte()));
-        }
-
-        // Contenants utilisés par portion (produits seulement).
-        VBox zoneContenants = new VBox(6);
-        Map<String, CheckBox> coches = new LinkedHashMap<>();
-        Map<String, TextField> quantites = new LinkedHashMap<>();
-        List<ArticleBuvette> disponibles = p.contenantsDisponibles();
-        zoneContenants.getChildren().add(Ui.libelleChamp("Contenants utilisés à chaque portion"));
-        if (disponibles.isEmpty()) {
-            zoneContenants.getChildren().add(Ui.aide("Ajoutez d'abord vos contenants (famille « Contenant ou "
-                    + "consommable ») pour les lier à ce produit."));
-        }
-        FlowPane cases = new FlowPane(16, 8);
-        for (ArticleBuvette c : disponibles) {
-            CheckBox coche = new CheckBox(c.getNom());
-            TextField q = Ui.champ("1");
-            q.setPrefColumnCount(2);
-            q.getStyleClass().add("buvette-quantite");
-            if (existant != null) {
-                for (LienContenant lien : existant.getContenants()) {
-                    if (lien.idContenant().equals(c.getId())) {
-                        coche.setSelected(true);
-                        q.setText(String.valueOf(lien.quantite()));
-                    }
-                }
-            }
-            q.disableProperty().bind(coche.selectedProperty().not());
-            coches.put(c.getId(), coche);
-            quantites.put(c.getId(), q);
-            HBox h = new HBox(6, coche, q, Ui.discret("par portion"));
-            h.setAlignment(Pos.CENTER_LEFT);
-            cases.getChildren().add(h);
-        }
-        zoneContenants.getChildren().add(cases);
-        Runnable majFamille = () -> Ui.afficherSi(zoneContenants, famille.getValue() == FamilleArticle.PRODUIT);
-        famille.valueProperty().addListener((o, a, n) -> majFamille.run());
-        majFamille.run();
-
-        Supplier<Map<String, Integer>> liens = () -> {
-            Map<String, Integer> res = new LinkedHashMap<>();
-            for (Map.Entry<String, CheckBox> e : coches.entrySet()) {
-                if (e.getValue().isSelected()) {
-                    String t = quantites.get(e.getKey()).getText().trim();
-                    res.put(e.getKey(), t.isEmpty() ? 1 : t.matches("\\d{1,4}") ? Integer.parseInt(t) : 0);
-                }
-            }
-            return res;
-        };
-        Button enregistrer = Ui.boutonPrimaire(existant == null ? "Ajouter l'article" : "Enregistrer");
-        enregistrer.setOnAction(e -> annoncer(serviceArticles.enregistrer(stock, new SaisieArticle(
-                existant == null ? null : existant.getId(), nom.getText(), famille.getValue(), unite.getText(),
-                prixLot.getText(), unitesParLot.getText(), quantiteStock.getText(), seuil.getText(),
-                liens.get()))));
-        Button nouveau = Ui.boutonSecondaire("Nouvel article");
-        nouveau.setOnAction(e -> {
-            articleEdite = null;
-            afficher();
-        });
-        FlowPane champs = new FlowPane(12, 12,
-                Ui.champEtiquete("Nom", nom), Ui.champEtiquete("Famille", famille),
-                Ui.champEtiquete("Unité comptée", unite), Ui.champEtiquete("Prix d'un lot (€)", prixLot),
-                Ui.champEtiquete("Unités par lot", unitesParLot),
-                Ui.champEtiquete(existant == null ? "Stock de départ" : "Stock (boutons de la liste)", quantiteStock),
-                Ui.champEtiquete("Seuil d'alerte", seuil));
-        VBox corps = new VBox(12, champs,
-                Ui.aide("Le coût se saisit comme vous achetez : « 4,50 € les 100 gobelets ». "
-                        + "Pour un produit, une unité de stock = une portion servie."),
-                zoneContenants,
-                existant == null ? Ui.actions(enregistrer) : Ui.actions(enregistrer, nouveau));
-        return Ui.carte(existant == null ? "Ajouter un article" : "Modifier « " + existant.getNom() + " »", corps);
     }
 }

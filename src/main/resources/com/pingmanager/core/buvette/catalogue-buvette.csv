@@ -1,0 +1,59 @@
+# Catalogue de base de la buvette (B026), fourni avec PingManager, en lecture seule.
+# Idées d'articles courants pour un club qui démarre : COÛTS ET PRIX INDICATIFS, À ADAPTER.
+# Le club coche ce qu'il veut vendre ; chaque article choisi devient une copie qu'il modifie
+# librement (nom, prix, coût, composition, seuil). Modifier une copie ne change jamais ce fichier.
+#
+# Une ligne par article, séparateur « ; » ; les lignes qui commencent par « # » sont ignorées.
+# id            identifiant stable (minuscules, tirets) : ne pas le changer une fois publié
+# rayon         BOISSONS_CHAUDES, BOISSONS_FROIDES, SALE, SUCRE, AUTRE ou CONTENANTS
+# nom           nom proposé au club
+# unite         ce que l'on compte en stock (pour un produit : une portion servie)
+# prix_lot      prix d'achat indicatif d'un lot, en euros (« 4,90 »)
+# unites_lot    nombre d'unités dans ce lot (« 100 »)
+# prix_vente    prix de vente indicatif d'une portion, en euros (vide pour un contenant)
+# seuil         seuil d'alerte proposé (en unités)
+# composition   contenants utilisés par portion : « id*quantité » séparés par « + » (vide : aucun)
+#
+# id;rayon;nom;unite;prix_lot;unites_lot;prix_vente;seuil;composition
+
+# --- Contenants et consommables ---
+gobelet-chaud;CONTENANTS;Gobelet carton (boisson chaude);gobelet;4,90;100;;50;
+gobelet-froid;CONTENANTS;Gobelet carton (boisson froide);gobelet;3,90;100;;50;
+touillette;CONTENANTS;Touillette en bois;touillette;2,50;500;;100;
+sucre;CONTENANTS;Sucre en dosette;dosette;4,50;500;;100;
+serviette;CONTENANTS;Serviette en papier;serviette;2,00;200;;100;
+assiette;CONTENANTS;Assiette en carton;assiette;3,50;50;;30;
+barquette;CONTENANTS;Barquette en carton;barquette;4,00;100;;30;
+sachet;CONTENANTS;Sachet en papier;sachet;3,00;100;;30;
+cuillere;CONTENANTS;Cuillère en bois;cuillère;3,00;100;;30;
+sauce;CONTENANTS;Sauce en dosette (ketchup, moutarde);dosette;6,00;100;;30;
+
+# --- Boissons chaudes ---
+cafe;BOISSONS_CHAUDES;Café;dose;12,00;125;1,00;40;gobelet-chaud*1+touillette*1+sucre*1
+the;BOISSONS_CHAUDES;Thé;sachet;3,00;50;1,00;20;gobelet-chaud*1+touillette*1+sucre*1
+chocolat-chaud;BOISSONS_CHAUDES;Chocolat chaud;dose;6,00;40;1,50;20;gobelet-chaud*1+touillette*1
+
+# --- Boissons froides ---
+eau;BOISSONS_FROIDES;Bouteille d'eau 50 cl;bouteille;3,00;24;1,00;24;
+soda;BOISSONS_FROIDES;Soda en canette 33 cl;canette;9,60;24;1,50;24;
+jus-de-fruits;BOISSONS_FROIDES;Jus de fruits en brique 20 cl;brique;3,60;12;1,00;12;
+sirop-a-l-eau;BOISSONS_FROIDES;Sirop à l'eau;verre;3,00;37;0,50;20;gobelet-froid*1
+boisson-effort;BOISSONS_FROIDES;Boisson de l'effort 50 cl;bouteille;6,00;6;2,00;6;
+
+# --- Salé ---
+jambon-beurre;SALE;Sandwich jambon-beurre;sandwich;10,00;10;3,00;10;serviette*1+sachet*1
+croque-monsieur;SALE;Croque-monsieur;part;8,00;10;2,50;10;serviette*1+assiette*1
+hot-dog;SALE;Hot-dog;part;6,00;10;2,50;10;serviette*1+sauce*1+barquette*1
+pizza;SALE;Part de pizza;part;3,60;8;2,00;8;serviette*1+assiette*1
+quiche;SALE;Part de quiche;part;4,00;8;2,00;8;serviette*1+assiette*1
+chips;SALE;Paquet de chips 30 g;paquet;4,80;20;1,00;20;
+
+# --- Sucré ---
+crepe;SUCRE;Crêpe (sucre ou pâte à tartiner);crêpe;4,00;20;1,00;20;serviette*1
+gaufre;SUCRE;Gaufre;gaufre;4,00;20;1,50;20;serviette*1
+gateau;SUCRE;Part de gâteau;part;4,00;10;1,50;10;serviette*1+assiette*1
+cookie;SUCRE;Cookie;cookie;2,40;12;1,00;12;serviette*1
+viennoiserie;SUCRE;Viennoiserie (croissant, pain au chocolat);pièce;4,00;10;1,00;10;serviette*1+sachet*1
+barre-chocolatee;SUCRE;Barre chocolatée;barre;4,00;10;1,00;10;
+compote;SUCRE;Compote en coupelle;coupelle;2,40;8;1,00;8;cuillere*1
+bonbons;SUCRE;Sachet de bonbons;sachet;4,00;20;0,50;20;

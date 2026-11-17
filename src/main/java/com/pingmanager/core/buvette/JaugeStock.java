@@ -38,11 +38,15 @@ public record JaugeStock(ArticleBuvette article, NiveauStock niveau, double remp
 
     /**
      * Liste « À racheter » : les articles au niveau {@link NiveauStock#URGENT},
-     * les plus vides d'abord (stock rapporté au seuil), puis par nom.
+     * les plus vides d'abord (stock rapporté au seuil), puis par nom. Les
+     * articles archivés (retirés de la vente) n'y figurent pas.
      */
     public static List<JaugeStock> aRacheter(StockBuvette stock) {
         List<JaugeStock> res = new ArrayList<>();
         for (ArticleBuvette a : stock.getArticles()) {
+            if (a.estArchive()) {
+                continue;
+            }
             JaugeStock j = de(a);
             if (j.niveau() == NiveauStock.URGENT) {
                 res.add(j);

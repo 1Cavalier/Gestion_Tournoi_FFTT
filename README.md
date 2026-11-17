@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 955 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 2 000 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -411,30 +411,42 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   `~/.pingmanager/documents/` (anciens tournois : copie à la première
   ouverture, sinon « fichier introuvable »). La carte n'affiche que sa page :
   un lien d'attribution s'ouvre dans le navigateur du système.
-**Buvette (B026, simplifiée)** — menu Gestion → **Buvette** (organisateurs),
-un seul écran, sans vente ni caisse : le club suit son stock.
-- **À racheter** en tête : les articles au seuil d'alerte ou en dessous, les
-  plus vides d'abord.
-- Deux familles : **produits** (café, boissons, sandwichs… ; une unité de
-  stock = une portion servie) et **contenants et consommables** (gobelets,
-  touillettes, serviettes…). Un produit est lié aux contenants qu'il utilise
-  à chaque portion (un café = 1 gobelet + 1 touillette).
-- Coûts saisis comme on achète (« 4,50 € les 100 gobelets ») ; par produit :
-  coût **brut**, coût de l'**emballage** et coût **complet** d'une portion
-  (au dixième de centime : « 0,064 € + 0,048 € = 0,112 € »).
-- Chaque article : stock, seuil d'alerte, **jauge** verte (suffisant), orange
-  (bas : jusqu'à 2 × le seuil), rouge (à racheter : au seuil ou en dessous) ;
-  boutons **− Sortir**, **+ Entrer** et **Recompter** (case quantité, vide
-  = 1). Sortir une portion d'un produit sort aussi ses contenants ; s'il en
-  manque, le stock est ramené à 0 et l'écran demande de recompter.
-- Journal des 500 derniers mouvements (qui, quand, origine) ; les 8 derniers
-  sont affichés. Toute sortie passe par `ServiceStockBuvette.sortir`, avec
-  une origine (aujourd'hui « saisie à la main ») et une référence : une
-  future commande de joueur s'y branchera sans changer le stock.
-- Données : section `stocksBuvette` du fichier d'application (le stock suit
-  le club d'un tournoi à l'autre). L'ancienne section `buvettes` (catalogue
-  B046) n'est plus lue mais est recopiée telle quelle ; les anciens fichiers
-  `X.buvette.json` ne sont plus lus (laissés sur le disque).
+**Buvette (B026)** — menu Gestion → **Buvette** (organisateurs). Suivi
+interne du club, **pas une caisse enregistreuse**. En tête : le club, le
+**tournoi** (celui en cours, sinon le prochain) et son réglage **« Stock
+seulement »** (sorties à la main) ou **« Stock et ventes »**. Quatre onglets :
+- **Articles** : les articles **du club**, réutilisés d'un tournoi à l'autre,
+  par rayon (boissons chaudes, froides, salé, sucré, autres, contenants et
+  consommables). **Catalogue de base** à cocher (32 articles courants,
+  ressource `core/buvette/catalogue-buvette.csv`, lecture seule, coûts et prix
+  **indicatifs, à adapter**) : chaque article coché devient une copie
+  modifiable (stock à 0) et entraîne ses contenants (un café = une dose + un
+  gobelet + une touillette + un sucre). Création d'un article de zéro. Fiche :
+  nom, rayon, unité, prix d'un lot, **prix de vente**, seuil, ce que l'on met
+  avec chaque portion ; coûts brut + emballage = portion complète et marge.
+  **Retirer de la vente** = archivage (historique gardé, « Remettre en
+  vente ») ; « Supprimer » seulement pour un article sans aucun historique.
+- **Stock** : liste **À racheter**, jauges vert/orange/rouge, **− Sortir**,
+  **+ Entrer**, **Recompter** ; pastille **« À recompter »** quand le stock a
+  manqué (levée au recomptage). Sortir une portion sort aussi ses contenants.
+- **Comptoir** (mode « Stock et ventes ») : gros boutons par rayon (tablette
+  posée sur le bar), commande en cours (− / +), total, **Espèces / Carte /
+  Autre**, **Valider** : la vente (date et heure, articles, quantités, prix et
+  coût **figés**, moyen de paiement, saisie par) sort le produit et ses
+  contenants. **Annuler la dernière vente** en un geste. Stock insuffisant :
+  la vente passe, avertissement, article « à recompter ».
+- **Bilan** : tout le tournoi ou une journée ; ventes, recette, coût des
+  articles vendus, marge ; détail par article et par moyen de paiement ;
+  **historique** (annulation confirmée, ventes annulées visibles, jamais
+  effacées) ; **export CSV** du bilan et de l'historique (UTF-8 avec BOM,
+  « ; », virgule décimale, formules neutralisées ; vérifié dans LibreOffice).
+- Données : section `stocksBuvette` du fichier d'application, par club :
+  articles, stock, journal (500 lignes), articles à recompter et `tournois`
+  (réglage et ventes de chaque tournoi, rattachés au **nom du fichier** du
+  tournoi). Anciens fichiers relus : mode « Stock seulement », aucune vente,
+  articles sans prix de vente. Le modèle prévoit une origine de vente :
+  une future commande en ligne (B026a) passera par `ServiceVentesBuvette`.
+  L'ancienne section `buvettes` (B046) est recopiée telle quelle.
 
 **Moteur sportif (testé)**
 - Ordre des parties I.301, placement I.302, classement I.303, placement du
@@ -592,11 +604,12 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 26. **B042** (ex-B041, identifiant réattribué au poste de pointage) —
     Statistiques du joueur (rencontres, victoires, adversaires, par
     saison).
-27. ~~B026 — Buvette~~ — **fait, version simplifiée** (section 3 ; B046
-    remplacée) ; à vérifier à l'écran. Suites possibles : **B026a** commande
-    d'un joueur depuis l'application, paiement (liquide ou en ligne) et
-    retrait au comptoir, qui appellera `ServiceStockBuvette.sortir` avec une
-    origine « commande » ; **B026b** stock partagé entre plusieurs
+27. ~~B026 — Buvette~~ — **fait** : stock simplifié, puis catalogue de base,
+    articles du club, comptoir et bilan (section 3) ; à vérifier à l'écran,
+    en particulier le comptoir sur une tablette tactile. Suites possibles :
+    **B026a** commande d'un joueur depuis l'application, paiement (liquide ou
+    en ligne) et retrait au comptoir, qui appellera
+    `ServiceVentesBuvette.vendre` avec une nouvelle `OrigineVente` ; **B026b** stock partagé entre plusieurs
     ordinateurs (avec la synchronisation, voir B041 suite) ; **B026c**
     reprendre l'ancien catalogue B046 si un club l'avait rempli (section 6).
 28. Tableaux réservés aux licences loisir (IX.101), inscription d'un licencié
@@ -872,10 +885,34 @@ parenthèses.
   d'un tournoi) ne sont plus lus ; (5) stock dans le **fichier
   d'application**, par club, sur cet ordinateur (pas de partage entre
   postes) ; (6) le journal garde les **500** derniers mouvements.
+  **Catalogue, articles du club et ventes (B026, suite)** — choix
+  provisoires : (7) **valeurs du catalogue de base** (coûts et prix
+  indicatifs, liste dans la Pull Request) à valider ; (8) le **stock reste
+  au niveau du club** (comme avant : un placard de gobelets ne se vide pas
+  entre deux tournois) ; seuls le réglage et les ventes sont **par
+  tournoi** — faut-il un stock propre à chaque tournoi ? (9) ventes
+  rattachées au tournoi par le **nom de son fichier** : renommer le fichier
+  sépare ses ventes (elles restent visibles, « fichier absent ») ;
+  (10) ventes stockées dans le **fichier d'application de cet ordinateur**
+  (pas de comptoir partagé entre deux postes, voir B026b) ; (11) un produit
+  **sans prix de vente** est grisé au comptoir (pas de vente à 0 €, ni
+  offerte aux bénévoles) ; (12) le moyen de paiement revient à **Espèces**
+  après chaque vente ; (13) coût total du bilan = somme exacte arrondie une
+  fois (les lignes par article peuvent différer d'un centime) ;
+  (14) archiver un **contenant** encore utilisé par un produit en vente est
+  refusé ; remettre un produit en vente remet ses contenants archivés.
   **Questions légales (pour la future vente, B026a), non tranchées** :
   autorisation de buvette temporaire (mairie), boissons autorisées, en
   particulier l'**alcool** ; **TVA et fiscalité** des recettes d'une
   association ; **hygiène alimentaire** ; **allergènes** ; tenue de caisse.
+  À vérifier avant de vendre le module : l'obligation de **logiciel de caisse
+  certifié** (article 286, I-3° bis du CGI, attestation ou certification
+  NF525) pour un assujetti à la TVA qui enregistre des ventes à des
+  particuliers — une association non assujettie n'y est en principe pas
+  soumise ; le module est présenté comme suivi interne, sans ticket ni
+  clôture de caisse, mais un avis (expert-comptable) est nécessaire. Gobelets
+  et vaisselle **plastique à usage unique** interdits (loi AGEC) : le
+  catalogue ne propose que du carton et du bois.
 - **Étape 5 « Tournoi commencé » (Gestion des tournois)** — questions :
   (1) la frise se lit de haut en bas de l'étape la plus avancée à la plus
   ancienne : l'étape 5 est donc **au-dessus** de l'étape 4 « Publié ». À
