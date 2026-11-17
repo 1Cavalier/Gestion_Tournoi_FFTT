@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 1 935 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 1 955 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -275,10 +275,27 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   colonne sur petite largeur) **Lancer un match** (matchs prêts, tables
   libres ; ouvre à gauche l'interface « Lancer un match », ci-dessous),
   **Annonces** (état en un mot : Voix, SMS,
-  Voix et SMS, Coupées, À chaque match ; ouvre annonce des rencontres, voix,
-  SMS, prononciation, suivi sur téléphone) et **Stratégie en place** (ouvre le
-  sélecteur à trois choix ; s'applique aux prochains matchs proposés, pas aux
-  matchs sur une table) ; **Tableaux** : une ligne par tableau avec une frise
+  Voix et SMS, Coupées, À chaque match) et **Stratégie en place**, qui ouvrent
+  chacune **leur propre panneau** à la place de l'écran (B056, « Fermer » ou
+  « ← Retour au jour J » pour revenir) :
+  - **panneau Annonces** : le mode en quatre options côte à côte (Voix, SMS,
+    Voix + SMS, Aucune annonce ; une phrase chacune, le mode actuel marqué,
+    « Me demander à chaque match » pour revenir à la question à chaque
+    lancement), puis un bloc **Voix** (annonce automatique, tableau et tour,
+    répétition, rappel, débit, voix, « Tester la voix », prononciation des
+    noms) et un bloc **SMS** (bandeau « envoi simulé », envoi automatique,
+    expéditeur, numéros, envois, « Voir un exemple de SMS », numéros et
+    journal) ; un bloc qui ne sert pas avec le mode choisi est atténué et
+    replié (« Inactif avec le mode actuel », « Préparer les réglages ») ;
+    **Dernières annonces** (dix au plus, en mémoire, avec « Réannoncer ») ;
+    suivi sur téléphone en bas ;
+  - **panneau Stratégie** : trois cartes de même taille (quand la choisir :
+    tournoi, tables, objectif ; en salle ; avantage ; inconvénient), la
+    stratégie en place marquée, « Passer à cette stratégie » avec
+    confirmation (les matchs déjà sur une table ne changent pas), et une zone
+    à part **Comparer les stratégies** qui ouvre les prévisions chiffrées.
+  Tous les textes des deux panneaux sont dans `TextesPanneauxJourJ`.
+  Réglages enregistrés et calculs inchangés ; **Tableaux** : une ligne par tableau avec une frise
   en six étapes (avant pointage, pointage ouvert, pointage fermé, poules,
   élimination directe avec le tour en cours, terminé ; libellés courts ou
   numéros seuls quand la place manque) et les actions de l'étape (ouvrir le
@@ -480,9 +497,6 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   (toujours en démo).
 
 ### Jour J
-- **B056 — Refaire l'interface « Annonces ».** La carte ouvre sous les cartes
-  les réglages existants (annonce des rencontres, menu Voix, SMS,
-  prononciation, suivi sur téléphone), sans mise en forme dédiée.
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
    dans une cellule ; le même composant pour les poules et le tableau final ;
@@ -620,6 +634,17 @@ parenthèses.
 - Cartes carrées : côté borné à 240 px pour ne pas repousser les tableaux
   sous l'écran en grande largeur ; en colonne (petite largeur), les cartes
   ne sont plus carrées mais pleine largeur. À confirmer à l'écran.
+- Panneaux Annonces et Stratégie (B056), cinq questions : (1) relire les
+  textes, tous dans `TextesPanneauxJourJ` (en particulier les lignes
+  « Tables » des cartes de stratégie, rédigées sans chiffre : « Salle juste
+  en tables », « Assez de tables pour ne pas courir après l'heure », « Tout
+  nombre de tables ») ; (2) le suivi sur téléphone n'est pas une annonce :
+  le garder en bas du panneau Annonces (provisoire) ou le déplacer ?
+  (3) l'historique ne garde que les annonces à la voix, en mémoire (perdu à
+  la fermeture du logiciel) ; y ajouter les SMS ? (4) « Demander à chaque
+  match » reste un cinquième choix discret sous les quatre modes ; le
+  garder ? (5) le sélecteur de la vue du tournoi (avant le jour J) garde ses
+  phrases courtes, différentes des cartes du jour J : les aligner ?
 - Tableau qui s'arrête aux poules : passe directement de l'étape 4 à
   l'étape 6 (« Tableau terminé ») ; l'étape 5 reste grise. Le garder, ou
   masquer l'étape 5 pour ces tableaux ? (provisoire : grise).

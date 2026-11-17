@@ -4497,6 +4497,157 @@
     -fx-pref-width: 120px;
 }
 
+/* =====================================================================
+   Jour J : panneaux « Annonces » et « Stratégie » (B056 : PanneauAnnonces,
+   PanneauStrategie) — tokens uniquement, valables en clair et en sombre
+   ===================================================================== */
+
+.panneau-jourj-phrase {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Options de mode : cartes cliquables, la sélectionnée teintée et cerclée de bleu. */
+.panneau-option {
+    -fx-cursor: hand;
+    -fx-padding: 14 16 14 16;
+    -fx-background-color: -bordure, -surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 12, 11;
+}
+
+.panneau-option:hover {
+    -fx-background-color: -primaire, -surface-2;
+}
+
+.panneau-option:selected {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.panneau-option:focused {
+    -fx-background-color: -primaire-fort, -surface-2;
+    -fx-background-insets: 0, 2;
+}
+
+.panneau-option:selected:focused {
+    -fx-background-color: -primaire-fort, -primaire-doux;
+}
+
+.panneau-option-rond {
+    -fx-background-color: -bordure-forte, -surface;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 9, 7;
+}
+
+.panneau-option:selected .panneau-option-rond {
+    -fx-background-color: -primaire, -surface, -primaire;
+    -fx-background-insets: 0, 2, 5;
+    -fx-background-radius: 9, 7, 4;
+}
+
+.panneau-option-nom {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.panneau-option-phrase {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+.panneau-option-remarque {
+    -fx-font-size: 12px;
+    -fx-text-fill: -texte-doux;
+}
+
+/* Blocs Voix et SMS ; un bloc qui ne sert pas avec le mode choisi est atténué. */
+.panneau-bloc-explication {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte-doux;
+}
+
+.carte.panneau-bloc-inactif {
+    -fx-background-color: -bordure, -surface-2;
+    -fx-effect: null;
+}
+
+.carte.panneau-bloc-inactif .carte-titre,
+.carte.panneau-bloc-inactif .panneau-bloc-explication {
+    -fx-opacity: 0.75;
+}
+
+.panneau-valeur {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+.panneau-sms-exemple-cadre {
+    -fx-padding: 10 12 10 12;
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+}
+
+.panneau-sms-exemple {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+/* Historique des dernières annonces. */
+.panneau-historique-ligne {
+    -fx-padding: 10 4 10 4;
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.panneau-historique-ligne.panneau-historique-premiere {
+    -fx-border-width: 0;
+}
+
+.panneau-historique-heure {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+.panneau-historique-texte {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+/* Cartes de stratégie : même taille, la stratégie en place cerclée de bleu. */
+.carte.panneau-strategie-carte {
+    -fx-padding: 18;
+}
+
+.carte.panneau-strategie-carte:selected {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 12, 10;
+}
+
+.panneau-strategie-nom {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.panneau-strategie-intertitre {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+}
+
+.panneau-strategie-texte {
+    -fx-font-size: 13px;
+    -fx-text-fill: -texte;
+}
+
+.panneau-strategie-inconvenient .panneau-strategie-intertitre {
+    -fx-text-fill: -texte-doux;
+}
+
 /* === Buvette (B026, suite) : catalogue, articles du club, comptoir et bilan === */
 
 .buvette-reglage {
