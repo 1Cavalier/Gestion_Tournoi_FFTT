@@ -15,6 +15,11 @@ import java.util.Objects;
  * sans arrondi intermédiaire.</p>
  *
  * <p>Seul un produit a des contenants ; ceux d'un contenant sont ignorés.</p>
+ *
+ * <p>C'est un <b>article du club</b> : créé de zéro ou copié du catalogue de
+ * base ({@link #getIdCatalogue()}), puis modifié librement. Il porte un prix
+ * de vente (mode « Stock et ventes ») et peut être <b>archivé</b> : retiré de
+ * la vente et des listes, sans perdre son historique.</p>
  */
 public final class ArticleBuvette {
 
@@ -27,6 +32,10 @@ public final class ArticleBuvette {
     private final long stock;
     private final long seuilAlerte;
     private final List<LienContenant> contenants;
+    private final RayonBuvette rayon;
+    private final long prixVenteCentimes;
+    private final boolean archive;
+    private final String idCatalogue;
 
     private ArticleBuvette(Builder b) {
         this.id = exiger(b.id, "id");
@@ -47,6 +56,13 @@ public final class ArticleBuvette {
         this.stock = b.stock;
         this.seuilAlerte = b.seuilAlerte;
         this.contenants = famille == FamilleArticle.PRODUIT ? sansDoublon(b.contenants) : List.of();
+        this.rayon = RayonBuvette.accorder(b.rayon, famille);
+        if (b.prixVenteCentimes < 0) {
+            throw new IllegalArgumentException("prix de vente négatif");
+        }
+        this.prixVenteCentimes = b.prixVenteCentimes;
+        this.archive = b.archive;
+        this.idCatalogue = b.idCatalogue == null ? "" : b.idCatalogue.trim();
     }
 
     /** Un même contenant cité deux fois : les quantités s'additionnent. */
@@ -92,6 +108,10 @@ public final class ArticleBuvette {
         b.stock = stock;
         b.seuilAlerte = seuilAlerte;
         b.contenants = contenants;
+        b.rayon = rayon;
+        b.prixVenteCentimes = prixVenteCentimes;
+        b.archive = archive;
+        b.idCatalogue = idCatalogue;
         return b;
     }
 
@@ -144,6 +164,31 @@ public final class ArticleBuvette {
         return contenants;
     }
 
+    /** Rayon (toujours {@link RayonBuvette#CONTENANTS} pour un contenant). */
+    public RayonBuvette getRayon() {
+        return rayon;
+    }
+
+    /** Prix de vente d'une portion, en centimes (0 : pas encore fixé). */
+    public long getPrixVenteCentimes() {
+        return prixVenteCentimes;
+    }
+
+    /** @return vrai si l'article est retiré de la vente (historique gardé). */
+    public boolean estArchive() {
+        return archive;
+    }
+
+    /** Article du catalogue de base dont celui-ci est la copie (vide : créé de zéro). */
+    public String getIdCatalogue() {
+        return idCatalogue;
+    }
+
+    /** @return une copie de cet article, archivée ou remise en vente. */
+    public ArticleBuvette avecArchive(boolean v) {
+        return modifier().archive(v).build();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof ArticleBuvette a)) {
@@ -151,12 +196,15 @@ public final class ArticleBuvette {
         }
         return id.equals(a.id) && nom.equals(a.nom) && famille == a.famille && unite.equals(a.unite)
                 && prixLotCentimes == a.prixLotCentimes && unitesParLot == a.unitesParLot && stock == a.stock
-                && seuilAlerte == a.seuilAlerte && contenants.equals(a.contenants);
+                && seuilAlerte == a.seuilAlerte && contenants.equals(a.contenants) && rayon == a.rayon
+                && prixVenteCentimes == a.prixVenteCentimes && archive == a.archive
+                && idCatalogue.equals(a.idCatalogue);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, nom, famille, unite, prixLotCentimes, unitesParLot, stock, seuilAlerte, contenants);
+        return Objects.hash(id, nom, famille, unite, prixLotCentimes, unitesParLot, stock, seuilAlerte, contenants,
+                rayon, prixVenteCentimes, archive, idCatalogue);
     }
 
     @Override
@@ -175,6 +223,10 @@ public final class ArticleBuvette {
         private long stock;
         private long seuilAlerte;
         private List<LienContenant> contenants = List.of();
+        private RayonBuvette rayon;
+        private long prixVenteCentimes;
+        private boolean archive;
+        private String idCatalogue;
 
         public Builder id(String v) {
             this.id = v;
@@ -226,6 +278,29 @@ public final class ArticleBuvette {
 
         public Builder contenants(List<LienContenant> v) {
             this.contenants = v == null ? List.of() : v;
+            return this;
+        }
+
+        /** Rayon ({@code null} : déduit de la famille). */
+        public Builder rayon(RayonBuvette v) {
+            this.rayon = v;
+            return this;
+        }
+
+        /** Prix de vente d'une portion, en centimes. */
+        public Builder prixVenteCentimes(long v) {
+            this.prixVenteCentimes = v;
+            return this;
+        }
+
+        public Builder archive(boolean v) {
+            this.archive = v;
+            return this;
+        }
+
+        /** Article du catalogue de base copié (vide ou {@code null} : créé de zéro). */
+        public Builder idCatalogue(String v) {
+            this.idCatalogue = v;
             return this;
         }
 

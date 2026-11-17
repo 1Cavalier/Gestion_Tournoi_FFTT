@@ -20,8 +20,10 @@ import java.util.Optional;
  * contenants (un café sort une dose, un gobelet et une touillette).
  *
  * <p>Le stock ne devient jamais négatif : s'il manque des unités, l'article
- * est ramené à 0 et le résultat demande de recompter (le comptage réel était
- * faux ; refuser la sortie bloquerait le bénévole au comptoir).</p>
+ * est ramené à 0, signalé « à recompter » ({@link StockBuvette#estARecompter})
+ * et le résultat demande de recompter (le comptage réel était faux ; refuser
+ * la sortie bloquerait le bénévole au comptoir). Le recomptage lève le
+ * signalement.</p>
  *
  * <p>Point d'entrée unique des sorties : le jour où un joueur commandera
  * depuis l'application, le retrait de sa commande appellera
@@ -102,6 +104,7 @@ public final class ServiceStockBuvette {
         ArticleBuvette actuel = stock.article(a.getId()).orElse(a); // un contenant cité deux fois
         if (actuel.getStock() < quantite) {
             epuises.add(actuel.getNom());
+            stock.marquerARecompter(actuel.getId());
         }
         return appliquer(stock, actuel, NatureMouvement.SORTIE, -Math.min(quantite, actuel.getStock()), op, t,
                 origine, reference, auteur);
@@ -117,11 +120,34 @@ public final class ServiceStockBuvette {
             return ResultatMouvementStock.refus(ResultatMouvementStock.Motif.COMPTE_INVALIDE);
         }
         long ecart = compte - a.get().getStock();
+        stock.recompte(idArticle);
         MouvementStock m = appliquer(stock, a.get(), NatureMouvement.RECOMPTAGE, ecart, stock.prochaineOperation(),
                 horloge.maintenant(), OrigineMouvement.SAISIE_MANUELLE, "", auteur);
         String detail = ecart == 0 ? "aucun écart" : "écart de " + (ecart > 0 ? "+" : "") + ecart;
         return new ResultatMouvementStock(ResultatMouvementStock.Motif.ENREGISTRE, List.of(m),
                 a.get().getNom() + " recompté : " + compte + " en stock (" + detail + ").", List.of());
+    }
+
+    /**
+     * Remet en stock des quantités sorties auparavant (annulation d'une vente),
+     * en une seule opération du journal. Une quantité nulle ou un article
+     * disparu est ignoré.
+     *
+     * @return les lignes ajoutées au journal
+     */
+    List<MouvementStock> remettre(StockBuvette stock, List<com.pingmanager.model.buvette.SortieVente> sorties,
+                                  OrigineMouvement origine, String reference, String auteur) {
+        int op = stock.prochaineOperation();
+        Instant t = horloge.maintenant();
+        List<MouvementStock> res = new ArrayList<>();
+        for (com.pingmanager.model.buvette.SortieVente sv : sorties) {
+            Optional<ArticleBuvette> a = stock.article(sv.idArticle());
+            if (a.isPresent() && sv.quantite() > 0) {
+                res.add(appliquer(stock, a.get(), NatureMouvement.ENTREE, sv.quantite(), op, t, origine, reference,
+                        auteur));
+            }
+        }
+        return res;
     }
 
     /** Recomptage saisi à l'écran (« 12 »). */

@@ -16,7 +16,12 @@ public record ResultatArticleBuvette(Motif motif, ArticleBuvette article, String
     public enum Motif {
         AJOUTE(true, "Article ajouté"),
         MODIFIE(true, "Article enregistré"),
-        RETIRE(true, "Article retiré"),
+        RETIRE(true, "Article supprimé"),
+        ARCHIVE(true, "Article retiré de la vente (historique gardé)"),
+        REMIS_EN_VENTE(true, "Article remis en vente"),
+        PRIX_VENTE_INVALIDE(false, "Le prix de vente doit être un montant positif, par exemple 1,50."),
+        A_UN_HISTORIQUE(false, "Cet article a déjà des mouvements ou des ventes : retirez-le de la vente "
+                + "(archivage) au lieu de le supprimer"),
         NOM_OBLIGATOIRE(false, "Donnez un nom à l'article."),
         NOM_EN_DOUBLE(false, "Un article porte déjà ce nom"),
         PRIX_INVALIDE(false, "Le prix du lot doit être un montant positif, par exemple 4,50."),
@@ -25,6 +30,8 @@ public record ResultatArticleBuvette(Motif motif, ArticleBuvette article, String
         SEUIL_INVALIDE(false, "Le seuil d'alerte doit être un nombre entier positif ou nul."),
         CONTENANT_INVALIDE(false, "Chaque contenant doit être un contenant du stock, au moins 1 par portion."),
         CONTENANT_UTILISE(false, "Ce contenant sert encore à un produit"),
+        DEJA_ARCHIVE(false, "Cet article est déjà retiré de la vente."),
+        NON_ARCHIVE(false, "Cet article est déjà en vente."),
         FAMILLE_VERROUILLEE(false, "Ce contenant sert encore à un produit : il ne peut pas devenir un produit"),
         INCONNU(false, "Article introuvable.");
 
