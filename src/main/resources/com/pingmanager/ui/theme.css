@@ -4496,3 +4496,137 @@
 .combo-box.lancement-table {
     -fx-pref-width: 120px;
 }
+
+/* === Buvette (B026, suite) : catalogue, articles du club, comptoir et bilan === */
+
+.buvette-reglage {
+    -fx-padding: 14 16 14 16;
+}
+
+.combo-box.buvette-choix-tournoi {
+    -fx-pref-width: 320px;
+}
+
+/* Catalogue à cocher : toute la ligne est cliquable. */
+.ligne-element.buvette-ligne-catalogue {
+    -fx-cursor: hand;
+}
+
+.check-box.buvette-coche-catalogue > .box {
+    -fx-padding: 5;
+}
+
+.buvette-barre-catalogue {
+    -fx-padding: 12 16 12 16;
+}
+
+.carte.buvette-fiche {
+    -fx-background-color: -primaire, -surface;
+}
+
+.label.buvette-resume-couts {
+    -fx-text-fill: -texte;
+    -fx-font-weight: bold;
+}
+
+.carte.buvette-archives .ligne-element-titre {
+    -fx-text-fill: -texte-doux;
+}
+
+/* Comptoir : gros boutons pour une tablette posée sur le bar. */
+.button.buvette-bouton-article {
+    -fx-min-width: 150px;
+    -fx-pref-width: 170px;
+    -fx-min-height: 96px;
+    -fx-pref-height: 104px;
+    -fx-alignment: top-left;
+    -fx-padding: 12 14 12 14;
+    -fx-background-radius: 12, 11;
+    -fx-background-color: -bordure, -surface;
+}
+
+.button.buvette-bouton-article:hover {
+    -fx-background-color: -primaire, -surface-2;
+}
+
+.button.buvette-bouton-article:pressed {
+    -fx-background-color: -primaire, -primaire-doux;
+}
+
+.button.buvette-bouton-article.buvette-bouton-article-choisi {
+    -fx-background-color: -primaire, -primaire-doux;
+    -fx-background-insets: 0, 2;
+}
+
+.label.buvette-bouton-nom {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.label.buvette-bouton-prix {
+    -fx-font-size: 15px;
+    -fx-text-fill: -primaire;
+    -fx-font-weight: bold;
+}
+
+.label.buvette-bouton-quantite {
+    -fx-background-color: -primaire;
+    -fx-background-radius: 999;
+    -fx-text-fill: -sur-primaire;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+    -fx-alignment: center;
+}
+
+.carte.buvette-commande {
+    -fx-spacing: 12;
+}
+
+.buvette-commande-ligne {
+    -fx-padding: 2 0 2 0;
+}
+
+.button.buvette-pas {
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-padding: 4;
+    -fx-font-size: 16px;
+}
+
+.label.buvette-commande-quantite {
+    -fx-min-width: 24px;
+    -fx-alignment: center;
+    -fx-font-size: 15px;
+}
+
+.label.buvette-total {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.segment.buvette-moyens > .toggle-button {
+    -fx-min-height: 48px;
+    -fx-font-size: 15px;
+}
+
+.button.buvette-valider {
+    -fx-min-height: 56px;
+    -fx-font-size: 18px;
+}
+
+.button.buvette-annuler-derniere {
+    -fx-min-height: 44px;
+}
+
+/* Bilan : tableaux simples et ventes annulées en retrait. */
+.buvette-tableau {
+    -fx-padding: 4 0 0 0;
+}
+
+.ligne-element.buvette-vente-annulee {
+    -fx-opacity: 0.7;
+}

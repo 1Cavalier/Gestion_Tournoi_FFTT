@@ -66,9 +66,11 @@ final class PresentationStockBuvette {
      * @param remplissage remplissage de la jauge (0 à 1)
      * @param detail      seuil, contenants, coûts
      * @param retirable   faux pour un contenant qui sert encore à un produit
+     * @param aRecompter  vrai si le stock a manqué à une sortie ou une vente
      */
     record LigneArticle(String id, String nom, FamilleArticle famille, String stock, NiveauStock niveau,
-                        String classeJauge, double remplissage, String detail, boolean retirable) {
+                        String classeJauge, double remplissage, String detail, boolean retirable,
+                        boolean aRecompter) {
     }
 
     /** Groupe d'articles d'une famille. */
@@ -95,12 +97,12 @@ final class PresentationStockBuvette {
         return res;
     }
 
-    /** Les deux familles, produits d'abord (une famille vide reste affichée). */
+    /** Les deux familles, produits d'abord (une famille vide reste affichée) ; sans les articles archivés. */
     List<Section> sections() {
         List<Section> res = new ArrayList<>();
         for (FamilleArticle f : FamilleArticle.values()) {
             List<LigneArticle> lignes = new ArrayList<>();
-            for (ArticleBuvette a : stock.articles(f)) {
+            for (ArticleBuvette a : stock.articlesActifs(f)) {
                 lignes.add(ligne(a));
             }
             res.add(new Section(f, f.getLibellePluriel(), lignes));
@@ -112,6 +114,9 @@ final class PresentationStockBuvette {
         JaugeStock j = JaugeStock.de(a);
         List<String> parts = new ArrayList<>();
         parts.add("Seuil d'alerte " + a.getSeuilAlerte());
+        if (a.estProduit() && a.getPrixVenteCentimes() > 0) {
+            parts.add("Vendu " + Centimes.euros(a.getPrixVenteCentimes()));
+        }
         if (a.estProduit()) {
             String c = texteContenants(a);
             if (!c.isEmpty()) {
@@ -129,7 +134,7 @@ final class PresentationStockBuvette {
         }
         return new LigneArticle(a.getId(), a.getNom(), a.getFamille(), quantite(a.getStock(), a.getUnite()),
                 j.niveau(), classeJauge(j.niveau()), j.remplissage(), String.join(" · ", parts),
-                stock.produitsUtilisant(a.getId()).isEmpty());
+                stock.produitsUtilisant(a.getId()).isEmpty(), stock.estARecompter(a.getId()));
     }
 
     /** « 1 gobelet, 1 touillette » (vide si aucun contenant). */
@@ -152,9 +157,15 @@ final class PresentationStockBuvette {
                 + " la portion";
     }
 
-    /** Contenants proposés dans le formulaire d'un produit. */
+    /** Contenants proposés dans le formulaire d'un produit (ceux en vente). */
     List<ArticleBuvette> contenantsDisponibles() {
-        return stock.articles(FamilleArticle.CONTENANT);
+        return stock.articlesActifs(FamilleArticle.CONTENANT);
+    }
+
+    /** @return vrai si au moins un article est en vente (hors archivés). */
+    boolean aDesArticlesActifs() {
+        return !stock.articlesActifs(FamilleArticle.PRODUIT).isEmpty()
+                || !stock.articlesActifs(FamilleArticle.CONTENANT).isEmpty();
     }
 
     /** Les {@code n} derniers mouvements, du plus récent au plus ancien. */
@@ -166,7 +177,10 @@ final class PresentationStockBuvette {
             MouvementStock m = journal.get(i);
             String nom = stock.article(m.idArticle()).map(ArticleBuvette::getNom).orElse(m.idArticle());
             String v = m.variation() > 0 ? "+" + m.variation() : String.valueOf(m.variation());
-            res.add(f.format(m.horodatage()) + " · " + m.nature().getLibelle() + " · " + nom + " " + v
+            String origine = m.origine() == com.pingmanager.model.buvette.OrigineMouvement.SAISIE_MANUELLE ? ""
+                    : " (" + m.origine().getLibelle().toLowerCase() + " n° "
+                    + m.reference().substring(m.reference().lastIndexOf('#') + 1) + ")";
+            res.add(f.format(m.horodatage()) + " · " + m.nature().getLibelle() + origine + " · " + nom + " " + v
                     + " (reste " + m.stockApres() + ") · " + m.auteur());
         }
         return res;
