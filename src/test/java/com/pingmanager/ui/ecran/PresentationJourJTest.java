@@ -10,6 +10,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Manche;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.Sexe;
+import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.Tableau;
 import com.pingmanager.model.Tournoi;
 import com.pingmanager.model.format.RegistreFormats;
@@ -160,5 +161,17 @@ class PresentationJourJTest {
         assertEquals("", PresentationJourJ.libelleQualification(SuiviPoule.Qualification.HORS_PLACE_QUALIFICATIVE));
         assertEquals("1er", PresentationJourJ.rang(1));
         assertEquals("3e", PresentationJourJ.rang(3));
+    }
+
+    @Test
+    void match_non_lance_ne_propose_que_le_forfait_avec_la_phrase_explicative() {
+        Match m = new Match(j("1", "ALPHA", "Club A"), j("2", "BETA", "Club B"));
+        assertFalse(PresentationJourJ.saisieScoreProposee(m), "à jouer : pas de score sans table");
+        assertEquals(List.of(IssueMatch.FORFAIT), PresentationJourJ.issuesProposees(m));
+        assertEquals("Ce match n'a pas encore été lancé sur une table.", PresentationJourJ.MATCH_NON_LANCE);
+
+        m.setStatut(StatutMatch.EN_COURS);
+        assertTrue(PresentationJourJ.saisieScoreProposee(m));
+        assertEquals(PresentationJourJ.ISSUES_NON_NORMALES, PresentationJourJ.issuesProposees(m));
     }
 }

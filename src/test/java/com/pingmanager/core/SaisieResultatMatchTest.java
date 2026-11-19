@@ -70,7 +70,7 @@ class SaisieResultatMatchTest {
     void score_complet_au_meilleur_des_5_enregistre_avec_heure_de_fin() {
         Tableau tab = tableauLance();
         Match match = tab.getPoules().get(0).getMatchs().get(0);
-        ResultatSaisieMatch r = saisie.enregistrerScore(tab, match, m(11, 9, 8, 11, 11, 5, 12, 10));
+        ResultatSaisieMatch r = saisie.enregistrerScore(tab, MatchsLances.lance(match), m(11, 9, 8, 11, 11, 5, 12, 10));
         assertTrue(r.estEnregistre(), r.toString());
         assertEquals(StatutMatch.TERMINE, match.getStatut());
         assertEquals(match.getJoueurA(), match.getVainqueur());
@@ -81,7 +81,7 @@ class SaisieResultatMatchTest {
     @Test
     void scores_incoherents_refuses_avec_motif_precis() {
         Tableau tab = tableauLance();
-        Match match = tab.getPoules().get(0).getMatchs().get(0);
+        Match match = MatchsLances.lance(tab.getPoules().get(0).getMatchs().get(0));
         assertEquals(ResultatSaisieMatch.Motif.AUCUNE_MANCHE, saisie.enregistrerScore(tab, match, List.of()).getMotif());
 
         ResultatSaisieMatch invalide = saisie.enregistrerScore(tab, match, m(11, 9, 11, 10, 11, 3));
@@ -95,7 +95,7 @@ class SaisieResultatMatchTest {
         assertEquals(4, apres.getNumeroManche());
         assertEquals(ResultatSaisieMatch.Motif.TROP_DE_MANCHES,
                 saisie.enregistrerScore(tab, match, m(11, 9, 9, 11, 11, 9, 9, 11, 11, 9, 11, 9)).getMotif());
-        assertEquals(StatutMatch.A_JOUER, match.getStatut(), "rien n'est enregistré sur un refus");
+        assertEquals(StatutMatch.EN_COURS, match.getStatut(), "rien n'est enregistré sur un refus : le match reste en cours");
     }
 
     @Test
@@ -104,7 +104,7 @@ class SaisieResultatMatchTest {
         Poule poule = tab.getPoules().get(0);
         Match match = poule.getMatchs().get(0);
         // Une saisie antérieure est remplacée par l'issue non normale.
-        saisie.enregistrerScore(tab, match, m(11, 9, 11, 9, 11, 9));
+        saisie.enregistrerScore(tab, MatchsLances.lance(match), m(11, 9, 11, 9, 11, 9));
         ResultatSaisieMatch r = saisie.enregistrerIssue(tab, match, IssueMatch.FORFAIT, match.getJoueurA());
         assertTrue(r.estEnregistre());
         assertEquals(match.getJoueurB(), match.getVainqueur());
@@ -131,7 +131,7 @@ class SaisieResultatMatchTest {
     void effacer_remet_le_match_a_jouer() {
         Tableau tab = tableauLance();
         Match match = tab.getPoules().get(0).getMatchs().get(0);
-        saisie.enregistrerIssue(tab, match, IssueMatch.ABANDON, match.getJoueurB());
+        saisie.enregistrerIssue(tab, MatchsLances.lance(match), IssueMatch.ABANDON, match.getJoueurB());
         assertTrue(saisie.effacer(tab, match).estEnregistre());
         assertEquals(StatutMatch.A_JOUER, match.getStatut());
         assertEquals(IssueMatch.NORMALE, match.getIssue());
@@ -146,12 +146,12 @@ class SaisieResultatMatchTest {
         Tableau autre = tableauLance();
         Match etranger = autre.getPoules().get(0).getMatchs().get(0);
         assertEquals(ResultatSaisieMatch.Motif.MATCH_HORS_TABLEAU,
-                saisie.enregistrerScore(tab, etranger, m(11, 9, 11, 9, 11, 9)).getMotif());
+                saisie.enregistrerScore(tab, MatchsLances.lance(etranger), m(11, 9, 11, 9, 11, 9)).getMotif());
 
         // Toutes les poules jouées puis phase finale construite : poules figées.
         for (Poule p : tab.getPoules()) {
             for (Match x : p.getMatchs()) {
-                assertTrue(saisie.enregistrerScore(tab, x, m(11, 9, 11, 9, 11, 9)).estEnregistre());
+                assertTrue(saisie.enregistrerScore(tab, MatchsLances.lance(x), m(11, 9, 11, 9, 11, 9)).estEnregistre());
             }
         }
         new ServiceLancementTableau().construirePhaseFinale(tab, 3L);

@@ -1,5 +1,6 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.model.IssueMatch;
 import com.pingmanager.model.Joueur;
@@ -239,7 +240,7 @@ class PresentationSuiviTournoiTest {
                     for (int i = 0; i < m.getNombreManchesGagnantes(); i++) {
                         manches.add(new Manche(11, 7));
                     }
-                    assertTrue(service.saisirScore(f, m, manches).estValide());
+                    assertTrue(service.saisirScore(f, MatchsLances.lance(m), manches).estValide());
                 }
             }
         }

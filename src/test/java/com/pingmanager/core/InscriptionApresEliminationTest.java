@@ -89,7 +89,7 @@ class InscriptionApresEliminationTest {
             }
             for (Match m : poule.getMatchs()) {
                 boolean pEnB = p.equals(m.getJoueurB());
-                saisie.enregistrerScore(a, m, pEnB ? victoireA() : victoireB());
+                saisie.enregistrerScore(a, MatchsLances.lance(m), pEnB ? victoireA() : victoireB());
             }
         }
     }

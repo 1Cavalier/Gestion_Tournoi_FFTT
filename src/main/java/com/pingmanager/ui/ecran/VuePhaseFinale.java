@@ -71,6 +71,8 @@ public final class VuePhaseFinale {
     private final Path fichier;
     private final Runnable onRetour;
     private final ServicePhaseFinale service;
+    /** Ouvre l'interface « Lancer un match » de la salle ; {@code null} si l'hôte ne sait pas l'ouvrir. */
+    private Runnable onLancerMatch;
 
     private final BorderPane racine = new BorderPane();
     private Match selectionne;
@@ -110,6 +112,20 @@ public final class VuePhaseFinale {
     public static Parent creer(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier,
                                Runnable onRetour) {
         VuePhaseFinale vue = new VuePhaseFinale(contexte, tournoi, tableau, fichier, onRetour);
+        vue.rafraichir();
+        return vue.racine;
+    }
+
+    /**
+     * Comme {@link #creer(ContexteApplication, Tournoi, Tableau, Path, Runnable)}, avec le raccourci
+     * « Lancer ce match » sur un match pas encore lancé.
+     *
+     * @param onLancerMatch ouvre l'interface « Lancer un match » de la salle
+     */
+    public static Parent creer(ContexteApplication contexte, Tournoi tournoi, Tableau tableau, Path fichier,
+                               Runnable onRetour, Runnable onLancerMatch) {
+        VuePhaseFinale vue = new VuePhaseFinale(contexte, tournoi, tableau, fichier, onRetour);
+        vue.onLancerMatch = onLancerMatch;
         vue.rafraichir();
         return vue.racine;
     }
@@ -361,7 +377,8 @@ public final class VuePhaseFinale {
         defilementArbre = defilement;
 
         return Ui.carte("Arbre des rencontres",
-                Ui.aide("Cliquez sur un match à jouer (cadre bleu) pour saisir son score ; le vainqueur avance "
+                Ui.aide("Cliquez sur un match (cadre bleu) pour saisir son score une fois lancé sur une table ; "
+                        + "le vainqueur avance "
                         + "aussitôt au tour suivant. Un joueur « Exempt » passe ce tour sans adversaire. "
                         + "Glissez l'arbre ou utilisez les barres pour le parcourir."),
                 legende(), defilement);
@@ -559,7 +576,7 @@ public final class VuePhaseFinale {
             selectionne = null;
             messageSucces = PresentationPhaseFinale.messageResultat(joue, tableau.getPhaseFinale());
             enregistrerPuisRafraichir();
-        });
+        }, onLancerMatch);
         if (tournoi != null && PresentationPhaseFinale.estSaisissable(m)) {
             Button feuille = Ui.boutonLien("Imprimer la feuille de match");
             feuille.setOnAction(e -> imprimer(ImpressionJourJ.feuilleMatch(tournoi, m)));

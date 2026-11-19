@@ -210,12 +210,14 @@ public final class TournoiDemoBrunoyJourJ {
         int n = 0;
         for (int p = 0; p < terminees; p++) {
             for (Match m : poules.get(p).getMatchs()) {
-                saisie.enregistrerScore(tab, m, scoreVictoire(n++ % 4 != 3));
+                saisie.enregistrerScore(tab, surTable(m, n, Instant.parse("2027-04-10T09:20:00Z")),
+                        scoreVictoire(n++ % 4 != 3));
             }
         }
         if (poules.size() > terminees) {
             Poule entamee = poules.get(terminees);
-            saisie.enregistrerScore(tab, entamee.getMatchs().get(0), manches(11, 9, 9, 11, 11, 6, 12, 10));
+            saisie.enregistrerScore(tab, surTable(entamee.getMatchs().get(0), n, Instant.parse("2027-04-10T09:20:00Z")),
+                    manches(11, 9, 9, 11, 11, 6, 12, 10));
             if (entamee.getMatchs().size() > 1) {
                 Match forfait = entamee.getMatchs().get(1);
                 saisie.enregistrerIssue(tab, forfait, IssueMatch.FORFAIT, forfait.getJoueurB());
@@ -247,15 +249,16 @@ public final class TournoiDemoBrunoyJourJ {
         phaseFinale.construire(tab, GRAINE_TABLEAU_FINAL);
         List<Tour> tours = ServicePhaseFinale.toursPrincipaux(tab.getPhaseFinale());
         int n = 0;
+        Instant finTableau = Instant.parse("2027-04-10T12:00:00Z");
         for (Match m : aJouer(tours.get(0))) {
-            phaseFinale.saisirScore(tab, m, scoreVictoire(n++ % 3 != 1));
+            phaseFinale.saisirScore(tab, surTable(m, n, finTableau), scoreVictoire(n++ % 3 != 1));
         }
         if (tours.size() > 2) {
             List<Match> suivants = aJouer(tours.get(1));
             for (int i = 0; i < suivants.size() && i < 4; i++) {
                 Match m = suivants.get(i);
                 if (i < 3) {
-                    phaseFinale.saisirScore(tab, m, scoreVictoire(i != 1));
+                    phaseFinale.saisirScore(tab, surTable(m, i, finTableau), scoreVictoire(i != 1));
                 } else {
                     m.setStatut(StatutMatch.EN_COURS);
                     m.setNumeroTable(TABLE_TABLEAU_FINAL);
@@ -293,9 +296,20 @@ public final class TournoiDemoBrunoyJourJ {
         int n = 0;
         for (Poule p : tab.getPoules()) {
             for (Match m : p.getMatchs()) {
-                saisie.enregistrerScore(tab, m, scoreVictoire(n++ % 4 != 3));
+                saisie.enregistrerScore(tab, surTable(m, n, heure), scoreVictoire(n++ % 4 != 3));
             }
         }
+    }
+
+    /**
+     * Un match se joue sur une table : la démo le lance (table, heure de début
+     * vingt minutes avant la fin) avant d'en saisir le score, comme en salle.
+     */
+    private static Match surTable(Match m, int rang, Instant fin) {
+        m.setStatut(StatutMatch.EN_COURS);
+        m.setNumeroTable(1 + rang % 16);
+        m.setInstantLancement(LocalDateTime.ofInstant(fin.minusSeconds(20 * 60L), java.time.ZoneId.systemDefault()));
+        return m;
     }
 
     /** Score conforme (2.11.1) en 3 manches gagnantes : le joueur A gagne 3-1, ou le B 3-1. */

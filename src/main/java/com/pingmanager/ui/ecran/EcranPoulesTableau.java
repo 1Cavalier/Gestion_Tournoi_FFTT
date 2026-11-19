@@ -44,6 +44,8 @@ final class EcranPoulesTableau {
     private final Runnable onRetour;
     /** Ouvre le tableau final (second tirage, arbre) ; {@code null} si indisponible. */
     private final Runnable onTableauFinal;
+    /** Ouvre l'interface « Lancer un match » de la salle ; {@code null} si l'hôte ne sait pas l'ouvrir. */
+    private Runnable onLancerMatch;
 
     private final SaisieResultatMatch saisie = new SaisieResultatMatch();
     private final SuiviPoule suivi = new SuiviPoule();
@@ -80,6 +82,12 @@ final class EcranPoulesTableau {
                 break;
             }
         }
+    }
+
+    /** Raccourci « Lancer ce match » sur un match pas encore lancé (ouvre l'interface de la salle). */
+    EcranPoulesTableau avecLancement(Runnable onLancerMatch) {
+        this.onLancerMatch = onLancerMatch;
+        return this;
     }
 
     Node build() {
@@ -316,7 +324,10 @@ final class EcranPoulesTableau {
 
         HBox actions = Ui.ligne(8);
         if (!m.estBye() && modifiable() && enEdition != m) {
-            Button b = m.getStatut() == StatutMatch.TERMINE ? Ui.boutonLien("Corriger") : Ui.boutonSecondaire("Saisir");
+            // Un match pas encore lancé n'offre pas la saisie du score (seulement le forfait d'un absent).
+            Button b = m.getStatut() == StatutMatch.TERMINE ? Ui.boutonLien("Corriger")
+                    : PresentationJourJ.saisieScoreProposee(m) ? Ui.boutonSecondaire("Saisir")
+                    : Ui.boutonLien("Lancer ou forfait");
             b.setOnAction(e -> {
                 enEdition = m;
                 messageSucces = null;
@@ -352,7 +363,7 @@ final class EcranPoulesTableau {
         return EditeurScorePoule.creer(tableau, m, saisie, () -> {
             enEdition = null;
             afficher();
-        }, this::apresSaisie);
+        }, this::apresSaisie, onLancerMatch);
     }
 
     private void apresSaisie(Match m) {

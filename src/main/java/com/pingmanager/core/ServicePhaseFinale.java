@@ -155,12 +155,18 @@ public final class ServicePhaseFinale {
      * Enregistre le score d'un match du tableau final, puis fait progresser le
      * tableau. Un match déjà joué peut être corrigé tant que la correction ne
      * change pas un joueur déjà engagé dans un match suivant en cours ou joué.
+     * Refusé ({@link ResultatSaisieScore.Motif#MATCH_NON_LANCE}) sur un match qui
+     * n'a pas été lancé sur une table.
      */
     public ResultatSaisieScore saisirScore(Tableau tableau, Match match, List<Manche> manches) {
         Objects.requireNonNull(manches, "manches");
         ResultatSaisieScore prealable = controlerMatch(tableau, match);
         if (prealable != null) {
             return prealable;
+        }
+        // Un match se joue sur une table : pas de score sans lancement (voir SaisieResultatMatch).
+        if (!SaisieResultatMatch.scoreSaisissable(match)) {
+            return ResultatSaisieScore.refus(ResultatSaisieScore.Motif.MATCH_NON_LANCE);
         }
         ResultatSaisieScore valide = validation.valider(manches, match.getNombreManchesGagnantes());
         if (!valide.estValide()) {
@@ -190,6 +196,10 @@ public final class ServicePhaseFinale {
         if (issue == null || issue == IssueMatch.NORMALE || fautif == null
                 || !(fautif.equals(match.getJoueurA()) || fautif.equals(match.getJoueurB()))) {
             return ResultatSaisieScore.refus(ResultatSaisieScore.Motif.ISSUE_INVALIDE);
+        }
+        // Seul le forfait d'un joueur absent se déclare sans lancement sur une table.
+        if (!SaisieResultatMatch.issueSaisissable(match, issue)) {
+            return ResultatSaisieScore.refus(ResultatSaisieScore.Motif.MATCH_NON_LANCE);
         }
         Joueur vainqueur = fautif.equals(match.getJoueurA()) ? match.getJoueurB() : match.getJoueurA();
         return appliquer(tableau.getPhaseFinale(), match, vainqueur, () -> match.declarerIssue(issue, fautif));

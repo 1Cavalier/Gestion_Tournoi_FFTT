@@ -5,6 +5,7 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Manche;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.Poule;
+import com.pingmanager.model.StatutMatch;
 import com.pingmanager.model.StatutTableau;
 import com.pingmanager.model.Tableau;
 
@@ -33,6 +34,15 @@ import java.util.Objects;
  * ({@link StatutTableau#LANCE}) : une fois la phase finale construite à partir du
  * classement, ils sont figés. Les refus sont renvoyés avec un motif précis
  * ({@link ResultatSaisieMatch}), sans exception.</p>
+ *
+ * <p><b>Un match se joue sur une table.</b> Son score (ou un abandon, un refus de
+ * jouer, une disqualification) ne s'enregistre que s'il a été lancé sur une
+ * table ({@link StatutMatch#EN_COURS}) ; un match déjà terminé peut être corrigé.
+ * Seul le <b>forfait</b> d'un joueur absent, déclaré par le juge-arbitre, se
+ * saisit sans lancement : il n'y a pas de table à occuper. Voir
+ * {@link #scoreSaisissable} et {@link #issueSaisissable}. La règle ne vaut que pour
+ * la saisie : la relecture d'un ancien fichier (matchs terminés sans lancement)
+ * passe par le modèle et n'est pas concernée.</p>
  */
 public final class SaisieResultatMatch {
 
@@ -62,6 +72,34 @@ public final class SaisieResultatMatch {
             return gagnant == 11;
         }
         return gagnant == perdant + 2;
+    }
+
+    /**
+     * Le score d'un match peut-il être saisi ? Oui s'il est en cours sur une table,
+     * ou déjà terminé (correction d'une saisie), sauf s'il s'est terminé par un
+     * forfait sans avoir été lancé : il n'a alors jamais été joué, il faut effacer
+     * le forfait puis lancer le match. Non pour un match à jouer ou en attente.
+     */
+    public static boolean scoreSaisissable(Match match) {
+        Objects.requireNonNull(match, "match");
+        if (match.getStatut() == StatutMatch.EN_COURS) {
+            return true;
+        }
+        if (match.getStatut() != StatutMatch.TERMINE) {
+            return false;
+        }
+        return !(match.getIssue() == IssueMatch.FORFAIT && match.getInstantLancement() == null);
+    }
+
+    /**
+     * Une issue non normale peut-elle être déclarée ? Le forfait d'un joueur
+     * absent (I.303 a, déclaré par le juge-arbitre) toujours : il n'occupe aucune
+     * table. L'abandon, le refus de jouer et la disqualification se constatent sur
+     * un match lancé : mêmes conditions que {@link #scoreSaisissable}.
+     */
+    public static boolean issueSaisissable(Match match, IssueMatch issue) {
+        Objects.requireNonNull(match, "match");
+        return issue == IssueMatch.FORFAIT || scoreSaisissable(match);
     }
 
     /**
@@ -110,6 +148,9 @@ public final class SaisieResultatMatch {
         if (acces != null) {
             return acces;
         }
+        if (!match.estBye() && !scoreSaisissable(match)) {
+            return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.MATCH_NON_LANCE);
+        }
         ResultatSaisieMatch verif = verifierScore(match, manches);
         if (!verif.estEnregistre()) {
             return verif;
@@ -139,6 +180,9 @@ public final class SaisieResultatMatch {
         }
         if (fautif == null || (!fautif.equals(match.getJoueurA()) && !fautif.equals(match.getJoueurB()))) {
             return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.FAUTIF_HORS_MATCH);
+        }
+        if (!issueSaisissable(match, issue)) {
+            return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.MATCH_NON_LANCE);
         }
         match.effacerResultat();
         match.declarerIssue(issue, fautif);

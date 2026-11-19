@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 2 011 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 2 013 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -632,6 +632,21 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
 
 En attendant, le code applique l'option la plus prudente, indiquée entre
 parenthèses.
+
+**Pas de score sans table** (choix provisoires)
+- Abandon, refus de jouer et disqualification exigent un match lancé ; seul
+  le forfait d'un absent se déclare sans table. Une disqualification
+  prononcée **avant** un match (joueur exclu du tournoi) se saisit donc en
+  forfait. Faut-il une saisie propre « disqualifié avant la partie »
+  (texte à vérifier dans les règlements 2026-2027, I.303 a) ? (provisoire :
+  forfait).
+- Un forfait déclaré sans lancement ne se transforme pas en score : il faut
+  l'effacer (poules) puis lancer le match. Au tableau final, il n'y a pas de
+  bouton d'effacement : la correction reste un autre forfait. À compléter ?
+- Le raccourci « Lancer ce match » n'existe que depuis l'écran du jour J ;
+  depuis « Tournoi en cours » (pages Gestion / Tableau), il n'y a pas de
+  salle à ouvrir sur la même page : phrase seule. À brancher quand ces pages
+  seront refaites ?
 
 **Écran du jour J restructuré**
 - Carte « Annonces » : l'état en un mot suit l'annonce choisie pour les

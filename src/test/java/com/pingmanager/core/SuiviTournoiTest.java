@@ -183,7 +183,7 @@ class SuiviTournoiTest {
         for (Tour tour : elim.getTours()) {
             for (Match m : tour.getMatchs()) {
                 if (!m.estBye() && m.getStatut() != StatutMatch.TERMINE) {
-                    assertTrue(service.saisirScore(a, m, victoireA(m)).estValide());
+                    assertTrue(service.saisirScore(a, MatchsLances.lance(m), victoireA(m)).estValide());
                 }
             }
         }

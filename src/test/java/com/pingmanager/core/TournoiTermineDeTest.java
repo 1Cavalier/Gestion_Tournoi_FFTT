@@ -55,7 +55,7 @@ public final class TournoiTermineDeTest {
                 if (m.estBye() || m.getJoueurA().estADeterminer() || m.getJoueurB().estADeterminer()) {
                     continue;
                 }
-                if (!service.saisirScore(a, m, victoire(m)).estValide()) {
+                if (!service.saisirScore(a, MatchsLances.lance(m), victoire(m)).estValide()) {
                     throw new IllegalStateException("score refusé");
                 }
             }

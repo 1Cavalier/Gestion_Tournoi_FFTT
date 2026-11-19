@@ -1,6 +1,7 @@
 package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.GenerateurTableauElimination;
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.Joueur;
@@ -129,7 +130,7 @@ class DispositionArbreTest {
         assertTrue(avant.traits().stream().noneMatch(Trait::parcouru));
 
         Match quart = elim.getPremierTour().getMatchs().get(0);
-        new ServicePhaseFinale().saisirScore(tableau, quart,
+        new ServicePhaseFinale().saisirScore(tableau, MatchsLances.lance(quart),
                 List.of(new Manche(11, 3), new Manche(11, 3), new Manche(11, 3)));
         Disposition apres = DispositionArbre.calculer(elim, P);
         assertEquals(1, apres.traits().stream().filter(Trait::parcouru).count());

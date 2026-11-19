@@ -1,5 +1,6 @@
 package com.pingmanager.ui.infra;
 
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ServiceCycleTournoi;
 import com.pingmanager.core.reglement.LibellesTableau;
 import com.pingmanager.model.AffectationJugeArbitre;
@@ -166,12 +167,12 @@ public final class TournoiDemoJourJ {
 
         SaisieResultatMatch saisie = new SaisieResultatMatch(() -> Instant.parse("2026-11-14T09:45:00Z"));
         Poule a = c.getPoules().get(0);
-        saisie.enregistrerScore(c, a.getMatchs().get(0), manches(11, 7, 9, 11, 11, 8, 11, 6));
-        saisie.enregistrerScore(c, a.getMatchs().get(1), manches(11, 4, 11, 9, 11, 5));
-        saisie.enregistrerScore(c, a.getMatchs().get(2), manches(8, 11, 12, 10, 11, 13, 11, 9, 11, 7));
+        saisie.enregistrerScore(c, MatchsLances.lance(a.getMatchs().get(0)), manches(11, 7, 9, 11, 11, 8, 11, 6));
+        saisie.enregistrerScore(c, MatchsLances.lance(a.getMatchs().get(1)), manches(11, 4, 11, 9, 11, 5));
+        saisie.enregistrerScore(c, MatchsLances.lance(a.getMatchs().get(2)), manches(8, 11, 12, 10, 11, 13, 11, 9, 11, 7));
         if (c.getPoules().size() > 1) {
             Poule b = c.getPoules().get(1);
-            saisie.enregistrerScore(c, b.getMatchs().get(0), manches(11, 9, 11, 9, 11, 9));
+            saisie.enregistrerScore(c, MatchsLances.lance(b.getMatchs().get(0)), manches(11, 9, 11, 9, 11, 9));
             Match forfait = b.getMatchs().get(1);
             saisie.enregistrerIssue(c, forfait, IssueMatch.FORFAIT, forfait.getJoueurB());
         }
@@ -204,7 +205,7 @@ public final class TournoiDemoJourJ {
         List<Tour> tours = ServicePhaseFinale.toursPrincipaux(f.getPhaseFinale());
         int n = 0;
         for (Match m : tours.get(0).getMatchs()) {
-            phaseFinale.saisirScore(f, m, scoreVictoire(n++ % 3 != 1));
+            phaseFinale.saisirScore(f, MatchsLances.lance(m), scoreVictoire(n++ % 3 != 1));
         }
         if (tours.size() > 2) {
             List<Match> suivants = new java.util.ArrayList<>();
@@ -216,7 +217,7 @@ public final class TournoiDemoJourJ {
             for (int i = 0; i < suivants.size(); i++) {
                 Match m = suivants.get(i);
                 if (i < 2) {
-                    phaseFinale.saisirScore(f, m, scoreVictoire(i == 0));
+                    phaseFinale.saisirScore(f, MatchsLances.lance(m), scoreVictoire(i == 0));
                 } else if (i == 2) {
                     m.setStatut(StatutMatch.EN_COURS);
                     m.setNumeroTable(TABLE_EN_COURS_F);
@@ -240,7 +241,7 @@ public final class TournoiDemoJourJ {
         int n = 0;
         for (Poule p : tab.getPoules()) {
             for (Match m : p.getMatchs()) {
-                saisie.enregistrerScore(tab, m, scoreVictoire(n++ % 4 != 3));
+                saisie.enregistrerScore(tab, MatchsLances.lance(m), scoreVictoire(n++ % 4 != 3));
             }
         }
     }
