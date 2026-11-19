@@ -132,7 +132,7 @@ public final class ServiceSalle {
     }
 
     /**
-     * Interface « Lancer un match » (B055) : tous les matchs à jouer dont les
+     * Interface « Lancer un match » (B055, B057) : tous les matchs à jouer dont les
      * deux joueurs sont connus, par priorité de la stratégie en place, avec la
      * table proposée, les tables libres possibles et le motif de refus éventuel.
      */
@@ -230,6 +230,9 @@ public final class ServiceSalle {
         private final Map<MatchOrdonnancable, String> groupes = new IdentityHashMap<>();
         private final Map<MatchOrdonnancable, List<Match>> matchsDuGroupe = new IdentityHashMap<>();
         private final Map<MatchOrdonnancable, String> importanceTour = new IdentityHashMap<>();
+        /** Enveloppe → numéro du match dans son tableau (B057). */
+        private final Map<MatchOrdonnancable, Integer> numeros = new IdentityHashMap<>();
+        private final Map<Tableau, Integer> compteurs = new IdentityHashMap<>();
         /** Licence → fin de son dernier match ; tableau → premier match lancé. */
         private final Map<String, LocalDateTime> libreDepuis = new HashMap<>();
         private final Map<String, LocalDateTime> debutTableau = new HashMap<>();
@@ -311,6 +314,8 @@ public final class ServiceSalle {
                 importanceTour.put(mo, importance);
             }
             ordre.add(mo);
+            // Numéro dans le tableau : poules (ordre I.301) puis tours du tableau final, exempts exclus.
+            numeros.put(mo, compteurs.merge(t, 1, Integer::sum));
             ordonnanceur.ajouterMatch(mo);
         }
 
@@ -445,10 +450,12 @@ public final class ServiceSalle {
                     }
                 }
                 proposes.add(new ListeLancements.Ligne(vu, tableStrategie.containsKey(vu.match()), table, possibles,
-                        mo.getPretDepuis(), refus));
+                        mo.getPretDepuis(), refus, numeros.getOrDefault(mo, 0), groupes.get(mo)));
             }
             for (TableauDeBordSalle.MatchBloque b : bord.getBloques()) {
-                proposes.add(new ListeLancements.Ligne(b.match(), false, null, List.of(), null, b.motif()));
+                MatchOrdonnancable mo = parMatch.get(b.match().match());
+                proposes.add(new ListeLancements.Ligne(b.match(), false, null, List.of(), null, b.motif(),
+                        numeros.getOrDefault(mo, 0), groupes.get(mo)));
             }
             Map<Match, Integer> rang = new IdentityHashMap<>();
             for (int i = 0; i < ordre.size(); i++) {

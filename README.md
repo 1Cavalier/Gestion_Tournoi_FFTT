@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 2 000 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 2 011 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -273,7 +273,8 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
 - **Écran du jour J du juge-arbitre** (restructuré, B053 inclus), de haut en
   bas : bandeau « Jour J » et nom du tournoi ; trois cartes carrées (en
   colonne sur petite largeur) **Lancer un match** (matchs prêts, tables
-  libres ; ouvre à gauche l'interface « Lancer un match », ci-dessous),
+  libres ; ouvre l'interface « Lancer un match » à la place de l'écran,
+  ci-dessous),
   **Annonces** (état en un mot : Voix, SMS,
   Voix et SMS, Coupées, À chaque match) et **Stratégie en place**, qui ouvrent
   chacune **leur propre panneau** à la place de l'écran (B056, « Fermer » ou
@@ -302,23 +303,31 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   pointage, pointer et clôturer, lancer le tableau, poules, tirer le tableau
   final, arbre), plus « Inscrire sur place… » et les jours ; **Salle**
   inchangée. L'étape se calcule dans le cœur (`CalculEtapeTableau`).
-- **Interface « Lancer un match »** (B055, colonne de gauche, reste ouverte
-  pour enchaîner) : onglet **Matchs proposés**, du plus prioritaire au moins
-  prioritaire selon la stratégie en place, une ligne par match (tableau et
-  poule ou tour, cliquable vers les poules ou l'arbre ; les deux joueurs ;
-  « Attend depuis 12 min », en rouge au-delà de 20 min ; pastille et filet
-  rouge, orange ou vert) avec **Lancer · table N** en un clic et la liste des
-  tables libres pour en changer ; onglet **Choix manuel** : recherche par
-  joueur (sans accents), filtre par tableau, puis la table. Un match qui ne
-  peut pas partir reste visible, grisé, avec la raison en clair (« Lucas
-  MARTIN joue en table 4 », « Aucune table libre », « Tables libres réservées
-  à d'autres tableaux »). **Proposer** (Alt+P) remplit toutes les tables
-  libres ; **Feuille à l'envoi** imprime la feuille de chaque match lancé
-  (aussi par « Proposer »). La règle est dans le cœur (`ServiceSalle` :
-  `listeLancements`, `verifierLancement`, `affecter`) : un joueur n'est
-  jamais sur deux tables, même si son match en cours n'a pas de table
-  valable, et la table doit être libre. Le bloc « Joueurs en attente » et le
-  panneau « pourquoi » sont retirés : l'attente se lit sur les lignes.
+- **Interface « Lancer un match »** (B057, remplace celle de B055 ; à la
+  place de l'écran, « ← Retour jour J » en haut à gauche ; reste ouverte pour
+  enchaîner). **Bandeau de proposition** : « Proposer un match » affiche le
+  match le plus urgent selon la stratégie en place (joueurs, tableau et
+  échelon, table libre modifiable, « Proposition 1 sur 10 ») ; **Autre**
+  passe au suivant dans le même ordre et revient au premier après le
+  dernier ; **Lancer** l'envoie sur la table affichée, la zone se vide et
+  « MARTIN – DUPONT lancé en table 5 » confirme. Sans match jouable : « Aucun
+  match à lancer pour l'instant » ; sans table libre, « Lancer » est
+  désactivé (« Aucune table libre »). **Matchs à lancer** : tous les matchs
+  dont les deux joueurs sont connus et libres, du plus urgent au moins
+  urgent (N° du match dans son tableau, joueurs, table libre pré-choisie et
+  modifiable, tableau et échelon avec **Voir plus**, bouton **Lancer** par
+  ligne). « Voir plus » ouvre en lecture seule la poule (joueurs, matchs,
+  classement) ou l'arbre placé sur le tour, et « Fermer » revient à la liste
+  sans perdre les choix. Sur petite largeur, « Lancer » et « Autre » passent
+  sous la zone et la liste devient une carte par match. L'écran se relit
+  toutes les 3 secondes : un match terminé ailleurs libère sa table et ses
+  joueurs sans action. Option « Imprimer la feuille de match à chaque
+  lancement » en bas. L'ordre, la proposition suivante et les refus viennent
+  du cœur (`ListeLancements.getJouables`, `propositionApres`,
+  `ServiceSalle.affecter`) : un joueur n'est jamais sur deux tables, la table
+  doit être libre, et un lancement devenu impossible est refusé avec son
+  motif (« Match non lancé : Lucas MARTIN joue en table 4. »). Textes dans
+  `TextesLancementMatch`.
 - **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
   « Gestion », visible seulement pour un organisateur dont un tournoi se joue
   ou approche (homologué ou publié, de **J-7** avant le premier jour au dernier
@@ -651,23 +660,26 @@ parenthèses.
 - Poules jouées, tableau final pas encore tiré : reste à l'étape 4 avec
   l'action « Tirer le tableau final ». (provisoire.)
 
-**Interface « Lancer un match » (B055)**
-- Matchs bloqués (joueur en jeu) montrés en bas de « Matchs proposés »,
-  grisés avec la raison, et pas seulement dans le choix manuel. Les garder là,
-  ou les réserver au choix manuel pour une liste plus courte ? (provisoire :
-  en bas des proposés).
-- Table proposée d'un match que « Proposer » n'enverrait pas tout de suite :
-  la première table libre que la stratégie ne prend pas déjà (plusieurs
-  lignes peuvent donc afficher la même table). Convient-il ? (provisoire :
-  oui ; le cœur revérifie au lancement).
-- Le « pourquoi » d'un joueur en attente (adversaire attendu dans une autre
-  poule, bouton « Voir le tableau ») a disparu avec le bloc « Joueurs en
-  attente ». Le cœur le calcule toujours (`TableauDeBordSalle.getJoueursEnAttente`),
-  et la carte affiche encore « 12 joueurs en attente ». Le remettre en
-  info-bulle sur les lignes, ou retirer ce chiffre de la carte ? (provisoire :
-  chiffre gardé, explication retirée).
-- Alt+P ne marche que l'interface ouverte (comme avant). Faut-il un raccourci
-  global sur l'écran du jour J ? (provisoire : non).
+**Interface « Lancer un match » (B057, remplace B055)**
+- Numéro du match : il n'existait nulle part. Provisoire : rang du match dans
+  son tableau (poules dans l'ordre I.301, puis tours du tableau final, exempts
+  exclus), stable pendant le tournoi mais pas unique entre tableaux. Faut-il
+  un numéro unique pour tout le tournoi, imprimé aussi sur les feuilles ?
+- Table pré-choisie des lignes : comme avant, la table de la stratégie, sinon
+  la première table libre que la stratégie ne prend pas (plusieurs lignes
+  peuvent montrer la même table ; le cœur refuse le second lancement). Faut-il
+  répartir les tables libres entre les lignes ? (provisoire : non).
+- Retirés avec l'ancienne interface : « Proposer » qui remplissait toutes les
+  tables libres d'un coup (Alt+P), le choix manuel avec recherche par joueur,
+  « Attend depuis 12 min » et la couleur de priorité des lignes, le
+  glisser-déposer d'un match sur une table. À remettre ? (provisoire : non ;
+  « Envoyer le prochain » reste sur chaque table libre de la salle).
+- Matchs dont un joueur joue ailleurs : ils ne sont plus listés du tout
+  (avant : grisés avec la raison). Convient-il ? (provisoire : oui, demandé).
+- Mise à jour automatique toutes les 3 secondes tant que l'interface est
+  ouverte. Convient-il ? (provisoire : oui).
+- Le chiffre « joueurs en attente » de la carte « Lancer un match » reste sans
+  explication à l'écran (question B055 toujours ouverte).
 
 **Tables d'échauffement en renfort (B054)**
 - Seuils par défaut : ouverture au-delà de 15 min de retard prévu, retour à

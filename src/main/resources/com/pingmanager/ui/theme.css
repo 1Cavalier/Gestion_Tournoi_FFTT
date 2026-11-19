@@ -4396,10 +4396,6 @@
     -fx-border-color: -primaire;
 }
 
-.jourj-lancement-entete {
-    -fx-padding: 0 0 4 0;
-}
-
 /* Ligne d'un tableau : un peu plus d'air que l'ancien bandeau. */
 .avancement-ligne.jourj-ligne-tableau {
     -fx-padding: 12 8 12 8;
@@ -4456,45 +4452,6 @@
 .jourj-frise-pas-courant .jourj-frise-libelle {
     -fx-font-weight: bold;
     -fx-text-fill: -primaire;
-}
-
-/* =====================================================================
-   Jour J : interface « Lancer un match » (B055, InterfaceLancementMatch)
-   (tokens uniquement : valables en thème clair et sombre)
-   ===================================================================== */
-
-/* Tableau et tour : lien discret qui ouvre les poules ou l'arbre. */
-.button.lancement-contexte {
-    -fx-padding: 0;
-    -fx-font-size: 13px;
-    -fx-text-fill: -texte-doux;
-}
-
-.button.lancement-contexte:hover {
-    -fx-text-fill: -primaire;
-    -fx-underline: true;
-}
-
-/* Depuis combien de temps les joueurs attendent : rouge au-delà du seuil. */
-.lancement-attente {
-    -fx-font-size: 13px;
-    -fx-text-fill: -texte-doux;
-}
-
-.lancement-attente.lancement-attente-longue {
-    -fx-text-fill: -erreur;
-    -fx-font-weight: bold;
-}
-
-/* Raison pour laquelle un match ne peut pas partir. */
-.lancement-motif {
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -attention-texte;
-}
-
-.combo-box.lancement-table {
-    -fx-pref-width: 120px;
 }
 
 /* =====================================================================
@@ -4784,4 +4741,173 @@
 
 .ligne-element.buvette-vente-annulee {
     -fx-opacity: 0.7;
+}
+
+/* =====================================================================
+   Jour J : interface « Lancer un match » (B057, PanneauLancementMatch)
+   (tokens uniquement : valables en thème clair et sombre)
+   ===================================================================== */
+
+.lancement-entete {
+    -fx-padding: 0 0 4 0;
+}
+
+.button.lancement-retour {
+    -fx-font-size: 14px;
+    -fx-padding: 8 0 8 0;
+}
+
+.label.lancement-titre {
+    -fx-text-alignment: center;
+}
+
+/* Boutons et listes utilisables debout, au doigt. */
+.lancement-tactile {
+    -fx-min-height: 44px;
+    -fx-font-size: 15px;
+}
+
+.button.lancement-bouton-lancer {
+    -fx-min-width: 112px;
+    -fx-font-weight: bold;
+}
+
+.button.lancement-proposer {
+    -fx-padding: 12 20 12 20;
+    -fx-font-weight: bold;
+}
+
+/* Bandeau de proposition : zone centrale teintée quand un match est proposé. */
+.carte.lancement-bandeau {
+    -fx-padding: 16;
+}
+
+.lancement-zone {
+    -fx-background-color: -surface-2;
+    -fx-background-radius: 8;
+    -fx-border-color: -bordure;
+    -fx-border-radius: 8;
+    -fx-border-style: segments(6, 4);
+    -fx-padding: 14 16 14 16;
+    -fx-min-height: 92px;
+}
+
+.lancement-zone.lancement-zone-pleine {
+    -fx-background-color: -primaire-doux;
+    -fx-border-color: -primaire;
+    -fx-border-style: solid;
+}
+
+.label.lancement-zone-texte {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte-doux;
+}
+
+.lancement-boutons {
+    -fx-min-width: 132px;
+}
+
+.label.lancement-champ-libelle {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+.label.lancement-joueur {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.label.lancement-valeur {
+    -fx-font-size: 14px;
+    -fx-text-fill: -texte;
+}
+
+.label.lancement-rang {
+    -fx-font-size: 12px;
+    -fx-text-fill: -texte-doux;
+}
+
+.combo-box.lancement-table {
+    -fx-pref-width: 130px;
+    -fx-min-width: 110px;
+}
+
+/* Liste des matchs à lancer : filet entre les lignes (pas de :first-child en JavaFX). */
+.label.lancement-entete-colonne {
+    -fx-padding: 0 8 8 8;
+}
+
+.lancement-cellule {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 8 10 8;
+}
+
+.lancement-cellule.lancement-cellule-premiere {
+    -fx-border-color: -bordure-forte transparent transparent transparent;
+}
+
+.label.lancement-numero {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte-doux;
+}
+
+.label.lancement-sans-table {
+    -fx-text-fill: -texte-doux;
+}
+
+.button.lancement-voir-plus {
+    -fx-padding: 0;
+    -fx-font-size: 13px;
+}
+
+/* Pourquoi « Lancer » est désactivé (« Aucune table libre »). */
+.label.lancement-motif {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -attention-texte;
+}
+
+/* Petite largeur : une carte par match. */
+.lancement-carte-match {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 0 12 0;
+}
+
+.lancement-carte-match.lancement-carte-match-premiere {
+    -fx-border-color: transparent;
+}
+
+.check-box.lancement-feuille {
+    -fx-text-fill: -texte-doux;
+}
+
+/* « Voir plus » : poule ou arbre en lecture seule. */
+.carte.lancement-vue-plus {
+    -fx-border-color: -primaire;
+}
+
+.lancement-vue-ligne {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 0 8 0;
+}
+
+.lancement-vue-ligne-premiere {
+    -fx-padding: 8 0 8 0;
+}
+
+.label.lancement-vue-rang {
+    -fx-font-weight: bold;
+    -fx-min-width: 32px;
+    -fx-text-fill: -texte-doux;
+}
+
+.label.lancement-vue-resultat {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
 }
