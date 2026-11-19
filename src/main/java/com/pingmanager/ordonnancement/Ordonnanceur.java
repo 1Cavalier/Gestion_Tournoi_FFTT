@@ -2,6 +2,7 @@ package com.pingmanager.ordonnancement;
 
 import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
+import com.pingmanager.model.Poule;
 import com.pingmanager.model.StatutMatch;
 
 import java.time.Duration;
@@ -30,6 +31,14 @@ import java.util.Set;
  * réglables) : l'avancement par vagues (poules avant tableau), l'ancienneté
  * d'attente (équité), et le pouvoir de déblocage (un match dont un joueur est
  * engagé sur plusieurs tableaux passe avant pour ne pas geler la situation).</p>
+ *
+ * <p><b>Poules (unité de lancement).</b> Pendant la phase de poules, le
+ * juge-arbitre envoie une poule entière sur une table ({@link PouleOrdonnancable},
+ * {@link #ajouterPoule}) : elle occupe sa table et tous ses joueurs jusqu'au
+ * dernier résultat, ses matchs ne sont jamais proposés seuls, et la priorité
+ * d'une poule se calcule avec la même formule que celle d'un match (phase,
+ * attente, déblocage, tableau commencé). Un match de poule déjà lancé seul (ancien
+ * fichier) garde sa table jusqu'à son résultat ; la poule part ensuite en bloc.</p>
  *
  * <p><b>Temps.</b> Le lancement horodate le match automatiquement ; la fin est
  * posée à la saisie du score. Aucun temps de repos n'est imposé : seule la
@@ -60,6 +69,14 @@ public final class Ordonnanceur {
      * prise à la reprise) : leurs joueurs jouent quand même, ils restent occupés.
      */
     private final List<MatchOrdonnancable> enCoursHorsTable = new ArrayList<>();
+
+    /** Poules gérées comme unités de lancement, et la poule de chaque match. */
+    private final List<PouleOrdonnancable> poules = new ArrayList<>();
+    private final Map<MatchOrdonnancable, PouleOrdonnancable> pouleDuMatch = new HashMap<>();
+    /** Table → poule lancée en bloc dessus, ou absente. */
+    private final Map<Integer, PouleOrdonnancable> occupationPoules = new HashMap<>();
+    /** Poules en cours sans table valable (reprise) : leurs joueurs restent occupés. */
+    private final List<PouleOrdonnancable> poulesHorsTable = new ArrayList<>();
 
     /** Tables réservées et préférences des tableaux (B024) ; aucune par défaut. */
     private ReservationsTables reservations = ReservationsTables.AUCUNE;
@@ -99,6 +116,42 @@ public final class Ordonnanceur {
         gerer(m);
     }
 
+
+    /**
+     * Ajoute une poule à gérer comme unité de lancement : ses matchs sont gérés,
+     * mais ne seront proposés et lancés qu'avec leur poule.
+     */
+    public void ajouterPoule(PouleOrdonnancable p) {
+        Objects.requireNonNull(p, "p");
+        if (poules.contains(p)) {
+            return;
+        }
+        poules.add(p);
+        for (MatchOrdonnancable mo : p.getMatchs()) {
+            gerer(mo);
+            pouleDuMatch.put(mo, p);
+        }
+    }
+
+    /** Vue en lecture seule des poules gérées comme unités de lancement. */
+    public List<PouleOrdonnancable> toutesLesPoules() {
+        return java.util.Collections.unmodifiableList(poules);
+    }
+
+    /** Poule (unité de lancement) d'un match, ou null s'il se lance seul. */
+    public PouleOrdonnancable pouleDe(MatchOrdonnancable mo) {
+        return pouleDuMatch.get(mo);
+    }
+
+    /** Poule lancée en bloc sur une table, ou null. */
+    public PouleOrdonnancable pouleSurTable(int table) {
+        return occupationPoules.get(table);
+    }
+
+    /** La table est-elle libre (ni match, ni poule) ? */
+    private boolean estLibre(int table) {
+        return occupationTables.get(table) == null && occupationPoules.get(table) == null;
+    }
 
     /** Ajoute le match à la liste ordonnée s'il n'y est pas encore. */
     private void gerer(MatchOrdonnancable m) {
@@ -150,7 +203,7 @@ public final class Ordonnanceur {
     public int tablesRenfortOccupees() {
         int n = 0;
         for (int t = nombreDeTables + 1; t <= nombreDeTables + tablesRenfortMax; t++) {
-            if (occupationTables.get(t) != null) {
+            if (!estLibre(t)) {
                 n++;
             }
         }
@@ -184,7 +237,7 @@ public final class Ordonnanceur {
     public List<Integer> tablesLibres() {
         List<Integer> libres = new ArrayList<>();
         for (int t = 1; t <= nombreDeTables + tablesRenfortEnService; t++) {
-            if (occupationTables.get(t) == null) {
+            if (estLibre(t)) {
                 libres.add(t);
             }
         }
@@ -206,6 +259,14 @@ public final class Ordonnanceur {
             if (match.getJoueurA() != null) occupes.add(match.getJoueurA().getNumeroLicence());
             if (match.getJoueurB() != null) occupes.add(match.getJoueurB().getNumeroLicence());
         }
+        // Une poule lancée occupe tous ses joueurs, entre deux matchs compris.
+        List<PouleOrdonnancable> enJeu = new ArrayList<>(occupationPoules.values());
+        enJeu.addAll(poulesHorsTable);
+        for (PouleOrdonnancable p : enJeu) {
+            for (Joueur j : p.joueurs()) {
+                if (j != null) occupes.add(j.getNumeroLicence());
+            }
+        }
         return occupes;
     }
 
@@ -214,6 +275,9 @@ public final class Ordonnanceur {
      * connus (non « à déterminer »), et aucun des deux déjà occupé sur une table.
      */
     public boolean estJouableMaintenant(MatchOrdonnancable mo) {
+        if (pouleDuMatch.containsKey(mo)) {
+            return false; // se lance avec sa poule
+        }
         Match m = mo.getMatch();
         if (m.getStatut() != StatutMatch.A_JOUER || m.estBye()) {
             return false;
@@ -244,6 +308,14 @@ public final class Ordonnanceur {
                 mo.setPretDepuis(null);
             }
         }
+        for (PouleOrdonnancable p : poules) {
+            boolean pret = !p.estEnCours() && !p.aJouer().isEmpty();
+            if (pret && p.getPretDepuis() == null) {
+                p.setPretDepuis(maintenant);
+            } else if (!pret) {
+                p.setPretDepuis(null);
+            }
+        }
     }
 
     /**
@@ -268,16 +340,22 @@ public final class Ordonnanceur {
 
         // Matchs jouables, triés par score décroissant (tri stable : à score égal,
         // l'ordre d'ajout est conservé).
-        List<MatchOrdonnancable> jouables = new ArrayList<>();
-        Map<MatchOrdonnancable, Double> scores = new HashMap<>();
+        // Les poules (unités de lancement) cohabitent avec les matchs du tableau
+        // final : même liste, même formule de priorité.
+        List<Candidat> jouables = new ArrayList<>();
         for (MatchOrdonnancable mo : matchs) {
-            if (estJouable(mo, ctx.occupes) && !(poids.isTourParTour() && ctx.retenuParLeTour(mo))
+            if (!pouleDuMatch.containsKey(mo) && estJouable(mo, ctx.occupes)
+                    && !(poids.isTourParTour() && ctx.retenuParLeTour(mo))
                     && !(poids.isFinalesEnFinDeJournee() && ctx.finaleRetenue(mo))) {
-                jouables.add(mo);
-                scores.put(mo, score(mo, maintenant, ctx));
+                jouables.add(new Candidat(mo, null, score(mo, maintenant, ctx)));
             }
         }
-        jouables.sort(Comparator.comparingDouble((MatchOrdonnancable mo) -> scores.get(mo)).reversed());
+        for (PouleOrdonnancable p : poules) {
+            if (verifierPoule(p, ctx.occupes).estReussi()) {
+                jouables.add(new Candidat(p.aJouer().get(0), p, scorePoule(p, maintenant, ctx)));
+            }
+        }
+        jouables.sort(Comparator.comparingDouble((Candidat c) -> c.score).reversed());
 
         // Affectation gloutonne : on descend la liste triée, en réservant les
         // joueurs déjà engagés dans cette vague pour ne pas les mettre 2 fois.
@@ -288,10 +366,28 @@ public final class Ordonnanceur {
         // à d'autres tableaux. Sans réservation : les tables libres dans l'ordre.
         List<Integer> restantes = new ArrayList<>(libres);
 
-        for (MatchOrdonnancable mo : jouables) {
+        for (Candidat c : jouables) {
             if (restantes.isEmpty()) {
                 break;
             }
+            if (c.poule != null) {
+                PouleOrdonnancable p = c.poule;
+                boolean pris = false;
+                for (Joueur j : p.joueurs()) {
+                    pris |= j != null && joueursReserves.contains(j.getNumeroLicence());
+                }
+                int index = pris ? -1 : meilleureTable(restantes, p.getIdentifiantTableau());
+                if (index < 0) {
+                    continue;
+                }
+                int table = restantes.remove(index);
+                propositions.add(new PropositionLancement(p, table, c.score, expliquerPoule(p, maintenant, ctx)));
+                for (Joueur j : p.joueurs()) {
+                    if (j != null) joueursReserves.add(j.getNumeroLicence());
+                }
+                continue;
+            }
+            MatchOrdonnancable mo = c.match;
             Match m = mo.getMatch();
             String a = m.getJoueurA().getNumeroLicence();
             String b = m.getJoueurB().getNumeroLicence();
@@ -303,13 +399,17 @@ public final class Ordonnanceur {
                 continue; // aucune table libre n'accepte ce tableau
             }
             int table = restantes.remove(index);
-            double score = scores.get(mo);
+            double score = c.score;
             String explication = expliquer(mo, maintenant, ctx);
             propositions.add(new PropositionLancement(mo, table, score, explication));
             joueursReserves.add(a);
             joueursReserves.add(b);
         }
         return propositions;
+    }
+
+    /** Un candidat d'une vague : un match seul, ou une poule (match = son premier match à jouer). */
+    private record Candidat(MatchOrdonnancable match, PouleOrdonnancable poule, double score) {
     }
 
     /** Tableaux du jour qui n'ont pas encore commencé (identifiants), pour « finales en fin de journée ». */
@@ -368,42 +468,80 @@ public final class Ordonnanceur {
     }
 
     private double score(MatchOrdonnancable mo, LocalDateTime maintenant, Contexte ctx) {
+        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
+        long minutesTableau = poids.getPoidsTableauCommence() == 0.0 ? 0
+                : ctx == null ? minutesDepuisDebutTableau(mo.getIdentifiantTableau(), maintenant)
+                : ctx.minutesDepuisDebutTableau(mo.getIdentifiantTableau());
+        return score(mo.getPhase(), mo.getPretDepuis(), engagements, minutesTableau, mo.getMatch(), maintenant);
+    }
+
+    /**
+     * Score de priorité d'une poule à lancer en bloc : la même formule que pour
+     * un match (phase « poule », attente depuis que tous ses joueurs sont libres,
+     * matchs de ses joueurs hors de la poule, tableau commencé).
+     */
+    public double scorePriorite(PouleOrdonnancable p, LocalDateTime maintenant) {
+        return scorePoule(p, maintenant, null);
+    }
+
+    private double scorePoule(PouleOrdonnancable p, LocalDateTime maintenant, Contexte ctx) {
+        long minutesTableau = poids.getPoidsTableauCommence() == 0.0 ? 0
+                : ctx == null ? minutesDepuisDebutTableau(p.getIdentifiantTableau(), maintenant)
+                : ctx.minutesDepuisDebutTableau(p.getIdentifiantTableau());
+        return score(PhaseMatch.POULE, p.getPretDepuis(), engagementsHorsPoule(p), minutesTableau, null, maintenant);
+    }
+
+    /** Matchs encore à jouer, hors de la poule, où figure un de ses joueurs (déblocage). */
+    int engagementsHorsPoule(PouleOrdonnancable p) {
+        int count = 0;
+        for (MatchOrdonnancable autre : matchs) {
+            Match m = autre.getMatch();
+            if (m.getStatut() == StatutMatch.TERMINE || m.estBye() || pouleDuMatch.get(autre) == p) {
+                continue;
+            }
+            if (p.contient(licence(m.getJoueurA())) || p.contient(licence(m.getJoueurB()))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** Formule unique de priorité (match seul ou poule entière). */
+    private double score(PhaseMatch phase, LocalDateTime pretDepuis, int engagements, long minutesTableau,
+                         Match pourProfondeur, LocalDateTime maintenant) {
         double score = 0.0;
 
         // 1) Avancement par vagues : POULE > 1er tour > tours suivants.
         //    On donne un bonus décroissant selon la phase.
-        double bonusPhase = switch (mo.getPhase().name()) {
+        double bonusPhase = switch (phase.name()) {
             case "POULE" -> 3.0;
             case "PREMIER_TOUR_TABLEAU" -> 2.0;
             case "TOUR_SUIVANT_TABLEAU" -> 1.0;
-            default -> throw new IllegalStateException("Phase inconnue : " + mo.getPhase());
+            default -> throw new IllegalStateException("Phase inconnue : " + phase);
         };
         score += poids.getPoidsVague() * bonusPhase;
 
         // 2) Équité : ancienneté d'attente (minutes depuis que le match est prêt).
         long minutesAttente = 0;
-        if (mo.getPretDepuis() != null) {
-            minutesAttente = Math.max(0, Duration.between(mo.getPretDepuis(), maintenant).toMinutes());
+        if (pretDepuis != null) {
+            minutesAttente = Math.max(0, Duration.between(pretDepuis, maintenant).toMinutes());
         }
         score += poids.getPoidsAttente() * poids.getPointsParMinuteAttente() * minutesAttente;
 
         // 3) Déblocage : si un joueur de ce match est engagé dans d'autres matchs
         //    encore à jouer (typiquement inscrit à deux tableaux), le lancer
         //    libère plus vite la suite. On compte ces engagements.
-        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
         score += poids.getPoidsDeblocage() * engagements;
 
         // 4) Tableau commencé tôt (B025) : minutes depuis le premier match lancé
         //    du tableau. Inactif avec les poids par défaut.
         if (poids.getPoidsTableauCommence() != 0.0) {
-            long minutesTableau = ctx == null ? minutesDepuisDebutTableau(mo, maintenant)
-                    : ctx.minutesDepuisDebutTableau(mo);
             score += poids.getPoidsTableauCommence() * minutesTableau;
         }
 
         // 5) Tours avancés d'abord (B025, stratégie « tableaux commencés tôt »).
-        if (poids.getPoidsProfondeur() != 0.0 && mo.getPhase() != PhaseMatch.POULE) {
-            score += poids.getPoidsProfondeur() * profondeur(mo.getMatch(), new IdentityHashMap<>());
+        if (poids.getPoidsProfondeur() != 0.0 && phase != PhaseMatch.POULE && pourProfondeur != null) {
+            score += poids.getPoidsProfondeur() * profondeur(pourProfondeur, new IdentityHashMap<>());
         }
 
         return score;
@@ -435,10 +573,14 @@ public final class Ordonnanceur {
      * match (0 si le tableau n'a encore rien lancé).
      */
     long minutesDepuisDebutTableau(MatchOrdonnancable mo, LocalDateTime maintenant) {
+        return minutesDepuisDebutTableau(mo.getIdentifiantTableau(), maintenant);
+    }
+
+    private long minutesDepuisDebutTableau(String tableau, LocalDateTime maintenant) {
         LocalDateTime debut = null;
         for (MatchOrdonnancable autre : matchs) {
             LocalDateTime l = autre.getMatch().getInstantLancement();
-            if (l != null && autre.getIdentifiantTableau().equals(mo.getIdentifiantTableau())
+            if (l != null && autre.getIdentifiantTableau().equals(tableau)
                     && (debut == null || l.isBefore(debut))) {
                 debut = l;
             }
@@ -475,26 +617,44 @@ public final class Ordonnanceur {
     }
 
     private String expliquer(MatchOrdonnancable mo, LocalDateTime maintenant, Contexte ctx) {
+        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
+        long minutesTableau = poids.getPoidsTableauCommence() == 0.0 ? 0
+                : ctx == null ? minutesDepuisDebutTableau(mo.getIdentifiantTableau(), maintenant)
+                : ctx.minutesDepuisDebutTableau(mo.getIdentifiantTableau());
+        return expliquer(mo.getPhase(), mo.getPretDepuis(), engagements, minutesTableau, maintenant);
+    }
+
+    /** Explication lisible de la priorité d'une poule à lancer en bloc. */
+    public String expliquer(PouleOrdonnancable p, LocalDateTime maintenant) {
+        return expliquerPoule(p, maintenant, null);
+    }
+
+    private String expliquerPoule(PouleOrdonnancable p, LocalDateTime maintenant, Contexte ctx) {
+        long minutesTableau = poids.getPoidsTableauCommence() == 0.0 ? 0
+                : ctx == null ? minutesDepuisDebutTableau(p.getIdentifiantTableau(), maintenant)
+                : ctx.minutesDepuisDebutTableau(p.getIdentifiantTableau());
+        return expliquer(PhaseMatch.POULE, p.getPretDepuis(), engagementsHorsPoule(p), minutesTableau, maintenant);
+    }
+
+    private String expliquer(PhaseMatch phase, LocalDateTime pretDepuis, int engagements, long minutesTableau,
+                             LocalDateTime maintenant) {
         List<String> raisons = new ArrayList<>();
-        raisons.add(switch (mo.getPhase().name()) {
+        raisons.add(switch (phase.name()) {
             case "POULE" -> "poule";
             case "PREMIER_TOUR_TABLEAU" -> "1er tour";
             case "TOUR_SUIVANT_TABLEAU" -> "tour suivant";
-            default -> throw new IllegalStateException("Phase inconnue : " + mo.getPhase());
+            default -> throw new IllegalStateException("Phase inconnue : " + phase);
         });
-        if (mo.getPretDepuis() != null) {
-            long min = Math.max(0, Duration.between(mo.getPretDepuis(), maintenant).toMinutes());
+        if (pretDepuis != null) {
+            long min = Math.max(0, Duration.between(pretDepuis, maintenant).toMinutes());
             if (min > 0) {
                 raisons.add("attend " + min + " min");
             }
         }
-        int engagements = ctx == null ? compterEngagementsAilleurs(mo) : ctx.engagementsAilleurs(mo);
         if (engagements > 0) {
             raisons.add("débloque " + engagements + " match(s)");
         }
         if (poids.getPoidsTableauCommence() != 0.0) {
-            long minutesTableau = ctx == null ? minutesDepuisDebutTableau(mo, maintenant)
-                    : ctx.minutesDepuisDebutTableau(mo);
             if (minutesTableau > 0) {
                 raisons.add("tableau commencé depuis " + minutesTableau + " min");
             }
@@ -508,9 +668,13 @@ public final class Ordonnanceur {
      */
     public void lancer(PropositionLancement proposition, LocalDateTime maintenant) {
         Objects.requireNonNull(proposition, "proposition");
+        if (proposition.estPoule()) {
+            lancerPoule(proposition.getPoule(), proposition.getNumeroTable(), maintenant);
+            return;
+        }
         MatchOrdonnancable mo = proposition.getMatch();
         int table = proposition.getNumeroTable();
-        if (occupationTables.get(table) != null) {
+        if (!estLibre(table)) {
             throw new IllegalStateException("La table " + table + " est déjà occupée.");
         }
         Match m = mo.getMatch();
@@ -534,11 +698,41 @@ public final class Ordonnanceur {
         }
         enCoursHorsTable.remove(mo);
         m.setInstantFin(maintenant);
+        PouleOrdonnancable p = pouleDuMatch.get(mo);
+        if (p != null) {
+            libererSiTerminee(p);
+        }
     }
 
-    /** Match en cours sur une table donnée, ou null si libre. */
+    /**
+     * Libère la table et les joueurs d'une poule lancée dont tous les matchs ont
+     * un résultat (le lancement de la poule est effacé).
+     *
+     * @return true si la poule vient d'être libérée
+     */
+    public boolean libererSiTerminee(PouleOrdonnancable p) {
+        Objects.requireNonNull(p, "p");
+        if (!p.getPoule().estLanceeEnBloc() || p.estEnCours()) {
+            return false;
+        }
+        occupationPoules.values().removeIf(x -> x == p);
+        poulesHorsTable.remove(p);
+        p.getPoule().definirLancement(null, null);
+        return true;
+    }
+
+    /**
+     * Match en cours sur une table donnée, ou null si libre. Pour une table
+     * occupée par une poule : le match de la poule qui s'y joue (le premier sans
+     * résultat dans l'ordre I.301).
+     */
     public MatchOrdonnancable matchSurTable(int table) {
-        return occupationTables.get(table);
+        MatchOrdonnancable mo = occupationTables.get(table);
+        if (mo == null) {
+            PouleOrdonnancable p = occupationPoules.get(table);
+            return p == null ? null : p.matchEnJeu();
+        }
+        return mo;
     }
 
     // -------------------------------------------------------------------------
@@ -556,6 +750,10 @@ public final class Ordonnanceur {
         for (int t = 1; t <= nombreDeTables + tablesRenfortMax; t++) {
             MatchOrdonnancable mo = occupationTables.get(t);
             if (mo != null && joue(mo.getMatch(), licence)) {
+                return t;
+            }
+            PouleOrdonnancable p = occupationPoules.get(t);
+            if (p != null && p.contient(licence)) {
                 return t;
             }
         }
@@ -597,6 +795,10 @@ public final class Ordonnanceur {
                 || a.estADeterminer() || b.estADeterminer()) {
             return ResultatAffectationTable.de(ResultatAffectationTable.Motif.JOUEURS_NON_CONNUS, 0);
         }
+        if (pouleDuMatch.containsKey(mo)) {
+            // Phase de poules : la poule part en bloc sur une table, pas match par match.
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.LANCEMENT_PAR_POULE, 0);
+        }
         // Contrainte dure : un joueur n'est jamais sur deux tables à la fois.
         for (Joueur j : List.of(a, b)) {
             Integer table = tableDuJoueur(j.getNumeroLicence());
@@ -607,13 +809,221 @@ public final class Ordonnanceur {
         // Même règle pour un match en cours dont la table n'est pas valable :
         // ses joueurs jouent, ils ne sont pas disponibles.
         for (Joueur j : List.of(a, b)) {
-            for (MatchOrdonnancable autre : enCoursHorsTable) {
-                if (autre != mo && joue(autre.getMatch(), j.getNumeroLicence())) {
-                    return ResultatAffectationTable.joueurEnJeuSansTable(0, j);
-                }
+            if (joueSansTable(j.getNumeroLicence(), mo)) {
+                return ResultatAffectationTable.joueurEnJeuSansTable(0, j);
             }
         }
         return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, 0);
+    }
+
+    /** Le joueur est-il dans un match ou une poule en cours sans table valable (hors {@code sauf}) ? */
+    private boolean joueSansTable(String licence, MatchOrdonnancable sauf) {
+        for (MatchOrdonnancable autre : enCoursHorsTable) {
+            if (autre != sauf && joue(autre.getMatch(), licence)) {
+                return true;
+            }
+        }
+        for (PouleOrdonnancable p : poulesHorsTable) {
+            if (p.contient(licence)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Poules : lancement en bloc (phase de poules)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Dit si une poule peut être lancée maintenant, indépendamment de la table :
+     * poule gérée, pas déjà en cours, au moins un match à jouer, tous ses joueurs
+     * connus, présents et libres (aucun ne joue ailleurs, ni dans un match de la
+     * poule lancé seul dans un ancien fichier).
+     *
+     * @return {@link ResultatAffectationTable.Motif#AFFECTE} (table 0) si elle peut partir
+     */
+    public ResultatAffectationTable verifierPoule(PouleOrdonnancable p) {
+        return verifierPoule(p, null);
+    }
+
+    private ResultatAffectationTable verifierPoule(PouleOrdonnancable p, Set<String> occupesCalcules) {
+        Objects.requireNonNull(p, "p");
+        if (!poules.contains(p)) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_INCONNU, 0);
+        }
+        if (p.estEnCours()) {
+            Integer table = p.getPoule().getNumeroTable();
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS,
+                    table == null ? 0 : table);
+        }
+        if (p.aJouer().isEmpty()) {
+            boolean enCours = p.getMatchs().stream()
+                    .anyMatch(mo -> mo.getMatch().getStatut() == StatutMatch.EN_COURS);
+            if (!enCours) {
+                return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_TERMINE, 0);
+            }
+        }
+        for (Joueur j : p.joueurs()) {
+            if (j == null || j.estADeterminer()) {
+                return ResultatAffectationTable.de(ResultatAffectationTable.Motif.JOUEURS_NON_CONNUS, 0);
+            }
+        }
+        for (Joueur j : p.joueurs()) {
+            if (p.getAbsents().contains(j.getNumeroLicence())) {
+                return ResultatAffectationTable.joueurAbsent(0, j);
+            }
+        }
+        if (occupesCalcules != null) {
+            for (Joueur j : p.joueurs()) {
+                if (occupesCalcules.contains(j.getNumeroLicence())) {
+                    return ResultatAffectationTable.joueurEnJeuSansTable(0, j); // vague : le détail importe peu
+                }
+            }
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, 0);
+        }
+        // Contrainte dure : aucun joueur de la poule ne joue ailleurs (ni entre deux de ses matchs).
+        for (Joueur j : p.joueurs()) {
+            Integer table = tableDuJoueur(j.getNumeroLicence());
+            if (table != null) {
+                return ResultatAffectationTable.joueurEnJeu(0, j, table);
+            }
+            if (joueSansTable(j.getNumeroLicence(), null)) {
+                return ResultatAffectationTable.joueurEnJeuSansTable(0, j);
+            }
+        }
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, 0);
+    }
+
+    /** Vérifie qu'une poule peut partir sur une table précise, sans rien modifier. */
+    public ResultatAffectationTable verifierAffectationPoule(PouleOrdonnancable p, int table) {
+        Objects.requireNonNull(p, "p");
+        if (table < 1 || table > nombreDeTables + tablesRenfortMax) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, table);
+        }
+        if (table > nombreDeTables + tablesRenfortEnService) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_RENFORT_HORS_SERVICE, table);
+        }
+        ResultatAffectationTable r = verifierPoule(p);
+        if (r.getMotif() == ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU) {
+            return r.getTableDuJoueurBloquant() == null
+                    ? ResultatAffectationTable.joueurEnJeuSansTable(table, r.getJoueurBloquant())
+                    : ResultatAffectationTable.joueurEnJeu(table, r.getJoueurBloquant(), r.getTableDuJoueurBloquant());
+        }
+        if (r.getMotif() == ResultatAffectationTable.Motif.JOUEUR_ABSENT) {
+            return ResultatAffectationTable.joueurAbsent(table, r.getJoueurBloquant());
+        }
+        if (!r.estReussi()) {
+            return r;
+        }
+        if (!estLibre(table)) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_OCCUPEE, table);
+        }
+        if (!reservations.admet(table, p.getIdentifiantTableau())) {
+            return ResultatAffectationTable.tableReservee(table, reservations.tableauxAdmis(table));
+        }
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTE, table);
+    }
+
+    /**
+     * Lance la poule entière sur une table : la poule porte la table et l'heure,
+     * chacun de ses matchs à jouer passe en cours sur cette table (ils se jouent à
+     * la suite, dans l'ordre I.301). Rien n'est modifié en cas de refus.
+     */
+    public ResultatAffectationTable affecterPoule(PouleOrdonnancable p, int table, LocalDateTime maintenant) {
+        Objects.requireNonNull(maintenant, "maintenant");
+        ResultatAffectationTable r = verifierAffectationPoule(p, table);
+        if (r.estReussi()) {
+            lancerPoule(p, table, maintenant);
+        }
+        return r;
+    }
+
+    private void lancerPoule(PouleOrdonnancable p, int table, LocalDateTime maintenant) {
+        if (!estLibre(table)) {
+            throw new IllegalStateException("La table " + table + " est déjà occupée.");
+        }
+        p.getPoule().definirLancement(table, maintenant);
+        for (MatchOrdonnancable mo : p.aJouer()) {
+            Match m = mo.getMatch();
+            m.setNumeroTable(table);
+            m.setInstantLancement(maintenant);
+            m.setStatut(StatutMatch.EN_COURS);
+        }
+        occupationPoules.put(table, p);
+    }
+
+    /**
+     * Annule le lancement d'une poule tant qu'aucun résultat n'y a été saisi
+     * depuis le lancement : la table redevient libre, les matchs redeviennent à
+     * jouer. Ensuite, le lancement reste en place.
+     */
+    public ResultatAffectationTable annulerLancementPoule(PouleOrdonnancable p) {
+        Objects.requireNonNull(p, "p");
+        Poule poule = p.getPoule();
+        Integer table = poule.getNumeroTable();
+        int t = table == null ? 0 : table;
+        if (!p.estEnCours()) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.MATCH_PAS_EN_COURS, t);
+        }
+        if (aUnResultatDepuisLeLancement(p)) {
+            return ResultatAffectationTable.de(ResultatAffectationTable.Motif.SCORE_DEJA_SAISI, t);
+        }
+        for (MatchOrdonnancable mo : p.getMatchs()) {
+            Match m = mo.getMatch();
+            if (m.getStatut() == StatutMatch.EN_COURS) {
+                m.setStatut(StatutMatch.A_JOUER);
+                m.setNumeroTable(null);
+                m.setInstantLancement(null);
+            }
+        }
+        occupationPoules.values().removeIf(x -> x == p);
+        poulesHorsTable.remove(p);
+        poule.definirLancement(null, null);
+        return ResultatAffectationTable.de(ResultatAffectationTable.Motif.AFFECTATION_ANNULEE, t);
+    }
+
+    /** Un résultat a-t-il été enregistré dans la poule depuis son lancement ? */
+    public static boolean aUnResultatDepuisLeLancement(PouleOrdonnancable p) {
+        LocalDateTime lancement = p.getPoule().getInstantLancement();
+        if (lancement == null) {
+            return false;
+        }
+        for (MatchOrdonnancable mo : p.getMatchs()) {
+            Match m = mo.getMatch();
+            if (m.getStatut() == StatutMatch.TERMINE && (m.getInstantFin() == null
+                    || !m.getInstantFin().isBefore(lancement))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Reprise : une poule lancée en bloc (statuts et table déjà relus) occupe de
+     * nouveau sa table.
+     *
+     * @throws IllegalStateException si la table est déjà occupée
+     */
+    public void restaurerPoule(int table, PouleOrdonnancable p) {
+        Objects.requireNonNull(p, "p");
+        if (!occupationTables.containsKey(table)) {
+            throw new IllegalArgumentException("Table hors bornes : " + table);
+        }
+        if (!estLibre(table)) {
+            throw new IllegalStateException("La table " + table + " est déjà occupée.");
+        }
+        ajouterPoule(p);
+        occupationPoules.put(table, p);
+    }
+
+    /** Reprise : poule en cours sans table valable ; ses joueurs restent occupés. */
+    public void restaurerPouleHorsTable(PouleOrdonnancable p) {
+        Objects.requireNonNull(p, "p");
+        ajouterPoule(p);
+        if (!poulesHorsTable.contains(p)) {
+            poulesHorsTable.add(p);
+        }
     }
 
     /**
@@ -639,7 +1049,7 @@ public final class Ordonnanceur {
         if (!match.estReussi()) {
             return match;
         }
-        if (occupationTables.get(table) != null) {
+        if (!estLibre(table)) {
             return ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_OCCUPEE, table);
         }
         if (!reservations.admet(table, mo.getIdentifiantTableau())) {
@@ -669,6 +1079,10 @@ public final class Ordonnanceur {
      */
     public ResultatAffectationTable annulerLancement(MatchOrdonnancable mo) {
         Objects.requireNonNull(mo, "mo");
+        PouleOrdonnancable p = pouleDuMatch.get(mo);
+        if (p != null && p.estEnCours()) {
+            return annulerLancementPoule(p); // le lancement porte sur la poule entière
+        }
         Match m = mo.getMatch();
         Integer table = m.getNumeroTable();
         if (m.getStatut() != StatutMatch.EN_COURS) {
@@ -705,7 +1119,7 @@ public final class Ordonnanceur {
         if (!occupationTables.containsKey(table)) {
             throw new IllegalArgumentException("Table hors bornes : " + table);
         }
-        if (occupationTables.get(table) != null) {
+        if (!estLibre(table)) {
             throw new IllegalStateException("La table " + table + " est déjà occupée.");
         }
         gerer(mo);
@@ -858,8 +1272,8 @@ public final class Ordonnanceur {
             return min != null && min < profondeur(mo.getMatch(), memoProfondeur);
         }
 
-        long minutesDepuisDebutTableau(MatchOrdonnancable mo) {
-            LocalDateTime debut = debutTableau.get(mo.getIdentifiantTableau());
+        long minutesDepuisDebutTableau(String tableau) {
+            LocalDateTime debut = debutTableau.get(tableau);
             return debut == null ? 0 : Math.max(0, Duration.between(debut, maintenant).toMinutes());
         }
     }

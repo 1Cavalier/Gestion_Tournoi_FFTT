@@ -111,9 +111,18 @@ public final class TableauDeBordSalle {
     }
 
     /** Une table de la salle : libre ({@code match} nul) ou occupée, avec la durée écoulée. */
-    public record CarteTable(int numero, MatchSalle match, Duration ecoule) {
+    public record CarteTable(int numero, MatchSalle match, Duration ecoule, PouleALancer poule) {
+        public CarteTable(int numero, MatchSalle match, Duration ecoule) {
+            this(numero, match, ecoule, null);
+        }
+
         public boolean estLibre() {
             return match == null;
+        }
+
+        /** @return true si une poule entière est lancée sur la table (son match en jeu dans {@link #match}). */
+        public boolean estPoule() {
+            return poule != null;
         }
     }
 
@@ -134,6 +143,7 @@ public final class TableauDeBordSalle {
     private final int enAttenteDesJoueurs;
     private final List<JoueurEnAttente> joueursEnAttente;
     private final Ordonnanceur ordonnanceur;
+    private List<PouleALancer> poulesPretes = List.of();
 
     TableauDeBordSalle(LocalDateTime maintenant, int nombreDeTables, List<CarteTable> tables,
                        List<MatchSalle> prets, List<MatchBloque> bloques, List<MatchSalle> anomalies,
@@ -168,6 +178,20 @@ public final class TableauDeBordSalle {
     /** Matchs jouables tout de suite, du plus prioritaire au moins prioritaire. */
     public List<MatchSalle> getPrets() {
         return prets;
+    }
+
+    /**
+     * Phase de poules : poules prêtes à partir en bloc (tous leurs joueurs libres),
+     * de la plus prioritaire à la moins prioritaire. Leurs matchs ne figurent pas
+     * dans {@link #getPrets()} : une poule se lance entière.
+     */
+    public List<PouleALancer> getPoulesPretes() {
+        return poulesPretes;
+    }
+
+    TableauDeBordSalle avecPoulesPretes(List<PouleALancer> poules) {
+        this.poulesPretes = List.copyOf(poules);
+        return this;
     }
 
     /** Matchs à jouer dont un joueur est déjà sur une table, avec le motif. */

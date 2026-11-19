@@ -54,7 +54,18 @@ public final class ResultatAffectationTable {
         /** Annulation ou libération demandée pour un match qui n'est pas en cours. */
         MATCH_PAS_EN_COURS,
         /** Libération demandée alors que le résultat du match n'est pas saisi. */
-        RESULTAT_NON_SAISI
+        RESULTAT_NON_SAISI,
+        /**
+         * Pendant la phase de poules, on lance la poule entière, pas un match :
+         * ce match de poule part avec sa poule.
+         */
+        LANCEMENT_PAR_POULE,
+        /** Un joueur de la poule n'est pas présent (pas pointé dans le tableau). */
+        JOUEUR_ABSENT,
+        /** Annulation refusée : un résultat de la poule lancée est déjà saisi. */
+        SCORE_DEJA_SAISI,
+        /** Résultat enregistré dans une poule lancée : la poule continue sur sa table. */
+        POULE_CONTINUE
     }
 
     private final Motif motif;
@@ -93,6 +104,12 @@ public final class ResultatAffectationTable {
                 Objects.requireNonNull(joueur, "joueur"), null, null);
     }
 
+    /** Refus parce qu'un joueur de la poule n'est pas présent (pas pointé). */
+    public static ResultatAffectationTable joueurAbsent(int numeroTable, Joueur joueur) {
+        return new ResultatAffectationTable(Motif.JOUEUR_ABSENT, numeroTable,
+                Objects.requireNonNull(joueur, "joueur"), null, null);
+    }
+
     /** Refus parce que la table est réservée à d'autres tableaux (B024). */
     public static ResultatAffectationTable tableReservee(int numeroTable, Set<String> tableauxAdmis) {
         return new ResultatAffectationTable(Motif.TABLE_RESERVEE, numeroTable, null, null,
@@ -110,7 +127,8 @@ public final class ResultatAffectationTable {
 
     /** @return true si l'opération a été faite (affectation, annulation ou libération). */
     public boolean estReussi() {
-        return motif == Motif.AFFECTE || motif == Motif.AFFECTATION_ANNULEE || motif == Motif.TABLE_LIBEREE;
+        return motif == Motif.AFFECTE || motif == Motif.AFFECTATION_ANNULEE || motif == Motif.TABLE_LIBEREE
+                || motif == Motif.POULE_CONTINUE;
     }
 
     /** @return la table visée par l'opération (0 si aucune table n'est en jeu). */
@@ -118,7 +136,7 @@ public final class ResultatAffectationTable {
         return numeroTable;
     }
 
-    /** @return le joueur déjà en jeu ailleurs (motif {@link Motif#JOUEUR_DEJA_EN_JEU}), sinon null. */
+    /** @return le joueur déjà en jeu ailleurs ({@link Motif#JOUEUR_DEJA_EN_JEU}) ou absent ({@link Motif#JOUEUR_ABSENT}), sinon null. */
     public Joueur getJoueurBloquant() {
         return joueurBloquant;
     }

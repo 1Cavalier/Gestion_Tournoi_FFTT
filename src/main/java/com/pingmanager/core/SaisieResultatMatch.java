@@ -43,6 +43,14 @@ import java.util.Objects;
  * {@link #scoreSaisissable} et {@link #issueSaisissable}. La règle ne vaut que pour
  * la saisie : la relecture d'un ancien fichier (matchs terminés sans lancement)
  * passe par le modèle et n'est pas concernée.</p>
+ *
+ * <p><b>Poule lancée en bloc</b> (phase de poules) : tous ses matchs sont en cours
+ * sur la table de la poule, ils comptent donc comme lancés et reçoivent leur
+ * résultat au fil de l'eau. Le début d'un match est alors la fin du résultat
+ * précédent de la poule (matchs à la suite, I.301), pour que les durées restent
+ * apprises match par match. Au dernier résultat, la table et les joueurs de la
+ * poule sont libérés ; un résultat effacé pendant la poule remet le match en cours
+ * sur sa table. La saisie de la poule entière d'un coup est dans {@link SaisiePoule}.</p>
  */
 public final class SaisieResultatMatch {
 
@@ -155,8 +163,10 @@ public final class SaisieResultatMatch {
         if (!verif.estEnregistre()) {
             return verif;
         }
+        LocalDateTime fin = maintenant();
+        Poule poule = pouleLancee(tableau, match);
         match.definirScore(List.copyOf(manches));
-        match.setInstantFin(maintenant());
+        terminerDansLaPoule(poule, match, fin, false);
         return verif;
     }
 
@@ -184,10 +194,52 @@ public final class SaisieResultatMatch {
         if (!issueSaisissable(match, issue)) {
             return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.MATCH_NON_LANCE);
         }
+        LocalDateTime fin = maintenant();
+        Poule poule = pouleLancee(tableau, match);
         match.effacerResultat();
         match.declarerIssue(issue, fautif);
-        match.setInstantFin(maintenant());
+        terminerDansLaPoule(poule, match, fin, false);
         return ResultatSaisieMatch.enregistre();
+    }
+
+    /** Poule lancée en bloc qui contient ce match, ou null. */
+    static Poule pouleLancee(Tableau tableau, Match match) {
+        for (Poule p : tableau.getPoules()) {
+            if (p.estLanceeEnBloc() && p.getMatchs().contains(match)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Pose l'heure de fin d'un match qui vient de recevoir son résultat. Dans une
+     * poule lancée en bloc : son début est la fin du résultat précédent de la
+     * poule (sinon le lancement de la poule) ; d'un coup ({@code dureeInconnue}),
+     * début et fin sont confondus : la durée réelle n'est pas connue et n'est pas
+     * apprise. Au dernier résultat, la poule libère sa table et ses joueurs.
+     */
+    static void terminerDansLaPoule(Poule poule, Match match, LocalDateTime fin, boolean dureeInconnue) {
+        match.setInstantFin(fin);
+        if (poule == null) {
+            return;
+        }
+        if (dureeInconnue) {
+            match.setInstantLancement(fin);
+        } else {
+            LocalDateTime debut = poule.getInstantLancement();
+            for (Match m : poule.getMatchs()) {
+                LocalDateTime f = m.getInstantFin();
+                if (m != match && m.getStatut() == StatutMatch.TERMINE && f != null && f.isAfter(debut)
+                        && !f.isAfter(fin)) {
+                    debut = f;
+                }
+            }
+            match.setInstantLancement(debut);
+        }
+        if (poule.estTerminee()) {
+            poule.definirLancement(null, null);
+        }
     }
 
     /** Efface le résultat d'un match (erreur de saisie) : il redevient à jouer. */
@@ -199,12 +251,19 @@ public final class SaisieResultatMatch {
         if (match.estBye()) {
             return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.MATCH_EXEMPT);
         }
+        Poule poule = pouleLancee(tableau, match);
         match.effacerResultat();
+        if (poule != null && poule.getNumeroTable() != null) {
+            // La poule est toujours sur sa table : le match y reste en cours.
+            match.setStatut(StatutMatch.EN_COURS);
+            match.setNumeroTable(poule.getNumeroTable());
+            match.setInstantLancement(poule.getInstantLancement());
+        }
         return ResultatSaisieMatch.enregistre();
     }
 
     /** @return un refus si le tableau n'accepte pas de saisie pour ce match, sinon null. */
-    private static ResultatSaisieMatch verifierAcces(Tableau tableau, Match match) {
+    static ResultatSaisieMatch verifierAcces(Tableau tableau, Match match) {
         Objects.requireNonNull(tableau, "tableau");
         Objects.requireNonNull(match, "match");
         if (tableau.getStatut() != StatutTableau.LANCE) {
@@ -218,7 +277,7 @@ public final class SaisieResultatMatch {
         return ResultatSaisieMatch.refus(ResultatSaisieMatch.Motif.MATCH_HORS_TABLEAU);
     }
 
-    private LocalDateTime maintenant() {
+    LocalDateTime maintenant() {
         return LocalDateTime.ofInstant(horloge.maintenant(), ZoneId.systemDefault());
     }
 }
