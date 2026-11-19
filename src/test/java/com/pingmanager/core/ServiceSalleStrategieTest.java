@@ -44,14 +44,14 @@ class ServiceSalleStrategieTest {
         return tab;
     }
 
-    /** A lancé à 9 h (une partie en cours), B lancé à 10 h 30 sans partie jouée ; une table libre. */
+    /** A lancé à 9 h (une poule en cours), B lancé à 10 h 30 sans partie jouée ; une table libre. */
     private Tournoi tournoi() {
         Tournoi t = new Tournoi("Open", "Club", LocalDate.of(2026, 11, 14));
         t.setNombreDeTables(2);
         Tableau a = lancer(t, "A", List.of(j("A1"), j("A2"), j("A3"), j("A4"), j("A5"), j("A6")));
         lancer(t, "B", List.of(j("B1"), j("B2"), j("B3")));
-        Match premier = a.getPoules().get(0).getMatchs().get(0);
-        new ServiceSalle(horloge).affecter(t, premier, 1);
+        // Phase de poules : on lance une poule entière.
+        assertTrue(new ServiceSalle(horloge).lancerPoule(t, a.getPoules().get(0), 1).estReussi());
         instant = instant.plusSeconds(90 * 60L);
         return t;
     }
@@ -60,26 +60,30 @@ class ServiceSalleStrategieTest {
     void sans_choix_la_salle_garde_le_classement_historique() {
         Tournoi t = tournoi();
         assertFalse(t.strategieOrdonnancementChoisie());
-        TableauDeBordSalle bord = new ServiceSalle(horloge, ZoneId.systemDefault()).tableauDeBord(t);
-        TableauDeBordSalle imposee = new ServiceSalle(horloge, ZoneId.systemDefault(), new PoidsOrdonnancement())
-                .tableauDeBord(t);
-        assertEquals(imposee.getPrets().stream().map(TableauDeBordSalle.MatchSalle::match).toList(),
-                bord.getPrets().stream().map(TableauDeBordSalle.MatchSalle::match).toList());
-        assertTrue(bord.getPrets().stream().noneMatch(m -> m.explication().contains("tableau commencé")));
+        List<ListeLancements.Ligne> bord = new ServiceSalle(horloge, ZoneId.systemDefault()).listeLancements(t)
+                .getJouables();
+        List<ListeLancements.Ligne> imposee = new ServiceSalle(horloge, ZoneId.systemDefault(),
+                new PoidsOrdonnancement()).listeLancements(t).getJouables();
+        assertEquals(2, bord.size(), "l'autre poule de A et la poule de B");
+        assertEquals(imposee.stream().map(l -> l.match().match()).toList(),
+                bord.stream().map(l -> l.match().match()).toList());
+        assertTrue(bord.stream().noneMatch(l -> l.match().explication().contains("tableau commencé")));
     }
+
 
     @Test
     void strategie_avancer_les_tableaux_commences_met_le_tableau_a_en_tete_et_l_explique() {
         Tournoi t = tournoi();
         t.setStrategieOrdonnancement(StrategieOrdonnancement.AVANCER_TABLEAUX_COMMENCES);
-        TableauDeBordSalle bord = new ServiceSalle(horloge).tableauDeBord(t);
-        TableauDeBordSalle.MatchSalle premier = bord.getPrets().get(0);
+        ListeLancements liste = new ServiceSalle(horloge).listeLancements(t);
+        TableauDeBordSalle.MatchSalle premier = liste.getJouables().get(0).match();
         assertEquals("A", premier.tableau());
         assertTrue(premier.explication().contains("tableau commencé depuis 90 min"), premier.explication());
 
         // Des poids imposés par l'appelant l'emportent sur la stratégie du tournoi.
-        TableauDeBordSalle imposee = new ServiceSalle(horloge, ZoneId.systemDefault(), new PoidsOrdonnancement())
-                .tableauDeBord(t);
-        assertTrue(imposee.getPrets().stream().noneMatch(m -> m.explication().contains("tableau commencé")));
+        ListeLancements imposee = new ServiceSalle(horloge, ZoneId.systemDefault(), new PoidsOrdonnancement())
+                .listeLancements(t);
+        assertTrue(imposee.getJouables().stream().noneMatch(l -> l.match().explication().contains("tableau commencé")));
     }
+
 }

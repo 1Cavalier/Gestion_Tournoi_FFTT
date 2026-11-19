@@ -47,7 +47,7 @@ class SalleRoundTripTest {
         return new Joueur(licence, "N" + licence, "P" + licence, Sexe.HOMME, "Club" + licence, 1000);
     }
 
-    /** Tournoi de 4 tables, tableau de 9 joueurs (3 poules de 3), trois parties lancées. */
+    /** Tournoi de 4 tables, tableau de 9 joueurs (3 poules de 3), les trois poules lancées en bloc. */
     private Tournoi tournoiEnSalle() {
         Tournoi t = new Tournoi("Open Salle", "Club", LocalDate.of(2026, 11, 14));
         t.setNombreDeTables(4);
@@ -61,7 +61,7 @@ class SalleRoundTripTest {
         new ServicePointage(t).cloturerPointage(a);
         new ServiceLancementTableau(t).lancer(a, 3L);
         ResultatPropositionSalle r = salle.proposer(t);
-        assertEquals(3, r.getLancements().size(), "une partie par poule");
+        assertEquals(3, r.getLancements().size(), "une poule par table");
         instant = instant.plusSeconds(60 * 12);
         return t;
     }
@@ -132,24 +132,25 @@ class SalleRoundTripTest {
     }
 
     @Test
-    void session_relue_meme_avec_un_match_en_cours_sur_une_table_inexistante() throws Exception {
+    void session_relue_meme_avec_une_poule_en_cours_sur_une_table_inexistante() throws Exception {
         Tournoi t = tournoiEnSalle();
         TableauDeBordSalle bord = salle.tableauDeBord(t);
-        // Fichier incohérent : un match libre marqué en cours sur la table 9 (le tournoi n'en a que 4).
-        Match perdu = bord.getBloques().get(0).match().match();
-        perdu.setStatut(StatutMatch.EN_COURS);
-        perdu.setNumeroTable(9);
+        // Fichier incohérent : une poule lancée marquée sur la table 9 (le tournoi n'en a que 4).
+        com.pingmanager.model.Poule perdue = t.getTableaux().get(0).getPoules().get(0);
+        perdue.definirLancement(9, perdue.getInstantLancement());
+        perdue.getMatchs().forEach(m -> m.setNumeroTable(9));
         Path fichier = dossier.resolve("incoherent.autosave.json");
         DepotSession.sauvegarder(new SessionSalle(t, new RegistreDisciplinaire(), bord.getOrdonnanceur(), null),
                 fichier);
 
         SessionSalle relue = DepotSession.charger(fichier);
 
-        assertEquals(1, relue.getOrdonnanceur().tablesLibres().size());
+        assertEquals(2, relue.getOrdonnanceur().tablesLibres().size(), "sa table d'avant et la table 4");
         TableauDeBordSalle apres = salle.tableauDeBord(relue.getTournoi());
-        assertEquals(1, apres.getAnomalies().size(), "le match sur la table 9 est à régulariser");
+        assertEquals(1, apres.getAnomalies().size(), "la poule sur la table 9 est à régulariser");
         assertTrue(salle.annulerAffectation(relue.getTournoi(), apres.getAnomalies().get(0).match()).estReussi());
     }
+
 
     @Test
     void ancien_fichier_sans_match_en_cours_donne_une_salle_libre() throws Exception {
@@ -167,6 +168,9 @@ class SalleRoundTripTest {
         TableauDeBordSalle bord = salle.tableauDeBord(relu);
 
         assertEquals(4, bord.nombreTablesLibres());
-        assertEquals(9, bord.getPrets().size());
+        // Phase de poules : les trois poules (9 parties) sont à lancer, chacune en bloc.
+        assertEquals(3, salle.listeLancements(relu).getJouables().size());
+        assertEquals(9, relu.getTableaux().get(0).getPoules().stream().mapToLong(p -> p.getMatchs().stream()
+                .filter(m -> m.getStatut() == StatutMatch.A_JOUER).count()).sum());
     }
 }

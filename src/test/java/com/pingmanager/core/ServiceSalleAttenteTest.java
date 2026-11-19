@@ -69,6 +69,26 @@ class ServiceSalleAttenteTest {
         return t;
     }
 
+    /**
+     * Tableau « A » de douze joueurs dont les poules sont jouées et le tableau final
+     * construit (quarts de finale) : ses matchs se lancent un par un, la couleur de
+     * priorité s'y applique. Pendant la phase de poules, on lance une poule entière.
+     */
+    private static Tournoi tournoiTableauFinal(int tables) {
+        Tournoi t = new Tournoi("Open", "Club", LocalDate.of(2026, 11, 14));
+        t.setNombreDeTables(tables);
+        Tableau a = tableau("A");
+        t.ajouterTableau(a);
+        List<Joueur> joueurs = new java.util.ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            joueurs.add(j("L" + i));
+        }
+        lancer(t, a, joueurs);
+        a.getPoules().forEach(p -> p.getMatchs().forEach(m -> m.definirScore(troisZero())));
+        assertTrue(new ServicePhaseFinale().construire(a, 7L).estConstruit());
+        return t;
+    }
+
     private static Tableau tab(Tournoi t, String nom) {
         return t.getTableaux().stream().filter(x -> x.getNom().equals(nom)).findFirst().orElseThrow();
     }
@@ -87,66 +107,78 @@ class ServiceSalleAttenteTest {
 
     @Test
     void au_depart_les_premiers_proposes_autant_que_de_tables_libres_sont_orange() {
-        Tournoi t = tournoiSixJoueurs(4);
+        Tournoi t = tournoiTableauFinal(2);
         List<TableauDeBordSalle.MatchSalle> prets = salle.tableauDeBord(t).getPrets();
-        assertEquals(6, prets.size());
+        assertEquals(4, prets.size(), "quarts de finale");
         for (int i = 0; i < prets.size(); i++) {
-            NiveauPriorite attendu = i < 4 ? NiveauPriorite.IMPORTANT : NiveauPriorite.NORMAL;
+            NiveauPriorite attendu = i < 2 ? NiveauPriorite.IMPORTANT : NiveauPriorite.NORMAL;
             assertEquals(attendu, prets.get(i).niveau(), "rang " + i);
         }
         assertEquals("prochain à envoyer", prets.get(0).motifNiveau());
-        assertEquals("", prets.get(5).motifNiveau());
+        assertEquals("", prets.get(3).motifNiveau());
     }
+
 
     @Test
     void sans_table_renseignee_rien_n_est_choisi_par_la_strategie() {
-        Tournoi t = tournoiSixJoueurs(0);
-        assertTrue(salle.tableauDeBord(t).getPrets().stream().allMatch(p -> p.niveau() == NiveauPriorite.NORMAL));
+        Tournoi t = tournoiTableauFinal(0);
+        List<TableauDeBordSalle.MatchSalle> prets = salle.tableauDeBord(t).getPrets();
+        assertFalse(prets.isEmpty());
+        assertTrue(prets.stream().allMatch(p -> p.niveau() == NiveauPriorite.NORMAL));
     }
+
 
     @Test
     void attente_longue_en_rouge_avec_la_duree() {
-        Tournoi t = tournoiSixJoueurs(6);
-        Poule p1 = tab(t, "A").getPoules().get(0);
-        Match premier = p1.getMatchs().get(0);
-        assertTrue(salle.affecter(t, premier, 1).estReussi());
+        Tournoi t = tournoiTableauFinal(6);
+        Tableau a = tab(t, "A");
+        // La demi-finale dont on joue les deux quarts de 10 h 00 à 10 h 05.
+        Match demi = a.getPhaseFinale().getTours().get(1).getMatchs().get(0);
+        ServicePhaseFinale pf = new ServicePhaseFinale();
+        assertTrue(salle.affecter(t, demi.getSourceA(), 1).estReussi());
+        assertTrue(salle.affecter(t, demi.getSourceB(), 2).estReussi());
         avancer(5);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), premier, troisZero());
-        salle.libererApresResultat(t, premier);
+        for (Match q : List.of(demi.getSourceA(), demi.getSourceB())) {
+            assertTrue(pf.saisirScore(a, q, troisZero()).estValide());
+            salle.libererApresResultat(t, q);
+        }
         avancer(25);
 
         TableauDeBordSalle bord = salle.tableauDeBord(t);
-        // Poule 2 : prête depuis le début du tableau (10 h 00) ; poule 1 : depuis 10 h 05.
+        // Les deux autres quarts : prêts depuis le début du tableau (10 h 00) ; la demi : depuis 10 h 05.
         TableauDeBordSalle.MatchSalle tete = bord.getPrets().get(0);
-        assertFalse(p1.getMatchs().contains(tete.match()), "la poule 2 attend le plus");
+        assertNotSame(demi, tete.match(), "les quarts attendent le plus");
         assertEquals(NiveauPriorite.URGENT, tete.niveau());
         assertEquals(Duration.ofMinutes(30), tete.attente());
-        TableauDeBordSalle.MatchSalle deP1 = bord.getPrets().stream()
-                .filter(m -> p1.getMatchs().contains(m.match())).findFirst().orElseThrow();
-        assertEquals(NiveauPriorite.URGENT, deP1.niveau());
-        assertEquals(Duration.ofMinutes(25), deP1.attente());
-        assertTrue(deP1.motifNiveau().contains("attend depuis 25 min"), deP1.motifNiveau());
+        TableauDeBordSalle.MatchSalle laDemi = bord.getPrets().stream().filter(m -> m.match() == demi).findFirst()
+                .orElseThrow();
+        assertEquals(NiveauPriorite.URGENT, laDemi.niveau());
+        assertEquals(Duration.ofMinutes(25), laDemi.attente());
+        assertTrue(laDemi.motifNiveau().contains("attend depuis 25 min"), laDemi.motifNiveau());
     }
+
 
     @Test
     void joueur_attendu_dans_un_autre_tableau_rend_le_match_important() {
-        Tournoi t = tournoiSixJoueurs(0); // aucune table : la stratégie ne colore rien
+        Tournoi t = tournoiTableauFinal(0); // aucune table : la stratégie ne colore rien
+        // Un qualifié du tableau final de A joue aussi le tableau B (phase de poules).
+        Joueur commun = salle.tableauDeBord(t).getPrets().get(0).match().getJoueurA();
         Tableau b = tableau("B");
         t.ajouterTableau(b);
-        Joueur commun = j("L1");
         lancer(t, b, List.of(commun, j("M2"), j("M3")));
 
-        for (TableauDeBordSalle.MatchSalle m : salle.tableauDeBord(t).getPrets()) {
+        List<TableauDeBordSalle.MatchSalle> prets = salle.tableauDeBord(t).getPrets();
+        assertTrue(prets.stream().anyMatch(m -> joue(m.match(), commun)));
+        for (TableauDeBordSalle.MatchSalle m : prets) {
             if (joue(m.match(), commun)) {
                 assertEquals(NiveauPriorite.IMPORTANT, m.niveau());
-                String autre = "A".equals(m.tableau()) ? "B" : "A";
-                assertTrue(m.motifNiveau().contains(commun.getNomComplet() + " joue aussi " + autre),
-                        m.motifNiveau());
+                assertTrue(m.motifNiveau().contains(commun.getNomComplet() + " joue aussi B"), m.motifNiveau());
             } else {
                 assertEquals(NiveauPriorite.NORMAL, m.niveau(), m.tableau() + " " + m.tour());
             }
         }
     }
+
 
     @Test
     void finale_du_tableau_final_est_importante() {
@@ -182,65 +214,77 @@ class ServiceSalleAttenteTest {
     @Test
     void joueurs_en_attente_hors_table_avec_motif_adversaire_en_jeu_ou_pret() {
         Tournoi t = tournoiSixJoueurs(4);
-        Poule p1 = tab(t, "A").getPoules().get(0);
-        Match enCours = p1.getMatchs().get(0);
-        assertTrue(salle.affecter(t, enCours, 3).estReussi());
+        Tableau b = tableau("B");
+        t.ajouterTableau(b);
+        Joueur commun = j("L1");
+        lancer(t, b, List.of(commun, j("M2"), j("M3")));
+        Poule p1 = tab(t, "A").getPoules().stream().filter(p -> p.getJoueurs().contains(commun)).findFirst()
+                .orElseThrow();
+        assertTrue(salle.lancerPoule(t, p1, 3).estReussi());
 
         TableauDeBordSalle bord = salle.tableauDeBord(t);
         List<TableauDeBordSalle.JoueurEnAttente> attente = bord.getJoueursEnAttente();
-        assertEquals(4, attente.size(), "les deux joueurs à la table 3 ne sont pas en attente");
-        assertNull(bord.joueurEnAttente(enCours.getJoueurA().getNumeroLicence()));
-        assertNull(bord.joueurEnAttente(enCours.getJoueurB().getNumeroLicence()));
-
-        // Le troisième joueur de la poule 1 : ses deux adversaires jouent ensemble à la table 3.
-        Joueur troisieme = p1.getJoueurs().stream()
-                .filter(x -> !joue(enCours, x)).findFirst().orElseThrow();
-        TableauDeBordSalle.JoueurEnAttente seul = bord.joueurEnAttente(troisieme.getNumeroLicence());
-        assertFalse(seul.peutJouer());
-        assertEquals(2, seul.engagements().size());
-        for (TableauDeBordSalle.Engagement e : seul.engagements()) {
-            assertEquals(TableauDeBordSalle.RaisonAttente.ADVERSAIRE_EN_JEU, e.raison());
-            assertEquals(Integer.valueOf(3), e.tableAdversaire());
-            assertEquals("Poule " + p1.getNom(), e.groupe());
-            assertEquals(p1.getMatchs(), e.matchsDuGroupe());
+        assertEquals(5, attente.size(), "les trois joueurs de la poule lancée en table 3 ne sont pas en attente");
+        for (Joueur x : p1.getJoueurs()) {
+            assertNull(bord.joueurEnAttente(x.getNumeroLicence()), "occupé par sa poule, même entre deux matchs");
         }
-        // Les joueurs de la poule 2 peuvent jouer.
-        for (Joueur x : tab(t, "A").getPoules().get(1).getJoueurs()) {
+
+        // M2, dans le tableau B : son adversaire L1 joue sa poule à la table 3.
+        Poule pouleB = b.getPoules().get(0);
+        TableauDeBordSalle.JoueurEnAttente m2 = bord.joueurEnAttente("M2");
+        TableauDeBordSalle.Engagement e = m2.engagements().stream().filter(x -> commun.equals(x.adversaire()))
+                .findFirst().orElseThrow();
+        assertEquals(TableauDeBordSalle.RaisonAttente.ADVERSAIRE_EN_JEU, e.raison());
+        assertEquals(Integer.valueOf(3), e.tableAdversaire());
+        assertEquals("Poule " + pouleB.getNom(), e.groupe());
+        assertEquals(pouleB.getMatchs(), e.matchsDuGroupe());
+        // Les joueurs de l'autre poule de A peuvent jouer.
+        Poule p2 = tab(t, "A").getPoules().stream().filter(p -> p != p1).findFirst().orElseThrow();
+        for (Joueur x : p2.getJoueurs()) {
             assertTrue(bord.joueurEnAttente(x.getNumeroLicence()).peutJouer());
         }
     }
+
 
     @Test
     void chrono_depuis_la_fin_du_dernier_match_puis_tri_du_plus_long_au_plus_court() {
         Tournoi t = tournoiSixJoueurs(6);
         Poule p1 = tab(t, "A").getPoules().get(0);
         Poule p2 = tab(t, "A").getPoules().get(1);
-        Match m1 = p1.getMatchs().get(0);
-        assertTrue(salle.affecter(t, m1, 1).estReussi());
-        avancer(5);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), m1, troisZero());
-        Match m2 = p2.getMatchs().get(0);
-        assertTrue(salle.affecter(t, m2, 2).estReussi());
+        // Tableau B : un joueur de chaque poule de A, qui a donc encore à jouer après sa poule.
+        Tableau b = tableau("B");
+        t.ajouterTableau(b);
+        Joueur de1 = p1.getJoueurs().get(0);
+        Joueur de2 = p2.getJoueurs().get(0);
+        lancer(t, b, List.of(de1, de2, j("M3")));
+        SaisieResultatMatch saisie = new SaisieResultatMatch(horloge);
+        assertTrue(salle.lancerPoule(t, p1, 1).estReussi());
+        avancer(3);
+        // Pas encore joué : la poule 2 attend depuis le début du tableau dans la salle (10 h 00).
+        TableauDeBordSalle avant = salle.tableauDeBord(t);
+        assertEquals(dixHeuresPlus(0), avant.joueurEnAttente(de2.getNumeroLicence()).depuis());
+        assertEquals(Duration.ofMinutes(3), avant.joueurEnAttente(de2.getNumeroLicence()).attente());
+        avancer(2);
+        p1.getMatchs().forEach(m -> saisie.enregistrerScore(tab(t, "A"), m, troisZero()));
+        assertTrue(salle.lancerPoule(t, p2, 2).estReussi());
         avancer(10);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), m2, troisZero());
+        p2.getMatchs().forEach(m -> saisie.enregistrerScore(tab(t, "A"), m, troisZero()));
         avancer(3);
 
         TableauDeBordSalle bord = salle.tableauDeBord(t);
-        // Le premier lancement (10 h 00) donne le début du tableau ; m1 finit à 10 h 05, m2 à 10 h 15.
+        // La poule 1 finit à 10 h 05, la poule 2 à 10 h 15.
         TableauDeBordSalle.JoueurEnAttente premier = bord.getJoueursEnAttente().get(0);
-        assertEquals(dixHeuresPlus(0), premier.depuis(), "joueurs n'ayant pas encore joué : début du tableau");
-        assertEquals(Duration.ofMinutes(18), premier.attente());
-        TableauDeBordSalle.JoueurEnAttente gagnant = bord.joueurEnAttente(m1.getJoueurA().getNumeroLicence());
-        assertEquals(dixHeuresPlus(5), gagnant.depuis());
-        assertEquals(Duration.ofMinutes(13), gagnant.attente());
-        assertEquals(Duration.ofMinutes(3),
-                bord.joueurEnAttente(m2.getJoueurA().getNumeroLicence()).attente());
+        assertEquals(de1, premier.joueur());
+        assertEquals(dixHeuresPlus(5), premier.depuis());
+        assertEquals(Duration.ofMinutes(13), premier.attente());
+        assertEquals(Duration.ofMinutes(3), bord.joueurEnAttente(de2.getNumeroLicence()).attente());
         List<Duration> chronos = bord.getJoueursEnAttente().stream()
-                .map(TableauDeBordSalle.JoueurEnAttente::attente).toList();
+                .map(TableauDeBordSalle.JoueurEnAttente::attente).filter(java.util.Objects::nonNull).toList();
         for (int i = 1; i < chronos.size(); i++) {
             assertTrue(chronos.get(i - 1).compareTo(chronos.get(i)) >= 0, chronos.toString());
         }
     }
+
 
     @Test
     void avant_tout_lancement_le_chrono_part_de_l_heure_prevue_du_tableau_si_elle_est_passee() {
@@ -266,18 +310,19 @@ class ServiceSalleAttenteTest {
         t.ajouterTableau(b);
         Joueur commun = j("L1");
         lancer(t, b, List.of(commun, j("M2"), j("M3")));
-        Match deA = tab(t, "A").getPoules().stream().flatMap(p -> p.getMatchs().stream())
-                .filter(m -> joue(m, commun)).findFirst().orElseThrow();
-        assertTrue(salle.affecter(t, deA, 2).estReussi());
+        Poule deA = tab(t, "A").getPoules().stream().filter(p -> p.getJoueurs().contains(commun)).findFirst()
+                .orElseThrow();
+        assertTrue(salle.lancerPoule(t, deA, 2).estReussi());
 
         TableauDeBordSalle bord = salle.tableauDeBord(t);
         assertNull(bord.joueurEnAttente(commun.getNumeroLicence()));
-        // Ses adversaires du tableau B l'attendent : il joue à la table 2.
+        // Ses adversaires du tableau B l'attendent : il joue (sa poule) à la table 2.
         TableauDeBordSalle.JoueurEnAttente m2 = bord.joueurEnAttente("M2");
         assertTrue(m2.engagements().stream().anyMatch(e -> e.raison() == TableauDeBordSalle.RaisonAttente
                 .ADVERSAIRE_EN_JEU && commun.equals(e.adversaire()) && Integer.valueOf(2).equals(e.tableAdversaire())
                 && "B".equals(e.match().tableau())));
     }
+
 
     @Test
     void tableau_final_le_joueur_qualifie_attend_un_adversaire_inconnu() {
