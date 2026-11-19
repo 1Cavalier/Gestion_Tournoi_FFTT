@@ -77,7 +77,7 @@ class PetiteFinaleParTableauTest {
     private void jouerTout(Tableau tableau) {
         for (Tour tour : tableau.getPhaseFinale().getTours()) {
             for (Match m : tour.getMatchs()) {
-                assertTrue(service.saisirScore(tableau, m, victoire(m, true)).estValide(), m.toString());
+                assertTrue(service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true)).estValide(), m.toString());
             }
         }
     }
@@ -223,17 +223,17 @@ class PetiteFinaleParTableauTest {
         List<Tour> principaux = ServicePhaseFinale.toursPrincipaux(elim);
         for (int i = 0; i < principaux.size() - 2; i++) {
             for (Match m : principaux.get(i).getMatchs()) {
-                service.saisirScore(tableau, m, victoire(m, true));
+                service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true));
             }
         }
         Match pf = ServicePhaseFinale.petiteFinale(elim).getMatchs().get(0);
         Tour demies = principaux.get(principaux.size() - 2);
         Match demi1 = demies.getMatchs().get(0);
-        service.saisirScore(tableau, demi1, victoire(demi1, true));
+        service.saisirScore(tableau, MatchsLances.lance(demi1), victoire(demi1, true));
         assertEquals(demi1.getPerdant(), pf.getJoueurA());
         assertTrue(pf.getJoueurB().estADeterminer());
         assertEquals(ResultatSaisieScore.Motif.JOUEURS_NON_CONNUS,
-                service.saisirScore(tableau, pf, victoire(pf, true)).getMotif());
+                service.saisirScore(tableau, MatchsLances.lance(pf), victoire(pf, true)).getMotif());
 
         Match demi2 = demies.getMatchs().get(1);
         service.declarerIssue(tableau, demi2, IssueMatch.FORFAIT, demi2.getJoueurB());

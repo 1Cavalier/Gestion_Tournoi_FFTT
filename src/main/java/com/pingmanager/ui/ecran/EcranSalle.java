@@ -424,6 +424,12 @@ final class EcranSalle {
         panneau = PANNEAU_ANNONCES;
     }
 
+    /** Ouvre l'interface « Lancer un match » (avant {@link #build()}) : raccourci depuis un match non lancé. */
+    void ouvrirLancement() {
+        lancementOuvert = true;
+        lancement.reinitialiser();
+    }
+
     /** Ouvre le panneau « Stratégie » (avant {@link #build()}). */
     void ouvrirStrategie() {
         panneau = PANNEAU_STRATEGIE;

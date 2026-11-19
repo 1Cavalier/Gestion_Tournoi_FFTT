@@ -1,5 +1,6 @@
 package com.pingmanager.core.feuilles;
 
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.ServicePointage;
@@ -389,9 +390,9 @@ class GenerateurFeuillesTest {
         List<Match> premiers = tableau.getPhaseFinale().getPremierTour().getMatchs();
         premiers = premiers.stream().filter(x -> !x.estBye()).toList();
         Match joue = premiers.get(0);
-        assertTrue(phaseFinale.saisirScore(tableau, joue, victoire(joue, false)).estValide());
+        assertTrue(phaseFinale.saisirScore(tableau, MatchsLances.lance(joue), victoire(joue, false)).estValide());
         Match abandon = premiers.get(1);
-        assertTrue(phaseFinale.declarerIssue(tableau, abandon, IssueMatch.ABANDON, abandon.getJoueurA()).estValide());
+        assertTrue(phaseFinale.declarerIssue(tableau, MatchsLances.lance(abandon), IssueMatch.ABANDON, abandon.getJoueurA()).estValide());
         Match enCours = premiers.get(2);
         enCours.setNumeroTable(7);
         enCours.setStatut(StatutMatch.EN_COURS);

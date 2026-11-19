@@ -58,13 +58,13 @@ class ServiceResultatsFederauxIssuesTest {
                     continue;
                 }
                 if (k < issues.size() && issues.get(k) != IssueMatch.NORMALE) {
-                    assertTrue(s.declarerIssue(a, m, issues.get(k), m.getJoueurB()).estValide());
+                    assertTrue(s.declarerIssue(a, MatchsLances.lance(m), issues.get(k), m.getJoueurB()).estValide());
                 } else {
                     List<Manche> ms = new ArrayList<>();
                     for (int i = 0; i < m.getNombreManchesGagnantes(); i++) {
                         ms.add(new Manche(11, 6));
                     }
-                    assertTrue(s.saisirScore(a, m, ms).estValide());
+                    assertTrue(s.saisirScore(a, MatchsLances.lance(m), ms).estValide());
                 }
                 k++;
             }

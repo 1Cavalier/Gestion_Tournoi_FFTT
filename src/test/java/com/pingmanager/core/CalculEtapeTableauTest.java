@@ -192,7 +192,7 @@ class CalculEtapeTableauTest {
                 }
             }
             for (Match m : prets) {
-                service.saisirScore(t, m, victoireA(m));
+                service.saisirScore(t, MatchsLances.lance(m), victoireA(m));
             }
         }
         assertTrue(tours.contains("Finale et petite finale"), tours.toString());

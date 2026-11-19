@@ -32,7 +32,13 @@ public final class ResultatSaisieMatch {
         /** Une issue « normale » ne se déclare pas : saisir les manches. */
         ISSUE_NORMALE,
         /** Le joueur désigné comme fautif ne joue pas ce match. */
-        FAUTIF_HORS_MATCH
+        FAUTIF_HORS_MATCH,
+        /**
+         * Le match n'a pas été lancé sur une table : son score (ou un abandon, un
+         * refus de jouer, une disqualification) ne peut pas encore être saisi.
+         * Seul le forfait d'un joueur absent se déclare sans lancement.
+         */
+        MATCH_NON_LANCE
     }
 
     private final Motif motif;

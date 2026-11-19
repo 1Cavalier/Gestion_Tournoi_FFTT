@@ -29,6 +29,11 @@ import java.util.function.Consumer;
  * enregistre ; un refus s'affiche sous les champs avec son motif, une réussite
  * est signalée à l'appelant, qui enregistre le tournoi et rafraîchit son
  * écran.</p>
+ *
+ * <p>Un match qui n'a pas été lancé sur une table n'offre pas la saisie du
+ * score : une phrase dit pourquoi, un raccourci « Lancer ce match » est proposé
+ * quand l'écran hôte sait ouvrir l'interface de lancement, et seul le forfait
+ * d'un joueur absent reste déclarable.</p>
  */
 final class EditeurScorePoule {
 
@@ -42,6 +47,18 @@ final class EditeurScorePoule {
      */
     static VBox creer(Tableau tableau, Match m, SaisieResultatMatch saisie, Runnable annuler,
                       Consumer<Match> apresEnregistrement) {
+        return creer(tableau, m, saisie, annuler, apresEnregistrement, null);
+    }
+
+    /**
+     * @param lancerCeMatch ouvre l'interface « Lancer un match » ; {@code null} :
+     *                      pas de raccourci (l'écran hôte ne sait pas l'ouvrir)
+     */
+    static VBox creer(Tableau tableau, Match m, SaisieResultatMatch saisie, Runnable annuler,
+                      Consumer<Match> apresEnregistrement, Runnable lancerCeMatch) {
+        if (!PresentationJourJ.saisieScoreProposee(m)) {
+            return nonLance(tableau, m, saisie, annuler, apresEnregistrement, lancerCeMatch);
+        }
         int nbManches = 2 * m.getNombreManchesGagnantes() - 1;
         List<TextField> champs = new ArrayList<>();
         HBox ligneChamps = Ui.ligne(8);
@@ -129,6 +146,49 @@ final class EditeurScorePoule {
         editeur.getChildren().add(erreur);
         editeur.getStyleClass().add("editeur-match");
         Platform.runLater(() -> champs.get(0).requestFocus());
+        return editeur;
+    }
+
+    /**
+     * Match pas encore lancé : pas de score, la raison, le raccourci vers le
+     * lancement et le seul forfait d'un joueur absent (I.303 a).
+     */
+    private static VBox nonLance(Tableau tableau, Match m, SaisieResultatMatch saisie, Runnable annuler,
+                                 Consumer<Match> apresEnregistrement, Runnable lancerCeMatch) {
+        Label erreur = Ui.message();
+        Button annulerBouton = Ui.boutonSecondaire("Annuler");
+        annulerBouton.setOnAction(e -> annuler.run());
+        HBox actions = Ui.actions(annulerBouton);
+        if (lancerCeMatch != null) {
+            Button lancer = Ui.boutonPrimaire("Lancer ce match");
+            lancer.setOnAction(e -> lancerCeMatch.run());
+            actions = Ui.actions(lancer, annulerBouton);
+        }
+        ComboBox<Joueur> absent = new ComboBox<>();
+        absent.getItems().addAll(m.getJoueurA(), m.getJoueurB());
+        absent.setConverter(convertisseur(Joueur::getNomComplet));
+        absent.setPromptText("Joueur absent…");
+        if (m.getStatut() == StatutMatch.TERMINE) {
+            absent.setValue(m.getJoueurFautif());
+        }
+        Button forfait = Ui.boutonSecondaire("Déclarer le forfait");
+        forfait.setOnAction(e -> enregistrerResultat(m, apresEnregistrement,
+                saisie.enregistrerIssue(tableau, m, IssueMatch.FORFAIT, absent.getValue()), erreur));
+        VBox editeur = new VBox(10,
+                Ui.encartInfo(PresentationJourJ.MATCH_NON_LANCE),
+                Ui.aide(PresentationJourJ.FORFAIT_SANS_LANCEMENT),
+                actions,
+                Ui.libelleChamp("Forfait d'un joueur absent"),
+                Ui.ligne(8, absent, forfait));
+        if (m.getStatut() == StatutMatch.TERMINE) {
+            // Forfait déclaré sans lancement : l'effacer rend le match de nouveau à jouer.
+            Button effacer = Ui.boutonLien("Effacer le forfait");
+            effacer.getStyleClass().add("lien-danger");
+            effacer.setOnAction(e -> enregistrerResultat(m, apresEnregistrement, saisie.effacer(tableau, m), erreur));
+            editeur.getChildren().add(Ui.actions(effacer));
+        }
+        editeur.getChildren().add(erreur);
+        editeur.getStyleClass().add("editeur-match");
         return editeur;
     }
 

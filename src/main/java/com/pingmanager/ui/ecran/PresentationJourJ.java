@@ -414,8 +414,19 @@ final class PresentationJourJ {
     }
 
     /** Message affiché pour un refus de saisie. */
+    /** Phrase affichée à la place de la saisie du score d'un match qui n'a pas été lancé. */
+    static final String MATCH_NON_LANCE = "Ce match n'a pas encore été lancé sur une table.";
+
+    /** Précision sous la phrase {@link #MATCH_NON_LANCE} : seul le forfait reste possible. */
+    static final String FORFAIT_SANS_LANCEMENT = "Le score se saisit une fois le match lancé. Seul le forfait "
+            + "d'un joueur absent peut être déclaré dès maintenant (I.303 a).";
+
     static String motifSaisie(ResultatSaisieMatch r) {
         ResultatSaisieMatch.Motif m = r.getMotif();
+        if (m == ResultatSaisieMatch.Motif.MATCH_NON_LANCE) {
+            return MATCH_NON_LANCE + " Lancez-le avant de saisir son score ; seul le forfait d'un joueur absent "
+                    + "se déclare sans lancement.";
+        }
         if (m == ResultatSaisieMatch.Motif.ENREGISTRE) {
             return "Résultat enregistré.";
         }
@@ -448,6 +459,22 @@ final class PresentationJourJ {
             return "Indiquez lequel des deux joueurs est concerné.";
         }
         return "Ce match n'appartient pas à ce tableau.";
+    }
+
+    /**
+     * La saisie du score est-elle proposée pour ce match ? Non tant qu'il n'a pas
+     * été lancé sur une table (règle du cœur, {@link SaisieResultatMatch#scoreSaisissable}).
+     */
+    static boolean saisieScoreProposee(Match m) {
+        return SaisieResultatMatch.scoreSaisissable(m);
+    }
+
+    /**
+     * Issues non normales proposées pour ce match : toutes sur un match lancé ou
+     * terminé ; seulement le forfait d'un joueur absent sur un match non lancé.
+     */
+    static List<IssueMatch> issuesProposees(Match m) {
+        return saisieScoreProposee(m) ? ISSUES_NON_NORMALES : List.of(IssueMatch.FORFAIT);
     }
 
     /** Issues non normales proposées à la saisie, dans l'ordre de l'article I.303 a). */

@@ -95,7 +95,7 @@ class ServicePhaseFinaleTest {
     private void jouerToutLeTableau(Tableau tableau) {
         for (Tour tour : tableau.getPhaseFinale().getTours()) {
             for (Match m : tour.getMatchs()) {
-                assertTrue(service.saisirScore(tableau, m, victoire(m, true)).estValide());
+                assertTrue(service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true)).estValide());
             }
         }
     }
@@ -181,7 +181,7 @@ class ServicePhaseFinaleTest {
         Match demi = elim.getTours().get(1).getMatchs().get(0);
         assertTrue(demi.getJoueurA().estADeterminer());
 
-        ResultatSaisieScore r = service.saisirScore(tableau, quart,
+        ResultatSaisieScore r = service.saisirScore(tableau, MatchsLances.lance(quart),
                 List.of(new Manche(11, 9), new Manche(9, 11), new Manche(11, 7), new Manche(12, 10)));
 
         assertTrue(r.estValide());
@@ -193,7 +193,7 @@ class ServicePhaseFinaleTest {
     void score_non_conforme_refuse_et_rien_n_est_enregistre() {
         Tableau tableau = phaseFinaleConstruite(12);
         Match quart = tableau.getPhaseFinale().getPremierTour().getMatchs().get(0);
-        ResultatSaisieScore r = service.saisirScore(tableau, quart,
+        ResultatSaisieScore r = service.saisirScore(tableau, MatchsLances.lance(quart),
                 List.of(new Manche(11, 9), new Manche(11, 10), new Manche(11, 7)));
         assertEquals(ResultatSaisieScore.Motif.MANCHE_ECART_INSUFFISANT, r.getMotif());
         assertEquals(2, r.getNumeroManche());
@@ -206,7 +206,7 @@ class ServicePhaseFinaleTest {
         Tableau tableau = phaseFinaleConstruite(12);
         Match finale = ServicePhaseFinale.matchFinale(tableau.getPhaseFinale());
         assertEquals(ResultatSaisieScore.Motif.JOUEURS_NON_CONNUS,
-                service.saisirScore(tableau, finale, victoire(finale, true)).getMotif());
+                service.saisirScore(tableau, MatchsLances.lance(finale), victoire(finale, true)).getMotif());
     }
 
     @Test
@@ -214,7 +214,7 @@ class ServicePhaseFinaleTest {
         Tableau tableau = phaseFinaleConstruite(12);
         Match etranger = new Match(j("X1", 500), j("X2", 500));
         assertEquals(ResultatSaisieScore.Motif.MATCH_HORS_TABLEAU,
-                service.saisirScore(tableau, etranger, victoire(etranger, true)).getMotif());
+                service.saisirScore(tableau, MatchsLances.lance(etranger), victoire(etranger, true)).getMotif());
     }
 
     @Test
@@ -237,9 +237,9 @@ class ServicePhaseFinaleTest {
         Tableau tableau = phaseFinaleConstruite(12);
         Match quart = tableau.getPhaseFinale().getPremierTour().getMatchs().get(0);
         assertEquals(ResultatSaisieScore.Motif.ISSUE_INVALIDE,
-                service.declarerIssue(tableau, quart, IssueMatch.NORMALE, quart.getJoueurA()).getMotif());
+                service.declarerIssue(tableau, MatchsLances.lance(quart), IssueMatch.NORMALE, quart.getJoueurA()).getMotif());
         assertEquals(ResultatSaisieScore.Motif.ISSUE_INVALIDE,
-                service.declarerIssue(tableau, quart, IssueMatch.ABANDON, j("X9", 500)).getMotif());
+                service.declarerIssue(tableau, MatchsLances.lance(quart), IssueMatch.ABANDON, j("X9", 500)).getMotif());
     }
 
     @Test
@@ -248,10 +248,10 @@ class ServicePhaseFinaleTest {
         TableauElimination elim = tableau.getPhaseFinale();
         Match quart = elim.getPremierTour().getMatchs().get(0);
         Match demi = elim.getTours().get(1).getMatchs().get(0);
-        service.saisirScore(tableau, quart, victoire(quart, true));
+        service.saisirScore(tableau, MatchsLances.lance(quart), victoire(quart, true));
         assertEquals(quart.getJoueurA(), demi.getJoueurA());
 
-        ResultatSaisieScore r = service.saisirScore(tableau, quart, victoire(quart, false));
+        ResultatSaisieScore r = service.saisirScore(tableau, MatchsLances.lance(quart), victoire(quart, false));
 
         assertTrue(r.estValide());
         assertEquals(quart.getJoueurB(), quart.getVainqueur());
@@ -263,12 +263,12 @@ class ServicePhaseFinaleTest {
         Tableau tableau = phaseFinaleConstruite(12);
         TableauElimination elim = tableau.getPhaseFinale();
         List<Match> quarts = elim.getPremierTour().getMatchs();
-        service.saisirScore(tableau, quarts.get(0), victoire(quarts.get(0), true));
-        service.saisirScore(tableau, quarts.get(1), victoire(quarts.get(1), true));
+        service.saisirScore(tableau, MatchsLances.lance(quarts.get(0)), victoire(quarts.get(0), true));
+        service.saisirScore(tableau, MatchsLances.lance(quarts.get(1)), victoire(quarts.get(1), true));
         Match demi = elim.getTours().get(1).getMatchs().get(0);
-        assertTrue(service.saisirScore(tableau, demi, victoire(demi, true)).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(demi), victoire(demi, true)).estValide());
 
-        ResultatSaisieScore r = service.saisirScore(tableau, quarts.get(0), victoire(quarts.get(0), false));
+        ResultatSaisieScore r = service.saisirScore(tableau, MatchsLances.lance(quarts.get(0)), victoire(quarts.get(0), false));
 
         assertEquals(ResultatSaisieScore.Motif.SUITE_DEJA_JOUEE, r.getMotif());
         assertEquals(quarts.get(0).getJoueurA(), quarts.get(0).getVainqueur());
@@ -279,13 +279,13 @@ class ServicePhaseFinaleTest {
         Tableau tableau = phaseFinaleConstruite(12);
         TableauElimination elim = tableau.getPhaseFinale();
         List<Match> quarts = elim.getPremierTour().getMatchs();
-        service.saisirScore(tableau, quarts.get(0), victoire(quarts.get(0), true));
-        service.saisirScore(tableau, quarts.get(1), victoire(quarts.get(1), true));
+        service.saisirScore(tableau, MatchsLances.lance(quarts.get(0)), victoire(quarts.get(0), true));
+        service.saisirScore(tableau, MatchsLances.lance(quarts.get(1)), victoire(quarts.get(1), true));
         Match demi = elim.getTours().get(1).getMatchs().get(0);
-        service.saisirScore(tableau, demi, victoire(demi, true));
+        service.saisirScore(tableau, MatchsLances.lance(demi), victoire(demi, true));
 
         List<Manche> corrige = List.of(new Manche(11, 9), new Manche(8, 11), new Manche(11, 6), new Manche(11, 4));
-        assertTrue(service.saisirScore(tableau, quarts.get(0), corrige).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(quarts.get(0)), corrige).estValide());
         assertEquals(corrige, quarts.get(0).getManches());
     }
 
@@ -345,13 +345,13 @@ class ServicePhaseFinaleTest {
         TableauElimination elim = tableau.getPhaseFinale();
         for (Tour tour : ServicePhaseFinale.toursPrincipaux(elim)) {
             for (Match m : tour.getMatchs()) {
-                service.saisirScore(tableau, m, victoire(m, true));
+                service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true));
             }
         }
         assertEquals(DiagnosticPhaseFinale.Etat.EN_COURS, service.diagnostiquer(tableau).getEtat());
         Match pf = ServicePhaseFinale.petiteFinale(elim).getMatchs().get(0);
         assertEquals(StatutMatch.A_JOUER, pf.getStatut());
-        service.saisirScore(tableau, pf, victoire(pf, false));
+        service.saisirScore(tableau, MatchsLances.lance(pf), victoire(pf, false));
         assertEquals(DiagnosticPhaseFinale.Etat.TERMINEE, service.diagnostiquer(tableau).getEtat());
     }
 
@@ -362,16 +362,16 @@ class ServicePhaseFinaleTest {
         TableauElimination elim = tableau.getPhaseFinale();
         List<Tour> principaux = ServicePhaseFinale.toursPrincipaux(elim);
         for (Match m : principaux.get(0).getMatchs()) {
-            service.saisirScore(tableau, m, victoire(m, true));
+            service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true));
         }
         Match demi = principaux.get(1).getMatchs().get(0);
-        service.saisirScore(tableau, demi, victoire(demi, true));
+        service.saisirScore(tableau, MatchsLances.lance(demi), victoire(demi, true));
         Match finale = ServicePhaseFinale.matchFinale(elim);
         Match pf = ServicePhaseFinale.petiteFinale(elim).getMatchs().get(0);
         assertEquals(demi.getJoueurA(), finale.getJoueurA());
         assertEquals(demi.getJoueurB(), pf.getJoueurA());
 
-        assertTrue(service.saisirScore(tableau, demi, victoire(demi, false)).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(demi), victoire(demi, false)).estValide());
 
         assertEquals(demi.getJoueurB(), finale.getJoueurA());
         assertEquals(demi.getJoueurA(), pf.getJoueurA());

@@ -1,5 +1,6 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.model.ConfigurationTableau;
 import com.pingmanager.model.Joueur;
@@ -52,7 +53,7 @@ class PresentationTableauFinalTest {
 
         TableauElimination elim = tab.getPhaseFinale();
         Match quart = elim.getPremierTour().getMatchs().get(0);
-        new ServicePhaseFinale().saisirScore(tab, quart, List.of(new Manche(11, 1), new Manche(11, 1), new Manche(11, 1)));
+        new ServicePhaseFinale().saisirScore(tab, MatchsLances.lance(quart), List.of(new Manche(11, 1), new Manche(11, 1), new Manche(11, 1)));
         assertEquals("Tableau de 8 · 1 / 8 matchs joués · petite finale", PresentationJourJ.resumeTableauFinal(tab));
     }
 
@@ -62,7 +63,7 @@ class PresentationTableauFinalTest {
         new ServicePhaseFinale().construire(tab, 9L);
         for (Tour tour : tab.getPhaseFinale().getTours()) {
             for (Match m : tour.getMatchs()) {
-                new ServicePhaseFinale().saisirScore(tab, m,
+                new ServicePhaseFinale().saisirScore(tab, MatchsLances.lance(m),
                         List.of(new Manche(11, 3), new Manche(11, 3), new Manche(11, 3)));
             }
         }

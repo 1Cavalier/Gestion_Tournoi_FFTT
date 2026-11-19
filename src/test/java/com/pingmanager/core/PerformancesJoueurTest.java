@@ -178,7 +178,7 @@ class PerformancesJoueurTest {
                     for (int i = 0; i < m.getNombreManchesGagnantes(); i++) {
                         manches.add(new Manche(11, 6));
                     }
-                    assertTrue(service.saisirScore(a, m, manches).estValide());
+                    assertTrue(service.saisirScore(a, MatchsLances.lance(m), manches).estValide());
                 }
             }
         }
@@ -261,7 +261,7 @@ class PerformancesJoueurTest {
                     for (int i = 0; i < m.getNombreManchesGagnantes(); i++) {
                         manches.add(new Manche(11, 6));
                     }
-                    assertTrue(service.saisirScore(a, m, manches).estValide());
+                    assertTrue(service.saisirScore(a, MatchsLances.lance(m), manches).estValide());
                 }
             }
         }

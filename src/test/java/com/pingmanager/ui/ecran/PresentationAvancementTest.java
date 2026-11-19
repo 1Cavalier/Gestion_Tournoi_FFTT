@@ -1,5 +1,6 @@
 package com.pingmanager.ui.ecran;
 
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.ResultatConstructionPhaseFinale;
 import com.pingmanager.core.ServiceLancementTableau;
 import com.pingmanager.core.ServicePhaseFinale;
@@ -198,7 +199,7 @@ class PresentationAvancementTest {
                 }
             }
             for (Match m : prets) {
-                service.saisirScore(f, m, victoireA(m));
+                service.saisirScore(f, MatchsLances.lance(m), victoireA(m));
             }
         }
         assertTrue(vus.contains("Finale et petite finale"), vus.toString());

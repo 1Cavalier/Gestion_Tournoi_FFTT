@@ -54,7 +54,7 @@ final class EcranJourJ {
 
     private final BorderPane racine = new BorderPane();
     /** Rouvrir l'interface des annonces au prochain affichage (après un geste du suivi sur téléphone). */
-    /** Panneau à rouvrir au prochain affichage : « annonces », « strategie » ou vide. */
+    /** Panneau à rouvrir au prochain affichage : « annonces », « strategie », « lancement » ou vide. */
     private String rouvrir = "";
     /** B021 : message du dernier démarrage du suivi sur téléphone (refus), vide sinon. */
     private String messageTelephone = "";
@@ -155,6 +155,8 @@ final class EcranJourJ {
             principal.ouvrirAnnonces();
         } else if ("strategie".equals(rouvrir)) {
             principal.ouvrirStrategie();
+        } else if ("lancement".equals(rouvrir)) {
+            principal.ouvrirLancement();
         }
         rouvrir = "";
         racine.setCenter(principal.build());
@@ -521,7 +523,7 @@ final class EcranJourJ {
 
     private void afficherPoules(Tableau t, boolean apresTirage) {
         racine.setCenter(new EcranPoulesTableau(tournoi, t, this::enregistrer, this::afficherListe,
-                apresTirage, () -> afficherTableauFinal(t)).build());
+                apresTirage, () -> afficherTableauFinal(t)).avecLancement(this::ouvrirLancement).build());
     }
 
     /**
@@ -529,6 +531,13 @@ final class EcranJourJ {
      * arbre des rencontres et saisie des scores ({@link VuePhaseFinale}).
      */
     private void afficherTableauFinal(Tableau t) {
-        racine.setCenter(VuePhaseFinale.creer(contexte, tournoi, t, fichier, this::afficherListe));
+        racine.setCenter(VuePhaseFinale.creer(contexte, tournoi, t, fichier, this::afficherListe,
+                this::ouvrirLancement));
+    }
+
+    /** Raccourci « Lancer ce match » d'un match non lancé : la salle, interface « Lancer un match » ouverte. */
+    private void ouvrirLancement() {
+        rouvrir = "lancement";
+        afficherListe();
     }
 }

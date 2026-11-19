@@ -1,6 +1,7 @@
 package com.pingmanager.persistence;
 
 import com.pingmanager.core.DiagnosticPhaseFinale;
+import com.pingmanager.core.MatchsLances;
 import com.pingmanager.core.PodiumPhaseFinale;
 import com.pingmanager.core.RegistreDisciplinaire;
 import com.pingmanager.core.ServiceLancementTableau;
@@ -64,11 +65,11 @@ class RoundTripPhaseFinaleEnCoursTest {
         // Quarts : trois scores et un forfait ; une demi-finale jouée.
         List<Match> quarts = tableau.getPhaseFinale().getPremierTour().getMatchs();
         for (int i = 0; i < 3; i++) {
-            assertTrue(service.saisirScore(tableau, quarts.get(i), victoireA(quarts.get(i))).estValide());
+            assertTrue(service.saisirScore(tableau, MatchsLances.lance(quarts.get(i)), victoireA(quarts.get(i))).estValide());
         }
         assertTrue(service.declarerIssue(tableau, quarts.get(3), IssueMatch.FORFAIT, quarts.get(3).getJoueurA()).estValide());
         Match demi = tableau.getPhaseFinale().getTours().get(1).getMatchs().get(0);
-        assertTrue(service.saisirScore(tableau, demi, victoireA(demi)).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(demi), victoireA(demi)).estValide());
         return t;
     }
 
@@ -98,9 +99,9 @@ class RoundTripPhaseFinaleEnCoursTest {
         // On reprend la saisie : seconde demi, puis finale.
         Match demi2 = elim.getTours().get(1).getMatchs().get(1);
         assertEquals(StatutMatch.A_JOUER, demi2.getStatut());
-        assertTrue(service.saisirScore(tableau, demi2, victoireA(demi2)).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(demi2), victoireA(demi2)).estValide());
         assertEquals(demi2.getVainqueur(), finale.getJoueurB());
-        assertTrue(service.saisirScore(tableau, finale, victoireA(finale)).estValide());
+        assertTrue(service.saisirScore(tableau, MatchsLances.lance(finale), victoireA(finale)).estValide());
 
         PodiumPhaseFinale podium = ServicePhaseFinale.podium(elim);
         assertEquals(demi1.getVainqueur(), podium.premier());

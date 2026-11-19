@@ -167,7 +167,7 @@ class ConformiteTableauFinalTest {
         List<com.pingmanager.model.Tour> tours = ServicePhaseFinale.toursPrincipaux(e);
         for (int i = 0; i < tours.size() - 1; i++) {
             for (Match m : tours.get(i).getMatchs()) {
-                assertTrue(service.saisirScore(tableau, m, victoire(m, true)).estValide());
+                assertTrue(service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true)).estValide());
             }
         }
     }
@@ -182,7 +182,7 @@ class ConformiteTableauFinalTest {
         Joueur b = m.getJoueurB();
         m.definirScore(List.of(new Manche(11, 3))); // A mène 1-0 puis abandonne
         m.setStatut(StatutMatch.EN_COURS);
-        assertTrue(service.declarerIssue(tableau, m, IssueMatch.ABANDON, a).estValide());
+        assertTrue(service.declarerIssue(tableau, MatchsLances.lance(m), IssueMatch.ABANDON, a).estValide());
         assertEquals(b, m.getVainqueur());
         assertEquals(a, m.getPerdant());
         assertEquals(StatutMatch.TERMINE, m.getStatut());
@@ -237,11 +237,11 @@ class ConformiteTableauFinalTest {
         List<com.pingmanager.model.Tour> principaux = ServicePhaseFinale.toursPrincipaux(e);
         for (int i = 0; i < principaux.size() - 2; i++) {
             for (Match m : principaux.get(i).getMatchs()) {
-                service.saisirScore(tableau, m, victoire(m, true));
+                service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true));
             }
         }
         Match demi1 = principaux.get(principaux.size() - 2).getMatchs().get(0);
-        service.saisirScore(tableau, demi1, victoire(demi1, true));
+        service.saisirScore(tableau, MatchsLances.lance(demi1), victoire(demi1, true));
         Match pf = ServicePhaseFinale.petiteFinale(e).getMatchs().get(0);
         assertNotEquals(StatutMatch.A_JOUER, pf.getStatut());
         assertTrue(pf.getJoueurA().estADeterminer() || pf.getJoueurB().estADeterminer());
@@ -256,13 +256,14 @@ class ConformiteTableauFinalTest {
         Match demi = principaux.get(principaux.size() - 2).getMatchs().get(0);
         Joueur a = demi.getJoueurA();
         Joueur b = demi.getJoueurB();
-        assertTrue(service.declarerIssue(tableau, demi, IssueMatch.FORFAIT, a).estValide()); // b gagne
+        // Forfait constaté à la table (match lancé) : il pourra être corrigé en abandon.
+        assertTrue(service.declarerIssue(tableau, MatchsLances.lance(demi), IssueMatch.FORFAIT, a).estValide()); // b gagne
         Match finale = ServicePhaseFinale.matchFinale(e);
         Match pf = ServicePhaseFinale.petiteFinale(e).getMatchs().get(0);
         assertEquals(b, finale.getJoueurA());
         assertEquals(a, pf.getJoueurA());
         // correction : b est finalement le fautif
-        assertTrue(service.declarerIssue(tableau, demi, IssueMatch.ABANDON, b).estValide());
+        assertTrue(service.declarerIssue(tableau, MatchsLances.lance(demi), IssueMatch.ABANDON, b).estValide());
         assertEquals(a, finale.getJoueurA());
         assertEquals(b, pf.getJoueurA());
     }
@@ -274,14 +275,14 @@ class ConformiteTableauFinalTest {
         List<com.pingmanager.model.Tour> principaux = ServicePhaseFinale.toursPrincipaux(e);
         for (int i = 0; i < principaux.size() - 2; i++) {
             for (Match m : principaux.get(i).getMatchs()) {
-                service.saisirScore(tableau, m, victoire(m, true));
+                service.saisirScore(tableau, MatchsLances.lance(m), victoire(m, true));
             }
         }
         List<Match> demies = principaux.get(principaux.size() - 2).getMatchs();
         Joueur fautif = demies.get(0).getJoueurA();
         service.declarerIssue(tableau, demies.get(0), IssueMatch.FORFAIT, fautif);
         assertEquals(List.of(fautif), ServicePhaseFinale.podium(e).troisiemes());
-        service.saisirScore(tableau, demies.get(1), victoire(demies.get(1), true));
+        service.saisirScore(tableau, MatchsLances.lance(demies.get(1)), victoire(demies.get(1), true));
         PodiumPhaseFinale p = ServicePhaseFinale.podium(e);
         assertEquals(2, p.troisiemes().size());
         assertTrue(p.troisiemesExAequo());

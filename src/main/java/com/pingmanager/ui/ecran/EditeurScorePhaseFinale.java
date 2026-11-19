@@ -28,6 +28,11 @@ import java.util.function.Consumer;
  * « Terminer » d'une table). La validation et la progression du tableau sont
  * faites par {@link ServicePhaseFinale} ; une réussite est signalée à
  * l'appelant, qui enregistre le tournoi et rafraîchit son écran.</p>
+ *
+ * <p>Un match qui n'a pas été lancé sur une table n'offre pas la saisie du
+ * score : une phrase dit pourquoi, un raccourci « Lancer ce match » est proposé
+ * quand l'écran hôte sait ouvrir l'interface de lancement, et seul le forfait
+ * d'un joueur absent reste déclarable.</p>
  */
 final class EditeurScorePhaseFinale {
 
@@ -40,6 +45,17 @@ final class EditeurScorePhaseFinale {
      */
     static VBox creer(Tableau tableau, Match m, ServicePhaseFinale service, Runnable fermer,
                       Consumer<Match> apresEnregistrement) {
+        return creer(tableau, m, service, fermer, apresEnregistrement, null);
+    }
+
+    /**
+     * @param lancerCeMatch ouvre l'interface « Lancer un match » ; {@code null} :
+     *                      pas de raccourci (l'écran hôte ne sait pas l'ouvrir)
+     */
+    static VBox creer(Tableau tableau, Match m, ServicePhaseFinale service, Runnable fermer,
+                      Consumer<Match> apresEnregistrement, Runnable lancerCeMatch) {
+        // Pas de score sans lancement sur une table : seul le forfait d'un absent reste possible.
+        boolean scorePropose = PresentationJourJ.saisieScoreProposee(m);
         Label titre = Ui.titreCarte("Saisie du résultat");
         Label adversaires = Ui.gras(PresentationPhaseFinale.nomJoueur(m.getJoueurA())
                 + "  contre  " + PresentationPhaseFinale.nomJoueur(m.getJoueurB()));
@@ -47,7 +63,11 @@ final class EditeurScorePhaseFinale {
         Label format = Ui.discret(PresentationPhaseFinale.formatMatch(m));
 
         ComboBox<IssueMatch> issue = new ComboBox<>();
-        issue.getItems().addAll(IssueMatch.values());
+        if (scorePropose) {
+            issue.getItems().addAll(IssueMatch.values());
+        } else {
+            issue.getItems().addAll(PresentationJourJ.issuesProposees(m));
+        }
         issue.setConverter(new StringConverter<>() {
             @Override
             public String toString(IssueMatch i) {
@@ -60,7 +80,7 @@ final class EditeurScorePhaseFinale {
             }
         });
         boolean dejaJoue = m.getStatut() == StatutMatch.TERMINE;
-        issue.setValue(dejaJoue ? m.getIssue() : IssueMatch.NORMALE);
+        issue.setValue(dejaJoue ? m.getIssue() : scorePropose ? IssueMatch.NORMALE : IssueMatch.FORFAIT);
         issue.setMaxWidth(Double.MAX_VALUE);
 
         ComboBox<Joueur> fautif = new ComboBox<>();
@@ -81,7 +101,8 @@ final class EditeurScorePhaseFinale {
             fautif.setValue(m.getJoueurFautif());
         }
         fautif.setMaxWidth(Double.MAX_VALUE);
-        VBox blocFautif = Ui.champEtiquete("Joueur absent, qui abandonne ou disqualifié", fautif);
+        VBox blocFautif = Ui.champEtiquete(scorePropose ? "Joueur absent, qui abandonne ou disqualifié"
+                : "Joueur absent", fautif);
 
         GridPane grille = new GridPane();
         grille.getStyleClass().add("pf-grille-score");
@@ -117,7 +138,9 @@ final class EditeurScorePhaseFinale {
         majIssue.run();
 
         Label message = Ui.message();
-        Button enregistrer = Ui.boutonPrimaire(dejaJoue ? "Corriger le résultat" : "Enregistrer le résultat");
+        String libelle = !scorePropose ? (dejaJoue ? "Corriger le forfait" : "Déclarer le forfait")
+                : dejaJoue ? "Corriger le résultat" : "Enregistrer le résultat";
+        Button enregistrer = scorePropose ? Ui.boutonPrimaire(libelle) : Ui.boutonSecondaire(libelle);
         enregistrer.setDefaultButton(true);
         enregistrer.setOnAction(e -> enregistrerResultat(tableau, m, service, apresEnregistrement, issue.getValue(),
                 fautif.getValue(), champs, message));
@@ -127,7 +150,16 @@ final class EditeurScorePhaseFinale {
 
         VBox panneau = new VBox(14, titre, adversaires, format,
                 Ui.champEtiquete("Résultat", issue), blocScore, blocFautif, message, Ui.actions(enregistrer, fermerBouton));
-        if (dejaJoue) {
+        if (!scorePropose) {
+            VBox raison = new VBox(8, Ui.encartInfo(PresentationJourJ.MATCH_NON_LANCE),
+                    Ui.aide(PresentationJourJ.FORFAIT_SANS_LANCEMENT));
+            if (lancerCeMatch != null) {
+                Button lancer = Ui.boutonPrimaire("Lancer ce match");
+                lancer.setOnAction(e -> lancerCeMatch.run());
+                raison.getChildren().add(Ui.actions(lancer));
+            }
+            panneau.getChildren().add(3, raison);
+        } else if (dejaJoue) {
             panneau.getChildren().add(3, VuePhaseFinale.rappel("Ce match est déjà joué : vous corrigez son résultat."));
         }
         panneau.getStyleClass().addAll("carte", "pf-panneau-saisie");

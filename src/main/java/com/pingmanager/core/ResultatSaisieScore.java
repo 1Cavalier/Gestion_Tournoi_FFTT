@@ -45,7 +45,13 @@ public final class ResultatSaisieScore {
          */
         SUITE_DEJA_JOUEE,
         /** Issue non normale incohérente (issue « normale », fautif hors du match). */
-        ISSUE_INVALIDE
+        ISSUE_INVALIDE,
+        /**
+         * Le match n'a pas été lancé sur une table : son score (ou un abandon, un
+         * refus de jouer, une disqualification) ne peut pas encore être saisi.
+         * Seul le forfait d'un joueur absent se déclare sans lancement.
+         */
+        MATCH_NON_LANCE
     }
 
     private final Motif motif;

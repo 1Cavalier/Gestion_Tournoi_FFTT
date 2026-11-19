@@ -138,6 +138,10 @@ final class SaisieScorePhaseFinale {
             return "Le vainqueur ne peut plus changer : le match suivant est déjà en cours ou joué. "
                     + "Voyez avec le juge-arbitre.";
         }
+        if (motif == ResultatSaisieScore.Motif.MATCH_NON_LANCE) {
+            return PresentationJourJ.MATCH_NON_LANCE + " Lancez-le avant de saisir son score ; seul le forfait "
+                    + "d'un joueur absent se déclare sans lancement.";
+        }
         if (motif == ResultatSaisieScore.Motif.ISSUE_INVALIDE) {
             return "Choisissez le joueur absent, qui abandonne ou qui est disqualifié.";
         }
