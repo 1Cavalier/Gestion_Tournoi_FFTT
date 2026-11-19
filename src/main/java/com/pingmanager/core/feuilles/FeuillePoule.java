@@ -23,11 +23,22 @@ import java.util.Objects;
  * @param grilleResultats     grille carrée (n + 1) × (n + 1) : en-têtes « 1 »…« n », diagonale « X »
  * @param colonnesClassement  en-têtes du classement à remplir
  * @param noteClassement      rappel de I.303, imprimé sous le classement
+ * @param table               « Table 5 » pour une poule lancée en bloc (jour J), vide sinon
+ * @param heureLancement      heure de lancement de la poule (« 10 h 42 »), vide sinon
  */
 public record FeuillePoule(EnTeteFeuille entete, String poule, String format, int qualifies,
                            List<JoueurFeuille> joueurs, List<PartiePoule> parties,
                            List<List<String>> grilleResultats, List<String> colonnesClassement,
-                           String noteClassement) {
+                           String noteClassement, String table, String heureLancement) {
+
+    /** Feuille d'une poule qui n'est pas lancée sur une table (impression avant le jour J). */
+    public FeuillePoule(EnTeteFeuille entete, String poule, String format, int qualifies,
+                        List<JoueurFeuille> joueurs, List<PartiePoule> parties,
+                        List<List<String>> grilleResultats, List<String> colonnesClassement,
+                        String noteClassement) {
+        this(entete, poule, format, qualifies, joueurs, parties, grilleResultats, colonnesClassement,
+                noteClassement, "", "");
+    }
 
     /** Titre imprimé en haut de la feuille. */
     public static final String TITRE = "Feuille de poule";
@@ -45,7 +56,14 @@ public record FeuillePoule(EnTeteFeuille entete, String poule, String format, in
         grilleResultats = grilleResultats.stream().map(List::copyOf).toList();
         colonnesClassement = List.copyOf(colonnesClassement);
         noteClassement = noteClassement == null ? "" : noteClassement;
+        table = table == null ? "" : table;
+        heureLancement = heureLancement == null ? "" : heureLancement;
     }
+
+    /** Titre de la feuille d'une poule lancée en bloc, imprimée au lancement sur une seule page. */
+    public static final String TITRE_TABLE = "Feuille de poule";
+    /** Titre de la zone du classement final, remplie par le juge-arbitre au retour de la feuille. */
+    public static final String TITRE_CLASSEMENT_FINAL = "Classement final de la poule (I.303)";
 
     /** Nombre de lignes du classement à remplir : une par joueur. */
     public int lignesClassement() {

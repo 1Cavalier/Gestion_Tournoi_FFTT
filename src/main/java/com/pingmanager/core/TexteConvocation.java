@@ -36,6 +36,26 @@ public final class TexteConvocation {
         return premierQuiTient(candidats);
     }
 
+    /**
+     * Convocation d'un joueur à sa poule lancée en bloc : « Hugo, vous êtes
+     * attendu(e) table 5 pour la poule 3 - Tableau B. »
+     */
+    public static String poule(Joueur destinataire, int table, ContexteConvocation contexte) {
+        Objects.requireNonNull(destinataire, "destinataire");
+        String debut = salutation(destinataire.getPrenom()) + "vous êtes attendu(e) table " + table;
+        String detail = contexte == null ? "" : " pour la " + contexte.detail();
+        List<String> candidats = new ArrayList<>();
+        candidats.add(debut + detail + (contexte == null ? "" : " - " + tableauSeul(contexte.tableau())) + ".");
+        candidats.add(debut + detail + (contexte == null ? "" : " - " + tableauSeul(court(contexte.tableau()))) + ".");
+        candidats.add(debut + detail + ".");
+        return premierQuiTient(candidats);
+    }
+
+    private static String tableauSeul(String tableau) {
+        String t = tableau.trim();
+        return t.toLowerCase(java.util.Locale.ROOT).startsWith("tableau") ? t : "Tableau " + t;
+    }
+
     /** Convocation pour arbitrer une partie ; {@code contexte} nul : sans tableau ni tour. */
     public static String arbitre(String prenomArbitre, Joueur joueurA, Joueur joueurB, int table,
                                  ContexteConvocation contexte) {

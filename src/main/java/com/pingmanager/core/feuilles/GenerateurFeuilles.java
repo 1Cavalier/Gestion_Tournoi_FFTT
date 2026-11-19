@@ -42,6 +42,8 @@ import java.util.Objects;
 public final class GenerateurFeuilles {
 
     private static final DateTimeFormatter JJ_MM_AAAA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    /** Heure de lancement d'une poule : « 10 h 42 ». */
+    private static final DateTimeFormatter HEURE = DateTimeFormatter.ofPattern("H' h 'mm");
 
     /** Signatures en bas d'une feuille de match. */
     static final List<String> SIGNATURES = List.of("Joueur A", "Joueur B", "Arbitre");
@@ -142,9 +144,12 @@ public final class GenerateurFeuilles {
                     GrilleManches.vide(m.getNombreManchesGagnantes())));
         }
         int manches = matchs.get(0).getNombreManchesGagnantes();
+        // Poule lancée en bloc (jour J) : sa table et son heure de lancement en tête de feuille.
+        String table = poule.estLanceeEnBloc() ? "Table " + poule.getNumeroTable() : "";
+        String heure = poule.estLanceeEnBloc() ? HEURE.format(poule.getInstantLancement()) : "";
         return ResultatFeuille.prete(new FeuillePoule(entete(tournoi, tableau), "Poule " + poule.getNom(),
                 format(manches), qualifies(tableau), imprimes, parties, grilleResultats(joueurs.size()),
-                COLONNES_CLASSEMENT, NOTE_I303));
+                COLONNES_CLASSEMENT, NOTE_I303, table, heure));
     }
 
     /** Grille (n + 1) × (n + 1) : coin vide, en-têtes « 1 »…« n », diagonale barrée, cases vides. */

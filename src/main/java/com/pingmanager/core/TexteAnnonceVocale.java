@@ -38,6 +38,36 @@ public final class TexteAnnonceVocale {
         return new AnnonceVocale(match, table, m.segments, false, m.licences);
     }
 
+    /**
+     * Annonce d'une poule lancée en bloc : « Tableau B, poule 3, table 5 : Pierre
+     * Dupont, club TT Brunoy, Paul Martin… » (tous les joueurs, dans l'ordre de la
+     * poule). L'annonce est rattachée au premier match de la poule.
+     */
+    public static AnnonceVocale composerPoule(String tableau, com.pingmanager.model.Poule poule, int table) {
+        Objects.requireNonNull(poule, "poule");
+        if (poule.getMatchs().isEmpty()) {
+            throw new IllegalArgumentException("Poule sans match : rien à annoncer.");
+        }
+        Morceaux m = new Morceaux();
+        m.libre(entetePoule(tableau, poule, table) + " : ");
+        List<Joueur> joueurs = poule.getJoueurs();
+        for (int i = 0; i < joueurs.size(); i++) {
+            if (i > 0) {
+                m.libre(i == joueurs.size() - 1 ? " et " : " ; ");
+            }
+            joueur(m, joueurs.get(i));
+        }
+        m.libre(".");
+        return new AnnonceVocale(poule.getMatchs().get(0), table, m.segments, false, m.licences);
+    }
+
+    /** « Tableau B, poule 3, table 5 » (sans répéter « Tableau » si le nom le contient). */
+    public static String entetePoule(String tableau, com.pingmanager.model.Poule poule, int table) {
+        String t = tableau == null ? "" : tableau.trim();
+        String debut = t.isEmpty() ? "" : (t.toLowerCase(Locale.ROOT).startsWith("tableau") ? t : "Tableau " + t) + ", ";
+        return debut + "poule " + poule.getNom() + ", table " + table;
+    }
+
     /** Morceaux de l'annonce et, pour chacun, la licence de son joueur (B018). */
     private static final class Morceaux {
         final List<SegmentAnnonce> segments = new ArrayList<>();

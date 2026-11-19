@@ -143,9 +143,29 @@ final class SessionMapper {
     }
 
     static Ordonnanceur lireOrdonnanceur(Json o, ContexteSerialisation ctx) {
+        return lireOrdonnanceur(o, ctx, null);
+    }
+
+    /**
+     * Relit l'ordonnanceur ; avec le tournoi relu, les poules lancées en bloc
+     * (phase de poules) occupent de nouveau leur table et tous leurs joueurs.
+     */
+    static Ordonnanceur lireOrdonnanceur(Json o, ContexteSerialisation ctx, com.pingmanager.model.Tournoi tournoi) {
         if (o == null || o.estNul()) {
             return null;
         }
+        java.util.Map<Match, com.pingmanager.model.Poule> enBloc = new java.util.IdentityHashMap<>();
+        if (tournoi != null) {
+            for (com.pingmanager.model.Tableau t : tournoi.getTableaux()) {
+                for (com.pingmanager.model.Poule p : t.getPoules()) {
+                    if (p.estLanceeEnBloc() && !p.estTerminee()) {
+                        p.getMatchs().forEach(m -> enBloc.put(m, p));
+                    }
+                }
+            }
+        }
+        java.util.Map<com.pingmanager.model.Poule, java.util.List<MatchOrdonnancable>> unites =
+                new java.util.LinkedHashMap<>();
         int tables = o.getInt("nombreDeTables", 1);
         PoidsOrdonnancement poids = lirePoids(o.get("poids"));
         Ordonnanceur ord = new Ordonnanceur(tables, poids);
@@ -170,12 +190,28 @@ final class SessionMapper {
                 // match « en cours » sur une table inexistante ou déjà prise (fichier
                 // incohérent) n'empêche pas la reprise : il reste en cours, sans
                 // occuper de table, et la salle le signale comme anomalie.
+                com.pingmanager.model.Poule bloc = enBloc.get(match);
+                if (bloc != null) {
+                    unites.computeIfAbsent(bloc, k -> new java.util.ArrayList<>()).add(mo);
+                    continue;
+                }
                 Integer table = match.getNumeroTable();
                 if (match.getStatut() == com.pingmanager.model.StatutMatch.EN_COURS
                         && table != null && table >= 1 && table <= tables
                         && ord.matchSurTable(table) == null) {
                     ord.restaurerOccupation(table, mo);
                 }
+            }
+        }
+        for (var e : unites.entrySet()) {
+            MatchOrdonnancable premier = e.getValue().get(0);
+            com.pingmanager.ordonnancement.PouleOrdonnancable p = new com.pingmanager.ordonnancement.PouleOrdonnancable(
+                    e.getKey(), premier.getIdentifiantTableau(), premier.getNomTableau(), e.getValue());
+            int table = e.getKey().getNumeroTable();
+            if (table >= 1 && table <= tables && ord.matchSurTable(table) == null) {
+                ord.restaurerPoule(table, p);
+            } else {
+                ord.restaurerPouleHorsTable(p);
             }
         }
         return ord;

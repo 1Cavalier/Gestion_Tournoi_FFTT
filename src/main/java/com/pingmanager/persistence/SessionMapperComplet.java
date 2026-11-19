@@ -82,7 +82,7 @@ public final class SessionMapperComplet {
         RegistreDisciplinaire discipline = TournoiMapper.lirePartieDiscipline(doc.get("discipline"), ctx);
 
         Ordonnanceur ordonnanceur = doc.has("ordonnanceur")
-                ? SessionMapper.lireOrdonnanceur(doc.get("ordonnanceur"), ctx)
+                ? SessionMapper.lireOrdonnanceur(doc.get("ordonnanceur"), ctx, tournoi)
                 : null;
         EstimateurDuree estimateur = doc.has("estimateur")
                 ? SessionMapper.lireEstimateur(doc.get("estimateur"))
