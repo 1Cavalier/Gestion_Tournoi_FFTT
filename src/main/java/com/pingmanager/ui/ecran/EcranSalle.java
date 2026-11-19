@@ -93,6 +93,10 @@ final class EcranSalle {
 
     private TableauDeBordSalle bord;
     private Match enSaisie;
+    /** Saisie d'une poule entière d'un coup (retour de la feuille de poule), ou null. */
+    private PanneauSaisiePoule saisiePouleEntiere;
+    /** Lancements de la salle au dernier affichage (« Envoyer le prochain » : poule ou match). */
+    private com.pingmanager.core.ListeLancements lancements;
     private String messageSucces;
     private String messageErreur;
     /** Table libérée par le dernier score saisi : propose d'y enchaîner le match suivant. */
@@ -351,6 +355,12 @@ final class EcranSalle {
             afficherContenu(contenu, position);
             return;
         }
+        if (saisiePouleEntiere != null) {
+            // Saisie de la poule entière : elle prend la place de la salle jusqu'à « Fermer ».
+            contenu.getChildren().add(saisiePouleEntiere.build());
+            afficherContenu(contenu, position);
+            return;
+        }
         if (!bord.getAnomalies().isEmpty()) {
             contenu.getChildren().add(carteAnomalies());
         }
@@ -586,6 +596,7 @@ final class EcranSalle {
             return Ui.carte("Tables", Ui.texte("Le nombre de tables du tournoi n'est pas renseigné. Indiquez-le dans "
                     + "« Informations sportives et techniques » pour afficher la salle."));
         }
+        lancements = salle.listeLancements(tournoi);
         FlowPane grille = new FlowPane(12, 12);
         grille.getStyleClass().add("salle-grille");
         // Autant de colonnes que la largeur disponible le permet.
@@ -608,15 +619,30 @@ final class EcranSalle {
 
         if (c.estLibre()) {
             Button prochain = Ui.boutonSecondaire("Envoyer le prochain");
-            if (bord.getPrets().isEmpty() || ferme()) {
+            // Le plus urgent que cette table peut recevoir : une poule entière (phase de poules) ou un match.
+            Optional<com.pingmanager.core.ListeLancements.Ligne> premier = ferme() || lancements == null
+                    ? Optional.empty()
+                    : lancements.getJouables().stream().filter(l -> l.tablesPossibles().contains(c.numero()))
+                    .findFirst();
+            if (premier.isEmpty()) {
                 prochain.setDisable(true);
             } else {
-                MatchSalle premier = bord.getPrets().get(0);
-                prochain.setTooltip(new Tooltip(PresentationSalle.joueurs(premier.match()) + "\n"
-                        + PresentationSalle.contexte(premier)));
-                prochain.setOnAction(e -> affecter(premier.match(), c.numero()));
+                com.pingmanager.core.ListeLancements.Ligne l = premier.get();
+                prochain.setTooltip(new Tooltip(l.estPoule()
+                        ? PresentationLancementMatch.tableauEtEchelon(l) + "\n"
+                        + String.join("\n", PresentationLancementMatch.joueursPoule(l.poule()))
+                        : PresentationSalle.joueurs(l.match().match()) + "\n" + PresentationSalle.contexte(l.match())));
+                prochain.setOnAction(e -> {
+                    if (l.estPoule()) {
+                        affecterPoule(l.poule().poule(), c.numero());
+                    } else {
+                        affecter(l.match().match(), c.numero());
+                    }
+                });
             }
             carte.getChildren().add(prochain);
+        } else if (c.estPoule()) {
+            remplirCartePoule(carte, c);
         } else {
             MatchSalle m = c.match();
             Label tableau = Ui.discret(m.tableau());
@@ -704,6 +730,148 @@ final class EcranSalle {
         return carte;
     }
 
+    /**
+     * Table occupée par une poule entière : le match qui s'y joue, l'avancement
+     * (« partie 2 sur 3 »), le chrono depuis le lancement et la fin prévue ; saisie
+     * du match en jeu ou de la poule entière, feuille de poule, annonce, annulation.
+     */
+    private void remplirCartePoule(VBox carte, CarteTable c) {
+        com.pingmanager.core.PouleALancer p = c.poule();
+        MatchSalle m = c.match();
+        Label tableau = Ui.discret(p.tableau());
+        Label avancement = Ui.discret(p.libelle() + " · partie " + (p.nombreJoues() + 1) + " sur " + p.matchs().size());
+        Label a = joueur(PresentationSalle.nom(m.match().getJoueurA()));
+        Label b = joueur(PresentationSalle.nom(m.match().getJoueurB()));
+        Label duree = new Label();
+        duree.getStyleClass().add("salle-duree");
+        if (p.lancement() != null) {
+            chronos.put(duree, p.lancement());
+            majChrono(duree, p.lancement());
+        }
+        Label fin = Ui.discret(p.finEstimee() == null ? "" : "fin prévue vers "
+                + p.finEstimee().format(java.time.format.DateTimeFormatter.ofPattern("H' h 'mm")));
+        Button terminer = Ui.boutonPrimaire("Saisir la partie");
+        terminer.getStyleClass().add("jourj-terminer");
+        terminer.setMaxWidth(Double.MAX_VALUE);
+        terminer.setDisable(ferme());
+        terminer.setTooltip(new Tooltip("Saisir le score de la partie en cours ; la poule continue sur sa table "
+                + "jusqu'à son dernier résultat."));
+        terminer.setOnAction(e -> {
+            enSaisie = m.match();
+            afficher();
+        });
+        Button toute = Ui.boutonSecondaire("Saisir la poule");
+        toute.setMaxWidth(Double.MAX_VALUE);
+        toute.setDisable(ferme());
+        toute.setTooltip(new Tooltip("Au retour de la feuille : tous les matchs de la poule, une seule validation."));
+        toute.setOnAction(e -> ouvrirSaisiePoule(p.poule()));
+        Button feuille = Ui.boutonLien("Feuille");
+        feuille.setTooltip(new Tooltip("Imprimer la feuille de poule de cette table."));
+        feuille.setOnAction(e -> {
+            Tableau t = tableauDePoule(m.match());
+            ImpressionJourJ.Message msg = t == null ? new ImpressionJourJ.Message(true, "Poule introuvable.")
+                    : ImpressionJourJ.imprimer(ImpressionJourJ.feuillePouleDeTable(tournoi, t, p.poule()), false);
+            if (msg.erreur()) {
+                messageErreur = msg.texte();
+            } else {
+                messageSucces = msg.texte();
+            }
+            afficher();
+        });
+        carte.getChildren().addAll(new VBox(0, tableau, avancement), a, b, duree, fin, terminer, toute);
+        HBox liens = Ui.ligne(8, feuille);
+        if (voix != null) {
+            Button annoncer = Ui.boutonLien("Annoncer");
+            annoncer.setDisable(ferme());
+            annoncer.setTooltip(new Tooltip("Annoncer (ou annoncer de nouveau) la poule : tous ses joueurs et la table."));
+            annoncer.setOnAction(e -> {
+                com.pingmanager.core.ResultatDemandeAnnonce r = voix.service().annoncerPoule(tournoi, p.tableau(),
+                        p.poule(), c.numero());
+                voix.diffuser();
+                String texte = PresentationSalle.messageDemandeAnnonce(r, voix.service().voixDisponible());
+                if (r.acceptee()) {
+                    messageSucces = texte;
+                } else {
+                    messageErreur = texte;
+                }
+                afficher();
+            });
+            liens.getChildren().add(annoncer);
+        }
+        carte.getChildren().add(liens);
+        if (annulationsAConfirmer.contains(c.numero())) {
+            Button oui = Ui.boutonSecondaire("Oui, annuler");
+            oui.getStyleClass().add("jourj-danger");
+            Button non = Ui.boutonLien("Non");
+            oui.setOnAction(e -> {
+                annulationsAConfirmer.remove(c.numero());
+                ResultatAffectationTable r = salle.annulerLancementPoule(tournoi, p.poule());
+                if (r.estReussi()) {
+                    p.matchs().forEach(this::oublierAnnonce);
+                }
+                apresAction(r.estReussi(), r.estReussi() ? "Lancement de la poule " + p.poule().getNom()
+                        + " annulé : la table " + c.numero() + " est libre."
+                        : PresentationSalle.message(r, bord.getNombreDeTables()));
+            });
+            non.setOnAction(e -> {
+                annulationsAConfirmer.remove(c.numero());
+                afficher();
+            });
+            carte.getChildren().add(Ui.encartConfirmation("Annuler le lancement de la poule " + p.poule().getNom()
+                    + " ? La table " + c.numero() + " redevient libre.", oui, non));
+        } else if (p.nombreJoues() == 0 || !aUnResultatDepuisLancement(p)) {
+            // Annulable tant qu'aucun résultat n'est saisi depuis le lancement ; ensuite, le lancement reste.
+            Button annuler = Ui.boutonLien("Annuler");
+            annuler.getStyleClass().addAll("lien-danger", "jourj-annuler");
+            annuler.setDisable(ferme());
+            annuler.setTooltip(new Tooltip("Erreur d'envoi : la table redevient libre et la poule revient dans les "
+                    + "lancements proposés (confirmation demandée)."));
+            annuler.setOnAction(e -> {
+                annulationsAConfirmer.add(c.numero());
+                afficher();
+            });
+            carte.getChildren().add(annuler);
+        }
+    }
+
+    private static boolean aUnResultatDepuisLancement(com.pingmanager.core.PouleALancer p) {
+        for (Match m : p.matchs()) {
+            if (m.getStatut() == StatutMatch.TERMINE && (m.getInstantFin() == null
+                    || !m.getInstantFin().isBefore(p.lancement()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Ouvre la saisie de la poule entière (retour de la feuille de poule). */
+    private void ouvrirSaisiePoule(Poule poule) {
+        Tableau t = null;
+        for (Tableau x : tournoi.getTableaux()) {
+            if (x.getPoules().contains(poule)) {
+                t = x;
+            }
+        }
+        if (t == null) {
+            messageErreur = "Cette poule n'appartient plus à aucun tableau.";
+            afficher();
+            return;
+        }
+        enSaisie = null;
+        saisiePouleEntiere = new PanneauSaisiePoule(t, poule, saisiePoule, () -> {
+            saisiePouleEntiere = null;
+            afficher();
+        }, r -> {
+            Integer table = saisiePouleEntiere.table();
+            if (r.liberee()) {
+                poule.getMatchs().forEach(this::oublierAnnonce);
+            }
+            // Le classement reste affiché ; la salle (table libérée) se met à jour à la fermeture.
+            apresAction(true, PresentationSaisiePoule.enregistre(r, poule, table));
+        });
+        afficher();
+    }
+
     private static Label joueur(String nom) {
         Label l = new Label(nom);
         l.getStyleClass().add("salle-joueur");
@@ -746,6 +914,11 @@ final class EcranSalle {
         @Override
         public void lancer(Match match, int table) {
             affecter(match, table);
+        }
+
+        @Override
+        public void lancerPoule(Poule poule, int table) {
+            affecterPoule(poule, table);
         }
 
         @Override
@@ -897,15 +1070,35 @@ final class EcranSalle {
     }
 
     private void apresResultat(Match m) {
+        Poule poule = tableauDePoule(m) == null ? null : pouleDe(m);
+        boolean enBloc = poule != null && poule.estLanceeEnBloc();
         ResultatAffectationTable r = salle.libererApresResultat(tournoi, m);
-        oublierAnnonce(m);
+        if (!enBloc || r.getMotif() == ResultatAffectationTable.Motif.TABLE_LIBEREE) {
+            // Match seul, ou dernier résultat de la poule : l'annonce (et ses rappels) n'a plus lieu d'être.
+            if (enBloc) {
+                poule.getMatchs().forEach(this::oublierAnnonce);
+            } else {
+                oublierAnnonce(m);
+            }
+        }
         enSaisie = null;
         boolean reussi = r.estReussi();
         apresActionSansAffichage(reussi, PresentationSalle.message(r, bord.getNombreDeTables()));
-        if (reussi && messageErreur == null) {
+        if (reussi && messageErreur == null && r.getMotif() == ResultatAffectationTable.Motif.TABLE_LIBEREE) {
             tableLiberee = r.getNumeroTable();
         }
         afficher();
+    }
+
+    private Poule pouleDe(Match m) {
+        for (Tableau t : tournoi.getTableaux()) {
+            for (Poule p : t.getPoules()) {
+                if (p.getMatchs().contains(m)) {
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 
     private Tableau tableauDePoule(Match m) {
@@ -960,6 +1153,67 @@ final class EcranSalle {
             }
             apresAction(r.estReussi(), texte + smsEnvoyes);
         });
+    }
+
+    /**
+     * Lance une poule entière sur une table (phase de poules) : vérifications du
+     * cœur, annonce de tous ses joueurs et de la table (écran, voix, SMS selon le
+     * réglage des annonces), feuille de poule si l'option est cochée, enregistrement.
+     */
+    private void affecterPoule(Poule poule, int table) {
+        lancerAvecAnnonce(mode -> {
+            ResultatAffectationTable r = salle.lancerPoule(tournoi, poule, table);
+            String nomTableau = "";
+            Tableau tab = null;
+            for (Tableau t : tournoi.getTableaux()) {
+                if (t.getPoules().contains(poule)) {
+                    nomTableau = t.getNom();
+                    tab = t;
+                }
+            }
+            String envois = "";
+            if (r.estReussi()) {
+                annonces = annonceVocaleSeule(mode) ? List.of()
+                        : List.of(AnnonceRencontre.preparerPoule(mode, nomTableau, poule, table));
+                if (sms != null) {
+                    String resume = sms.apresLancementPoule(tournoi, nomTableau, poule, table, mode,
+                            salle.maintenant()).resume();
+                    envois += resume.isEmpty() ? "" : " SMS : " + resume;
+                }
+                if (voix != null && com.pingmanager.core.ServiceAnnoncesVocales.annonceAutomatique(tournoi, mode)) {
+                    com.pingmanager.core.ResultatDemandeAnnonce d = voix.service().apresLancementPoule(tournoi,
+                            nomTableau, poule, table, mode);
+                    voix.diffuser();
+                    envois += " " + PresentationSalle.messageDemandeAnnonce(d, voix.service().voixDisponible());
+                }
+            }
+            String texte;
+            if (PANNEAU_LANCEMENT.equals(panneau)) {
+                lancement.apresLancement(poule.getMatchs().isEmpty() ? null : premierLance(poule), r.estReussi());
+                texte = r.estReussi() ? PresentationLancementMatch.pouleLancee(nomTableau, poule, table)
+                        : PresentationLancementMatch.refusPoule(r, bord.getNombreDeTables());
+            } else {
+                texte = r.estReussi() ? PresentationLancementMatch.pouleLancee(nomTableau, poule, table) + "."
+                        : PresentationLancementMatch.refusPoule(r, bord.getNombreDeTables());
+            }
+            if (r.estReussi() && tournoi.imprimerFeuilleALEnvoi() && tab != null) {
+                // La feuille de poule part avec la poule (une page, table et heure de lancement en tête).
+                ImpressionJourJ.Message msg = ImpressionJourJ.imprimer(
+                        ImpressionJourJ.feuillePouleDeTable(tournoi, tab, poule), true);
+                texte += (msg.erreur() ? " Feuille non imprimée : " : " ") + msg.texte();
+            }
+            apresAction(r.estReussi(), texte + envois);
+        });
+    }
+
+    /** Le match par lequel la ligne de la poule était identifiée : son premier match lancé (ordre I.301). */
+    private static Match premierLance(Poule poule) {
+        for (Match m : poule.getMatchs()) {
+            if (m.getStatut() == StatutMatch.EN_COURS) {
+                return m;
+            }
+        }
+        return poule.getMatchs().get(0);
     }
 
     /**

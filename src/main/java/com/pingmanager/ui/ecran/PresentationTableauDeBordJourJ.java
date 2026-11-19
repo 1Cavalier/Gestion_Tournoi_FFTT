@@ -199,6 +199,9 @@ final class PresentationTableauDeBordJourJ {
     /** Carte « Lancer un match » : nombre de matchs proposés. */
     static String valeurLancer(TableauDeBordSalle bord) {
         int n = bord.getPrets().size();
+        if (!bord.getPoulesPretes().isEmpty()) {
+            return PresentationSalle.aLancer(bord, " prêtes", " prête", " matchs prêts", " match prêt");
+        }
         return n == 0 ? "Aucun match prêt" : n + (n > 1 ? " matchs prêts" : " match prêt");
     }
 

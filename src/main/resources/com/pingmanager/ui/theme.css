@@ -4911,3 +4911,43 @@
     -fx-font-weight: bold;
     -fx-text-fill: -texte;
 }
+
+/* ==================================================================
+   Poules lancées en bloc (phase de poules) : lignes de poule de
+   « Lancer un match » et saisie de la poule entière
+   ================================================================== */
+
+/* Ligne de poule : joueurs sur deux lignes au plus, puis matchs et durée prévue. */
+.label.lancement-poule-detail {
+    -fx-text-fill: -texte-doux;
+    -fx-font-size: 12px;
+}
+
+.lancement-cellule.lancement-cellule-poule {
+    -fx-padding: 12 8 12 8;
+}
+
+.carte.saisie-poule {
+    -fx-border-color: -primaire;
+}
+
+.saisie-poule-ligne {
+    -fx-border-color: -bordure transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 0 10 0;
+}
+
+.saisie-poule-ligne-premiere {
+    -fx-padding: 10 0 10 0;
+}
+
+.label.saisie-poule-partie {
+    -fx-font-weight: bold;
+    -fx-text-fill: -texte;
+}
+
+.label.saisie-poule-apercu {
+    -fx-font-weight: bold;
+    -fx-text-fill: -primaire;
+    -fx-min-width: 40px;
+}

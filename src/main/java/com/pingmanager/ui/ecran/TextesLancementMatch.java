@@ -32,8 +32,9 @@ final class TextesLancementMatch {
 
     // --- Liste des matchs à lancer ---
     static final String LISTE_TITRE = "Matchs à lancer";
-    static final String LISTE_AIDE = "Du plus urgent au moins urgent, selon la stratégie en place. Seuls les "
-            + "matchs dont les deux joueurs sont libres sont listés.";
+    static final String LISTE_AIDE = "Du plus urgent au moins urgent, selon la stratégie en place. Pendant les "
+            + "poules, on lance la poule entière sur une table. Seuls les matchs et les poules dont tous les "
+            + "joueurs sont libres sont listés.";
     static final String COLONNE_NUMERO = "N°";
     static final String COLONNE_LANCER = "Lancer";
     static final String VOIR_PLUS = "Voir plus";
@@ -47,10 +48,27 @@ final class TextesLancementMatch {
     }
 
     static final String REFUS = "Match non lancé : %s.";
+    static final String REFUS_POULE = "Poule non lancée : %s.";
+
+    /** « Tableau B, poule 3 lancée en table 5 ». */
+    static String pouleLancee(String tableau, String poule, int table) {
+        String t = tableau == null ? "" : tableau.trim();
+        String debut = t.isEmpty() ? "" : (t.toLowerCase(java.util.Locale.ROOT).startsWith("tableau") ? t
+                : "Tableau " + t) + ", ";
+        return debut + "poule " + poule + " lancée en table " + table;
+    }
+
+    // --- Poules (phase de poules : on lance une poule, pas un match) ---
+    static final String POULE = "Poule";
+    static final String JOUEURS = "Joueurs";
+    static final String MATCHS = "Matchs";
+    static final String LANCER_POULE = "Lancer la poule";
+    static final String VUE_ORDRE = "Ordre des matchs (I.301)";
 
     // --- Feuille de match ---
-    static final String FEUILLE_A_L_ENVOI = "Imprimer la feuille de match à chaque lancement";
-    static final String FEUILLE_OUI = "La feuille de match sera imprimée à chaque lancement.";
+    static final String FEUILLE_A_L_ENVOI = "Imprimer la feuille à chaque lancement (feuille de poule ou de match)";
+    static final String FEUILLE_OUI = "La feuille sera imprimée à chaque lancement : feuille de poule pour une "
+            + "poule, feuille de match au tableau final.";
     static final String FEUILLE_NON = "Les feuilles ne s'impriment plus au lancement (bouton « Feuille » sur "
             + "chaque table).";
 
