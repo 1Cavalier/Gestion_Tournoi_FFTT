@@ -14,14 +14,13 @@ import com.pingmanager.model.format.RegistreFormats;
 import com.pingmanager.ordonnancement.ResultatAffectationTable;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Mots et filtres de l'interface « Lancer un match » (B055). */
+/** Logique d'affichage de l'interface « Lancer un match » (B055, refaite en B057). */
 class PresentationLancementMatchTest {
 
     private final ServiceSalle salle = new ServiceSalle(() -> Instant.parse("2026-11-14T10:00:00Z"));
@@ -83,41 +82,6 @@ class PresentationLancementMatchTest {
     }
 
     @Test
-    void libelles_du_bouton_de_l_attente_et_du_resume() {
-        assertEquals("Lancer · table 3", PresentationLancementMatch.libelleLancer(3));
-        assertEquals("Lancer", PresentationLancementMatch.libelleLancer(null));
-        assertEquals("Table 7", PresentationLancementMatch.libelleTable(7));
-        assertEquals("Attend depuis 12 min", PresentationLancementMatch.attente(Duration.ofMinutes(12)));
-        assertEquals("", PresentationLancementMatch.attente(null));
-        assertFalse(PresentationLancementMatch.attenteLongue(Duration.ofMinutes(5)));
-        assertTrue(PresentationLancementMatch.attenteLongue(Duration.ofMinutes(45)));
-
-        Tournoi t = tournoi(2);
-        assertEquals("6 matchs prêts · 2 tables libres", PresentationLancementMatch.resume(salle.listeLancements(t)));
-        Tournoi plein = tournoi(1);
-        salle.affecter(plein, matchDe(plein, "A", "A1"), 1);
-        assertEquals("3 matchs prêts · aucune table libre",
-                PresentationLancementMatch.resume(salle.listeLancements(plein)));
-    }
-
-    @Test
-    void recherche_par_joueur_sans_accents_et_filtre_par_tableau() {
-        Tournoi t = tournoi(4);
-        ListeLancements liste = salle.listeLancements(t);
-
-        assertEquals(List.of(PresentationLancementMatch.TOUS_LES_TABLEAUX, "A", "B"),
-                PresentationLancementMatch.tableaux(liste));
-        assertEquals(6, PresentationLancementMatch.filtrer(liste, "", null).size());
-        assertEquals(3, PresentationLancementMatch.filtrer(liste, "", "B").size());
-        List<ListeLancements.Ligne> lefevre = PresentationLancementMatch.filtrer(liste, "lefevre", null);
-        assertEquals(2, lefevre.size(), "poule de 3 : deux parties pour chaque joueur");
-        assertTrue(lefevre.stream().allMatch(l -> l.match().tableau().equals("B")));
-        assertTrue(PresentationLancementMatch.filtrer(liste, "lefevre", "A").isEmpty());
-        assertTrue(PresentationLancementMatch.filtrer(liste, "inconnu", null).isEmpty());
-        assertTrue(PresentationLancementMatch.videManuel("inconnu").contains("« inconnu »"));
-    }
-
-    @Test
     void table_choisie_gardee_si_toujours_possible_sinon_table_proposee() {
         Tournoi t = tournoi(4);
         ListeLancements.Ligne l = salle.listeLancements(t).getProposes().get(0);
@@ -154,5 +118,98 @@ class PresentationLancementMatchTest {
             }
         }
         assertTrue(dernierLancable < premierBloque);
+    }
+
+    // ------------------------------------------------------------------
+    // B057
+    // ------------------------------------------------------------------
+
+    @Test
+    void libelles_table_tableau_et_message_de_lancement() {
+        Tournoi t = tournoi(4);
+        ListeLancements.Ligne l = salle.listeLancements(t).getJouables().get(0);
+
+        assertEquals("Table 7", PresentationLancementMatch.libelleTable(7));
+        assertTrue(PresentationLancementMatch.tableauEtEchelon(l).matches("[AB] · Poule .+"),
+                PresentationLancementMatch.tableauEtEchelon(l));
+        Match m = matchDe(t, "A", "A1");
+        String attendu = m.getJoueurA().getNom() + " – " + m.getJoueurB().getNom() + " lancé en table 5";
+        assertEquals(attendu, PresentationLancementMatch.lance(m, 5));
+        assertEquals("Match non lancé : Paul MARTIN joue en table 4.", PresentationLancementMatch.refus(
+                ResultatAffectationTable.joueurEnJeu(0, j("A1", "MARTIN"), 4), 8));
+        assertEquals("Match non lancé : la table 5 vient d'être prise.", PresentationLancementMatch.refus(
+                ResultatAffectationTable.de(ResultatAffectationTable.Motif.TABLE_OCCUPEE, 5), 8));
+    }
+
+    @Test
+    void bandeau_vide_avant_la_demande_puis_proposition_puis_vide_apres_lancement() {
+        Tournoi t = tournoi(4);
+        ListeLancements liste = salle.listeLancements(t);
+
+        PresentationLancementMatch.Bandeau vide = PresentationLancementMatch.bandeau(liste, false, null, false, 4);
+        assertNull(vide.ligne());
+        assertEquals(TextesLancementMatch.ZONE_VIDE, vide.texte());
+        assertFalse(vide.lancerActif());
+        assertFalse(vide.autreActif());
+
+        Match premier = liste.propositionApres(null).orElseThrow().match().match();
+        PresentationLancementMatch.Bandeau plein = PresentationLancementMatch.bandeau(liste, true, premier, false, 4);
+        assertSame(premier, plein.ligne().match().match());
+        assertTrue(plein.lancerActif());
+        assertTrue(plein.autreActif());
+        assertEquals("Proposition 1 sur 6", PresentationLancementMatch.rang(liste, premier));
+
+        assertTrue(salle.affecter(t, premier, plein.ligne().tableProposee()).estReussi());
+        PresentationLancementMatch.Bandeau apres = PresentationLancementMatch.bandeau(salle.listeLancements(t), true,
+                premier, false, 4);
+        assertNull(apres.ligne(), "le match lancé n'est plus proposé : la zone se vide");
+        assertEquals(TextesLancementMatch.ZONE_VIDE, apres.texte());
+    }
+
+    @Test
+    void bandeau_aucun_match_et_aucune_table_libre() {
+        Tournoi t = tournoi(4);
+        ListeLancements liste = salle.listeLancements(t);
+        PresentationLancementMatch.Bandeau aucun = PresentationLancementMatch.bandeau(liste, true, null, false, 4);
+        assertEquals(TextesLancementMatch.AUCUN_MATCH, aucun.texte());
+        assertFalse(aucun.lancerActif());
+
+        Tournoi plein = tournoi(1);
+        assertTrue(salle.affecter(plein, matchDe(plein, "A", "A1"), 1).estReussi());
+        ListeLancements sansTable = salle.listeLancements(plein);
+        Match propose = sansTable.propositionApres(null).orElseThrow().match().match();
+        PresentationLancementMatch.Bandeau b = PresentationLancementMatch.bandeau(sansTable, true, propose, false, 1);
+        assertNotNull(b.ligne(), "la proposition reste affichée");
+        assertFalse(b.lancerActif());
+        assertEquals(TextesLancementMatch.AUCUNE_TABLE, b.motifLancer());
+        assertEquals(TextesLancementMatch.AUCUNE_TABLE,
+                PresentationLancementMatch.motifLigne(sansTable.getJouables().get(0), false, 1));
+    }
+
+    @Test
+    void empreinte_change_quand_un_match_se_termine_ailleurs() {
+        Tournoi t = tournoi(4);
+        Match m = matchDe(t, "A", "A1");
+        assertTrue(salle.affecter(t, m, 1).estReussi());
+        String avant = PresentationLancementMatch.empreinte(salle.listeLancements(t));
+        assertEquals(avant, PresentationLancementMatch.empreinte(salle.listeLancements(t)), "rien n'a changé");
+
+        m.setStatut(com.pingmanager.model.StatutMatch.TERMINE);
+
+        assertNotEquals(avant, PresentationLancementMatch.empreinte(salle.listeLancements(t)));
+    }
+
+    @Test
+    void voir_plus_retrouve_la_poule_du_match() {
+        Tournoi t = tournoi(4);
+        Match m = matchDe(t, "B", "B1");
+
+        PresentationLancementMatch.Situation s = PresentationLancementMatch.situer(t, m).orElseThrow();
+
+        assertTrue(s.estPoule());
+        assertEquals("B", s.tableau().getNom());
+        assertTrue(s.poule().getMatchs().contains(m));
+        assertEquals("B · Poule " + s.poule().getNom(), PresentationLancementMatch.titreSituation(s));
+        assertTrue(PresentationLancementMatch.situer(t, new Match(j("X", "X"), j("Y", "Y"))).isEmpty());
     }
 }
