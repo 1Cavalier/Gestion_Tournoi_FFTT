@@ -110,24 +110,32 @@ class ServiceSalleTest {
     // Photographie de la salle
     // ------------------------------------------------------------------
 
+    /**
+     * Phase de poules : on lance une poule, pas un match. Au départ, aucune partie
+     * n'est « prête » seule ; les deux poules de 3 sont prêtes à partir.
+     */
     @Test
-    void une_carte_par_table_et_tous_les_matchs_de_poule_prets_au_depart() {
+    void une_carte_par_table_et_toutes_les_poules_pretes_au_depart() {
         Tournoi t = tournoiSixJoueurs(4);
         TableauDeBordSalle bord = salle.tableauDeBord(t);
 
         assertEquals(4, bord.getTables().size());
         assertEquals(4, bord.nombreTablesLibres());
         assertEquals(List.of(1, 2, 3, 4), bord.tablesLibres());
-        assertEquals(6, bord.getPrets().size(), "2 poules de 3 : 6 parties");
+        assertTrue(bord.getPrets().isEmpty(), "aucune partie de poule ne part seule");
         assertTrue(bord.getBloques().isEmpty());
         assertTrue(bord.getAnomalies().isEmpty());
-        TableauDeBordSalle.MatchSalle premier = bord.getPrets().get(0);
-        assertEquals("A", premier.tableau());
-        assertTrue(premier.tour().startsWith("Poule "), premier.tour());
-        assertTrue(premier.tour().contains("· tour "), premier.tour());
-        assertEquals(PhaseMatch.POULE, premier.phase());
-        assertFalse(premier.explication().isEmpty());
+        List<ListeLancements.Ligne> jouables = salle.listeLancements(t).getJouables();
+        assertEquals(2, jouables.size(), "2 poules de 3 : 2 poules à lancer");
+        ListeLancements.Ligne premiere = jouables.get(0);
+        assertTrue(premiere.estPoule());
+        assertEquals("A", premiere.match().tableau());
+        assertTrue(premiere.echelon().startsWith("Poule "), premiere.echelon());
+        assertEquals(3, premiere.poule().nombreMatchs());
+        assertEquals(PhaseMatch.POULE, premiere.match().phase());
+        assertFalse(premiere.match().explication().isEmpty());
     }
+
 
     @Test
     void tableaux_non_lances_et_salle_sans_table() {
@@ -147,58 +155,59 @@ class ServiceSalleTest {
     // ------------------------------------------------------------------
 
     @Test
-    void affectation_manuelle_valide_occupe_la_table_et_bloque_les_autres_parties_des_joueurs() {
+    void lancement_manuel_d_une_poule_occupe_la_table_et_tous_ses_joueurs() {
         Tournoi t = tournoiSixJoueurs(4);
-        Match m = poule(t, 0).getMatchs().get(0);
+        Poule p = poule(t, 0);
+        Match m = p.getMatchs().get(0);
+        assertEquals(ResultatAffectationTable.Motif.LANCEMENT_PAR_POULE, salle.affecter(t, m, 3).getMotif(),
+                "phase de poules : un match ne part pas seul");
 
-        ResultatAffectationTable r = salle.affecter(t, m, 3);
+        ResultatAffectationTable r = salle.lancerPoule(t, p, 3);
 
         assertEquals(ResultatAffectationTable.Motif.AFFECTE, r.getMotif());
-        assertEquals(StatutMatch.EN_COURS, m.getStatut());
-        assertEquals(Integer.valueOf(3), m.getNumeroTable());
-        assertEquals(dixHeuresPlus(0), m.getInstantLancement());
-
+        for (Match x : p.getMatchs()) {
+            assertEquals(StatutMatch.EN_COURS, x.getStatut());
+            assertEquals(Integer.valueOf(3), x.getNumeroTable());
+            assertEquals(dixHeuresPlus(0), x.getInstantLancement());
+        }
         TableauDeBordSalle bord = salle.tableauDeBord(t);
-        assertSame(m, bord.table(3).match().match());
+        assertSame(m, bord.table(3).match().match(), "la première partie (I.301) se joue d'abord");
         assertEquals(Integer.valueOf(3), bord.tableDe(m));
         assertEquals(3, bord.nombreTablesLibres());
-        // Poule de 3 : les deux autres parties partagent un joueur avec celle en cours.
-        assertEquals(2, bord.getBloques().size());
-        for (TableauDeBordSalle.MatchBloque b : bord.getBloques()) {
-            assertEquals(ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU, b.motif().getMotif());
-            assertEquals(Integer.valueOf(3), b.motif().getTableDuJoueurBloquant());
-            Joueur bloquant = b.motif().getJoueurBloquant();
-            assertTrue(bloquant.equals(m.getJoueurA()) || bloquant.equals(m.getJoueurB()));
-        }
-        assertEquals(3, bord.getPrets().size(), "l'autre poule reste jouable");
+        assertTrue(bord.getBloques().isEmpty(), "les parties de la poule sont en cours sur sa table");
+        List<ListeLancements.Ligne> jouables = salle.listeLancements(t).getJouables();
+        assertEquals(1, jouables.size(), "l'autre poule reste jouable");
+        assertSame(poule(t, 1), jouables.get(0).poule().poule());
     }
 
+
     @Test
-    void affectation_refusee_joueur_occupe_table_occupee_hors_limites_ou_match_non_pret() {
+    void lancement_refuse_poule_en_cours_table_occupee_hors_limites_ou_poule_jouee() {
         Tournoi t = tournoiSixJoueurs(4);
-        List<Match> p1 = poule(t, 0).getMatchs();
-        List<Match> p2 = poule(t, 1).getMatchs();
-        assertTrue(salle.affecter(t, p1.get(0), 1).estReussi());
+        Poule p1 = poule(t, 0);
+        Poule p2 = poule(t, 1);
+        assertTrue(salle.lancerPoule(t, p1, 1).estReussi());
 
-        ResultatAffectationTable joueurOccupe = salle.affecter(t, p1.get(1), 2);
-        assertEquals(ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU, joueurOccupe.getMotif());
-        assertEquals(Integer.valueOf(1), joueurOccupe.getTableDuJoueurBloquant());
-        assertEquals(StatutMatch.A_JOUER, p1.get(1).getStatut());
+        assertEquals(ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS, salle.lancerPoule(t, p1, 2).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.TABLE_OCCUPEE, salle.lancerPoule(t, p2, 1).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, salle.lancerPoule(t, p2, 0).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, salle.lancerPoule(t, p2, 5).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS, salle.affecter(t, p1.getMatchs().get(1), 2)
+                .getMotif());
+        assertNull(p2.getNumeroTable(), "rien n'est modifié");
 
-        assertEquals(ResultatAffectationTable.Motif.TABLE_OCCUPEE, salle.affecter(t, p2.get(0), 1).getMotif());
-        assertEquals(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, salle.affecter(t, p2.get(0), 0).getMotif());
-        assertEquals(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES, salle.affecter(t, p2.get(0), 5).getMotif());
-        assertEquals(ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS, salle.affecter(t, p1.get(0), 2).getMotif());
-
-        p2.get(0).definirScore(troisZero());
-        assertEquals(ResultatAffectationTable.Motif.MATCH_TERMINE, salle.affecter(t, p2.get(0), 2).getMotif());
+        p2.getMatchs().forEach(m -> m.definirScore(troisZero()));
+        assertEquals(ResultatAffectationTable.Motif.MATCH_TERMINE, salle.lancerPoule(t, p2, 2).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.MATCH_INCONNU,
+                salle.lancerPoule(t, new Poule("X", List.of(j("X1"), j("X2"))), 2).getMotif());
         assertEquals(ResultatAffectationTable.Motif.MATCH_INCONNU,
                 salle.affecter(t, new Match(j("X1"), j("X2")), 2).getMotif());
 
         t.changerStatut(StatutTournoi.ANNULE);
-        assertEquals(ResultatAffectationTable.Motif.TOURNOI_FERME, salle.affecter(t, p2.get(1), 2).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.TOURNOI_FERME, salle.lancerPoule(t, p2, 2).getMotif());
         assertEquals(ResultatPropositionSalle.Motif.TOURNOI_FERME, salle.proposer(t).getMotif());
     }
+
 
     @Test
     void joueur_engage_sur_deux_tableaux_jamais_sur_deux_tables() {
@@ -208,24 +217,11 @@ class ServiceSalleTest {
         Joueur commun = j("L1"); // même licence que dans le tableau A
         lancer(t, b, List.of(commun, j("M2"), j("M3")));
 
-        Match deA = null;
-        for (Poule p : tab(t, "A").getPoules()) {
-            for (Match m : p.getMatchs()) {
-                if (deA == null && (m.getJoueurA().equals(commun) || m.getJoueurB().equals(commun))) {
-                    deA = m;
-                }
-            }
-        }
-        assertNotNull(deA);
-        assertTrue(salle.affecter(t, deA, 2).estReussi());
+        Poule deA = tab(t, "A").getPoules().stream().filter(p -> p.getJoueurs().contains(commun)).findFirst()
+                .orElseThrow();
+        assertTrue(salle.lancerPoule(t, deA, 2).estReussi());
 
-        Match deB = null;
-        for (Match m : b.getPoules().get(0).getMatchs()) {
-            if (m.getJoueurA().equals(commun) || m.getJoueurB().equals(commun)) {
-                deB = m;
-            }
-        }
-        ResultatAffectationTable r = salle.affecter(t, deB, 5);
+        ResultatAffectationTable r = salle.lancerPoule(t, b.getPoules().get(0), 5);
         assertEquals(ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU, r.getMotif());
         assertEquals(commun, r.getJoueurBloquant());
         assertEquals(Integer.valueOf(2), r.getTableDuJoueurBloquant());
@@ -233,7 +229,9 @@ class ServiceSalleTest {
         // « Proposer » non plus ne le met pas sur une deuxième table.
         salle.proposer(t);
         licencesEnJeu(salle.tableauDeBord(t));
+        assertNull(b.getPoules().get(0).getNumeroTable());
     }
+
 
     // ------------------------------------------------------------------
     // Bouton « Proposer »
@@ -246,17 +244,18 @@ class ServiceSalleTest {
         ResultatPropositionSalle r = salle.proposer(t);
 
         assertTrue(r.aLance());
-        // Deux poules de 3 : une seule partie par poule peut se jouer à la fois.
+        // Deux poules de 3 : chacune part en bloc sur sa table.
         assertEquals(2, r.getLancements().size());
         assertEquals(List.of(1, 2), r.getLancements().stream().map(ResultatPropositionSalle.Lancement::table).toList());
         TableauDeBordSalle bord = salle.tableauDeBord(t);
-        assertEquals(4, licencesEnJeu(bord).size());
+        assertEquals(4, licencesEnJeu(bord).size(), "une partie se joue sur chaque table");
         assertEquals(4, bord.nombreTablesLibres());
         assertTrue(bord.getPrets().isEmpty());
-        assertEquals(4, bord.getBloques().size());
+        assertTrue(tab(t, "A").getPoules().stream().allMatch(Poule::estLanceeEnBloc));
 
         assertEquals(ResultatPropositionSalle.Motif.AUCUN_MATCH_PRET, salle.proposer(t).getMotif());
     }
+
 
     @Test
     void proposer_s_arrete_au_nombre_de_tables_libres() {
@@ -272,46 +271,50 @@ class ServiceSalleTest {
     // ------------------------------------------------------------------
 
     @Test
-    void prets_tries_par_priorite_le_joueur_engage_ailleurs_passe_devant() {
+    void poules_triees_par_priorite_le_joueur_engage_ailleurs_passe_devant() {
         Tournoi t = tournoiSixJoueurs(6);
         Tableau b = tableau("B");
         t.ajouterTableau(b);
         Joueur commun = j("L4");
         lancer(t, b, List.of(commun, j("M2"), j("M3")));
 
-        TableauDeBordSalle bord = salle.tableauDeBord(t);
-        List<TableauDeBordSalle.MatchSalle> prets = bord.getPrets();
-        for (int i = 1; i < prets.size(); i++) {
-            assertTrue(prets.get(i - 1).priorite() >= prets.get(i).priorite(), "tri décroissant");
+        List<ListeLancements.Ligne> jouables = salle.listeLancements(t).getJouables();
+        for (int i = 1; i < jouables.size(); i++) {
+            assertTrue(jouables.get(i - 1).match().priorite() >= jouables.get(i).match().priorite(), "tri décroissant");
         }
-        Match premier = prets.get(0).match();
-        assertTrue(premier.getJoueurA().equals(commun) || premier.getJoueurB().equals(commun),
-                "un joueur engagé dans deux tableaux débloque plus de parties");
-        assertTrue(prets.get(0).explication().contains("débloque"), prets.get(0).explication());
+        ListeLancements.Ligne premiere = jouables.get(0);
+        assertTrue(premiere.poule().joueurs().contains(commun),
+                "une poule dont un joueur est engagé dans deux tableaux débloque plus de parties");
+        assertTrue(premiere.match().explication().contains("débloque"), premiere.match().explication());
     }
+
 
     @Test
     void l_attente_compte_depuis_la_fin_du_dernier_match_des_joueurs() {
         Tournoi t = tournoiSixJoueurs(6);
-        List<Match> p1 = poule(t, 0).getMatchs();
-        List<Match> p2 = poule(t, 1).getMatchs();
-        // Poule 1 : première partie jouée et terminée à 10 h 05.
-        salle.affecter(t, p1.get(0), 1);
+        Poule p1 = poule(t, 0);
+        Poule p2 = poule(t, 1);
+        // Tableau B : un joueur de chaque poule de A.
+        Tableau b = tableau("B");
+        t.ajouterTableau(b);
+        lancer(t, b, List.of(p1.getJoueurs().get(0), p2.getJoueurs().get(0), j("M3")));
+        SaisieResultatMatch saisie = new SaisieResultatMatch(horloge);
+        // Poule 1 : jouée de 10 h 00 à 10 h 05.
+        salle.lancerPoule(t, p1, 1);
         avancer(5);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), p1.get(0), troisZero());
-        salle.libererApresResultat(t, p1.get(0));
-        // Poule 2 : première partie lancée à 10 h 05, terminée à 10 h 25.
-        salle.affecter(t, p2.get(0), 2);
+        p1.getMatchs().forEach(m -> saisie.enregistrerScore(tab(t, "A"), m, troisZero()));
+        // Poule 2 : lancée à 10 h 05, terminée à 10 h 25.
+        salle.lancerPoule(t, p2, 2);
         avancer(20);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), p2.get(0), troisZero());
-        salle.libererApresResultat(t, p2.get(0));
+        p2.getMatchs().forEach(m -> saisie.enregistrerScore(tab(t, "A"), m, troisZero()));
+        avancer(20);
 
-        TableauDeBordSalle bord = salle.tableauDeBord(t);
-        // Les parties de la poule 1 attendent depuis 10 h 05, celles de la poule 2 depuis 10 h 25.
-        assertSame(poule(t, 0), pouleDe(t, bord.getPrets().get(0).match()));
-        assertTrue(bord.getPrets().get(0).explication().contains("attend 20 min"),
-                bord.getPrets().get(0).explication());
+        // La poule de B attend depuis que son dernier joueur est libre : 10 h 25.
+        ListeLancements.Ligne l = salle.listeLancements(t).getJouables().get(0);
+        assertSame(b.getPoules().get(0), l.poule().poule());
+        assertTrue(l.match().explication().contains("attend 20 min"), l.match().explication());
     }
+
 
     private static Poule pouleDe(Tournoi t, Match m) {
         for (Poule p : tab(t, "A").getPoules()) {
@@ -327,66 +330,85 @@ class ServiceSalleTest {
     // ------------------------------------------------------------------
 
     @Test
-    void terminer_libere_la_table_et_debloque_la_suite_de_la_poule() {
+    void terminer_la_derniere_partie_libere_la_table_de_la_poule() {
         Tournoi t = tournoiSixJoueurs(4);
-        Match m = poule(t, 0).getMatchs().get(0);
-        salle.affecter(t, m, 2);
+        List<Match> matchs = poule(t, 0).getMatchs();
+        Match m = matchs.get(0);
+        salle.lancerPoule(t, poule(t, 0), 2);
         assertEquals(ResultatAffectationTable.Motif.RESULTAT_NON_SAISI, salle.libererApresResultat(t, m).getMotif());
         avancer(18);
 
         ResultatSaisieMatch saisie = new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), m, troisZero());
         assertTrue(saisie.estEnregistre());
-        ResultatAffectationTable r = salle.libererApresResultat(t, m);
+        assertEquals(ResultatAffectationTable.Motif.POULE_CONTINUE, salle.libererApresResultat(t, m).getMotif());
+        assertEquals(dixHeuresPlus(18), m.getInstantFin());
+        assertFalse(salle.tableauDeBord(t).table(2).estLibre(), "la poule continue sur sa table");
+        for (Match x : matchs.subList(1, 3)) {
+            avancer(15);
+            new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), x, troisZero());
+        }
+        ResultatAffectationTable r = salle.libererApresResultat(t, matchs.get(2));
 
         assertEquals(ResultatAffectationTable.Motif.TABLE_LIBEREE, r.getMotif());
         assertEquals(2, r.getNumeroTable());
-        assertEquals(dixHeuresPlus(18), m.getInstantFin());
         TableauDeBordSalle bord = salle.tableauDeBord(t);
         assertEquals(4, bord.nombreTablesLibres());
         assertTrue(bord.getBloques().isEmpty());
-        assertEquals(5, bord.getPrets().size());
-        assertTrue(bord.getPrets().stream().noneMatch(p -> p.match() == m));
-        assertEquals(1, SuiviPoule.matchsTermines(poule(t, 0)), "la poule voit le résultat");
+        assertEquals(1, salle.listeLancements(t).getJouables().size(), "reste l'autre poule");
+        assertEquals(3, SuiviPoule.matchsTermines(poule(t, 0)), "la poule voit les résultats");
         assertEquals(Integer.valueOf(2), m.getNumeroTable(), "la table jouée reste notée sur le match");
     }
+
 
     @Test
     void abandon_en_cours_de_match_libere_aussi_la_table() {
         Tournoi t = tournoiSixJoueurs(2);
-        Match m = poule(t, 1).getMatchs().get(0);
-        salle.affecter(t, m, 1);
+        List<Match> matchs = poule(t, 1).getMatchs();
+        salle.lancerPoule(t, poule(t, 1), 1);
         avancer(7);
-        new SaisieResultatMatch(horloge).enregistrerIssue(tab(t, "A"), m, IssueMatch.ABANDON, m.getJoueurB());
+        SaisieResultatMatch saisie = new SaisieResultatMatch(horloge);
+        saisie.enregistrerScore(tab(t, "A"), matchs.get(0), troisZero());
+        saisie.enregistrerScore(tab(t, "A"), matchs.get(1), troisZero());
+        Match m = matchs.get(2);
+        saisie.enregistrerIssue(tab(t, "A"), m, IssueMatch.ABANDON, m.getJoueurB());
         assertEquals(ResultatAffectationTable.Motif.TABLE_LIBEREE, salle.libererApresResultat(t, m).getMotif());
         assertTrue(salle.tableauDeBord(t).table(1).estLibre());
     }
 
+
     @Test
     void un_score_saisi_depuis_l_ecran_des_poules_libere_la_table_sans_autre_action() {
         Tournoi t = tournoiSixJoueurs(2);
-        Match m = poule(t, 0).getMatchs().get(0);
-        salle.affecter(t, m, 2);
-        new SaisieResultatMatch(horloge).enregistrerScore(tab(t, "A"), m, troisZero());
+        List<Match> matchs = poule(t, 0).getMatchs();
+        assertTrue(salle.lancerPoule(t, poule(t, 0), 2).estReussi());
+        SaisieResultatMatch saisie = new SaisieResultatMatch(horloge);
+        saisie.enregistrerScore(tab(t, "A"), matchs.get(0), troisZero());
+        saisie.enregistrerScore(tab(t, "A"), matchs.get(1), troisZero());
+        assertFalse(salle.tableauDeBord(t).table(2).estLibre());
+        saisie.enregistrerScore(tab(t, "A"), matchs.get(2), troisZero());
         assertTrue(salle.tableauDeBord(t).table(2).estLibre());
     }
+
 
     @Test
     void annuler_une_affectation_erronee() {
         Tournoi t = tournoiSixJoueurs(3);
         Match m = poule(t, 0).getMatchs().get(0);
-        salle.affecter(t, m, 3);
+        salle.lancerPoule(t, poule(t, 0), 3);
 
+        // « Annuler » sur la table : c'est le lancement de la poule entière qui s'annule.
         ResultatAffectationTable r = salle.annulerAffectation(t, m);
 
         assertEquals(ResultatAffectationTable.Motif.AFFECTATION_ANNULEE, r.getMotif());
         assertEquals(3, r.getNumeroTable());
-        assertEquals(StatutMatch.A_JOUER, m.getStatut());
-        assertNull(m.getNumeroTable());
+        assertTrue(poule(t, 0).getMatchs().stream().allMatch(x -> x.getStatut() == StatutMatch.A_JOUER
+                && x.getNumeroTable() == null));
         TableauDeBordSalle bord = salle.tableauDeBord(t);
         assertEquals(3, bord.nombreTablesLibres());
-        assertEquals(6, bord.getPrets().size());
+        assertEquals(2, salle.listeLancements(t).getJouables().size());
         assertEquals(ResultatAffectationTable.Motif.MATCH_PAS_EN_COURS, salle.annulerAffectation(t, m).getMotif());
     }
+
 
     // ------------------------------------------------------------------
     // Durée écoulée
@@ -395,13 +417,13 @@ class ServiceSalleTest {
     @Test
     void duree_ecoulee_selon_l_horloge() {
         Tournoi t = tournoiSixJoueurs(2);
-        Match m = poule(t, 0).getMatchs().get(0);
-        salle.affecter(t, m, 1);
+        salle.lancerPoule(t, poule(t, 0), 1);
         assertEquals(Duration.ZERO, salle.tableauDeBord(t).table(1).ecoule());
         avancer(17);
         assertEquals(Duration.ofMinutes(17), salle.tableauDeBord(t).table(1).ecoule());
         assertNull(salle.tableauDeBord(t).table(2).ecoule(), "table libre : pas de durée");
     }
+
 
     // ------------------------------------------------------------------
     // Anomalies (fichier modifié, tables retirées)
@@ -413,8 +435,11 @@ class ServiceSalleTest {
         Match surTable9 = poule(t, 0).getMatchs().get(0);
         surTable9.setStatut(StatutMatch.EN_COURS);
         surTable9.setNumeroTable(9);
+        // Ancien fichier : matchs de poule lancés un par un.
         Match a = poule(t, 1).getMatchs().get(0);
-        salle.affecter(t, a, 1);
+        a.setStatut(StatutMatch.EN_COURS);
+        a.setNumeroTable(1);
+        a.setInstantLancement(dixHeuresPlus(0));
         // Un second match « en cours » sur la même table, lancé plus tard.
         Match b = poule(t, 1).getMatchs().get(1);
         b.setStatut(StatutMatch.EN_COURS);

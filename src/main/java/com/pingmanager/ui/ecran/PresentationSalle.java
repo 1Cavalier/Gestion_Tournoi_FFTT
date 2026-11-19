@@ -173,6 +173,19 @@ final class PresentationSalle {
         if (motif == ResultatAffectationTable.Motif.RESULTAT_NON_SAISI) {
             return "Saisissez d'abord le résultat : la table se libère à l'enregistrement du score.";
         }
+        if (motif == ResultatAffectationTable.Motif.LANCEMENT_PAR_POULE) {
+            return "Phase de poules : ce match part avec sa poule (lancez la poule entière).";
+        }
+        if (motif == ResultatAffectationTable.Motif.JOUEUR_ABSENT) {
+            return nom(r.getJoueurBloquant()) + " n'est pas pointé : la poule ne peut pas partir.";
+        }
+        if (motif == ResultatAffectationTable.Motif.SCORE_DEJA_SAISI) {
+            return "Un résultat de la poule est déjà saisi : son lancement ne s'annule plus.";
+        }
+        if (motif == ResultatAffectationTable.Motif.POULE_CONTINUE) {
+            return table > 0 ? "Résultat enregistré : la poule continue en table " + table + "."
+                    : "Résultat enregistré : la poule continue.";
+        }
         return motif.name();
     }
 
@@ -220,9 +233,24 @@ final class PresentationSalle {
             return "Nombre de tables non renseigné.";
         }
         int occupees = bord.nombreTablesOccupees();
-        int prets = bord.getPrets().size();
         return occupees + (occupees > 1 ? " tables occupées" : " table occupée") + " sur " + bord.getNombreDeTables()
-                + " · " + prets + (prets > 1 ? " matchs prêts" : " match prêt");
+                + " · " + aLancer(bord, " prêtes", " prête", " matchs prêts", " match prêt");
+    }
+
+    /**
+     * Ce qui attend une table : « 2 poules prêtes · 1 match prêt » ; les poules
+     * (phase de poules, lancées en bloc) seulement s'il y en a.
+     */
+    static String aLancer(TableauDeBordSalle bord, String poulesPluriel, String pouleSingulier, String matchsPluriel,
+                          String matchSingulier) {
+        int poules = bord.getPoulesPretes().size();
+        int prets = bord.getPrets().size();
+        String matchs = prets + (prets > 1 ? matchsPluriel : matchSingulier);
+        if (poules == 0) {
+            return matchs;
+        }
+        String p = poules + (poules > 1 ? " poules" + poulesPluriel : " poule" + pouleSingulier);
+        return prets == 0 ? p : p + " · " + matchs;
     }
 
     /** Clé glissée-déposée d'un match prêt (son rang dans la liste des prêts). */
@@ -268,12 +296,11 @@ final class PresentationSalle {
         }
         int libres = bord.nombreTablesLibres();
         int occupees = bord.nombreTablesOccupees();
-        int prets = bord.getPrets().size();
         int bloques = bord.getBloques().size();
         StringBuilder sb = new StringBuilder();
         sb.append(libres).append(libres > 1 ? " tables libres" : " table libre");
         sb.append(" · ").append(occupees).append(" en cours");
-        sb.append(" · ").append(prets).append(prets > 1 ? " matchs proposés" : " match proposé");
+        sb.append(" · ").append(aLancer(bord, " proposées", " proposée", " matchs proposés", " match proposé"));
         if (bloques > 0) {
             sb.append(" · ").append(bloques).append(bloques > 1 ? " bloqués" : " bloqué");
         }
@@ -344,11 +371,10 @@ final class PresentationSalle {
             return "Nombre de tables non renseigné";
         }
         int libres = bord.nombreTablesLibres();
-        int prets = bord.getPrets().size();
         int attente = bord.getJoueursEnAttente().size();
         return libres + (libres > 1 ? " tables libres" : " table libre")
                 + " · " + bord.nombreTablesOccupees() + " en cours"
-                + " · " + prets + (prets > 1 ? " matchs proposés" : " match proposé")
+                + " · " + aLancer(bord, " proposées", " proposée", " matchs proposés", " match proposé")
                 + " · " + attente + (attente > 1 ? " joueurs en attente" : " joueur en attente");
     }
 

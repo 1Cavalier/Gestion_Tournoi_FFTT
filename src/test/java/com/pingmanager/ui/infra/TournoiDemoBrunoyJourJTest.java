@@ -114,13 +114,17 @@ class TournoiDemoBrunoyJourJTest {
         assertEquals(StatutTableau.LANCE, sa.get(1).getStatut());
         assertTrue(sa.get(1).poulesTerminees());
 
-        // 3. Poules en cours, trois parties en salle.
+        // 3. Poules en cours, trois poules entières en salle (lancées en bloc).
         Tableau poules = sa.get(2);
         assertEquals(StatutTableau.LANCE, poules.getStatut());
         assertEquals(Long.valueOf(TournoiDemoBrunoyJourJ.GRAINE_POULES), poules.getGrainePoules());
         assertFalse(poules.poulesTerminees());
+        assertEquals(TournoiDemoBrunoyJourJ.TABLES_POULES, tablesDesPoules(poules));
         assertEquals(TournoiDemoBrunoyJourJ.TABLES_POULES,
-                enCours(poules).stream().map(Match::getNumeroTable).sorted().toList());
+                enCours(poules).stream().map(Match::getNumeroTable).distinct().sorted().toList());
+        // La première poule lancée a déjà joué sa partie 1 : la poule continue sur sa table.
+        assertEquals(1L, poules.getPoules().stream().filter(com.pingmanager.model.Poule::estLanceeEnBloc)
+                .filter(p -> p.getMatchs().get(0).getStatut() == com.pingmanager.model.StatutMatch.TERMINE).count());
 
         // 4. Pointage clôturé ; 5. pointage ouvert.
         assertEquals(StatutTableau.POINTAGE, sa.get(3).getStatut());
@@ -183,8 +187,13 @@ class TournoiDemoBrunoyJourJTest {
             assertEquals(a.get(i).getStatut(), b.get(i).getStatut(), a.get(i).getNom());
             assertEquals(a.get(i).getInscrits().size(), b.get(i).getInscrits().size());
         }
-        assertEquals(TournoiDemoBrunoyJourJ.TABLES_POULES,
-                enCours(b.get(2)).stream().map(Match::getNumeroTable).sorted().toList());
+        assertEquals(TournoiDemoBrunoyJourJ.TABLES_POULES, tablesDesPoules(b.get(2)));
+    }
+
+    /** Tables des poules lancées en bloc d'un tableau, triées. */
+    private static List<Integer> tablesDesPoules(Tableau tab) {
+        return tab.getPoules().stream().filter(com.pingmanager.model.Poule::estLanceeEnBloc)
+                .map(com.pingmanager.model.Poule::getNumeroTable).sorted().toList();
     }
 
     @Test

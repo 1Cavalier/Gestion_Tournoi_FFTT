@@ -216,7 +216,7 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
             }
             List<MatchPublic> matchs = new ArrayList<>();
             for (int i = 0; i < p.getMatchs().size(); i++) {
-                matchs.add(match(t.getNom(), "Tour " + SuiviPoule.tourDuMatch(p, i), p.getMatchs().get(i)));
+                matchs.add(match(t.getNom(), "Tour " + SuiviPoule.tourDuMatch(p, i), p.getMatchs().get(i), p));
             }
             poules.add(new PoulePublique(titrePoule(p), classement, matchs));
         }
@@ -290,6 +290,8 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
         String quand;
         if (partie.estEnCours()) {
             quand = "En ce moment";
+        } else if (partie.estASuivre()) {
+            quand = "À la suite, sur la table de votre poule";
         } else if (rangs.containsKey(partie.match())) {
             int r = rangs.get(partie.match());
             quand = r == 1 ? "Prochain match envoyé sur une table libre"
@@ -309,13 +311,20 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
     // ==================================================================
 
     private static MatchPublic match(String tableau, String situation, Match m) {
-        boolean enCours = m.getStatut() == StatutMatch.EN_COURS;
+        return match(tableau, situation, m, null);
+    }
+
+    /** @param poule poule du match (lancée en bloc : ses matchs se jouent à la suite), ou null */
+    private static MatchPublic match(String tableau, String situation, Match m, com.pingmanager.model.Poule poule) {
+        boolean enCours = SuiviTournoi.seJoueMaintenant(poule, m);
         String resultat;
         if (m.estBye()) {
             resultat = "Exempt";
         } else if (m.getStatut() == StatutMatch.TERMINE) {
             resultat = m.getIssue() != IssueMatch.NORMALE ? libelleIssue(m.getIssue(), "Score")
                     : m.manchesGagneesParA() + "-" + m.manchesGagneesParB();
+        } else if (m.getStatut() == StatutMatch.EN_COURS && !enCours) {
+            resultat = "À suivre";
         } else if (enCours) {
             resultat = "En cours";
         } else if (estConnu(m.getJoueurA()) && estConnu(m.getJoueurB())) {
@@ -325,7 +334,7 @@ public record InstantaneSuivi(String nomTournoi, LocalDateTime prisLe, List<Tabl
         }
         return new MatchPublic(tableau, situation, nomJoueur(m.getJoueurA()), detailJoueur(m.getJoueurA()),
                 m.estBye() ? "Exempt" : nomJoueur(m.getJoueurB()), m.estBye() ? "" : detailJoueur(m.getJoueurB()),
-                resultat, detailScore(m), enCours ? table(m) : "", enCours,
+                resultat, detailScore(m), table(m), enCours,
                 estVainqueur(m, true), estVainqueur(m, false));
     }
 

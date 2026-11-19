@@ -281,6 +281,162 @@ public final class RenduPdfFeuilles {
         }
     }
 
+    // ==================================================================
+    // Feuille de poule de table : une seule page A4, imprimée au lancement
+    // ==================================================================
+
+    /**
+     * Feuille d'une poule lancée en bloc sur une table, sur <b>une seule page A4</b>
+     * jusqu'à la poule de 6 (15 parties) : en-tête (tournoi, tableau, poule, table,
+     * heure de lancement), joueurs numérotés avec points et club, les parties dans
+     * l'ordre où elles se jouent (I.301) avec une grille de manches chacune, puis
+     * le classement final à remplir (I.303). Les hauteurs se resserrent pour que
+     * tout tienne sur la page.
+     */
+    public static byte[] feuillePouleDeTable(FeuillePoule f) throws IOException {
+        try (PDDocument doc = new PDDocument()) {
+            Polices p = new Polices(doc);
+            doc.getDocumentInformation().setTitle(FeuillePoule.TITRE_TABLE + " — " + f.poule());
+            doc.getDocumentInformation().setCreator("PingManager");
+            PDPage page = new PDPage(PDRectangle.A4);
+            doc.addPage(page);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                dessinerFeuillePouleDeTable(new Dessin(cs, p), f);
+            }
+            return enregistrer(doc);
+        }
+    }
+
+    private static void dessinerFeuillePouleDeTable(Dessin d, FeuillePoule f) throws IOException {
+        float x0 = MARGE;
+        float largeur = A4_L - 2 * MARGE;
+        float y = A4_H - MARGE + 4;
+        List<PartiePoule> parties = f.parties().stream().filter(pp -> !pp.exempt()).toList();
+        int n = f.joueurs().size();
+
+        // Hauteurs de base, resserrées si la page ne suffit pas (poule de 6 en 4 manches gagnantes…).
+        float hEnTete = 74;
+        float hIntertitre = 18;
+        float hJoueur = 15;
+        float hPartie = 13; // une ligne par joueur de la partie
+        float ecartPartie = 4;
+        float hClassement = 15;
+        float besoin = hEnTete + 3 * hIntertitre + (n + 1) * hJoueur + 18 + parties.size() * (2 * hPartie + ecartPartie)
+                + (n + 1) * hClassement + 30;
+        float dispo = A4_H - 2 * MARGE;
+        float k = besoin > dispo ? dispo / besoin : 1f;
+        hJoueur *= k;
+        hPartie *= k;
+        ecartPartie *= k;
+        hClassement *= k;
+        float taille = Math.max(6.5f, Math.min(9f, hPartie * 0.68f));
+
+        // En-tête : titre et table en gros, tournoi, puis tableau · format · heure de lancement.
+        d.texte(FeuillePoule.TITRE_TABLE + " — " + f.poule(), x0, y - 18, d.p.grasse, 18, PRIMAIRE);
+        String table = f.table().isEmpty() ? "Table : ______" : f.table();
+        float lt = d.largeur(table, d.p.grasse, 24);
+        d.texte(table, x0 + largeur - lt, y - 22, d.p.grasse, 24, TEXTE);
+        y -= 32;
+        d.texte(d.ajuster(f.entete().ligneTournoi(), d.p.normale, 10, largeur - lt - 12), x0, y - 10,
+                d.p.normale, 10, DOUX);
+        y -= 16;
+        String heure = f.heureLancement().isEmpty() ? "Lancée à : ______" : "Lancée à " + f.heureLancement();
+        String ligne = f.entete().tableau() + (f.format().isEmpty() ? "" : " · " + f.format());
+        float lh = d.largeur(heure, d.p.grasse, 10.5f);
+        d.texte(d.ajuster(ligne, d.p.grasse, 10.5f, largeur - lh - 12), x0, y - 11, d.p.grasse, 10.5f, TEXTE);
+        d.texte(heure, x0 + largeur - lh, y - 11, d.p.grasse, 10.5f, TEXTE);
+        y -= 26;
+
+        // Joueurs numérotés dans l'ordre de la poule (1 = tête de poule).
+        d.texte("Joueurs", x0, y - 12, d.p.grasse, 12, PRIMAIRE);
+        y -= hIntertitre;
+        float[] lj = {30, 220, largeur - 330, 80};
+        y = ligne(d, lj, List.of("N°", "Nom Prénom", "Club", "Points"), true, x0, y, hJoueur, taille);
+        for (int i = 0; i < n; i++) {
+            JoueurFeuille j = f.joueurs().get(i);
+            y = ligne(d, lj, List.of(String.valueOf(i + 1), j.nomComplet(), j.club(), j.points()), false, x0, y,
+                    hJoueur, taille);
+        }
+        y -= 8;
+
+        // Parties dans l'ordre où elles se jouent sur la table (I.301), une grille de manches chacune.
+        d.texte("Parties, dans l'ordre où elles se jouent (I.301)", x0, y - 12, d.p.grasse, 12, PRIMAIRE);
+        y -= hIntertitre;
+        int manches = parties.isEmpty() ? GrilleManches.COLONNES : parties.get(0).grille().get(0).size();
+        float lNum = 26;
+        float lPos = 40;
+        float lTotal = 46;
+        float lJoueur = Math.min(200, largeur - lNum - lPos - lTotal - manches * 30);
+        float lManche = (largeur - lNum - lPos - lJoueur - lTotal) / manches;
+        // En-tête des colonnes.
+        float xc = x0;
+        float[] cols = new float[3 + manches + 1];
+        cols[0] = lNum;
+        cols[1] = lPos;
+        cols[2] = lJoueur;
+        for (int m = 0; m < manches; m++) {
+            cols[3 + m] = lManche;
+        }
+        cols[3 + manches] = lTotal;
+        List<String> entetes = new java.util.ArrayList<>(List.of("N°", "Partie", "Joueur"));
+        for (int m = 1; m <= manches; m++) {
+            entetes.add("M" + m);
+        }
+        entetes.add("Manches");
+        y = ligne(d, cols, entetes, true, xc, y, hPartie, taille);
+        for (PartiePoule pp : parties) {
+            float yh = y - 2 * hPartie;
+            // N° et positions sur deux lignes fusionnées.
+            d.cadre(x0, yh, lNum, 2 * hPartie, FILET, null);
+            d.cadre(x0 + lNum, yh, lPos, 2 * hPartie, FILET, null);
+            d.texte(String.valueOf(pp.numero()), x0 + 4, yh + hPartie - taille / 2.6f, d.p.grasse, taille, TEXTE);
+            d.texte(pp.libellePositions(), x0 + lNum + 4, yh + hPartie - taille / 2.6f, d.p.normale, taille, TEXTE);
+            float xj = x0 + lNum + lPos;
+            JoueurFeuille[] js = {pp.joueurA(), pp.joueurB()};
+            int[] pos = {pp.positionA(), pp.positionB()};
+            for (int r = 0; r < 2; r++) {
+                float yl = y - (r + 1) * hPartie;
+                d.cadre(xj, yl, lJoueur, hPartie, FILET, null);
+                d.texte(d.ajuster(pos[r] + ". " + js[r].nomComplet(), d.p.normale, taille, lJoueur - 8), xj + 4,
+                        yl + hPartie / 2 - taille / 2.6f, d.p.normale, taille, TEXTE);
+                float xm = xj + lJoueur;
+                for (int m = 0; m < manches; m++) {
+                    d.cadre(xm + m * lManche, yl, lManche, hPartie, FILET, null);
+                }
+                d.cadre(xm + manches * lManche, yl, lTotal, hPartie, FILET, FOND_ENTETE);
+            }
+            y -= 2 * hPartie + ecartPartie;
+        }
+        y -= 6;
+
+        // Classement final à remplir par le juge-arbitre (I.303).
+        d.texte(FeuillePoule.TITRE_CLASSEMENT_FINAL + (f.qualifies() > 0 ? " — " + f.qualifies()
+                + (f.qualifies() == 1 ? " qualifié" : " qualifiés") : ""), x0, y - 12, d.p.grasse, 12, PRIMAIRE);
+        y -= hIntertitre;
+        float[] lk = {50, 30, largeur - 280, 66, 66, 68};
+        y = ligne(d, lk, List.of("Place", "N°", "Joueur", "Victoires", "Points", "Qualifié"), true, x0, y,
+                hClassement, taille);
+        for (int i = 0; i < n; i++) {
+            y = ligne(d, lk, List.of(i + 1 + "", "", "", "", "", ""), false, x0, y, hClassement, taille);
+        }
+        d.texte(d.ajuster(f.noteClassement(), d.p.normale, 7.5f, largeur), x0, Math.max(MARGE - 12, y - 10),
+                d.p.normale, 7.5f, DOUX);
+    }
+
+    /** Une ligne de tableau dessinée à {@code y} (haut) ; rend le nouveau haut. */
+    private static float ligne(Dessin d, float[] largeurs, List<String> cellules, boolean entete, float x, float y,
+                               float h, float taille) throws IOException {
+        for (int i = 0; i < largeurs.length; i++) {
+            d.cadre(x, y - h, largeurs[i], h, FILET, entete ? FOND_ENTETE : null);
+            String s = i < cellules.size() ? cellules.get(i) : "";
+            PDFont f = entete ? d.p.grasse : d.p.normale;
+            d.texte(d.ajuster(s, f, taille, largeurs[i] - 6), x + 3, y - h / 2 - taille / 2.6f, f, taille,
+                    entete ? PRIMAIRE : TEXTE);
+            x += largeurs[i];
+        }
+        return y - h;
+    }
+
     private static void enTetePoule(Flux fx, String titre, FeuillePoule f) throws IOException {
         float largeur = A4_L - 2 * MARGE;
         fx.d.texte(titre, MARGE, fx.y - 18, fx.p.grasse, 18, PRIMAIRE);

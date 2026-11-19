@@ -90,7 +90,8 @@ class SaisieMatchNonLanceTest {
     void score_de_poule_accepte_sur_un_match_lance_puis_la_table_est_liberee() {
         Tableau tab = tableauLance(6);
         Match m = premierMatch(tab);
-        assertTrue(salle.affecter(tournoi, m, 2).estReussi());
+        // Phase de poules : la poule entière part sur la table 2 ; ses matchs comptent comme lancés.
+        assertTrue(salle.lancerPoule(tournoi, tab.getPoules().get(0), 2).estReussi());
         assertEquals(3, salle.tableauDeBord(tournoi).nombreTablesLibres());
         assertTrue(SaisieResultatMatch.scoreSaisissable(m));
 
@@ -98,9 +99,18 @@ class SaisieMatchNonLanceTest {
 
         assertTrue(r.estEnregistre(), r.toString());
         assertEquals(StatutMatch.TERMINE, m.getStatut());
-        assertEquals(ResultatAffectationTable.Motif.TABLE_LIBEREE, salle.libererApresResultat(tournoi, m).getMotif());
+        assertEquals(ResultatAffectationTable.Motif.POULE_CONTINUE, salle.libererApresResultat(tournoi, m).getMotif());
+        for (Match x : tab.getPoules().get(0).getMatchs()) {
+            if (x != m) {
+                assertTrue(saisie.enregistrerScore(tab, x, victoireA()).estEnregistre());
+            }
+        }
+        Match dernier = tab.getPoules().get(0).getMatchs().get(2);
+        assertEquals(ResultatAffectationTable.Motif.TABLE_LIBEREE,
+                salle.libererApresResultat(tournoi, dernier).getMotif());
         assertEquals(4, salle.tableauDeBord(tournoi).nombreTablesLibres(), "la table 2 est de nouveau libre");
     }
+
 
     @Test
     void forfait_d_un_absent_declare_sans_lancer_le_match() {
@@ -132,19 +142,20 @@ class SaisieMatchNonLanceTest {
     void abandon_accepte_sur_un_match_lance_comme_avant() {
         Tableau tab = tableauLance(6);
         Match m = premierMatch(tab);
-        assertTrue(salle.affecter(tournoi, m, 1).estReussi());
+        assertTrue(salle.lancerPoule(tournoi, tab.getPoules().get(0), 1).estReussi());
 
         assertTrue(saisie.enregistrerIssue(tab, m, IssueMatch.ABANDON, m.getJoueurA()).estEnregistre());
 
         assertEquals(m.getJoueurB(), m.getVainqueur());
-        assertEquals(4, salle.tableauDeBord(tournoi).nombreTablesLibres());
+        assertEquals(3, salle.tableauDeBord(tournoi).nombreTablesLibres(), "la poule continue sur sa table");
     }
+
 
     @Test
     void match_termine_se_corrige_sans_etre_relance() {
         Tableau tab = tableauLance(6);
         Match m = premierMatch(tab);
-        assertTrue(salle.affecter(tournoi, m, 1).estReussi());
+        assertTrue(salle.lancerPoule(tournoi, tab.getPoules().get(0), 1).estReussi());
         assertTrue(saisie.enregistrerScore(tab, m, victoireA()).estEnregistre());
 
         List<Manche> corrige = List.of(new Manche(5, 11), new Manche(7, 11), new Manche(9, 11));
@@ -165,7 +176,7 @@ class SaisieMatchNonLanceTest {
         // Effacer le forfait rend le match à jouer : il se lance alors normalement.
         assertTrue(saisie.effacer(tab, m).estEnregistre());
         assertEquals(StatutMatch.A_JOUER, m.getStatut());
-        assertTrue(salle.affecter(tournoi, m, 1).estReussi());
+        assertTrue(salle.lancerPoule(tournoi, tab.getPoules().get(0), 1).estReussi());
         assertTrue(saisie.enregistrerScore(tab, m, victoireA()).estEnregistre());
     }
 

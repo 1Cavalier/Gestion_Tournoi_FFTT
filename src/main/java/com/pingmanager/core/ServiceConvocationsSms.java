@@ -184,6 +184,35 @@ public final class ServiceConvocationsSms {
         return convoquerJoueurs(tournoi, match, table, maintenant);
     }
 
+    /**
+     * Après le lancement d'une poule entière : convoque tous ses joueurs à la table
+     * si la règle le demande (« SMS » ou « SMS et appel vocal », envoi automatique).
+     */
+    public ResultatConvocationsSms apresLancementPoule(Tournoi tournoi, String tableau,
+                                                       com.pingmanager.model.Poule poule, int table, ModeAnnonce mode,
+                                                       LocalDateTime maintenant) {
+        if (!envoiAutomatique(tournoi, mode)) {
+            return ResultatConvocationsSms.aucun();
+        }
+        return convoquerPoule(tournoi, tableau, poule, table, maintenant);
+    }
+
+    /** Convoque tous les joueurs d'une poule à sa table (envoi manuel ou automatique). */
+    public ResultatConvocationsSms convoquerPoule(Tournoi tournoi, String tableau, com.pingmanager.model.Poule poule,
+                                                  int table, LocalDateTime maintenant) {
+        Objects.requireNonNull(poule, "poule");
+        ContexteConvocation contexte = ContexteConvocation.poule(tableau == null ? "" : tableau, poule.getNom());
+        List<MessageSms> messages = new ArrayList<>();
+        List<String> sansNumero = new ArrayList<>();
+        for (Joueur j : poule.getJoueurs()) {
+            if (connu(j)) {
+                envoyerA(tournoi, TypeConvocation.MATCH_POULE, j.getNumeroLicence(), j.getNomComplet(),
+                        TexteConvocation.poule(j, table, contexte), maintenant, messages, sansNumero);
+            }
+        }
+        return new ResultatConvocationsSms(true, messages, sansNumero);
+    }
+
     /** Convoque les deux joueurs d'un match (envoi manuel ou automatique). */
     public ResultatConvocationsSms convoquerJoueurs(Tournoi tournoi, Match match, int table, LocalDateTime maintenant) {
         Objects.requireNonNull(match, "match");

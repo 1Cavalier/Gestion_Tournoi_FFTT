@@ -139,11 +139,14 @@ class TournoiDemoJourJTest {
         assertEquals(java.time.Duration.ofMinutes(6), bord.table(5).ecoule());
         assertFalse(bord.table(TournoiDemoJourJ.TABLE_EN_COURS_F).estLibre(), "quart de finale de F");
         assertEquals(3, bord.nombreTablesOccupees(), "deux parties de C et un quart de F");
-        assertEquals(3, bord.getPrets().stream()
-                        .filter(m -> c.equals(m.tableau()) && m.tour().startsWith("Poule D")).count(),
-                "les trois parties de la poule D du tableau C");
-        assertEquals(2, bord.getBloques().stream().filter(b -> c.equals(b.match().tableau())).count(),
-                "le reste de la poule C");
+        // Phase de poules : la poule D part en bloc ; les poules B et C sont sur leur table.
+        assertEquals(1, bord.getPoulesPretes().stream()
+                        .filter(p -> c.equals(p.tableau()) && "D".equals(p.poule().getNom())).count(),
+                "la poule D du tableau C est prête");
+        assertEquals(3, bord.getPoulesPretes().stream().filter(p -> "D".equals(p.poule().getNom())).findFirst()
+                .orElseThrow().nombreMatchs(), "ses trois parties");
+        assertTrue(bord.getBloques().stream().noneMatch(b -> c.equals(b.match().tableau())),
+                "le reste de la poule C se joue à la suite sur sa table");
         assertTrue(bord.getAnomalies().isEmpty());
 
         // Les parties en cours survivent à l'enregistrement.

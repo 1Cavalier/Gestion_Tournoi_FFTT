@@ -45,6 +45,12 @@ import java.util.function.Consumer;
  *       « Voir plus », « Lancer »), du plus urgent au moins urgent.</li>
  * </ol>
  *
+ * <p>Pendant la phase de poules, la proposition et les lignes peuvent porter une
+ * <b>poule entière</b> : ses joueurs dans l'ordre de classement (numéro, nom,
+ * points, sur deux lignes au plus), le nombre de matchs et la durée prévue, la
+ * table ; « Lancer la poule » l'envoie en bloc. « Voir plus » montre la poule
+ * (joueurs, ordre des matchs I.301, classement).</p>
+ *
  * <p>L'ordre, la proposition suivante, les tables libres et les refus viennent
  * du cœur ({@link com.pingmanager.core.ServiceSalle#listeLancements}) ; le
  * lancement lui-même passe par l'écran de la salle (annonce, SMS, feuille,
@@ -64,6 +70,12 @@ final class PanneauLancementMatch {
     interface Actions {
         /** Envoie le match sur la table : annonce, SMS, feuille et enregistrement ; le cœur vérifie de nouveau. */
         void lancer(Match match, int table);
+
+        /**
+         * Envoie la poule entière sur la table (phase de poules) : annonce de tous ses
+         * joueurs, SMS, feuille de poule et enregistrement ; le cœur vérifie de nouveau.
+         */
+        void lancerPoule(com.pingmanager.model.Poule poule, int table);
 
         /** Option « feuille de match à chaque lancement » (B016), mémorisée pour le tournoi. */
         void feuilleALEnvoi(boolean imprimer);
@@ -229,25 +241,42 @@ final class PanneauLancementMatch {
             Match m = l.match().match();
             Integer table = PresentationLancementMatch.tableRetenue(l, tableBandeau);
             Node choixTable;
+            if (l.estPoule()) {
+                lancer.setText(TextesLancementMatch.LANCER_POULE);
+            }
             if (b.lancerActif()) {
                 ComboBox<Integer> tables = comboTables(l, table, t -> tableBandeau = t);
                 choixTable = tables;
                 lancer.setOnAction(e -> {
                     Integer t = tables.getValue();
                     if (t != null) {
-                        actions.lancer(m, t);
+                        lancerLigne(l, t);
                     }
                 });
             } else {
                 choixTable = Ui.pastille(b.motifLancer(), StatutPastille.ATTENTION);
                 lancer.setTooltip(new Tooltip(b.motifLancer()));
             }
-            FlowPane champs = new FlowPane(24, 12,
-                    champ(TextesLancementMatch.JOUEUR_1, valeur(PresentationSalle.nom(m.getJoueurA()), true)),
-                    champ(TextesLancementMatch.JOUEUR_2, valeur(PresentationSalle.nom(m.getJoueurB()), true)),
-                    champ(TextesLancementMatch.TABLEAU, valeur(PresentationLancementMatch.tableauEtEchelon(l),
-                            false)),
-                    champ(TextesLancementMatch.TABLE, choixTable));
+            FlowPane champs;
+            if (l.estPoule()) {
+                VBox joueurs = new VBox(2);
+                PresentationLancementMatch.joueursPoule(l.poule()).forEach(s -> joueurs.getChildren()
+                        .add(valeur(s, true)));
+                champs = new FlowPane(24, 12,
+                        champ(TextesLancementMatch.TABLEAU, valeur(PresentationLancementMatch.tableauEtEchelon(l),
+                                false)),
+                        champ(TextesLancementMatch.JOUEURS, joueurs),
+                        champ(TextesLancementMatch.MATCHS, valeur(PresentationLancementMatch.matchsEtDuree(
+                                l.poule()), false)),
+                        champ(TextesLancementMatch.TABLE, choixTable));
+            } else {
+                champs = new FlowPane(24, 12,
+                        champ(TextesLancementMatch.JOUEUR_1, valeur(PresentationSalle.nom(m.getJoueurA()), true)),
+                        champ(TextesLancementMatch.JOUEUR_2, valeur(PresentationSalle.nom(m.getJoueurB()), true)),
+                        champ(TextesLancementMatch.TABLEAU, valeur(PresentationLancementMatch.tableauEtEchelon(l),
+                                false)),
+                        champ(TextesLancementMatch.TABLE, choixTable));
+            }
             champs.setAlignment(Pos.CENTER_LEFT);
             champs.setPrefWrapLength(560);
             Label rang = Ui.label(PresentationLancementMatch.rang(liste, m), "lancement-rang");
@@ -298,6 +327,15 @@ final class PanneauLancementMatch {
         // Le geste suivant a le focus : « Lancer » quand un match est proposé, sinon « Proposer un match ».
         Platform.runLater(b.lancerActif() ? lancer::requestFocus : proposer::requestFocus);
         return carte;
+    }
+
+    /** Lance la ligne : la poule entière pour une ligne de poule, sinon le match. */
+    private void lancerLigne(ListeLancements.Ligne l, int table) {
+        if (l.estPoule()) {
+            actions.lancerPoule(l.poule().poule(), table);
+        } else {
+            actions.lancer(l.match().match(), table);
+        }
     }
 
     private static VBox champ(String libelle, Node valeur) {
@@ -394,10 +432,15 @@ final class PanneauLancementMatch {
         int rang = 1;
         for (ListeLancements.Ligne l : jouables) {
             Cellules c = cellules(l, nombreDeTables, ferme);
-            List<Node> noeuds = List.of(c.numero, c.joueurA, c.joueurB, c.table, c.tableau, c.lancer);
-            for (int col = 0; col < noeuds.size(); col++) {
+            List<Node> noeuds = l.estPoule()
+                    // Poule : joueurs (deux lignes au plus) puis matchs et durée, sur les deux colonnes « Joueur ».
+                    ? List.of(c.numero, new VBox(4, c.joueurA, c.joueurB), c.table, c.tableau, c.lancer)
+                    : List.of(c.numero, c.joueurA, c.joueurB, c.table, c.tableau, c.lancer);
+            for (int k = 0; k < noeuds.size(); k++) {
+                int col = l.estPoule() && k >= 2 ? k + 1 : k;
+                Node noeud = noeuds.get(k);
                 // Chaque cellule dans un cadre : filet au-dessus, contenu aligné à gauche, jamais étiré.
-                VBox cellule = new VBox(noeuds.get(col));
+                VBox cellule = new VBox(noeud);
                 cellule.setAlignment(Pos.CENTER_LEFT);
                 cellule.setFillWidth(false);
                 cellule.setMinWidth(0);
@@ -407,16 +450,19 @@ final class PanneauLancementMatch {
                 if (rang == 1) {
                     cellule.getStyleClass().add("lancement-cellule-premiere");
                 }
-                if (noeuds.get(col) instanceof Label texte) {
+                if (noeud instanceof Label texte) {
                     texte.setMaxWidth(Double.MAX_VALUE);
                     cellule.setFillWidth(true);
                 }
-                if (col == 4) {
+                if (col == 4 || (l.estPoule() && col == 1)) {
                     cellule.setFillWidth(true);
+                }
+                if (l.estPoule()) {
+                    cellule.getStyleClass().add("lancement-cellule-poule");
                 }
                 GridPane.setValignment(cellule, VPos.CENTER);
                 GridPane.setFillHeight(cellule, true);
-                g.add(cellule, col, rang);
+                g.add(cellule, col, rang, l.estPoule() && col == 1 ? 2 : 1, 1);
             }
             rang++;
         }
@@ -452,8 +498,16 @@ final class PanneauLancementMatch {
     private Cellules cellules(ListeLancements.Ligne l, int nombreDeTables, boolean ferme) {
         Match m = l.match().match();
         Label numero = Ui.label(l.numero() > 0 ? String.valueOf(l.numero()) : "", "lancement-numero");
-        Label a = valeur(PresentationSalle.nom(m.getJoueurA()), true);
-        Label b = valeur(PresentationSalle.nom(m.getJoueurB()), true);
+        Label a;
+        Label b;
+        if (l.estPoule()) {
+            a = valeur(PresentationLancementMatch.joueursPouleCompact(l.poule()), true);
+            b = valeur(PresentationLancementMatch.matchsEtDuree(l.poule()), false);
+            b.getStyleClass().add("lancement-poule-detail");
+        } else {
+            a = valeur(PresentationSalle.nom(m.getJoueurA()), true);
+            b = valeur(PresentationSalle.nom(m.getJoueurB()), true);
+        }
 
         Label tableau = valeur(PresentationLancementMatch.tableauEtEchelon(l), false);
         Button plus = Ui.boutonLien(TextesLancementMatch.VOIR_PLUS);
@@ -465,7 +519,7 @@ final class PanneauLancementMatch {
         VBox celluleTableau = new VBox(2, tableau, plus);
         celluleTableau.setAlignment(Pos.CENTER_LEFT);
 
-        Button lancer = Ui.boutonPrimaire(TextesLancementMatch.LANCER);
+        Button lancer = Ui.boutonPrimaire(l.estPoule() ? TextesLancementMatch.LANCER_POULE : TextesLancementMatch.LANCER);
         lancer.getStyleClass().addAll("lancement-bouton-lancer", "lancement-tactile");
         String motif = PresentationLancementMatch.motifLigne(l, ferme, nombreDeTables);
         VBox celluleLancer = new VBox(4, lancer);
@@ -478,7 +532,7 @@ final class PanneauLancementMatch {
             lancer.setOnAction(e -> {
                 Integer t = tables.getValue();
                 if (t != null) {
-                    actions.lancer(m, t);
+                    lancerLigne(l, t);
                 }
             });
         } else {

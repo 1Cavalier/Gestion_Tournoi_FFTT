@@ -24,7 +24,7 @@ Hors périmètre : le Critérium fédéral et les épreuves par équipes.
 ```
 git pull                 # récupérer la dernière version
 mvn clean javafx:run     # compiler et lancer l'application
-mvn -B test              # lancer les 2 024 tests (doit finir à 0 échec)
+mvn -B test              # lancer les 2 059 tests (doit finir à 0 échec)
 ```
 
 Point d'entrée : `com.pingmanager.ui.Lanceur`.
@@ -51,8 +51,9 @@ Point d'entrée : `com.pingmanager.ui.Lanceur`.
     correspondant, lien de paiement) : mêmes tableaux,
     756 inscrits sur 768 places, samedi en cours. Dans l'ordre des horaires du
     samedi : tableau final entamé (un match en cours, table 1), poules
-    terminées (tableau final à tirer), poules en cours (trois parties aux
-    tables 4, 7 et 9), pointage clôturé (tirage à lancer), pointage ouvert ;
+    terminées (tableau final à tirer), poules en cours (trois poules entières
+    lancées aux tables 4, 7 et 9, la première a joué sa partie 1), pointage
+    clôturé (tirage à lancer), pointage ouvert ;
     les autres tableaux et tout le dimanche sont encore en inscription. Le
     compte de démo y est inscrit aux 2e et 4e tableaux du samedi. Elle est
     toujours dans le groupe de navigation « Tournoi en cours », quelle que
@@ -328,6 +329,32 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   doit être libre, et un lancement devenu impossible est refusé avec son
   motif (« Match non lancé : Lucas MARTIN joue en table 4. »). Textes dans
   `TextesLancementMatch`.
+- **Phase de poules : on lance une poule, pas un match** (comme en salle).
+  Dans « Lancer un match », la proposition et la liste montrent les **poules
+  à lancer** à côté des matchs du tableau final (même ordre de priorité) :
+  tableau et poule, joueurs dans l'ordre de classement (numéro, nom, points,
+  sur deux lignes au plus), nombre de matchs et durée prévue (somme des
+  matchs, 20 min par partie au départ, affinée par les durées réelles), table
+  libre modifiable ; **Lancer la poule** l'envoie entière sur la table. Le
+  cœur vérifie que tous ses joueurs sont pointés et libres et que la table est
+  libre (« Poule non lancée : Lucas MARTIN joue en table 4. »). Les matchs se
+  jouent à la suite dans l'ordre I.301 ; la table et **tous les joueurs de la
+  poule** restent occupés jusqu'au dernier résultat (score, forfait, abandon,
+  disqualification), puis sont libérés. L'annonce appelle tous les joueurs
+  (« Tableau B, poule 3, table 5 : DUPONT, MARTIN, DURAND », écran, voix,
+  SMS selon le réglage) et la **feuille de poule de table** s'imprime (une
+  page A4 jusqu'à la poule de 6 : table et heure de lancement, joueurs avec
+  points et club, parties dans l'ordre de jeu avec une grille de manches
+  chacune, classement final à remplir). Sur la carte de la table : la partie
+  qui se joue (« partie 2 sur 3 »), la fin prévue, **Saisir la partie** (au
+  fil de l'eau), **Saisir la poule** (au retour de la feuille : tous les
+  matchs, scores déjà saisis repris, une seule validation, puis le
+  classement), Feuille, Annoncer, et Annuler tant qu'aucun score n'est
+  saisi. Une poule en cours est enregistrée (table, heure) et survit à la
+  reprise sur incident ; dans un ancien fichier, un match de poule lancé seul
+  garde sa table, puis le reste de la poule part en bloc. Cœur :
+  `ServiceSalle.lancerPoule`, `annulerLancementPoule`, `PouleOrdonnancable`,
+  `SaisiePoule`, `PrevisionSalle` ; écran : `PanneauSaisiePoule`.
 - **Tournoi en cours** (B043) : groupe de navigation entre « Général » et
   « Gestion », visible seulement pour un organisateur dont un tournoi se joue
   ou approche (homologué ou publié, de **J-7** avant le premier jour au dernier
@@ -410,7 +437,8 @@ Garde-fou aussi dans `ServiceVerrousHomologation` et
   un indicateur à la fois. Avec assez de tables, l'écran dit que le choix de
   stratégie ne change rien.
 - Poules, classement, tableau final, petite finale, suivi de tous les tableaux.
-- Feuilles de match et de poule imprimables (format provisoire 3 × 5).
+- Feuilles de match et de poule imprimables (format provisoire 3 × 5) ; feuille
+  de poule de table sur une page, imprimée au lancement d'une poule.
 - Annonces vocales des rencontres, prononciation des noms (profil ou juge-arbitre).
 - Suivi sur téléphone en lecture seule, avec « Ma prochaine partie ».
 - Export des résultats d'un tableau terminé (format provisoire).
@@ -506,6 +534,18 @@ Ordre conseillé. P1 = indispensable pour un premier tournoi réel.
   (toujours en démo).
 
 ### Jour J
+- **Lancement par poule — suites** (le lancement d'une poule entière est fait,
+  section 3) : (1) les **prévisions** (`SimulateurTournoi`, écran Prévisions)
+  simulent encore les poules match par match ; (2) le **suivi sur téléphone**
+  ne met pas les poules prêtes dans sa file « à venir » ; (3) l'écran des
+  **poules du tableau** n'a ni « Lancer la poule » ni « Saisir la poule » (le
+  raccourci « Lancer sa poule » ouvre « Lancer un match ») ; (4) le compte
+  rendu de « Proposer » dit « matchs envoyés » même pour des poules (bouton
+  retiré de l'interface, à revoir s'il revient) ; (5) à vérifier : quand deux
+  joueurs d'un même club sont dans une poule, `GenerateurMatchsPoule`
+  réordonne les positions pour les faire se rencontrer tôt, mais la poule
+  garde l'ordre du tirage : la feuille et « Lancer un match » numérotent les
+  joueurs selon le tirage (comportement antérieur à cette tâche).
 1. **B038 (P1) — Saisie du score en grille et cartons.** Une case par manche
    et par joueur (Tab pour avancer, Entrée pour valider) au lieu de « 11-9 »
    dans une cellule ; le même composant pour les poules et le tableau final ;
@@ -674,6 +714,27 @@ parenthèses.
   masquer l'étape 5 pour ces tableaux ? (provisoire : grise).
 - Poules jouées, tableau final pas encore tiré : reste à l'étape 4 avec
   l'action « Tirer le tableau final ». (provisoire.)
+
+**Lancement d'une poule entière (phase de poules)**
+- « Joueurs présents » = pointés au tableau (pointage clôturé) : un joueur non
+  pointé bloque sa poule (« … n'est pas pointé »). Faut-il plutôt laisser
+  partir la poule et déclarer ses forfaits ? (provisoire : bloquée).
+- Une poule part dès que tous ses joueurs sont libres, même ceux qui n'ont plus
+  de match à y jouer (ancien fichier) ; tous restent occupés jusqu'au dernier
+  résultat, comme demandé. (provisoire.)
+- Deux feuilles de poule coexistent : celle d'avant le jour J (« Imprimer la
+  feuille de poule », deux pages avec la feuille de rencontre) et la feuille de
+  table d'une page imprimée au lancement. N'en garder qu'une ? (provisoire :
+  les deux).
+- Durées : 20 min par partie au départ, affinées par les matchs terminés du
+  tournoi ; les scores saisis d'un coup n'apprennent rien (durée inconnue).
+  Convient-il ?
+- Liste « Lancer un match » : les en-têtes « Joueur 1 / Joueur 2 » restent
+  au-dessus des joueurs d'une poule (colonnes fusionnées). Les renommer
+  « Joueurs » pendant les poules ? (provisoire : inchangés, l'interface ne
+  devait pas être redessinée).
+- Un résultat effacé après la fin de la poule (table libérée) rend le match à
+  jouer : il repart en relançant la poule. Convient-il ? (provisoire : oui).
 
 **Interface « Lancer un match » (B057, remplace B055)**
 - Numéro du match : il n'existait nulle part. Provisoire : rang du match dans

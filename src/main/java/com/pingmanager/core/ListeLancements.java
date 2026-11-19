@@ -24,6 +24,12 @@ import java.util.Optional;
  * {@link #propositionApres} donne la proposition suivante du bouton « Autre »,
  * dans le même ordre : il n'y a pas de second calcul de priorité.</p>
  *
+ * <p><b>Poules.</b> Pendant la phase de poules, une ligne peut porter une
+ * poule entière ({@link Ligne#poule()}) : elle se lance en bloc sur une table
+ * ({@link ServiceSalle#lancerPoule}). Sa ligne est identifiée par son premier
+ * match à jouer ({@link Ligne#match()}), si bien que poules et matchs du tableau
+ * final cohabitent dans le même ordre de priorité.</p>
+ *
  * <p>La liste n'est qu'une photographie : le lancement lui-même repasse
  * toujours par {@link ServiceSalle#affecter}, qui refait toutes les
  * vérifications (un joueur jamais sur deux tables, table libre).</p>
@@ -45,10 +51,25 @@ public final class ListeLancements {
      * @param numero         numéro du match dans son tableau (1, 2…), dans l'ordre du
      *                       tableau : poules (ordre officiel I.301), puis tours du tableau final
      * @param echelon        échelon dans le tableau : « Poule 3 », « 1/8 de finale »
+     * @param poule          poule entière à lancer en bloc (phase de poules), ou null pour un match ;
+     *                       {@code match} est alors son premier match à jouer (ordre I.301)
      */
     public record Ligne(TableauDeBordSalle.MatchSalle match, boolean propose, Integer tableProposee,
                         List<Integer> tablesPossibles, LocalDateTime attenteDepuis,
-                        ResultatAffectationTable refus, int numero, String echelon) {
+                        ResultatAffectationTable refus, int numero, String echelon, PouleALancer poule) {
+
+        /** Ligne d'un match seul. */
+        public Ligne(TableauDeBordSalle.MatchSalle match, boolean propose, Integer tableProposee,
+                     List<Integer> tablesPossibles, LocalDateTime attenteDepuis,
+                     ResultatAffectationTable refus, int numero, String echelon) {
+            this(match, propose, tableProposee, tablesPossibles, attenteDepuis, refus, numero, echelon, null);
+        }
+
+        /** @return true si la ligne porte une poule entière. */
+        public boolean estPoule() {
+            return poule != null;
+        }
+
         public Ligne {
             Objects.requireNonNull(match, "match");
             echelon = echelon == null ? "" : echelon;

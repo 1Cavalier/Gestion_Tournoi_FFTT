@@ -50,6 +50,11 @@ class PresentationLancementMatchTest {
         new ServiceLancementTableau(t).lancer(tab, 1L);
     }
 
+    private static com.pingmanager.model.Poule pouleDe(Tournoi t, String tableau) {
+        return t.getTableaux().stream().filter(x -> x.getNom().equals(tableau)).findFirst().orElseThrow()
+                .getPoules().get(0);
+    }
+
     private static Match matchDe(Tournoi t, String tableau, String licence) {
         return t.getTableaux().stream().filter(x -> x.getNom().equals(tableau)).findFirst().orElseThrow()
                 .getPoules().get(0).getMatchs().stream()
@@ -94,20 +99,18 @@ class PresentationLancementMatchTest {
     }
 
     @Test
-    void match_bloque_reste_dans_la_liste_avec_son_motif() {
+    void poule_bloquee_reste_dans_la_liste_avec_son_motif() {
         Tournoi t = tournoi(4);
-        Match enJeu = matchDe(t, "A", "A1");
-        assertTrue(salle.affecter(t, enJeu, 4).estReussi());
+        // Tableau C : Paul MARTIN (A1) y joue aussi.
+        lancer(t, "C", List.of(j("A1", "MARTIN"), j("C2", "MOREL"), j("C3", "FAURE")));
+        assertTrue(salle.lancerPoule(t, pouleDe(t, "A"), 4).estReussi());
         ListeLancements liste = salle.listeLancements(t);
 
         List<ListeLancements.Ligne> bloquees = liste.getProposes().stream().filter(l -> !l.estLancable()).toList();
 
-        assertEquals(2, bloquees.size());
-        for (ListeLancements.Ligne l : bloquees) {
-            assertTrue(PresentationLancementMatch.motif(l.refus(), 4).endsWith("joue en table 4"),
-                    PresentationLancementMatch.motif(l.refus(), 4));
-        }
-        // Les bloqués viennent après les matchs lançables.
+        assertEquals(1, bloquees.size(), "la poule de C attend Paul MARTIN");
+        assertEquals("Paul MARTIN joue en table 4", PresentationLancementMatch.motif(bloquees.get(0).refus(), 4));
+        // Les bloquées viennent après les lignes lançables.
         int dernierLancable = -1;
         int premierBloque = Integer.MAX_VALUE;
         for (int i = 0; i < liste.getProposes().size(); i++) {
@@ -119,6 +122,7 @@ class PresentationLancementMatchTest {
         }
         assertTrue(dernierLancable < premierBloque);
     }
+
 
     // ------------------------------------------------------------------
     // B057
@@ -157,12 +161,12 @@ class PresentationLancementMatchTest {
         assertSame(premier, plein.ligne().match().match());
         assertTrue(plein.lancerActif());
         assertTrue(plein.autreActif());
-        assertEquals("Proposition 1 sur 6", PresentationLancementMatch.rang(liste, premier));
+        assertEquals("Proposition 1 sur 2", PresentationLancementMatch.rang(liste, premier), "une poule par tableau");
 
-        assertTrue(salle.affecter(t, premier, plein.ligne().tableProposee()).estReussi());
+        assertTrue(salle.lancerPoule(t, plein.ligne().poule().poule(), plein.ligne().tableProposee()).estReussi());
         PresentationLancementMatch.Bandeau apres = PresentationLancementMatch.bandeau(salle.listeLancements(t), true,
                 premier, false, 4);
-        assertNull(apres.ligne(), "le match lancé n'est plus proposé : la zone se vide");
+        assertNull(apres.ligne(), "la poule lancée n'est plus proposée : la zone se vide");
         assertEquals(TextesLancementMatch.ZONE_VIDE, apres.texte());
     }
 
@@ -175,7 +179,7 @@ class PresentationLancementMatchTest {
         assertFalse(aucun.lancerActif());
 
         Tournoi plein = tournoi(1);
-        assertTrue(salle.affecter(plein, matchDe(plein, "A", "A1"), 1).estReussi());
+        assertTrue(salle.lancerPoule(plein, pouleDe(plein, "A"), 1).estReussi());
         ListeLancements sansTable = salle.listeLancements(plein);
         Match propose = sansTable.propositionApres(null).orElseThrow().match().match();
         PresentationLancementMatch.Bandeau b = PresentationLancementMatch.bandeau(sansTable, true, propose, false, 1);
@@ -187,17 +191,45 @@ class PresentationLancementMatchTest {
     }
 
     @Test
-    void empreinte_change_quand_un_match_se_termine_ailleurs() {
+    void empreinte_change_quand_une_poule_se_termine_ailleurs() {
         Tournoi t = tournoi(4);
-        Match m = matchDe(t, "A", "A1");
-        assertTrue(salle.affecter(t, m, 1).estReussi());
+        com.pingmanager.model.Poule p = pouleDe(t, "A");
+        assertTrue(salle.lancerPoule(t, p, 1).estReussi());
         String avant = PresentationLancementMatch.empreinte(salle.listeLancements(t));
         assertEquals(avant, PresentationLancementMatch.empreinte(salle.listeLancements(t)), "rien n'a changé");
 
-        m.setStatut(com.pingmanager.model.StatutMatch.TERMINE);
+        p.getMatchs().forEach(m -> m.setStatut(com.pingmanager.model.StatutMatch.TERMINE));
 
         assertNotEquals(avant, PresentationLancementMatch.empreinte(salle.listeLancements(t)));
     }
+
+    @Test
+    void ligne_de_poule_joueurs_dans_l_ordre_matchs_duree_et_ordre_de_jeu() {
+        Tournoi t = tournoi(4);
+        ListeLancements.Ligne l = salle.listeLancements(t).getJouables().stream()
+                .filter(x -> "A".equals(x.match().tableau())).findFirst().orElseThrow();
+        assertTrue(l.estPoule());
+        com.pingmanager.core.PouleALancer p = l.poule();
+        List<Joueur> js = p.joueurs();
+
+        assertEquals(List.of("1. " + js.get(0).getNomComplet() + " · 1000 pts", "2. " + js.get(1).getNomComplet()
+                + " · 1000 pts", "3. " + js.get(2).getNomComplet() + " · 1000 pts"),
+                PresentationLancementMatch.joueursPoule(p));
+        // Deux lignes au plus, jamais tronquées : 1 et 2, puis 3.
+        assertEquals("1. " + js.get(0).getNom() + " 1000 · 2. " + js.get(1).getNom() + " 1000\n3. "
+                + js.get(2).getNom() + " 1000", PresentationLancementMatch.joueursPouleCompact(p));
+        assertEquals("3 matchs · environ 1 h 00", PresentationLancementMatch.matchsEtDuree(p));
+        // I.301 : ordre où les matchs se jouent sur la table (poule de 3, 2 qualifiés : 1-3, 1-2, 2-3).
+        List<String> ordre = PresentationLancementMatch.ordreDesMatchs(p);
+        assertTrue(ordre.get(0).startsWith("1. 1–3  "), ordre.get(0));
+        assertTrue(ordre.get(1).startsWith("2. 1–2  "), ordre.get(1));
+        assertTrue(ordre.get(2).startsWith("3. 2–3  "), ordre.get(2));
+        assertEquals("Tableau A, poule " + p.poule().getNom() + " lancée en table 5",
+                PresentationLancementMatch.pouleLancee("A", p.poule(), 5));
+        assertEquals("Poule non lancée : Paul MARTIN joue en table 4.", PresentationLancementMatch.refusPoule(
+                ResultatAffectationTable.joueurEnJeu(0, j("A1", "MARTIN"), 4), 8));
+    }
+
 
     @Test
     void voir_plus_retrouve_la_poule_du_match() {

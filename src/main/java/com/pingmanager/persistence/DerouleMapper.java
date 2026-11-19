@@ -172,6 +172,11 @@ final class DerouleMapper {
             joueurs.add(ctx.refJoueur(j));
         }
         o.set("joueurs", joueurs);
+        if (p.estLanceeEnBloc()) {
+            // Poule lancée en bloc sur une table (jour J) ; absent des anciens fichiers (matchs lancés un par un).
+            o.set("numeroTable", p.getNumeroTable());
+            o.set("instantLancement", ecrire(p.getInstantLancement()));
+        }
         Json matchs = Json.tableau();
         for (Match m : p.getMatchs()) {
             matchs.add(ecrireMatch(m, ctx));
@@ -190,6 +195,10 @@ final class DerouleMapper {
             for (Json jm : o.get("matchs").elements()) {
                 p.ajouterMatch(lireMatch(jm, ctx));
             }
+        }
+        java.time.LocalDateTime lancement = o.has("instantLancement") ? lireDateHeure(o.get("instantLancement")) : null;
+        if (o.has("numeroTable") && lancement != null) {
+            p.definirLancement(o.get("numeroTable").asInt(), lancement);
         }
         return p;
     }

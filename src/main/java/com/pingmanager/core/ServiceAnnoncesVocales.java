@@ -115,6 +115,46 @@ public final class ServiceAnnoncesVocales {
         return annoncer(tournoi, match, table);
     }
 
+    /**
+     * Après le lancement d'une poule entière sur une table : met en file l'annonce
+     * de tous ses joueurs et de la table si la règle le demande (mêmes réglages que
+     * pour un match : voix, débit, diffusions, rappel).
+     */
+    public ResultatDemandeAnnonce apresLancementPoule(Tournoi tournoi, String tableau,
+                                                      com.pingmanager.model.Poule poule, int table, ModeAnnonce mode) {
+        if (!annonceAutomatique(tournoi, mode)) {
+            return ResultatDemandeAnnonce.refusee("annonce vocale automatique non demandée");
+        }
+        return annoncerPoule(tournoi, tableau, poule, table);
+    }
+
+    /** Annonce à la demande d'une poule lancée sur une table (bouton « Annoncer »). */
+    public ResultatDemandeAnnonce annoncerPoule(Tournoi tournoi, String tableau, com.pingmanager.model.Poule poule,
+                                                int table) {
+        Objects.requireNonNull(tournoi, "tournoi");
+        if (poule == null || poule.getMatchs().isEmpty()) {
+            return ResultatDemandeAnnonce.refusee("Aucune poule à annoncer.");
+        }
+        if (table < 1) {
+            return ResultatDemandeAnnonce.refusee("La poule n'est sur aucune table.");
+        }
+        if (poule.estTerminee()) {
+            return ResultatDemandeAnnonce.refusee("Cette poule est terminée : rien à annoncer.");
+        }
+        ReglagesAnnoncesVocales r = tournoi.getAnnoncesVocales();
+        AnnonceVocale annonce = TexteAnnonceVocale.composerPoule(r.isAvecTableauEtTour() ? tableau : "", poule, table);
+        Demande d = new Demande(annonce, new ParametresVoix(r.getVoix(), r.getDebit()), r.getDiffusions(),
+                r.getRappelMinutes());
+        synchronized (this) {
+            for (Match m : poule.getMatchs()) {
+                retirerDeLaFile(m);
+                rappels.removeIf(x -> memeRencontre(x.demande().annonce().match(), m));
+            }
+            file.addLast(d);
+            return ResultatDemandeAnnonce.acceptee(annonce, file.size());
+        }
+    }
+
     /** Annonce à la demande (bouton « Annoncer ») d'une rencontre sur une table. */
     public ResultatDemandeAnnonce annoncer(Tournoi tournoi, Match match, int table) {
         Objects.requireNonNull(tournoi, "tournoi");

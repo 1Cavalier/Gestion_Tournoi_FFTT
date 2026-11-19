@@ -105,6 +105,20 @@ final class ImpressionJourJ {
                 "feuille-poule-" + tableau.getNom() + "-" + poule.getNom());
     }
 
+    /**
+     * Feuille de poule de table, sur une page : celle qui part avec la poule
+     * lancée en bloc (table et heure de lancement en tête).
+     */
+    static Preparation feuillePouleDeTable(Tournoi tournoi, Tableau tableau, Poule poule) {
+        ResultatFeuille<FeuillePoule> r = FEUILLES.feuillePoule(tournoi, tableau, poule);
+        if (!r.estPrete()) {
+            return Preparation.refusee(r.message());
+        }
+        String table = r.feuille().table().isEmpty() ? "" : "-" + r.feuille().table().replace(' ', '-');
+        return rendre(() -> RenduPdfFeuilles.feuillePouleDeTable(r.feuille()),
+                "feuille-poule-" + tableau.getNom() + "-" + poule.getNom() + table);
+    }
+
     /** Tableau final imprimable (arbre). */
     static Preparation arbre(Tournoi tournoi, Tableau tableau) {
         ResultatFeuille<ArbreImprimable> r = FEUILLES.arbre(tournoi, tableau);

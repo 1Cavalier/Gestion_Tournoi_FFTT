@@ -36,9 +36,19 @@ public final class SuiviTournoi {
             Objects.requireNonNull(match, "match");
         }
 
-        /** @return true si la partie se joue en ce moment sur une table. */
+        /**
+         * @return true si la partie se joue en ce moment sur une table. Dans une
+         *         poule lancée en bloc, ses matchs se jouent à la suite (I.301) :
+         *         seul le premier sans résultat se joue, les suivants attendent
+         *         leur tour sur la même table.
+         */
         public boolean estEnCours() {
-            return match.getStatut() == StatutMatch.EN_COURS;
+            return seJoueMaintenant(poule, match);
+        }
+
+        /** @return true si la partie attend son tour sur la table de sa poule lancée en bloc. */
+        public boolean estASuivre() {
+            return match.getStatut() == StatutMatch.EN_COURS && !estEnCours();
         }
 
         /** @return true pour un match de poule, false pour un match du tableau final. */
@@ -145,6 +155,28 @@ public final class SuiviTournoi {
         }
         Tour pf = ServicePhaseFinale.petiteFinale(elimination);
         return pf != null && !pf.estTermine() ? pf : null;
+    }
+
+    /**
+     * Le match se joue-t-il en ce moment sur sa table ? Un match en cours, sauf dans
+     * une poule lancée en bloc : ses matchs se jouent à la suite (I.301), seul le
+     * premier sans résultat est en jeu, les suivants attendent leur tour.
+     *
+     * @param poule poule du match, ou null (tableau final)
+     */
+    public static boolean seJoueMaintenant(Poule poule, Match match) {
+        if (match.getStatut() != StatutMatch.EN_COURS) {
+            return false;
+        }
+        if (poule == null || !poule.estLanceeEnBloc()) {
+            return true;
+        }
+        for (Match m : poule.getMatchs()) {
+            if (m.getStatut() != StatutMatch.TERMINE && !m.estBye()) {
+                return m == match;
+            }
+        }
+        return false;
     }
 
     /** Matchs du tableau qui se jouent en ce moment : poules d'abord, puis tableau final. */

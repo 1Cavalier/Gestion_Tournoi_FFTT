@@ -57,6 +57,9 @@ final class PresentationLancementMatch {
         if (m == ResultatAffectationTable.Motif.MATCH_DEJA_EN_COURS) {
             return "Déjà en cours";
         }
+        if (m == ResultatAffectationTable.Motif.JOUEUR_ABSENT) {
+            return PresentationSalle.nom(r.getJoueurBloquant()) + " n'est pas pointé";
+        }
         return PresentationSalle.message(r, nombreDeTables);
     }
 
@@ -72,6 +75,70 @@ final class PresentationLancementMatch {
     /** Confirmation après un lancement : « MARTIN – DUPONT lancé en table 5 ». */
     static String lance(Match m, int table) {
         return TextesLancementMatch.lance(nomCourt(m.getJoueurA()), nomCourt(m.getJoueurB()), table);
+    }
+
+    /** Confirmation après le lancement d'une poule : « Tableau B, poule 3 lancée en table 5 ». */
+    static String pouleLancee(String tableau, com.pingmanager.model.Poule poule, int table) {
+        return TextesLancementMatch.pouleLancee(tableau, poule.getNom(), table);
+    }
+
+    /** Message de refus du lancement d'une poule : « Poule non lancée : Paul MARTIN joue en table 4. ». */
+    static String refusPoule(ResultatAffectationTable r, int nombreDeTables) {
+        String m = motif(r, nombreDeTables);
+        if (m.endsWith(".")) {
+            m = m.substring(0, m.length() - 1);
+        }
+        return String.format(TextesLancementMatch.REFUS_POULE, m);
+    }
+
+    /**
+     * Joueurs d'une poule dans l'ordre de classement, un par ligne :
+     * « 1. Pierre DUPONT · 1520 pts ».
+     */
+    static List<String> joueursPoule(com.pingmanager.core.PouleALancer p) {
+        List<String> r = new java.util.ArrayList<>();
+        for (int i = 0; i < p.joueurs().size(); i++) {
+            Joueur j = p.joueurs().get(i);
+            r.add((i + 1) + ". " + PresentationSalle.nom(j) + (j == null || j.estADeterminer() ? ""
+                    : " · " + j.getPoints() + " pts"));
+        }
+        return r;
+    }
+
+    /**
+     * Joueurs d'une poule sur deux lignes au plus, pour une ligne de la liste :
+     * la première moitié, puis la seconde (« 1. DUPONT 1520 · 2. MARTIN 1480 »).
+     */
+    static String joueursPouleCompact(com.pingmanager.core.PouleALancer p) {
+        List<String> noms = new java.util.ArrayList<>();
+        for (int i = 0; i < p.joueurs().size(); i++) {
+            Joueur j = p.joueurs().get(i);
+            noms.add((i + 1) + ". " + nomCourt(j) + (j == null || j.estADeterminer() ? "" : " " + j.getPoints()));
+        }
+        int moitie = (noms.size() + 1) / 2;
+        return String.join(" · ", noms.subList(0, moitie))
+                + (noms.size() > moitie ? "\n" + String.join(" · ", noms.subList(moitie, noms.size())) : "");
+    }
+
+    /** « 3 matchs · environ 1 h 00 » : matchs à jouer et durée prévue (somme des durées de ses matchs). */
+    static String matchsEtDuree(com.pingmanager.core.PouleALancer p) {
+        int n = p.nombreMatchs();
+        return n + (n > 1 ? " matchs" : " match") + " · environ " + PresentationSalle.duree(p.dureePrevue());
+    }
+
+    /**
+     * Ordre des matchs d'une poule, tel qu'ils se jouent sur la table (I.301) :
+     * « 1. 1–3 DUPONT – DURAND ».
+     */
+    static List<String> ordreDesMatchs(com.pingmanager.core.PouleALancer p) {
+        List<String> r = new java.util.ArrayList<>();
+        int k = 1;
+        for (Match m : p.matchs()) {
+            r.add(k++ + ". " + p.numero(m.getJoueurA()) + "–" + p.numero(m.getJoueurB()) + "  "
+                    + nomCourt(m.getJoueurA()) + " – " + nomCourt(m.getJoueurB())
+                    + (m.getStatut() == com.pingmanager.model.StatutMatch.TERMINE ? " (joué)" : ""));
+        }
+        return r;
     }
 
     /** Nom de famille seul (« MARTIN »), « À déterminer » si inconnu. */

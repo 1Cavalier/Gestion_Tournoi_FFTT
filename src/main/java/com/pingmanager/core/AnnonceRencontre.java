@@ -4,6 +4,8 @@ import com.pingmanager.model.Joueur;
 import com.pingmanager.model.Match;
 import com.pingmanager.model.ModeAnnonce;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -39,6 +41,33 @@ public record AnnonceRencontre(ModeAnnonce mode, int table, Joueur joueurA, Joue
         String texte = "Table " + table + " : " + nom(match.getJoueurA()) + " contre " + nom(match.getJoueurB())
                 + (contexte == null || contexte.isBlank() ? "" : " (" + contexte + ")") + ".";
         return new AnnonceRencontre(mode, table, match.getJoueurA(), match.getJoueurB(), texte);
+    }
+
+    /**
+     * Prépare l'annonce d'une poule lancée en bloc (phase de poules) : tous ses
+     * joueurs et la table, « Tableau B, poule 3, table 5 : DUPONT, MARTIN, DURAND. ».
+     * Les deux premiers joueurs de la poule sont repris dans {@code joueurA} et
+     * {@code joueurB}.
+     */
+    public static AnnonceRencontre preparerPoule(ModeAnnonce mode, String tableau, com.pingmanager.model.Poule poule,
+                                                 int table) {
+        Objects.requireNonNull(poule, "poule");
+        return new AnnonceRencontre(mode, table, joueur(poule, 0), joueur(poule, 1),
+                TexteAnnonceVocale.entetePoule(tableau, poule, table) + " : " + nomsDeFamille(poule) + ".");
+    }
+
+    private static Joueur joueur(com.pingmanager.model.Poule p, int i) {
+        return p.getJoueurs().size() > i ? p.getJoueurs().get(i) : null;
+    }
+
+    /** « DUPONT, MARTIN, DURAND » : noms de famille des joueurs dans l'ordre de la poule. */
+    static String nomsDeFamille(com.pingmanager.model.Poule poule) {
+        List<String> noms = new ArrayList<>();
+        for (Joueur j : poule.getJoueurs()) {
+            noms.add(j == null || j.estADeterminer() ? "à déterminer"
+                    : j.getNom().trim().toUpperCase(java.util.Locale.FRENCH));
+        }
+        return String.join(", ", noms);
     }
 
     /** Faut-il prévenir les joueurs (SMS ou appel) ? Non pour « Rien ». */

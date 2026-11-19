@@ -102,7 +102,12 @@ class InstantaneSuiviTest {
         long enFile = s.joueurs().stream().map(JoueurPublic::prochaine)
                 .filter(p -> p != null && !p.enCours()).peek(p -> {
                     assertEquals("Votre prochaine partie", p.titre());
-                    assertEquals("Table pas encore attribuée", p.table());
+                    // Poule lancée en bloc : la partie suivante se joue à la suite, sur la table de la poule.
+                    if (p.quand().startsWith("À la suite")) {
+                        assertTrue(p.table().matches("Table \\d+"), p.table());
+                    } else {
+                        assertEquals("Table pas encore attribuée", p.table());
+                    }
                     assertFalse(p.quand().isEmpty());
                 })
                 .filter(p -> p.quand().contains("file d'attente") || p.quand().startsWith("Prochain match"))

@@ -58,9 +58,8 @@ import java.util.Map;
  *       une partie des joueurs pointés et payés (clôture et repêchage à essayer) ;</li>
  *   <li><b>C – Toutes séries</b> : lancé (graine 141126), quatre poules de trois, la
  *       poule A terminée, la poule B avec un score et un forfait ; dans la salle, la
- *       dernière partie de la poule B se joue à la table 2 (depuis 15 min) et la
- *       première de la poule C à la table 5 (depuis 6 min) : la poule D est prête,
- *       le reste de la poule C est bloqué (joueur déjà en jeu) ;</li>
+ *       poule B (sa dernière partie) se joue à la table 2 (depuis 15 min) et la
+ *       poule C entière à la table 5 (depuis 6 min) : la poule D est prête ;</li>
  *   <li><b>D – Dames</b> : pointage clôturé, toutes présentes : prêt pour le tirage ;</li>
  *   <li><b>E – ≤ 1599 pts</b> : poules toutes jouées, prêt pour la construction du
  *       tableau final (second tirage), avec petite finale ;</li>
@@ -129,15 +128,17 @@ public final class TournoiDemoJourJ {
         return t;
     }
 
-    /** C : deux parties en cours dans la salle (tables 2 et 5), envoyées par le service de la salle. */
+    /**
+     * C : deux poules dans la salle, lancées en bloc par le service de la salle (phase
+     * de poules : on lance une poule, pas un match) : la poule B, à moitié jouée match
+     * par match, finit sa dernière partie à la table 2 ; la poule C entière à la table 5.
+     */
     private static void salleC(Tournoi t, Tableau c, Instant maintenant) {
         if (c.getPoules().size() < 3) {
             return;
         }
-        Match finPouleB = c.getPoules().get(1).getMatchs().get(2);
-        Match debutPouleC = c.getPoules().get(2).getMatchs().get(0);
-        new ServiceSalle(() -> maintenant.minusSeconds(15 * 60L)).affecter(t, finPouleB, 2);
-        new ServiceSalle(() -> maintenant.minusSeconds(6 * 60L)).affecter(t, debutPouleC, 5);
+        new ServiceSalle(() -> maintenant.minusSeconds(15 * 60L)).lancerPoule(t, c.getPoules().get(1), 2);
+        new ServiceSalle(() -> maintenant.minusSeconds(6 * 60L)).lancerPoule(t, c.getPoules().get(2), 5);
     }
 
     /** B : pointage ouvert, 8 pointés sur 12, des paiements en ligne non encore pointés. */

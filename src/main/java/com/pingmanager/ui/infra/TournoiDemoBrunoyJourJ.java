@@ -45,7 +45,8 @@ import java.util.Map;
  * <ol>
  *   <li>tableau final tiré, premier tour joué, tour suivant entamé, un match en cours ;</li>
  *   <li>poules toutes jouées : prêt pour le tirage du tableau final ;</li>
- *   <li>lancé, poules en cours (un score, un forfait), trois parties dans la salle ;</li>
+ *   <li>lancé, poules en cours (un score, un forfait), trois poules entières dans la salle
+ *       (tables 4, 7, 9 ; la première a déjà joué sa partie 1) ;</li>
  *   <li>pointage clôturé, tout le monde présent : prêt pour le tirage des poules ;</li>
  *   <li>pointage ouvert : une partie des joueurs pointés et payés ;</li>
  *   <li>les suivants, et tous ceux du dimanche, encore en inscription.</li>
@@ -67,7 +68,7 @@ public final class TournoiDemoBrunoyJourJ {
     /** Table du match en cours du tableau final (1er tableau du samedi). */
     public static final int TABLE_TABLEAU_FINAL = 1;
 
-    /** Tables des parties en cours du tableau lancé (3e tableau du samedi). */
+    /** Tables des poules lancées en bloc du tableau lancé (3e tableau du samedi). */
     public static final List<Integer> TABLES_POULES = List.of(4, 7, 9);
 
     private TournoiDemoBrunoyJourJ() {
@@ -223,18 +224,27 @@ public final class TournoiDemoBrunoyJourJ {
                 saisie.enregistrerIssue(tab, forfait, IssueMatch.FORFAIT, forfait.getJoueurB());
             }
         }
-        // Trois parties en salle, dans les poules suivantes (premier match de chacune) ; une
-        // partie dont un joueur est déjà à une table est refusée : on passe à la poule suivante.
+        // Trois poules entières en salle (phase de poules : on lance une poule, pas un match),
+        // sur les tables 4, 7 et 9 ; une poule dont un joueur est déjà à une table est refusée :
+        // on passe à la suivante. Dans la première, la partie 1 a déjà son score (saisi au fil
+        // de l'eau) : la poule continue sur sa table.
         int minutes = 18;
         int k = 0;
+        Poule premiereLancee = null;
         for (int p = terminees + 1; p < poules.size() && k < TABLES_POULES.size(); p++) {
-            Match m = poules.get(p).getMatchs().get(0);
             long depuis = minutes * 60L;
-            if (new ServiceSalle(() -> maintenant.minusSeconds(depuis)).affecter(t, m, TABLES_POULES.get(k))
-                    .estReussi()) {
+            if (new ServiceSalle(() -> maintenant.minusSeconds(depuis)).lancerPoule(t, poules.get(p),
+                    TABLES_POULES.get(k)).estReussi()) {
+                if (premiereLancee == null) {
+                    premiereLancee = poules.get(p);
+                }
                 k++;
                 minutes -= 6;
             }
+        }
+        if (premiereLancee != null) {
+            new SaisieResultatMatch(() -> maintenant.minusSeconds(4 * 60L))
+                    .enregistrerScore(tab, premiereLancee.getMatchs().get(0), scoreVictoire(true));
         }
     }
 

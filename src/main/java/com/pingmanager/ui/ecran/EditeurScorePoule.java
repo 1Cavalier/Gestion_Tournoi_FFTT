@@ -160,7 +160,8 @@ final class EditeurScorePoule {
         annulerBouton.setOnAction(e -> annuler.run());
         HBox actions = Ui.actions(annulerBouton);
         if (lancerCeMatch != null) {
-            Button lancer = Ui.boutonPrimaire("Lancer ce match");
+            // Phase de poules : on lance la poule entière (l'interface « Lancer un match » la propose).
+            Button lancer = Ui.boutonPrimaire("Lancer sa poule");
             lancer.setOnAction(e -> lancerCeMatch.run());
             actions = Ui.actions(lancer, annulerBouton);
         }
