@@ -145,7 +145,7 @@ final class EcranJourJ {
             enregistrer();
         }
         EcranSalle principal = new EcranSalle(tournoi, this::enregistrer, onRetour, libelleRetour, "Jour J",
-                this::bandeauTableaux, Horloge.systeme()).surOuvrirTableau(this::ouvrirTableau)
+                this::bandeauTableaux, Horloge.systeme())
                 .avecSms(contexte.convocationsSms(), () -> depuisAnnonces(this::afficherSms))
                 .avecAnnoncesVocales(contexte.annoncesVocales())
                 .avecPrononciations(() -> depuisAnnonces(this::afficherPrononciations))
@@ -193,23 +193,6 @@ final class EcranJourJ {
     private void afficherSms() {
         racine.setCenter(new EcranConvocationsSms(tournoi, contexte.convocationsSms(), contexte.smsSimule(),
                 this::enregistrer, this::afficherListe, Horloge.systeme()).build());
-    }
-
-    /** Ouvre les poules ou l'arbre d'un tableau désigné par son nom (depuis « pourquoi »). */
-    private void ouvrirTableau(String nom) {
-        for (PresentationAvancement.Journee j : PresentationAvancement.journees(tournoi)) {
-            for (PresentationAvancement.Ligne l : j.lignes()) {
-                if (l.tableau().getNom().equals(nom)) {
-                    if (l.vue() == PresentationAvancement.Detail.POULES) {
-                        afficherPoules(l.tableau(), false);
-                    } else {
-                        afficherTableauFinal(l.tableau());
-                    }
-                    return;
-                }
-            }
-        }
-        afficherListe();
     }
 
     /**

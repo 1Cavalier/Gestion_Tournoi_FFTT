@@ -2,8 +2,6 @@ package com.pingmanager.ui.ecran;
 
 import com.pingmanager.core.AnnonceRencontre;
 import com.pingmanager.core.Horloge;
-import com.pingmanager.core.ListeLancements;
-import com.pingmanager.core.ResultatPropositionSalle;
 import com.pingmanager.core.SaisieResultatMatch;
 import com.pingmanager.core.ServicePhaseFinale;
 import com.pingmanager.core.ServiceSalle;
@@ -30,8 +28,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -52,19 +48,17 @@ import java.util.function.Supplier;
 /**
  * Écran principal du juge-arbitre le jour J, de haut en bas : bandeau « Jour J »
  * et nom du tournoi ; trois cartes carrées ({@link TableauDeBordJourJ}) :
- * « Lancer un match » (ouvre à gauche l'{@link InterfaceLancementMatch} :
- * matchs proposés avec leur table et l'attente des joueurs, choix manuel),
- * « Annonces » ({@link PanneauAnnonces}) et « Stratégie en place »
- * ({@link PanneauStrategie}), qui ouvrent chacune leur panneau à la place de
- * l'écran (B056) ; la liste des tableaux avec leur frise
+ * « Lancer un match » ({@link PanneauLancementMatch}, B057 : proposition,
+ * « Autre », liste des matchs à lancer), « Annonces » ({@link PanneauAnnonces})
+ * et « Stratégie en place » ({@link PanneauStrategie}), qui ouvrent chacune leur
+ * panneau à la place de l'écran (B056) ; la liste des tableaux avec leur frise
  * (fournie par {@link EcranJourJ}) ; enfin la salle, une carte par table.
  *
  * <p>Gestes du juge-arbitre, en peu de clics :</p>
  * <ul>
- *   <li>« Proposer » (Alt+P) remplit les tables libres selon l'ordonnanceur ;</li>
- *   <li>« Table N » sur un match proposé l'envoie en un clic sur la première
- *       table libre ; glisser un match sur une table libre, ou « Autre table… »
- *       (bouton ou clic droit) ; « Envoyer le prochain » sur une table libre ;</li>
+ *   <li>« Lancer un match » : proposition de l'ordonnanceur, « Autre », ou un
+ *       match de la liste, sur la table libre choisie ; « Envoyer le prochain »
+ *       sur une table libre ;</li>
  *   <li>« Terminer » sur une table ouvre la saisie du score (composants des
  *       poules et du tableau final) ; à l'enregistrement la table se libère et
  *       tout se met à jour ;</li>
@@ -103,16 +97,17 @@ final class EcranSalle {
     private String messageErreur;
     /** Table libérée par le dernier score saisi : propose d'y enchaîner le match suivant. */
     private int tableLiberee;
-    /** Interface « Lancer un match » (B055) : garde l'onglet, la recherche et les tables choisies. */
-    private final InterfaceLancementMatch lancement = new InterfaceLancementMatch(new ActionsLancement());
+    /** Interface « Lancer un match » (B057) : garde la proposition et les tables choisies. */
+    private final PanneauLancementMatch lancement;
+    /** Surveille la salle quand « Lancer un match » est ouvert (match terminé ailleurs, table libérée). */
+    private Timeline veilleLancement;
+    private static final Duration FREQUENCE_VEILLE_LANCEMENT = Duration.seconds(3);
     /** Tables dont l'annulation attend la confirmation. */
     private final Set<Integer> annulationsAConfirmer = new HashSet<>();
     /** Lancement suspendu le temps de choisir comment annoncer la rencontre. */
     private Consumer<ModeAnnonce> lancementEnAttente;
     /** Annonces du dernier lancement, affichées à l'écran. */
     private List<AnnonceRencontre> annonces = List.of();
-    /** Ouvre un tableau (poules ou arbre) par son nom, ou null. */
-    private Consumer<String> ouvrirTableau;
     private final Horloge horloge;
     /** Convocations par SMS (B019), ou null si non branchées. */
     private com.pingmanager.core.ServiceConvocationsSms sms;
@@ -122,10 +117,12 @@ final class EcranSalle {
     private com.pingmanager.ui.infra.DiffuseurAnnonces voix;
     /** Ouvre l'écran « Prononciation des noms » (B018), ou null. */
     private Runnable ouvrirPrononciations;
-    /** Interface « Lancer un match » ouverte (colonne de gauche) ? */
-    private boolean lancementOuvert;
-    /** Panneau ouvert à la place de l'écran (B056) : {@link #PANNEAU_ANNONCES}, {@link #PANNEAU_STRATEGIE} ou vide. */
+    /**
+     * Panneau ouvert à la place de l'écran (B056, B057) : {@link #PANNEAU_LANCEMENT},
+     * {@link #PANNEAU_ANNONCES}, {@link #PANNEAU_STRATEGIE} ou vide.
+     */
     private String panneau = "";
+    private static final String PANNEAU_LANCEMENT = "lancement";
     private static final String PANNEAU_ANNONCES = "annonces";
     private static final String PANNEAU_STRATEGIE = "strategie";
     /** Panneaux du jour J (B056), créés à la première ouverture. */
@@ -162,14 +159,9 @@ final class EcranSalle {
         this.horloge = horloge;
         this.saisiePoule = new SaisieResultatMatch(horloge);
         this.defilement = Ui.defilant(new VBox());
+        this.lancement = new PanneauLancementMatch(tournoi, new ActionsLancement());
         racine.setCenter(defilement);
         racine.getStyleClass().add("salle");
-    }
-
-    /** Permet d'ouvrir les poules ou l'arbre d'un tableau depuis l'interface « Lancer un match ». */
-    EcranSalle surOuvrirTableau(Consumer<String> ouvrir) {
-        this.ouvrirTableau = ouvrir;
-        return this;
     }
 
     /**
@@ -339,6 +331,16 @@ final class EcranSalle {
         if (ferme()) {
             contenu.getChildren().add(Ui.encartInfo("Ce tournoi est annulé : la salle est fermée."));
         }
+        // B057 : « Lancer un match » prend la place de l'écran, sous son propre en-tête ;
+        // les messages, annonces et la question « Comment annoncer ? » restent au-dessus.
+        if (PANNEAU_LANCEMENT.equals(panneau)) {
+            contenu.getChildren().remove(0, 2);
+            contenu.getChildren().add(0, lancement.entete());
+            contenu.getChildren().add(lancement.corps(salle.listeLancements(tournoi), bord.getNombreDeTables(),
+                    ferme(), tournoi.imprimerFeuilleALEnvoi()));
+            afficherContenu(contenu, position);
+            return;
+        }
         // B056 : un panneau ouvert prend la place de l'écran ; « Fermer » ramène au jour J.
         if (!panneau.isEmpty()) {
             Button retourJourJ = Ui.boutonLien(TextesPanneauxJourJ.RETOUR);
@@ -377,15 +379,14 @@ final class EcranSalle {
     }
 
     /**
-     * Colonne de gauche : saisie du score, ou l'interface « Lancer un match »
-     * ({@link InterfaceLancementMatch}) quand elle est ouverte ; rien sinon (la
-     * page prend toute la largeur).
+     * Colonne de gauche : saisie du score ; rien sinon (la page prend toute la
+     * largeur).
      */
     private Node colonneGauche() {
         if (enSaisie != null) {
             return panneauSaisie(enSaisie);
         }
-        return lancementOuvert ? colonneLancement() : null;
+        return null;
     }
 
     // ==================================================================
@@ -394,13 +395,12 @@ final class EcranSalle {
 
     /** Les trois cartes carrées, côte à côte (en colonne sur petite largeur). */
     private Node cartes() {
-        Button lancer = Ui.boutonPrimaire(lancementOuvert ? "Fermer" : "_Lancer un match");
+        Button lancer = Ui.boutonPrimaire("_Lancer un match");
         lancer.setMnemonicParsing(true);
-        lancer.setTooltip(new Tooltip("Alt+L · matchs proposés avec leur table et l'attente des joueurs, "
-                + "« Proposer » et choix manuel du match et de la table."));
+        lancer.setTooltip(new Tooltip("Alt+L · proposer un match et l'envoyer sur une table libre."));
         VBox carteLancer = TableauDeBordJourJ.carte(Ui.icone(Icones.RAQUETTE, "icone"),
                 PresentationTableauDeBordJourJ.CARTE_LANCER, PresentationTableauDeBordJourJ.valeurLancer(bord),
-                PresentationTableauDeBordJourJ.detailLancer(bord), lancer, lancementOuvert, this::basculerLancement);
+                PresentationTableauDeBordJourJ.detailLancer(bord), lancer, false, this::ouvrirLancementMatch);
 
         boolean voixDispo = voix != null && voix.service().voixDisponible();
         Button annonces = Ui.boutonSecondaire("Régler les annonces");
@@ -435,18 +435,47 @@ final class EcranSalle {
         panneau = PANNEAU_STRATEGIE;
     }
 
-    private void basculerLancement() {
-        lancementOuvert = !lancementOuvert;
-        if (lancementOuvert) {
-            lancement.reinitialiser();
-        }
-        afficher();
+    /** Carte « Lancer un match » : ouvre l'interface neuve, zone de proposition vide. */
+    private void ouvrirLancementMatch() {
+        lancement.reinitialiser();
+        basculerPanneau(PANNEAU_LANCEMENT);
     }
 
     private void basculerPanneau(String nom) {
         panneau = nom.equals(panneau) ? "" : nom;
         defilement.setVvalue(0);
+        if (PANNEAU_LANCEMENT.equals(panneau)) {
+            demarrerVeilleLancement();
+        } else {
+            arreterVeilleLancement();
+        }
         afficher();
+    }
+
+    /**
+     * B057 : tant que « Lancer un match » est ouvert, la salle est relue toutes
+     * les 3 secondes ; si un match s'est terminé ailleurs (table libérée, joueurs
+     * de nouveau libres), l'interface se redessine, en gardant les choix faits.
+     */
+    private void demarrerVeilleLancement() {
+        arreterVeilleLancement();
+        veilleLancement = new Timeline(new KeyFrame(FREQUENCE_VEILLE_LANCEMENT, e -> {
+            if (!PANNEAU_LANCEMENT.equals(panneau) || racine.getScene() == null || lancementEnAttente != null) {
+                return;
+            }
+            if (lancement.aChange(salle.listeLancements(tournoi))) {
+                afficher();
+            }
+        }));
+        veilleLancement.setCycleCount(Timeline.INDEFINITE);
+        veilleLancement.play();
+    }
+
+    private void arreterVeilleLancement() {
+        if (veilleLancement != null) {
+            veilleLancement.stop();
+            veilleLancement = null;
+        }
     }
 
     /** Panneau « Annonces » (B056), gardé d'un affichage à l'autre (état replié ou déplié). */
@@ -578,7 +607,6 @@ final class EcranSalle {
         carte.setMaxWidth(220);
 
         if (c.estLibre()) {
-            carte.getChildren().add(Ui.aide("Glissez un match proposé ici."));
             Button prochain = Ui.boutonSecondaire("Envoyer le prochain");
             if (bord.getPrets().isEmpty() || ferme()) {
                 prochain.setDisable(true);
@@ -589,7 +617,6 @@ final class EcranSalle {
                 prochain.setOnAction(e -> affecter(premier.match(), c.numero()));
             }
             carte.getChildren().add(prochain);
-            accepterDepot(carte, c.numero());
         } else {
             MatchSalle m = c.match();
             Label tableau = Ui.discret(m.tableau());
@@ -694,33 +721,6 @@ final class EcranSalle {
     }
 
 
-    /** Une table libre accepte un match prêt glissé depuis la colonne de droite. */
-    private void accepterDepot(VBox carte, int table) {
-        carte.setOnDragOver(e -> {
-            Dragboard d = e.getDragboard();
-            if (d.hasString() && PresentationSalle.lireCleGlisser(d.getString()) >= 0) {
-                e.acceptTransferModes(TransferMode.MOVE);
-            }
-            e.consume();
-        });
-        carte.setOnDragEntered(e -> {
-            if (e.getDragboard().hasString()) {
-                carte.getStyleClass().add("salle-table-survol");
-            }
-        });
-        carte.setOnDragExited(e -> carte.getStyleClass().remove("salle-table-survol"));
-        carte.setOnDragDropped(e -> {
-            int rang = PresentationSalle.lireCleGlisser(e.getDragboard().getString());
-            boolean ok = rang >= 0 && rang < bord.getPrets().size();
-            e.setDropCompleted(ok);
-            e.consume();
-            if (ok) {
-                Match m = bord.getPrets().get(rang).match();
-                javafx.application.Platform.runLater(() -> affecter(m, table));
-            }
-        });
-    }
-
     private Node carteAnomalies() {
         VBox lignes = new VBox(0);
         for (MatchSalle m : bord.getAnomalies()) {
@@ -738,76 +738,30 @@ final class EcranSalle {
     }
 
     // ==================================================================
-    // Interface « Lancer un match » (B055)
+    // Interface « Lancer un match » (B057)
     // ==================================================================
 
-    /** Interface « Lancer un match », recalculée par le cœur à chaque affichage. */
-    private Node colonneLancement() {
-        ListeLancements liste = salle.listeLancements(tournoi);
-        VBox colonne = lancement.construire(liste, bord.getNombreDeTables(), ferme(),
-                tournoi.imprimerFeuilleALEnvoi(), this::cleGlisser);
-        return cote(colonne);
-    }
-
-    /** Donnée glissée d'un match vers une table libre (rang dans les matchs prêts), ou null. */
-    private String cleGlisser(Match m) {
-        List<MatchSalle> prets = bord.getPrets();
-        for (int i = 0; i < prets.size(); i++) {
-            if (prets.get(i).match() == m) {
-                return PresentationSalle.cleGlisser(i);
-            }
-        }
-        return null;
-    }
-
-    /** Colonne de gauche défilante, largeur fixe. */
-    private Node cote(VBox colonne) {
-        colonne.getStyleClass().add("salle-colonne");
-        colonne.setPrefWidth(420);
-        colonne.setMaxWidth(420);
-        ScrollPane s = Ui.defilant(colonne);
-        s.getStyleClass().add("salle-cote");
-        s.setMinWidth(440);
-        BorderPane.setMargin(s, new Insets(24, 0, 24, 24));
-        return s;
-    }
-
     /** Gestes de l'interface « Lancer un match », branchés sur la salle. */
-    private final class ActionsLancement implements InterfaceLancementMatch.Actions {
+    private final class ActionsLancement implements PanneauLancementMatch.Actions {
         @Override
         public void lancer(Match match, int table) {
             affecter(match, table);
         }
 
         @Override
-        public void proposer() {
-            EcranSalle.this.proposer();
+        public void feuilleALEnvoi(boolean imprimer) {
+            tournoi.setImprimerFeuilleALEnvoi(imprimer);
+            apresAction(true, imprimer ? TextesLancementMatch.FEUILLE_OUI : TextesLancementMatch.FEUILLE_NON);
         }
 
         @Override
         public void fermer() {
-            basculerLancement();
-        }
-
-        @Override
-        public void feuilleALEnvoi(boolean imprimer) {
-            tournoi.setImprimerFeuilleALEnvoi(imprimer);
-            apresAction(true, imprimer
-                    ? "La feuille de match sera imprimée à chaque envoi sur une table."
-                    : "Les feuilles de match ne s'impriment plus à l'envoi (bouton « Feuille » sur chaque table).");
+            basculerPanneau(PANNEAU_LANCEMENT);
         }
 
         @Override
         public void rafraichir() {
             afficher();
-        }
-
-        @Override
-        public void ouvrirTableau(String nom) {
-            if (ouvrirTableau != null) {
-                arreterMinuterie();
-                ouvrirTableau.accept(nom);
-            }
         }
     }
 
@@ -930,7 +884,7 @@ final class EcranSalle {
             if (tableau == null) {
                 enSaisie = null;
                 messageErreur = "Ce match n'appartient plus à aucun tableau.";
-                return lancementOuvert ? colonneLancement() : null;
+                return null;
             }
             editeur = new VBox(12, titre,
                     EditeurScorePhaseFinale.creer(tableau, m, servicePhaseFinale, fermer, this::apresResultat));
@@ -982,28 +936,6 @@ final class EcranSalle {
     // Actions
     // ==================================================================
 
-    private void proposer() {
-        lancerAvecAnnonce(mode -> {
-            ResultatPropositionSalle r = salle.proposer(tournoi);
-            if (r.aLance()) {
-                List<AnnonceRencontre> liste = new ArrayList<>();
-                StringBuilder smsEnvoyes = new StringBuilder();
-                for (ResultatPropositionSalle.Lancement l : r.getLancements()) {
-                    liste.add(AnnonceRencontre.preparer(mode, l.match().match(), l.table(),
-                            PresentationSalle.contexte(l.match())));
-                    smsEnvoyes.append(smsApresLancement(l.match().match(), l.table(), mode));
-                    smsEnvoyes.append(voixApresLancement(l.match().match(), l.table(), mode));
-                }
-                annonces = annonceVocaleSeule(mode) ? List.of() : liste;
-                List<Match> lances = new ArrayList<>();
-                r.getLancements().forEach(l -> lances.add(l.match().match()));
-                apresAction(true, PresentationSalle.messageProposition(r) + feuillesALEnvoi(lances) + smsEnvoyes);
-                return;
-            }
-            apresAction(false, PresentationSalle.messageProposition(r));
-        });
-    }
-
     private void affecter(Match m, int table) {
         lancerAvecAnnonce(mode -> {
             String contexte = contexteDe(m);
@@ -1014,7 +946,15 @@ final class EcranSalle {
                         : List.of(AnnonceRencontre.preparer(mode, m, table, contexte));
                 smsEnvoyes = smsApresLancement(m, table, mode) + voixApresLancement(m, table, mode);
             }
-            String texte = PresentationSalle.message(r, bord.getNombreDeTables());
+            String texte;
+            if (PANNEAU_LANCEMENT.equals(panneau)) {
+                // B057 : message court du juge-arbitre ; l'écran se met à jour dans tous les cas.
+                lancement.apresLancement(m, r.estReussi());
+                texte = r.estReussi() ? PresentationLancementMatch.lance(m, table)
+                        : PresentationLancementMatch.refus(r, bord.getNombreDeTables());
+            } else {
+                texte = PresentationSalle.message(r, bord.getNombreDeTables());
+            }
             if (r.estReussi()) {
                 texte += feuillesALEnvoi(List.of(m));
             }
@@ -1070,7 +1010,6 @@ final class EcranSalle {
     private void demarrerMinuterie() {
         minuterie = new Timeline(new KeyFrame(FREQUENCE_CHRONO, e -> {
             chronos.forEach(this::majChrono);
-            lancement.rafraichirAttentes(salle.maintenant());
             verifierRappels();
         }));
         minuterie.setCycleCount(Timeline.INDEFINITE);
@@ -1079,6 +1018,9 @@ final class EcranSalle {
         racine.sceneProperty().addListener((o, avant, apres) -> {
             if (apres == null) {
                 arreterMinuterie();
+                arreterVeilleLancement();
+            } else if (PANNEAU_LANCEMENT.equals(panneau)) {
+                demarrerVeilleLancement();
             }
         });
     }

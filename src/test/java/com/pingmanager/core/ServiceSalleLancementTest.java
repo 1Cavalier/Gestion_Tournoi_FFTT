@@ -218,4 +218,137 @@ class ServiceSalleLancementTest {
         assertEquals(ResultatAffectationTable.Motif.TABLE_HORS_LIMITES,
                 vide.getProposes().get(0).refus().getMotif());
     }
+
+    // ------------------------------------------------------------------
+    // B057 : nouvelle interface « Lancer un match »
+    // ------------------------------------------------------------------
+
+    @Test
+    void jouables_par_priorite_sans_les_matchs_d_un_joueur_qui_joue_ailleurs() {
+        Tournoi t = tournoiSixJoueurs(4);
+        Match enJeu = poule(t, 0).getMatchs().get(0);
+        assertTrue(salle.affecter(t, enJeu, 1).estReussi());
+
+        ListeLancements liste = salle.listeLancements(t);
+        List<ListeLancements.Ligne> jouables = liste.getJouables();
+
+        assertEquals(3, jouables.size(), "poule de 3 : les deux autres parties attendent un joueur en jeu");
+        assertTrue(jouables.stream().allMatch(l -> l.match().match().getJoueurA() != enJeu.getJoueurA()
+                && l.match().match().getJoueurB() != enJeu.getJoueurA()
+                && l.match().match().getJoueurA() != enJeu.getJoueurB()
+                && l.match().match().getJoueurB() != enJeu.getJoueurB()));
+        // Même ordre que la liste de l'ordonnanceur : pas de second calcul de priorité.
+        List<ListeLancements.Ligne> attendus = liste.getProposes().stream().filter(ListeLancements.Ligne::estPret)
+                .toList();
+        assertEquals(attendus, jouables);
+    }
+
+    @Test
+    void autre_passe_a_la_proposition_suivante_puis_revient_a_la_premiere() {
+        Tournoi t = tournoiSixJoueurs(4);
+        ListeLancements liste = salle.listeLancements(t);
+        List<ListeLancements.Ligne> jouables = liste.getJouables();
+        assertEquals(6, jouables.size());
+
+        ListeLancements.Ligne courante = liste.propositionApres(null).orElseThrow();
+        assertSame(jouables.get(0), courante, "premier appui : la plus prioritaire");
+        for (int i = 1; i < jouables.size(); i++) {
+            courante = liste.propositionApres(courante.match().match()).orElseThrow();
+            assertSame(jouables.get(i), courante);
+        }
+        assertSame(jouables.get(0), liste.propositionApres(courante.match().match()).orElseThrow(),
+                "après la dernière, retour à la première");
+        Match horsListe = new Match(j("X1"), j("X2"));
+        assertSame(jouables.get(0), liste.propositionApres(horsListe).orElseThrow(),
+                "proposition qui n'est plus jouable : on repart de la plus prioritaire");
+    }
+
+    @Test
+    void aucune_proposition_sans_match_jouable() {
+        Tournoi t = tournoiSixJoueurs(4);
+        for (Poule p : t.getTableaux().get(0).getPoules()) {
+            for (Match m : p.getMatchs()) {
+                m.setStatut(StatutMatch.TERMINE);
+            }
+        }
+        ListeLancements liste = salle.listeLancements(t);
+        assertTrue(liste.getJouables().isEmpty());
+        assertTrue(liste.propositionApres(null).isEmpty());
+    }
+
+    @Test
+    void sans_table_libre_les_matchs_restent_jouables_mais_pas_lancables() {
+        Tournoi t = tournoiSixJoueurs(1);
+        assertTrue(salle.affecter(t, poule(t, 0).getMatchs().get(0), 1).estReussi());
+
+        ListeLancements liste = salle.listeLancements(t);
+
+        assertEquals(3, liste.getJouables().size());
+        assertTrue(liste.getJouables().stream().noneMatch(ListeLancements.Ligne::estLancable));
+        assertTrue(liste.getJouables().stream().allMatch(l -> l.tablesPossibles().isEmpty()));
+        assertTrue(liste.propositionApres(null).isPresent(), "la proposition s'affiche, « Lancer » est désactivé");
+    }
+
+    @Test
+    void numero_du_match_dans_son_tableau_et_echelon() {
+        Tournoi t = tournoiSixJoueurs(4);
+        ListeLancements liste = salle.listeLancements(t);
+
+        List<Integer> numeros = liste.getParTableau().stream().map(ListeLancements.Ligne::numero).toList();
+        assertEquals(List.of(1, 2, 3, 4, 5, 6), numeros, "poules dans l'ordre officiel (I.301)");
+        ListeLancements.Ligne premiere = ligne(liste, poule(t, 0).getMatchs().get(0));
+        assertEquals("Poule " + poule(t, 0).getNom(), premiere.echelon());
+        assertEquals("Poule " + poule(t, 1).getNom(), ligne(liste, poule(t, 1).getMatchs().get(2)).echelon());
+        assertEquals(6, ligne(liste, poule(t, 1).getMatchs().get(2)).numero());
+    }
+
+    @Test
+    void meme_table_choisie_deux_fois_le_second_lancement_est_refuse() {
+        Tournoi t = tournoiSixJoueurs(4);
+        // Le bandeau et une ligne de la liste affichent tous deux la table 3.
+        Match bandeau = poule(t, 0).getMatchs().get(0);
+        Match ligneListe = poule(t, 1).getMatchs().get(0);
+        assertTrue(salle.verifierLancement(t, bandeau, 3).estReussi());
+        assertTrue(salle.verifierLancement(t, ligneListe, 3).estReussi());
+
+        assertTrue(salle.affecter(t, ligneListe, 3).estReussi());
+        ResultatAffectationTable r = salle.affecter(t, bandeau, 3);
+
+        assertEquals(ResultatAffectationTable.Motif.TABLE_OCCUPEE, r.getMotif());
+        assertEquals(3, r.getNumeroTable());
+        assertEquals(StatutMatch.A_JOUER, bandeau.getStatut(), "rien n'est modifié en cas de refus");
+        assertNull(bandeau.getNumeroTable());
+    }
+
+    @Test
+    void joueur_lance_entre_l_affichage_et_l_appui_le_lancement_est_refuse() {
+        Tournoi t = tournoiSixJoueurs(4);
+        Match affiche = poule(t, 0).getMatchs().get(0);
+        ListeLancements avant = salle.listeLancements(t);
+        assertTrue(avant.jouable(affiche).isPresent());
+        // Entre-temps, un autre match d'un de ses joueurs part sur la table 2.
+        Match memeJoueur = poule(t, 0).getMatchs().get(1);
+        assertTrue(salle.affecter(t, memeJoueur, 2).estReussi());
+
+        ResultatAffectationTable r = salle.affecter(t, affiche, 1);
+
+        assertEquals(ResultatAffectationTable.Motif.JOUEUR_DEJA_EN_JEU, r.getMotif());
+        assertEquals(Integer.valueOf(2), r.getTableDuJoueurBloquant());
+        assertEquals(StatutMatch.A_JOUER, affiche.getStatut());
+        assertTrue(salle.listeLancements(t).jouable(affiche).isEmpty(), "il quitte la liste des jouables");
+    }
+
+    @Test
+    void match_termine_ailleurs_ses_joueurs_et_sa_table_redeviennent_libres() {
+        Tournoi t = tournoiSixJoueurs(4);
+        Match enJeu = poule(t, 0).getMatchs().get(0);
+        assertTrue(salle.affecter(t, enJeu, 1).estReussi());
+        assertEquals(3, salle.listeLancements(t).getJouables().size());
+
+        enJeu.setStatut(StatutMatch.TERMINE); // score saisi sur un autre écran
+
+        ListeLancements apres = salle.listeLancements(t);
+        assertTrue(apres.getTablesLibres().contains(1));
+        assertEquals(5, apres.getJouables().size());
+    }
 }
