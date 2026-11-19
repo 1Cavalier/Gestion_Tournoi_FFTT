@@ -426,7 +426,7 @@ final class EcranSalle {
 
     /** Ouvre l'interface « Lancer un match » (avant {@link #build()}) : raccourci depuis un match non lancé. */
     void ouvrirLancement() {
-        lancementOuvert = true;
+        panneau = PANNEAU_LANCEMENT;
         lancement.reinitialiser();
     }
 
